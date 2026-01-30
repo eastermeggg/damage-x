@@ -3930,27 +3930,92 @@ export default function App() {
         // (les données seront ajoutées après upload de documents)
         const isEmptyProcedure = currentProc?.isEmpty === true;
 
-        // UI de progression pendant l'extraction
+        // UI de progression pendant l'extraction - Premium version
         if (extractionState && extractionState.phase !== 'done') {
+          const extractionPhases = [
+            { key: 'upload', label: 'Réception', icon: Upload },
+            { key: 'analyse', label: 'Analyse', icon: FileSearch },
+            { key: 'ocr', label: 'Lecture', icon: Eye },
+            { key: 'extraction', label: 'Extraction', icon: Sparkles },
+            { key: 'postes', label: 'Postes', icon: ListChecks },
+          ];
+          const currentPhaseIndex = extractionPhases.findIndex(p => p.key === extractionState.phase);
+
           return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-              <div className="text-center max-w-sm">
-                <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-                  <Sparkles className="w-7 h-7 text-indigo-600 animate-pulse" />
+            <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fade-up">
+              {/* Cercle central avec animation */}
+              <div className="relative w-24 h-24 mb-8">
+                {/* Cercle gradient tournant */}
+                <div
+                  className="absolute inset-0 rounded-full animate-spin-slow"
+                  style={{
+                    background: 'conic-gradient(from 0deg, #6366f1, #a855f7, #6366f1, transparent 70%)',
+                  }}
+                />
+                {/* Centre blanc avec icône */}
+                <div className="absolute inset-[4px] rounded-full bg-white flex items-center justify-center shadow-inner">
+                  <Sparkles className="w-9 h-9 text-indigo-600 animate-pulse" />
                 </div>
-                <h2 className="text-lg font-semibold text-zinc-800 mb-2">Analyse en cours...</h2>
-                <p className="text-sm text-zinc-500 mb-6">
-                  L'IA analyse vos documents et prépare des suggestions de postes.
-                </p>
-                {/* Progress bar */}
-                <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-indigo-500 transition-all duration-500 ease-out"
-                    style={{ width: `${extractionState.progress}%` }}
-                  />
-                </div>
-                <p className="text-xs text-zinc-400 mt-2">{extractionState.progress}%</p>
               </div>
+
+              {/* Titre dynamique */}
+              <h2 className="text-xl font-semibold text-zinc-800 mb-2 tracking-tight">
+                {extractionPhases[currentPhaseIndex]?.label || 'Analyse'} en cours...
+              </h2>
+              <p className="text-sm text-zinc-500 mb-8">
+                L'IA analyse vos documents
+              </p>
+
+              {/* Étapes visuelles */}
+              <div className="flex items-center gap-1 mb-8">
+                {extractionPhases.map((phase, i) => {
+                  const Icon = phase.icon;
+                  const isActive = i === currentPhaseIndex;
+                  const isDone = i < currentPhaseIndex;
+
+                  return (
+                    <div key={phase.key} className="flex items-center">
+                      <div className={`
+                        w-9 h-9 rounded-xl flex items-center justify-center
+                        transition-all duration-500
+                        ${isDone
+                          ? 'bg-emerald-100'
+                          : isActive
+                            ? 'bg-indigo-100 scale-110'
+                            : 'bg-zinc-100'
+                        }
+                      `}>
+                        {isDone ? (
+                          <Check className="w-4 h-4 text-emerald-600 animate-bounce-in" />
+                        ) : (
+                          <Icon className={`
+                            w-4 h-4 transition-colors duration-300
+                            ${isActive ? 'text-indigo-600' : 'text-zinc-400'}
+                          `} />
+                        )}
+                      </div>
+                      {i < extractionPhases.length - 1 && (
+                        <div className={`
+                          w-4 h-0.5 mx-1 transition-colors duration-500
+                          ${isDone ? 'bg-emerald-300' : 'bg-zinc-200'}
+                        `} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Progress bar avec glow */}
+              <div className="w-64 h-2 bg-zinc-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700 ease-out animate-glow-pulse"
+                  style={{
+                    width: `${extractionState.progress}%`,
+                    background: 'linear-gradient(90deg, #6366f1, #8b5cf6)',
+                  }}
+                />
+              </div>
+              <p className="text-xs text-zinc-400 mt-3 font-medium">{extractionState.progress}%</p>
             </div>
           );
         }
@@ -3958,9 +4023,20 @@ export default function App() {
         // Empty state pédagogique pour nouvelle procédure
         if (isEmptyProcedure) {
           return (
-            <div className="flex flex-col min-h-[70vh] p-6">
+            <div className="flex flex-col min-h-[70vh] p-6 animate-fade-up">
               {/* Zone de drop principale - prend toute la largeur */}
-              <label className="group flex-1 flex flex-col cursor-pointer">
+              <label
+                className="group flex-1 flex flex-col cursor-pointer"
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  if (e.dataTransfer.files?.length) {
+                    handleDocumentUploadForExtraction(e.dataTransfer.files);
+                  }
+                }}
+              >
                 <input
                   type="file"
                   multiple
@@ -3973,53 +4049,94 @@ export default function App() {
                     }
                   }}
                 />
-                <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-zinc-300 rounded-2xl transition-all duration-300 group-hover:border-indigo-400 group-hover:bg-indigo-50/20">
+                <div className={`
+                  relative flex-1 flex flex-col items-center justify-center rounded-2xl
+                  transition-all duration-500 overflow-hidden
+                  ${isDragging
+                    ? 'bg-indigo-50/60 border-2 border-indigo-400'
+                    : 'border-2 border-dashed border-zinc-200 group-hover:border-zinc-300 group-hover:bg-zinc-50/50'
+                  }
+                `}>
+                  {/* Animated gradient border on drag */}
+                  {isDragging && (
+                    <div className="absolute inset-0 rounded-2xl overflow-hidden">
+                      <div
+                        className="absolute inset-[-2px] animate-spin-slow opacity-30"
+                        style={{
+                          background: 'conic-gradient(from 0deg, #6366f1, #a855f7, #6366f1, transparent)',
+                        }}
+                      />
+                    </div>
+                  )}
+
                   {/* Contenu centré */}
-                  <div className="text-center max-w-lg px-8 py-12">
-                    {/* Icône */}
-                    <div className="w-14 h-14 mx-auto mb-6 rounded-2xl bg-zinc-100 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
-                      <Upload className="w-6 h-6 text-zinc-400 group-hover:text-indigo-600 transition-colors" />
+                  <div className="relative z-10 text-center max-w-lg px-8 py-12">
+                    {/* Icône avec animation */}
+                    <div className={`
+                      w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center
+                      transition-all duration-300
+                      ${isDragging
+                        ? 'bg-indigo-100 scale-110 animate-pulse-scale'
+                        : 'bg-zinc-100 group-hover:bg-zinc-200/70 group-hover:scale-105'
+                      }
+                    `}>
+                      <Upload className={`
+                        w-7 h-7 transition-all duration-300
+                        ${isDragging ? 'text-indigo-600' : 'text-zinc-400 group-hover:text-zinc-500'}
+                      `} />
                     </div>
 
                     {/* Titre */}
-                    <h2 className="text-xl font-semibold text-zinc-800 mb-2 tracking-tight">
-                      Déposez vos documents
+                    <h2 className={`
+                      text-xl font-semibold mb-2 tracking-tight transition-colors duration-300
+                      ${isDragging ? 'text-indigo-700' : 'text-zinc-800'}
+                    `}>
+                      {isDragging ? 'Déposez ici' : 'Déposez vos documents'}
                     </h2>
 
                     {/* Sous-titre */}
-                    <p className="text-sm text-zinc-500 mb-6">
-                      Plus vous ajoutez de pièces, plus le chiffrage sera précis
+                    <p className={`
+                      text-sm mb-6 transition-colors duration-300
+                      ${isDragging ? 'text-indigo-500' : 'text-zinc-500'}
+                    `}>
+                      {isDragging ? 'Relâchez pour analyser' : 'Plus vous ajoutez de pièces, plus le chiffrage sera précis'}
                     </p>
 
                     {/* CTA Button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        document.getElementById('drop-zone-input')?.click();
-                      }}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 transition-colors mb-4"
-                    >
-                      <FolderOpen className="w-4 h-4" />
-                      Choisir des fichiers
-                    </button>
+                    {!isDragging && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          document.getElementById('drop-zone-input')?.click();
+                        }}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 active:scale-[0.98] transition-all mb-4"
+                      >
+                        <FolderOpen className="w-4 h-4" />
+                        Choisir des fichiers
+                      </button>
+                    )}
 
                     {/* Hint */}
-                    <p className="text-xs text-zinc-400">
-                      ou glissez-déposez directement ici
-                    </p>
+                    {!isDragging && (
+                      <p className="text-xs text-zinc-400">
+                        ou glissez-déposez directement ici
+                      </p>
+                    )}
 
                     {/* Types acceptés */}
-                    <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t border-zinc-100">
-                      <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                        <FileText className="w-3.5 h-3.5" />
-                        <span>PDF</span>
+                    {!isDragging && (
+                      <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t border-zinc-100">
+                        <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>PDF</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+                          <Image className="w-3.5 h-3.5" />
+                          <span>Images</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                        <Image className="w-3.5 h-3.5" />
-                        <span>Images</span>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </label>
@@ -4581,23 +4698,56 @@ export default function App() {
               </div>
             </div>
             
-            {/* Processing */}
+            {/* Processing - Premium micro-interactions */}
             {processing.length > 0 && (
-              <div className="border-b">
-                {processing.map(p => (
-                  <div key={p.id} className="flex items-center gap-3 px-4 py-3 bg-blue-50">
-                    <div className="w-8 h-8 rounded bg-blue-100 flex items-center justify-center">
-                      {p.phase === 'upload' ? (
-                        <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
-                      ) : (
-                        <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
-                      )}
+              <div className="border-b border-zinc-100">
+                {processing.map((p, index) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-indigo-50/60 via-violet-50/40 to-transparent animate-fade-up"
+                    style={{ animationDelay: `${index * 80}ms` }}
+                  >
+                    {/* Cercle de progression SVG */}
+                    <div className="relative w-10 h-10 flex-shrink-0">
+                      <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
+                        <circle
+                          cx="20" cy="20" r="16"
+                          fill="none"
+                          stroke="#e5e7eb"
+                          strokeWidth="3"
+                        />
+                        <circle
+                          cx="20" cy="20" r="16"
+                          fill="none"
+                          stroke={p.phase === 'upload' ? '#6366f1' : '#8b5cf6'}
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          strokeDasharray="100"
+                          strokeDashoffset={p.phase === 'upload' ? '50' : '0'}
+                          className="transition-all duration-1000 ease-out"
+                        />
+                      </svg>
+                      {/* Icône centrale */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        {p.phase === 'upload' ? (
+                          <Upload className="w-4 h-4 text-indigo-600" />
+                        ) : (
+                          <Sparkles className="w-4 h-4 text-violet-600 animate-pulse" />
+                        )}
+                      </div>
                     </div>
+
+                    {/* Texte */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{p.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {p.phase === 'upload' ? 'Téléchargement...' : 'Extraction IA...'}
+                      <p className="text-sm font-medium text-zinc-800 truncate">{p.name}</p>
+                      <p className="text-xs text-zinc-500">
+                        {p.phase === 'upload' ? 'Téléchargement...' : 'Extraction IA en cours...'}
                       </p>
+                    </div>
+
+                    {/* Shimmer bar */}
+                    <div className="w-20 h-1.5 bg-zinc-200 rounded-full overflow-hidden flex-shrink-0">
+                      <div className="w-full h-full animate-shimmer bg-gradient-to-r from-transparent via-white to-transparent" />
                     </div>
                   </div>
                 ))}
@@ -4624,10 +4774,26 @@ export default function App() {
                     const pieceCount = l.pieceIds?.length || 0;
 
                     const StatusIcon = () => {
-                      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-violet-500" /></div>;
-                      if (isError) return <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center" title="Erreur"><X className="w-3 h-3 text-red-500" /></div>;
-                      if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center" title="Incomplet"><AlertTriangle className="w-3 h-3 text-amber-500" /></div>;
-                      return <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center" title="Validé"><Check className="w-3 h-3 text-emerald-500" /></div>;
+                      if (isSuggested) return (
+                        <div className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center animate-pulse-scale" title="Suggestion IA">
+                          <Sparkles className="w-3 h-3 text-violet-500" />
+                        </div>
+                      );
+                      if (isError) return (
+                        <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center" title="Erreur">
+                          <X className="w-3 h-3 text-red-500" />
+                        </div>
+                      );
+                      if (isIncomplete) return (
+                        <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center" title="Incomplet">
+                          <AlertTriangle className="w-3 h-3 text-amber-500" />
+                        </div>
+                      );
+                      return (
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center animate-bounce-in" title="Validé">
+                          <Check className="w-3 h-3 text-emerald-600" />
+                        </div>
+                      );
                     };
 
                     // Composant indicateur pièces avec tooltip
@@ -4675,7 +4841,13 @@ export default function App() {
                       <div
                         key={l.id}
                         onClick={() => openDsaEditPanel(l)}
-                        className="relative flex items-center px-4 py-3 group cursor-pointer hover:bg-zinc-50 transition-colors"
+                        className={`
+                          relative flex items-center px-4 py-3 group cursor-pointer transition-all duration-300
+                          ${isSuggested
+                            ? 'bg-gradient-to-r from-violet-50/70 to-transparent border-l-[3px] border-violet-400 hover:from-violet-50'
+                            : 'hover:bg-zinc-50'
+                          }
+                        `}
                       >
                         {/* Statut */}
                         <div className="w-10 flex-shrink-0"><StatusIcon /></div>
