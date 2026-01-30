@@ -3310,7 +3310,7 @@ export default function App() {
 
     // Icône de statut
     const StatusIcon = () => {
-      if (status === 'suggested') return <div className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0" title="Suggestion IA"><Sparkles className="w-3 h-3 text-violet-500" /></div>;
+      if (status === 'suggested') return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
       if (status === 'incomplete') return <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0" title="Incomplet"><AlertTriangle className="w-3 h-3 text-amber-500" /></div>;
       return <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0" title="Validé"><Check className="w-3 h-3 text-emerald-500" /></div>;
     };
@@ -3362,18 +3362,10 @@ export default function App() {
           {ligne.montant != null ? fmt(ligne.montant) : '— €'}
         </span>
 
-        {/* Actions en overlay au hover */}
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-l from-zinc-50 via-zinc-50 to-transparent pl-6 pr-1">
-          {status === 'suggested' && (
-            <button onClick={() => handleValidateLigne(ligne.id)} className="px-2.5 py-1 text-xs bg-violet-600 text-white rounded hover:bg-violet-700 flex items-center gap-1 shadow-sm">
-              <Check className="w-3 h-3" />Valider
-            </button>
-          )}
-          <button onClick={() => openDsaEditPanel(ligne)} className="p-1.5 text-zinc-500 bg-white hover:bg-zinc-100 rounded shadow-sm border border-zinc-200">
-            <Edit3 className="w-3.5 h-3.5" />
-          </button>
-          <button onClick={() => handleRejectLigne(ligne.id)} className="p-1.5 text-zinc-500 bg-white hover:text-red-600 hover:bg-red-50 rounded shadow-sm border border-zinc-200">
-            <X className="w-3.5 h-3.5" />
+        {/* Actions en overlay au hover - minimaliste */}
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={() => handleRejectLigne(ligne.id)} className="p-1.5 text-zinc-400 hover:text-zinc-600 transition-colors" title="Supprimer">
+            <X className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -3386,11 +3378,11 @@ export default function App() {
     const isIncomplete = !ligne.label || (ligne.montant == null && ligne.revalorise == null);
     const pieceCount = ligne.pieceIds?.length || 0;
 
-    // Icône de statut
+    // Icône de statut - harmonisé
     const StatusIcon = () => {
-      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0" title="Suggestion IA"><Sparkles className="w-3 h-3 text-violet-500" /></div>;
-      if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0" title="Incomplet"><AlertTriangle className="w-3 h-3 text-amber-500" /></div>;
-      return <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0" title="Validé"><Check className="w-3 h-3 text-emerald-500" /></div>;
+      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
+      if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-zinc-200 flex items-center justify-center flex-shrink-0" title="Incomplet"><AlertTriangle className="w-3 h-3 text-zinc-500" /></div>;
+      return <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center flex-shrink-0 animate-bounce-in" title="Validé"><Check className="w-3 h-3 text-white" /></div>;
     };
 
     // Indicateur pièces avec tooltip
@@ -3449,19 +3441,11 @@ export default function App() {
           {fmt(ligne.montant || ligne.revalorise || 0)}
         </span>
 
-        {/* Actions en overlay au hover */}
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-l from-zinc-50 via-zinc-50 to-transparent pl-6 pr-1">
-          {isSuggested && onValidate && (
-            <button onClick={() => onValidate(ligne)} className="px-2.5 py-1 text-xs bg-violet-600 text-white rounded hover:bg-violet-700 flex items-center gap-1 shadow-sm">
-              <Check className="w-3 h-3" />Valider
-            </button>
-          )}
-          <button onClick={() => onEdit?.(ligne)} className="p-1.5 text-zinc-500 bg-white hover:bg-zinc-100 rounded shadow-sm border border-zinc-200">
-            <Edit3 className="w-3.5 h-3.5" />
-          </button>
+        {/* Actions en overlay au hover - minimaliste */}
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {onDelete && (
-            <button onClick={() => onDelete(ligne)} className="p-1.5 text-zinc-500 bg-white hover:text-red-600 hover:bg-red-50 rounded shadow-sm border border-zinc-200">
-              <X className="w-3.5 h-3.5" />
+            <button onClick={() => onDelete(ligne)} className="p-1.5 text-zinc-400 hover:text-zinc-600 transition-colors" title="Supprimer">
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -3711,9 +3695,9 @@ export default function App() {
                 {procedures.map((proc) => (
                   <button key={proc.id} onClick={() => navigateTo({ id: proc.id, type: 'procedure', title: proc.type })} className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 group transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${proc.isAiGenerated ? 'bg-violet-100' : 'bg-zinc-100'}`}>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${proc.isAiGenerated ? 'bg-indigo-100' : 'bg-zinc-100'}`}>
                         {proc.isAiGenerated ? (
-                          <Sparkles className="w-5 h-5 text-violet-600" strokeWidth={1.5} />
+                          <Sparkles className="w-5 h-5 text-indigo-600" strokeWidth={1.5} />
                         ) : (
                           <Landmark className="w-5 h-5 text-zinc-500" strokeWidth={1.5} />
                         )}
@@ -3722,7 +3706,7 @@ export default function App() {
                         <div className="flex items-center gap-2">
                           <span className="text-[14px] font-medium text-zinc-800">{proc.type}</span>
                           {proc.isAiGenerated && (
-                            <span className="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-violet-100 text-violet-700 flex items-center gap-0.5">
+                            <span className="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-indigo-100 text-indigo-700 flex items-center gap-0.5">
                               <Sparkles className="w-2.5 h-2.5" /> IA
                             </span>
                           )}
@@ -4217,8 +4201,8 @@ export default function App() {
                       const PosteStatusIcon = () => {
                         if (status === 'suggested') {
                           return (
-                            <span className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center" title="Poste suggéré par l'IA">
-                              <Sparkles className="w-3 h-3 text-violet-500" />
+                            <span className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Poste suggéré par l'IA">
+                              <Sparkles className="w-3 h-3 text-indigo-500" />
                             </span>
                           );
                         }
@@ -4256,11 +4240,11 @@ export default function App() {
                               {/* Sparkle IA avec tooltip (seulement si poste non validé) */}
                               {status !== 'validated' && aiReasoning && (
                                 <span className="relative cursor-help">
-                                  <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+                                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                                   {/* Tooltip */}
                                   <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 w-64 p-2.5 bg-zinc-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30 pointer-events-none">
                                     <span className="flex items-start gap-2">
-                                      <Sparkles className="w-3 h-3 text-violet-400 flex-shrink-0 mt-0.5" />
+                                      <Sparkles className="w-3 h-3 text-indigo-400 flex-shrink-0 mt-0.5" />
                                       <span className="text-zinc-300 leading-relaxed">{aiReasoning}</span>
                                     </span>
                                     <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-zinc-900" />
@@ -4987,9 +4971,9 @@ export default function App() {
                     const isIncomplete = !l.label || l.montant == null;
 
                     const StatusIcon = () => {
-                      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-violet-500" /></div>;
-                      if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center" title="Incomplet"><AlertTriangle className="w-3 h-3 text-amber-500" /></div>;
-                      return <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center" title="Validé"><Check className="w-3 h-3 text-emerald-500" /></div>;
+                      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
+                      if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-zinc-200 flex items-center justify-center" title="Incomplet"><AlertTriangle className="w-3 h-3 text-zinc-500" /></div>;
+                      return <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center animate-bounce-in" title="Validé"><Check className="w-3 h-3 text-white" /></div>;
                     };
 
                     return (
@@ -5004,13 +4988,6 @@ export default function App() {
                         <div className="col-span-2 text-right text-sm tabular-nums text-zinc-500">{fmt(l.montant)}</div>
                         <div className="col-span-2 flex items-center justify-end gap-2">
                           <span className="font-semibold tabular-nums text-zinc-900">{fmt(l.revalorise)}</span>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {isSuggested && (
-                              <button onClick={(e) => { e.stopPropagation(); setPgpaData(prev => ({...prev, revenuRef: {...prev.revenuRef, lignes: prev.revenuRef.lignes.map(li => li.id === l.id ? {...li, status: 'validated'} : li)}})); }} className="px-2 py-1 text-xs bg-violet-600 text-white rounded hover:bg-violet-700 flex items-center gap-1">
-                                <Check className="w-3 h-3" />Valider
-                              </button>
-                            )}
-                          </div>
                         </div>
                       </div>
                     );
@@ -5036,9 +5013,9 @@ export default function App() {
                     const isIncomplete = !l.label || l.montant == null;
 
                     const StatusIcon = () => {
-                      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-violet-500" /></div>;
-                      if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center" title="Incomplet"><AlertTriangle className="w-3 h-3 text-amber-500" /></div>;
-                      return <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center" title="Validé"><Check className="w-3 h-3 text-emerald-500" /></div>;
+                      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
+                      if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-zinc-200 flex items-center justify-center" title="Incomplet"><AlertTriangle className="w-3 h-3 text-zinc-500" /></div>;
+                      return <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center animate-bounce-in" title="Validé"><Check className="w-3 h-3 text-white" /></div>;
                     };
 
                     return (
@@ -5051,15 +5028,8 @@ export default function App() {
                         <div className="col-span-5 text-sm font-medium truncate text-zinc-800">{l.label || 'Sans libellé'}</div>
                         <div className="col-span-2 text-sm text-zinc-500">{l.annee}</div>
                         <div className="col-span-2 text-right text-sm tabular-nums text-zinc-500">{fmt(l.montant)}</div>
-                        <div className="col-span-2 flex items-center justify-end gap-2">
+                        <div className="col-span-2 flex items-center justify-end">
                           <span className="font-semibold tabular-nums text-zinc-900">{fmt(l.revalorise)}</span>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {isSuggested && (
-                              <button onClick={(e) => { e.stopPropagation(); setPgpaData(prev => ({...prev, revenuRef: {...prev.revenuRef, lignes: prev.revenuRef.lignes.map(li => li.id === l.id ? {...li, status: 'validated'} : li)}})); }} className="px-2 py-1 text-xs bg-violet-600 text-white rounded hover:bg-violet-700 flex items-center gap-1">
-                                <Check className="w-3 h-3" />Valider
-                              </button>
-                            )}
-                          </div>
                         </div>
                       </div>
                     );
@@ -5582,9 +5552,9 @@ export default function App() {
               const isValidated = l.status === 'validated' && !isIncomplete;
 
               const StatusIcon = () => {
-                if (isSuggested) return <div className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-violet-500" /></div>;
-                if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center" title="Incomplet"><AlertTriangle className="w-3 h-3 text-amber-500" /></div>;
-                return <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center" title="Validé"><Check className="w-3 h-3 text-emerald-500" /></div>;
+                if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
+                if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-zinc-200 flex items-center justify-center" title="Incomplet"><AlertTriangle className="w-3 h-3 text-zinc-500" /></div>;
+                return <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center animate-bounce-in" title="Validé"><Check className="w-3 h-3 text-white" /></div>;
               };
 
               return (
@@ -5600,11 +5570,7 @@ export default function App() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-zinc-900 tabular-nums min-w-[80px] text-right">{fmt(l.montant)}</span>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {isSuggested && (
-                        <button onClick={() => setDfttLignes(prev => prev.map(x => x.id === l.id ? {...x, status: 'validated'} : x))} className="px-2 py-1 text-xs bg-violet-600 text-white rounded hover:bg-violet-700 flex items-center gap-1"><Check className="w-3 h-3" />Valider</button>
-                      )}
-                      <button className="p-1.5 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded"><Edit3 className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => setDfttLignes(prev => prev.filter(x => x.id !== l.id))} className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded"><X className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => setDfttLignes(prev => prev.filter(x => x.id !== l.id))} className="p-1.5 text-zinc-400 hover:text-zinc-600 transition-colors" title="Supprimer"><X className="w-4 h-4" /></button>
                     </div>
                   </div>
                 </div>
@@ -5645,9 +5611,9 @@ export default function App() {
               const isValidated = l.status === 'validated' && !isIncomplete;
 
               const StatusIcon = () => {
-                if (isSuggested) return <div className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-violet-500" /></div>;
-                if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center" title="Incomplet"><AlertTriangle className="w-3 h-3 text-amber-500" /></div>;
-                return <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center" title="Validé"><Check className="w-3 h-3 text-emerald-500" /></div>;
+                if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
+                if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-zinc-200 flex items-center justify-center" title="Incomplet"><AlertTriangle className="w-3 h-3 text-zinc-500" /></div>;
+                return <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center animate-bounce-in" title="Validé"><Check className="w-3 h-3 text-white" /></div>;
               };
 
               return (
@@ -5663,11 +5629,7 @@ export default function App() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-zinc-900 tabular-nums min-w-[80px] text-right">{fmt(l.montant)}</span>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {isSuggested && (
-                        <button onClick={() => setDftpLignes(prev => prev.map(x => x.id === l.id ? {...x, status: 'validated'} : x))} className="px-2 py-1 text-xs bg-violet-600 text-white rounded hover:bg-violet-700 flex items-center gap-1"><Check className="w-3 h-3" />Valider</button>
-                      )}
-                      <button className="p-1.5 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded"><Edit3 className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => setDftpLignes(prev => prev.filter(x => x.id !== l.id))} className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded"><X className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => setDftpLignes(prev => prev.filter(x => x.id !== l.id))} className="p-1.5 text-zinc-400 hover:text-zinc-600 transition-colors" title="Supprimer"><X className="w-4 h-4" /></button>
                     </div>
                   </div>
                 </div>
