@@ -4759,8 +4759,8 @@ export default function App() {
 
                     const StatusIcon = () => {
                       if (isSuggested) return (
-                        <div className="w-5 h-5 rounded-full bg-zinc-200 flex items-center justify-center animate-pulse-scale" title="Suggestion IA">
-                          <Sparkles className="w-3 h-3 text-zinc-500" />
+                        <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA">
+                          <Sparkles className="w-3 h-3 text-indigo-500" />
                         </div>
                       );
                       if (isError) return (
@@ -4826,9 +4826,9 @@ export default function App() {
                         key={l.id}
                         onClick={() => openDsaEditPanel(l)}
                         className={`
-                          relative flex items-center px-4 py-3 group cursor-pointer transition-all duration-300
+                          relative flex items-center px-4 py-3 group cursor-pointer transition-colors
                           ${isSuggested
-                            ? 'bg-zinc-50 border-l-[3px] border-zinc-400 hover:bg-zinc-100'
+                            ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50'
                             : 'hover:bg-zinc-50'
                           }
                         `}
@@ -4863,32 +4863,14 @@ export default function App() {
                           </span>
                         </div>
 
-                        {/* Actions en overlay au hover */}
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-l from-zinc-50 via-zinc-50 to-transparent pl-8 pr-2 py-1">
-                          {isSuggested && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDsaLignes(prev => prev.map(item =>
-                                  item.id === l.id ? { ...item, status: 'validated' } : item
-                                ));
-                              }}
-                              className="px-2.5 py-1 text-xs bg-violet-600 text-white rounded hover:bg-violet-700 flex items-center gap-1 shadow-sm"
-                            >
-                              <Check className="w-3 h-3" />Valider
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openDsaEditPanel(l); }}
-                            className="p-1.5 text-zinc-500 hover:text-zinc-700 bg-white hover:bg-zinc-100 rounded shadow-sm border border-zinc-200"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
+                        {/* Actions en overlay au hover - minimaliste */}
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={(e) => { e.stopPropagation(); handleRejectLigne(l.id); }}
-                            className="p-1.5 text-zinc-500 hover:text-red-600 bg-white hover:bg-red-50 rounded shadow-sm border border-zinc-200"
+                            className="p-1.5 text-zinc-400 hover:text-zinc-600 transition-colors"
+                            title="Supprimer"
                           >
-                            <X className="w-3.5 h-3.5" />
+                            <X className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
