@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Image, Activity, File, FolderOpen, FileSearch, ListChecks, ShieldCheck, MoreHorizontal, User, LogOut } from 'lucide-react';
 
 const POSTES_TAXONOMY = [
@@ -65,6 +65,13 @@ const POSTES_TAXONOMY = [
 ];
 
 export default function App() {
+
+  // ========== LOCALSTORAGE PERSISTENCE ==========
+  const LS_GLOBAL = 'norma_global';
+  const LS_DOSSIER = 'norma_dossier_';
+  const lsSave = (key, data) => { try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) { console.warn('LS save:', e); } };
+  const lsLoad = (key) => { try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null; } catch (e) { return null; } };
+  const isInitialLoad = useRef(true);
 
   // ========== STATE ==========
   const [currentPage, setCurrentPage] = useState('list'); // 'list' | 'dossier'
@@ -247,6 +254,97 @@ export default function App() {
   const [dftpLignes, setDftpLignes] = useState([]);
 
   // (wizard supprimé - sera remplacé par flow création dossier)
+
+  // ========== PERSISTENCE HELPERS ==========
+  const EMPTY_DOSSIER = {
+    victimeData: { nom: '', prenom: '', sexe: 'Homme', dateNaissance: '', dateDeces: null },
+    faitGenerateur: { type: '', dateAccident: '', datePremiereConstatation: '', dateConsolidation: '', resume: '' },
+    chiffrageParams: {
+      dateOuverture: '', dateRapportExpertise: '', dateLiquidation: '', dateConsolidation: '',
+      fractionIndemnisable: 100, tiersPayeurs: [],
+      referentielSE: 'cours-appel-2024', referentielSEMode: 'maximum',
+      baremeCapitalisation: 'gazette-palais-2025-0.5', referentielDFP: 'cours-appel-2024',
+      baseJournaliereDFTP: 33, baseJournaliereDFTT: 33, forfaitHoraireATPT: null,
+    },
+    dossierStatut: 'ouvert', dossierRef: '', dossierIntitule: '', dossierDateOuverture: '',
+    dossierAvocat: '', dossierNotes: '', resumeAffaire: '', commentaireExpertise: '',
+    victimesIndirectes: [], pieces: [], dsaLignes: [],
+    pgpaData: { periode: { debut: '', fin: '', mois: 0 }, revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 0 }, revenusPercus: [], ijPercues: [] },
+    pgpfData: { periodes: {} }, dfttLignes: [], dftpLignes: [],
+  };
+
+  const collectCurrentDossierData = () => ({
+    victimeData, faitGenerateur, chiffrageParams,
+    dossierStatut, dossierRef, dossierIntitule, dossierDateOuverture, dossierAvocat, dossierNotes,
+    resumeAffaire, commentaireExpertise, victimesIndirectes, pieces,
+    dsaLignes, pgpaData, pgpfData, dfttLignes, dftpLignes,
+  });
+
+  const loadDossierData = (dossierId) => {
+    const data = lsLoad(LS_DOSSIER + dossierId) || EMPTY_DOSSIER;
+    setVictimeData(data.victimeData ?? EMPTY_DOSSIER.victimeData);
+    setFaitGenerateur(data.faitGenerateur ?? EMPTY_DOSSIER.faitGenerateur);
+    setChiffrageParams(data.chiffrageParams ?? EMPTY_DOSSIER.chiffrageParams);
+    setDossierStatut(data.dossierStatut ?? 'ouvert');
+    setDossierRef(data.dossierRef ?? '');
+    setDossierIntitule(data.dossierIntitule ?? '');
+    setDossierDateOuverture(data.dossierDateOuverture ?? '');
+    setDossierAvocat(data.dossierAvocat ?? '');
+    setDossierNotes(data.dossierNotes ?? '');
+    setResumeAffaire(data.resumeAffaire ?? '');
+    setCommentaireExpertise(data.commentaireExpertise ?? '');
+    setVictimesIndirectes(data.victimesIndirectes ?? []);
+    setPieces(data.pieces ?? []);
+    setDsaLignes(data.dsaLignes ?? []);
+    setPgpaData(data.pgpaData ?? EMPTY_DOSSIER.pgpaData);
+    setPgpfData(data.pgpfData ?? EMPTY_DOSSIER.pgpfData);
+    setDfttLignes(data.dfttLignes ?? []);
+    setDftpLignes(data.dftpLignes ?? []);
+  };
+
+  const saveDossierData = (dossierId) => {
+    if (!dossierId) return;
+    lsSave(LS_DOSSIER + dossierId, collectCurrentDossierData());
+  };
+
+  // ========== PERSISTENCE EFFECTS ==========
+
+  // Init: restore from localStorage on mount
+  useEffect(() => {
+    const savedGlobal = lsLoad(LS_GLOBAL);
+    if (savedGlobal) {
+      setDossiers(savedGlobal.dossiers);
+      setCurrentPage(savedGlobal.currentPage || 'list');
+      setActiveDossierId(savedGlobal.activeDossierId);
+      if (savedGlobal.navStack) setNavStack(savedGlobal.navStack);
+      if (savedGlobal.activeDossierId && savedGlobal.currentPage === 'dossier') {
+        loadDossierData(savedGlobal.activeDossierId);
+      }
+    } else {
+      // First-ever load: seed dossier-1 mock data
+      lsSave(LS_DOSSIER + 'dossier-1', collectCurrentDossierData());
+      lsSave(LS_GLOBAL, { dossiers, activeDossierId: null, currentPage: 'list', navStack });
+    }
+    isInitialLoad.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-save current dossier data on any change
+  useEffect(() => {
+    if (isInitialLoad.current || !activeDossierId) return;
+    saveDossierData(activeDossierId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDossierId, victimeData, faitGenerateur, chiffrageParams,
+    dossierStatut, dossierRef, dossierIntitule, dossierDateOuverture, dossierAvocat, dossierNotes,
+    resumeAffaire, commentaireExpertise, victimesIndirectes, pieces,
+    dsaLignes, pgpaData, pgpfData, dfttLignes, dftpLignes]);
+
+  // Auto-save global state
+  useEffect(() => {
+    if (isInitialLoad.current) return;
+    lsSave(LS_GLOBAL, { dossiers, activeDossierId, currentPage, navStack });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dossiers, activeDossierId, currentPage, navStack]);
 
   // ========== CALCULS ==========
   const dsaTotal = dsaLignes.filter(l => l.status === 'validated').reduce((s, l) => s + (l.montant || 0), 0);
@@ -949,6 +1047,9 @@ export default function App() {
 
   // ========== CRÉATION DOSSIER ==========
   const handleCreateDossier = (formData, activeTab = 'chiffrage') => {
+    // Save current dossier before creating new one
+    if (activeDossierId) saveDossierData(activeDossierId);
+
     const newId = `dossier-${Date.now()}`;
 
     setDossiers(prev => [{
@@ -974,13 +1075,17 @@ export default function App() {
       dateConsolidation: formatDateFR(formData.dateConsolidation),
       resume: ''
     });
-    if (formData.dateConsolidation || formData.dateLiquidation) {
-      setChiffrageParams(prev => ({
-        ...prev,
-        ...(formData.dateConsolidation ? { dateConsolidation: formatDateFR(formData.dateConsolidation) } : {}),
-        ...(formData.dateLiquidation ? { dateLiquidation: formatDateFR(formData.dateLiquidation) } : {})
-      }));
-    }
+    setChiffrageParams(prev => ({
+      ...EMPTY_DOSSIER.chiffrageParams,
+      ...(formData.dateConsolidation ? { dateConsolidation: formatDateFR(formData.dateConsolidation) } : {}),
+      ...(formData.dateLiquidation ? { dateLiquidation: formatDateFR(formData.dateLiquidation) } : {})
+    }));
+    setDossierStatut('ouvert');
+    setDossierRef('');
+    setDossierIntitule(`${formData.nom} ${formData.prenom}`);
+    setDossierDateOuverture(new Date().toLocaleDateString('fr-FR'));
+    setDossierAvocat('');
+    setDossierNotes('');
     setCommentaireExpertise('');
     setResumeAffaire('');
     setVictimesIndirectes([]);
@@ -5866,12 +5971,15 @@ export default function App() {
 
   // ========== NAVIGATION DOSSIER LIST ==========
   const openDossier = (dossier) => {
+    if (activeDossierId) saveDossierData(activeDossierId);
+    loadDossierData(dossier.id);
     setActiveDossierId(dossier.id);
     setNavStack([{ id: dossier.id, type: 'dossier', title: dossier.reference, activeTab: 'détail' }]);
     setCurrentPage('dossier');
   };
 
   const backToList = () => {
+    if (activeDossierId) saveDossierData(activeDossierId);
     setCurrentPage('list');
     setActiveDossierId(null);
   };
