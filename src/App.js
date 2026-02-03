@@ -2341,13 +2341,13 @@ export default function App() {
                             <div>
                               <label className="text-sm font-medium text-gray-700">Montant total</label>
                               <div className="mt-1 relative">
-                                <input 
-                                  type="number" 
-                                  step="0.01" 
-                                  defaultValue={data.montant ?? ''} 
-                                  id="edit-montant" 
-                                  placeholder="0.00" 
-                                  className={`w-full px-3 py-2 pr-8 border rounded-lg ${iaFieldClass(data.montant)}`}
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  defaultValue={data.montant ?? ''}
+                                  id="edit-montant"
+                                  readOnly
+                                  className="w-full px-3 py-2 pr-8 border rounded-lg bg-zinc-50 text-zinc-500 cursor-default"
                                 />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
                               </div>
@@ -2795,7 +2795,7 @@ export default function App() {
                           <div>
                             <label className="text-sm font-medium text-gray-700">Revenu net payé</label>
                             <div className="mt-1 relative">
-                              <input id="pgpa-revenu-montant" type="number" step="0.01" defaultValue={data.montant || ''} placeholder="0.00" className="w-full px-3 py-2 pr-8 border rounded-lg" />
+                              <input id="pgpa-revenu-montant" type="number" step="0.01" defaultValue={data.montant || ''} readOnly className="w-full px-3 py-2 pr-8 border rounded-lg bg-zinc-50 text-zinc-500 cursor-default" />
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
                             </div>
                           </div>
@@ -2930,7 +2930,7 @@ export default function App() {
                           <div>
                             <label className="text-sm font-medium text-gray-700">Revenu perçu net</label>
                             <div className="mt-1 relative">
-                              <input id="pgpa-percu-montant" type="number" step="0.01" defaultValue={data.montant || ''} placeholder="0.00" className="w-full px-3 py-2 pr-8 border rounded-lg" />
+                              <input id="pgpa-percu-montant" type="number" step="0.01" defaultValue={data.montant || ''} readOnly className="w-full px-3 py-2 pr-8 border rounded-lg bg-zinc-50 text-zinc-500 cursor-default" />
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
                             </div>
                           </div>
@@ -3196,13 +3196,6 @@ export default function App() {
                         <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Paramètres</h4>
                         <div><label className="block text-xs text-gray-500 mb-1">Base journalière</label><div className="relative"><input type="number" id="dftt-base" defaultValue={chiffrageParams.baseJournaliereDFTT || 33} className="w-full px-3 py-2 pr-10 border rounded-lg text-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">€/j</span></div></div>
                       </div>
-                      <div className="p-4 bg-zinc-50 rounded-xl border">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
-                          <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant)}</span>
-                        </div>
-                        <p className="text-[11px] text-zinc-400 mt-1">{data.jours}j × {chiffrageParams.baseJournaliereDFTT || 33} €/j</p>
-                      </div>
                     </div>
                   </>
                 )}
@@ -3315,17 +3308,66 @@ export default function App() {
                         <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Contenu</h4>
                         <div><label className="block text-xs text-gray-500 mb-1">Libellé / Nature</label><input type="text" id="dftp-label" defaultValue={data.label || ''} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
                       </div>
-                      <div className="p-4 bg-zinc-50 rounded-xl border">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
-                          <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant)}</span>
-                        </div>
-                        <p className="text-[11px] text-zinc-400 mt-1">{data.jours}j × {data.taux}% × {data.baseOverride || chiffrageParams.baseJournaliereDFTP || 33} €/j</p>
-                      </div>
                     </div>
                   </>
                 )}
               </div>
+
+              {/* Bandeau Montant calculé — sticky entre scroll et action bar */}
+              {editPanel.type === 'dsa-ligne' && (
+                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
+                    <p className="text-[11px] text-zinc-400">Calculé automatiquement à partir des champs ci-dessus</p>
+                  </div>
+                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
+                </div>
+              )}
+              {editPanel.type === 'pgpa-revenu' && (
+                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
+                    <p className="text-[11px] text-zinc-400">Calculé automatiquement à partir des champs ci-dessus</p>
+                  </div>
+                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
+                </div>
+              )}
+              {editPanel.type === 'pgpa-revenu-percu' && (
+                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
+                    <p className="text-[11px] text-zinc-400">Calculé automatiquement à partir des champs ci-dessus</p>
+                  </div>
+                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
+                </div>
+              )}
+              {editPanel.type === 'pgpa-ij' && (
+                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
+                    <p className="text-[11px] text-zinc-400">Indemnité nette (brut − CSG-CRDS)</p>
+                  </div>
+                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
+                </div>
+              )}
+              {editPanel.type === 'dftt-ligne' && (
+                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
+                    <p className="text-[11px] text-zinc-400">{data.jours || 0}j × {chiffrageParams.baseJournaliereDFTT || 33} €/j</p>
+                  </div>
+                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
+                </div>
+              )}
+              {editPanel.type === 'dftp-ligne' && (
+                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
+                    <p className="text-[11px] text-zinc-400">{data.jours || 0}j × {data.taux || 0}% × {data.baseOverride || chiffrageParams.baseJournaliereDFTP || 33} €/j</p>
+                  </div>
+                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
+                </div>
+              )}
 
               {/* Footer */}
               {editPanel.type === 'dsa-ligne' && (
