@@ -93,6 +93,7 @@ export default function App() {
   const [processing, setProcessing] = useState([]);
   const [searchPieces, setSearchPieces] = useState('');
   const [searchPostes, setSearchPostes] = useState('');
+  const [searchPiecesPanel, setSearchPiecesPanel] = useState('');
   const [expandedTaxoCategories, setExpandedTaxoCategories] = useState([
     'vd-pat-temp', 'vd-expat-temp', 'vd-pat-perm', 'vd-expat-perm', 'vd-hors-conso', 'vd-annexes', 'vi-pat', 'vi-expat'
   ]);
@@ -947,7 +948,7 @@ export default function App() {
   };
 
   // ========== CRÉATION DOSSIER ==========
-  const handleCreateDossier = (formData) => {
+  const handleCreateDossier = (formData, activeTab = 'chiffrage') => {
     const newId = `dossier-${Date.now()}`;
 
     setDossiers(prev => [{
@@ -990,7 +991,7 @@ export default function App() {
     setPgpaData({ periode: { debut: '', fin: '', mois: 0 }, revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 0 }, revenusPercus: [], ijPercues: [] });
     setPgpfData({ periodes: {} });
 
-    setNavStack([{ id: newId, type: 'dossier', title: `${formData.nom} ${formData.prenom}`, activeTab: 'chiffrage' }]);
+    setNavStack([{ id: newId, type: 'dossier', title: `${formData.nom} ${formData.prenom}`, activeTab }]);
     setActiveDossierId(newId);
     setCurrentPage('dossier');
     setCreationWizard(null);
@@ -1085,6 +1086,22 @@ export default function App() {
     ];
     const fb = fallbackPool[Math.floor(Math.random() * fallbackPool.length)];
     return { status: 'success', confidence: 82, data: fb };
+  };
+
+  const handleUploadPieceForPanel = (files) => {
+    for (const file of Array.from(files)) {
+      const newPieceId = `p-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      setPieces(prev => [...prev, {
+        id: newPieceId,
+        nom: file.name,
+        nomOriginal: file.name,
+        intitule: file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' '),
+        date: new Date().toLocaleDateString('fr-FR'),
+        type: 'Document',
+        used: true
+      }]);
+      setEditingPieceIds(prev => [...prev, newPieceId]);
+    }
   };
 
   const handleUploadFiles = async (files, posteType) => {
@@ -1427,12 +1444,14 @@ export default function App() {
       const newLigne = { id: `dftt-${Date.now()}`, status: 'pending', label: null, debut: '', fin: '', jours: 0, taux: 100, montant: 0, pieceIds: [], confidence: null, commentaire: '' };
       setDfttLignes(prev => [newLigne, ...prev]);
       setEditingPieceIds([]);
+      setSearchPiecesPanel('');
       setEditPanel({ type: 'dftt-ligne', data: newLigne });
     }
     else if (posteType === 'dftp') {
       const newLigne = { id: `dftp-${Date.now()}`, status: 'pending', label: null, debut: '', fin: '', jours: 0, taux: 50, montant: 0, deductionDftt: false, joursDfttDeduits: 0, joursRetenus: 0, pieceIds: [], confidence: null, baseOverride: null };
       setDftpLignes(prev => [newLigne, ...prev]);
       setEditingPieceIds([]);
+      setSearchPiecesPanel('');
       setEditPanel({ type: 'dftp-ligne', data: newLigne });
     }
   };
@@ -1449,12 +1468,14 @@ export default function App() {
   // Helper pour ouvrir le panel d'édition DSA avec initialisation des pieceIds
   const openDsaEditPanel = (ligne) => {
     setEditingPieceIds(ligne.pieceIds || []);
+    setSearchPiecesPanel('');
     setEditPanel({ type: 'dsa-ligne', data: ligne });
   };
 
   // Helper pour ouvrir le panel d'édition PGPA avec initialisation des pieceIds
   const openPgpaEditPanel = (type, ligne) => {
     setEditingPieceIds(ligne.pieceIds || []);
+    setSearchPiecesPanel('');
     setEditPanel({ type, data: ligne });
   };
 
@@ -1991,55 +2012,38 @@ export default function App() {
                       {/* Section Pièces justificatives */}
                       <div>
                         <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
-
-                        {/* Pièces liées */}
                         {editingPieceIds.length > 0 && (
                           <div className="space-y-2 mb-3">
                             {editingPieceIds.map(pid => {
                               const piece = getPiece(pid);
                               return piece ? (
                                 <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
-                                  <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center flex-shrink-0">
-                                    {getPieceLabel(pid)}
-                                  </span>
+                                  <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium truncate">{piece.intitule || piece.nom}</p>
                                     <p className="text-xs text-gray-500">{piece.type}</p>
                                   </div>
-                                  <button
-                                    onClick={() => setShowPreview(!showPreview)}
-                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
-                                  >
-                                    <Eye className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))}
-                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
+                                  <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"><Eye className="w-4 h-4" /></button>
+                                  <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
                                 </div>
                               ) : null;
                             })}
                           </div>
                         )}
-
-                        {/* Zone d'ajout de pièce */}
                         <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
-                          {/* Liste des pièces disponibles */}
                           {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
                             <div>
-                              <p className="text-xs text-gray-500 mb-2">Ajouter une pièce existante :</p>
+                              <div className="relative mb-2">
+                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
+                                <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
+                                  className="w-full pl-8 pr-7 py-1.5 text-[12px] border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
+                                {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-zinc-400" /></button>}
+                              </div>
                               <div className="max-h-32 overflow-y-auto space-y-1">
-                                {pieces.filter(p => !editingPieceIds.includes(p.id)).map(piece => (
-                                  <button
-                                    key={piece.id}
-                                    onClick={() => setEditingPieceIds(prev => [...prev, piece.id])}
-                                    className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                                  >
-                                    <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">
-                                      {getPieceLabel(piece.id)}
-                                    </span>
+                                {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
+                                  <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
+                                    className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                                    <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
                                     <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
                                     <span className="text-xs text-gray-400">{piece.type}</span>
                                     <Plus className="w-4 h-4 text-blue-600" />
@@ -2048,15 +2052,16 @@ export default function App() {
                               </div>
                             </div>
                           )}
-
-                          {editingPieceIds.length === 0 && pieces.length === 0 && (
-                            <p className="text-xs text-center text-gray-500">
-                              Aucune pièce disponible. Déposez un document pour commencer.
-                            </p>
-                          )}
+                          <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                            onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
+                          <button onClick={() => document.getElementById('panel-piece-upload').click()}
+                            className="w-full flex items-center justify-center gap-2 p-2 text-sm text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
+                            <Upload className="w-4 h-4" />
+                            Ajouter un document
+                          </button>
                         </div>
                       </div>
-                      
+
                       {/* Section Informations */}
                       <div>
                         <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Informations</h4>
@@ -2588,49 +2593,38 @@ export default function App() {
                     {/* Section Pièces justificatives */}
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
-
                       {editingPieceIds.length > 0 && (
                         <div className="space-y-2 mb-3">
                           {editingPieceIds.map(pid => {
                             const piece = getPiece(pid);
                             return piece ? (
                               <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
-                                <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center flex-shrink-0">
-                                  {getPieceLabel(pid)}
-                                </span>
+                                <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium truncate">{piece.intitule || piece.nom}</p>
                                   <p className="text-xs text-gray-500">{piece.type}</p>
                                 </div>
-                                <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded">
-                                  <Eye className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))}
-                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"><Eye className="w-4 h-4" /></button>
+                                <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
                               </div>
                             ) : null;
                           })}
                         </div>
                       )}
-
-                      <div className="border-2 border-dashed rounded-lg p-3 space-y-2 bg-gray-50/50">
+                      <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
                         {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
                           <div>
-                            <p className="text-xs text-gray-500 mb-2">Ajouter une pièce existante :</p>
+                            <div className="relative mb-2">
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
+                              <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
+                                className="w-full pl-8 pr-7 py-1.5 text-[12px] border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
+                              {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-zinc-400" /></button>}
+                            </div>
                             <div className="max-h-32 overflow-y-auto space-y-1">
-                              {pieces.filter(p => !editingPieceIds.includes(p.id)).map(piece => (
-                                <button
-                                  key={piece.id}
-                                  onClick={() => setEditingPieceIds(prev => [...prev, piece.id])}
-                                  className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                                >
-                                  <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">
-                                    {getPieceLabel(piece.id)}
-                                  </span>
+                              {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
+                                <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
+                                  className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                                  <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
                                   <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
                                   <span className="text-xs text-gray-400">{piece.type}</span>
                                   <Plus className="w-4 h-4 text-blue-600" />
@@ -2639,9 +2633,16 @@ export default function App() {
                             </div>
                           </div>
                         )}
+                        <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                          onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
+                        <button onClick={() => document.getElementById('panel-piece-upload').click()}
+                          className="w-full flex items-center justify-center gap-2 p-2 text-sm text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
+                          <Upload className="w-4 h-4" />
+                          Ajouter un document
+                        </button>
                       </div>
                     </div>
-                    
+
                     {/* Section Informations */}
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Informations</h4>
@@ -2723,46 +2724,38 @@ export default function App() {
                     {/* Section Pièces justificatives */}
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
-
                       {editingPieceIds.length > 0 && (
                         <div className="space-y-2 mb-3">
                           {editingPieceIds.map(pid => {
                             const piece = getPiece(pid);
                             return piece ? (
                               <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
-                                <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center">
-                                  {getPieceLabel(pid)}
-                                </span>
+                                <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium truncate">{piece.intitule || piece.nom}</p>
                                   <p className="text-xs text-gray-500">{piece.type}</p>
                                 </div>
-                                <button
-                                  onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))}
-                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"><Eye className="w-4 h-4" /></button>
+                                <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
                               </div>
                             ) : null;
                           })}
                         </div>
                       )}
-
-                      <div className="border-2 border-dashed rounded-lg p-3 space-y-2 bg-gray-50/50">
+                      <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
                         {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
                           <div>
-                            <p className="text-xs text-gray-500 mb-2">Ajouter une pièce existante :</p>
+                            <div className="relative mb-2">
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
+                              <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
+                                className="w-full pl-8 pr-7 py-1.5 text-[12px] border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
+                              {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-zinc-400" /></button>}
+                            </div>
                             <div className="max-h-32 overflow-y-auto space-y-1">
-                              {pieces.filter(p => !editingPieceIds.includes(p.id)).map(piece => (
-                                <button
-                                  key={piece.id}
-                                  onClick={() => setEditingPieceIds(prev => [...prev, piece.id])}
-                                  className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                                >
-                                  <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">
-                                    {getPieceLabel(piece.id)}
-                                  </span>
+                              {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
+                                <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
+                                  className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                                  <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
                                   <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
                                   <span className="text-xs text-gray-400">{piece.type}</span>
                                   <Plus className="w-4 h-4 text-blue-600" />
@@ -2771,9 +2764,16 @@ export default function App() {
                             </div>
                           </div>
                         )}
+                        <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                          onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
+                        <button onClick={() => document.getElementById('panel-piece-upload').click()}
+                          className="w-full flex items-center justify-center gap-2 p-2 text-sm text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
+                          <Upload className="w-4 h-4" />
+                          Ajouter un document
+                        </button>
                       </div>
                     </div>
-                    
+
                     {/* Section Informations */}
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Informations</h4>
@@ -2864,46 +2864,38 @@ export default function App() {
                     {/* Section Pièces justificatives */}
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
-
                       {editingPieceIds.length > 0 && (
                         <div className="space-y-2 mb-3">
                           {editingPieceIds.map(pid => {
                             const piece = getPiece(pid);
                             return piece ? (
                               <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
-                                <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center">
-                                  {getPieceLabel(pid)}
-                                </span>
+                                <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium truncate">{piece.intitule || piece.nom}</p>
                                   <p className="text-xs text-gray-500">{piece.type}</p>
                                 </div>
-                                <button
-                                  onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))}
-                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"><Eye className="w-4 h-4" /></button>
+                                <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
                               </div>
                             ) : null;
                           })}
                         </div>
                       )}
-
-                      <div className="border-2 border-dashed rounded-lg p-3 space-y-2 bg-gray-50/50">
+                      <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
                         {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
                           <div>
-                            <p className="text-xs text-gray-500 mb-2">Ajouter une pièce existante :</p>
+                            <div className="relative mb-2">
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
+                              <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
+                                className="w-full pl-8 pr-7 py-1.5 text-[12px] border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
+                              {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-zinc-400" /></button>}
+                            </div>
                             <div className="max-h-32 overflow-y-auto space-y-1">
-                              {pieces.filter(p => !editingPieceIds.includes(p.id)).map(piece => (
-                                <button
-                                  key={piece.id}
-                                  onClick={() => setEditingPieceIds(prev => [...prev, piece.id])}
-                                  className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                                >
-                                  <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">
-                                    {getPieceLabel(piece.id)}
-                                  </span>
+                              {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
+                                <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
+                                  className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                                  <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
                                   <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
                                   <span className="text-xs text-gray-400">{piece.type}</span>
                                   <Plus className="w-4 h-4 text-blue-600" />
@@ -2912,9 +2904,16 @@ export default function App() {
                             </div>
                           </div>
                         )}
+                        <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                          onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
+                        <button onClick={() => document.getElementById('panel-piece-upload').click()}
+                          className="w-full flex items-center justify-center gap-2 p-2 text-sm text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
+                          <Upload className="w-4 h-4" />
+                          Ajouter un document
+                        </button>
                       </div>
                     </div>
-                    
+
                     {/* Section Tiers payeur */}
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Tiers payeur</h4>
@@ -3047,14 +3046,17 @@ export default function App() {
                         <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
                           {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
                             <div>
-                              <p className="text-xs text-gray-500 mb-2">Ajouter une pièce existante :</p>
+                              <div className="relative mb-2">
+                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
+                                <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
+                                  className="w-full pl-8 pr-7 py-1.5 text-[12px] border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
+                                {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-zinc-400" /></button>}
+                              </div>
                               <div className="max-h-32 overflow-y-auto space-y-1">
-                                {pieces.filter(p => !editingPieceIds.includes(p.id)).map(piece => (
-                                  <button key={piece.id} onClick={() => setEditingPieceIds(prev => [...prev, piece.id])}
+                                {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
+                                  <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
                                     className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                                    <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">
-                                      {getPieceLabel(piece.id)}
-                                    </span>
+                                    <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
                                     <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
                                     <span className="text-xs text-gray-400">{piece.type}</span>
                                     <Plus className="w-4 h-4 text-blue-600" />
@@ -3063,9 +3065,13 @@ export default function App() {
                               </div>
                             </div>
                           )}
-                          {editingPieceIds.length === 0 && pieces.length === 0 && (
-                            <p className="text-xs text-center text-gray-500">Aucune pièce disponible. Déposez un document pour commencer.</p>
-                          )}
+                          <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                            onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
+                          <button onClick={() => document.getElementById('panel-piece-upload').click()}
+                            className="w-full flex items-center justify-center gap-2 p-2 text-sm text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
+                            <Upload className="w-4 h-4" />
+                            Ajouter un document
+                          </button>
                         </div>
                       </div>
                       <div>
@@ -3137,10 +3143,22 @@ export default function App() {
                         <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
                           {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
                             <div>
-                              <p className="text-xs text-gray-500 mb-2">Ajouter une pièce existante :</p>
+                              <div className="relative mb-2">
+                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
+                                <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)}
+                                  placeholder="Rechercher une pièce..."
+                                  className="w-full pl-8 pr-7 py-1.5 text-[12px] border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
+                                {searchPiecesPanel && (
+                                  <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2">
+                                    <X className="w-3 h-3 text-zinc-400" />
+                                  </button>
+                                )}
+                              </div>
                               <div className="max-h-32 overflow-y-auto space-y-1">
-                                {pieces.filter(p => !editingPieceIds.includes(p.id)).map(piece => (
-                                  <button key={piece.id} onClick={() => setEditingPieceIds(prev => [...prev, piece.id])}
+                                {pieces.filter(p => !editingPieceIds.includes(p.id))
+                                  .filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()))
+                                  .map(piece => (
+                                  <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
                                     className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
                                     <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">
                                       {getPieceLabel(piece.id)}
@@ -3153,9 +3171,13 @@ export default function App() {
                               </div>
                             </div>
                           )}
-                          {editingPieceIds.length === 0 && pieces.length === 0 && (
-                            <p className="text-xs text-center text-gray-500">Aucune pièce disponible. Déposez un document pour commencer.</p>
-                          )}
+                          <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                            onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
+                          <button onClick={() => document.getElementById('panel-piece-upload').click()}
+                            className="w-full flex items-center justify-center gap-2 p-2 text-sm text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
+                            <Upload className="w-4 h-4" />
+                            Ajouter un document
+                          </button>
                         </div>
                       </div>
                       <div>
@@ -4025,48 +4047,13 @@ export default function App() {
         // Empty state - no postes yet
         if (allPostes.length === 0) {
           return (
-            <div className="flex flex-col min-h-[70vh] p-6 animate-fade-up">
-              <label
-                className="group flex-1 flex flex-col cursor-pointer"
-                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={(e) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files?.length) { handleDocumentUploadForExtraction(e.dataTransfer.files); } }}
-              >
-                <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" id="drop-zone-input"
-                  onChange={(e) => { if (e.target.files?.length) { handleDocumentUploadForExtraction(e.target.files); } }}
-                />
-                <div className={`flex-1 flex flex-col items-center justify-center rounded-2xl transition-all duration-300 ${isDragging ? 'bg-zinc-100 border-2 border-zinc-400' : 'border-2 border-dashed border-zinc-200 group-hover:border-zinc-300 group-hover:bg-zinc-50/50'}`}>
-                  <div className="text-center max-w-lg px-8 py-12">
-                    <div className={`w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center transition-all duration-300 ${isDragging ? 'bg-zinc-200 scale-110' : 'bg-zinc-100 group-hover:bg-zinc-200/70 group-hover:scale-105'}`}>
-                      <Upload className={`w-7 h-7 transition-all duration-300 ${isDragging ? 'text-zinc-600' : 'text-zinc-400 group-hover:text-zinc-500'}`} />
-                    </div>
-                    <h2 className={`text-xl font-semibold mb-2 tracking-tight transition-colors duration-300 ${isDragging ? 'text-zinc-700' : 'text-zinc-800'}`}>
-                      {isDragging ? 'Relâchez pour analyser' : 'Déposez vos documents'}
-                    </h2>
-                    <p className="text-sm mb-6 transition-colors duration-300 text-zinc-500">
-                      {isDragging ? '' : 'Plus vous ajoutez de pièces, plus le chiffrage sera précis'}
-                    </p>
-                    {!isDragging && (
-                      <button type="button" onClick={(e) => { e.preventDefault(); document.getElementById('drop-zone-input')?.click(); }}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 active:scale-[0.98] transition-all mb-4">
-                        <FolderOpen className="w-4 h-4" />Choisir des fichiers
-                      </button>
-                    )}
-                    {!isDragging && <p className="text-xs text-zinc-400">ou glissez-déposez directement ici</p>}
-                    {!isDragging && (
-                      <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t border-zinc-100">
-                        <div className="flex items-center gap-1.5 text-xs text-zinc-400"><FileText className="w-3.5 h-3.5" /><span>PDF</span></div>
-                        <div className="flex items-center gap-1.5 text-xs text-zinc-400"><Image className="w-3.5 h-3.5" /><span>Images</span></div>
-                      </div>
-                    )}
-                  </div>
+            <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 animate-fade-up">
+              <div className="text-center max-w-sm">
+                <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-zinc-100 flex items-center justify-center">
+                  <ClipboardList className="w-6 h-6 text-zinc-400" />
                 </div>
-              </label>
-              <div className="grid grid-cols-4 gap-6 mt-8 pt-6 border-t border-zinc-100">
-                <div className="text-center"><div className="w-9 h-9 mx-auto mb-3 rounded-lg bg-zinc-100 flex items-center justify-center"><FileSearch className="w-4 h-4 text-zinc-500" /></div><p className="text-xs text-zinc-500 leading-relaxed">L'IA analyse vos documents</p></div>
-                <div className="text-center"><div className="w-9 h-9 mx-auto mb-3 rounded-lg bg-zinc-100 flex items-center justify-center"><ListChecks className="w-4 h-4 text-zinc-500" /></div><p className="text-xs text-zinc-500 leading-relaxed">Elle identifie les postes de préjudice</p></div>
-                <div className="text-center"><div className="w-9 h-9 mx-auto mb-3 rounded-lg bg-zinc-100 flex items-center justify-center"><Calculator className="w-4 h-4 text-zinc-500" /></div><p className="text-xs text-zinc-500 leading-relaxed">Elle génère un premier chiffrage</p></div>
-                <div className="text-center"><div className="w-9 h-9 mx-auto mb-3 rounded-lg bg-zinc-100 flex items-center justify-center"><ShieldCheck className="w-4 h-4 text-zinc-500" /></div><p className="text-xs text-zinc-600 leading-relaxed font-medium">Vous gardez le contrôle</p></div>
+                <h2 className="text-lg font-semibold text-zinc-800 mb-2">Aucun poste de préjudice</h2>
+                <p className="text-sm text-zinc-500 mb-6">Sélectionnez un poste dans le menu latéral pour commencer le chiffrage.</p>
               </div>
             </div>
           );
@@ -5619,7 +5606,7 @@ export default function App() {
                   };
 
                   return (
-                    <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setEditPanel({ type: 'dftt-ligne', data: l }); }}
+                    <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'dftt-ligne', data: l }); }}
                       className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}>
                       <div className="w-10 flex-shrink-0"><StatusIcon /></div>
                       <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
@@ -5822,7 +5809,7 @@ export default function App() {
                   };
 
                   return (
-                    <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setEditPanel({ type: 'dftp-ligne', data: l }); }}
+                    <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'dftp-ligne', data: l }); }}
                       className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}>
                       <div className="w-10 flex-shrink-0"><StatusIcon /></div>
                       <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
@@ -6079,7 +6066,7 @@ export default function App() {
 
               {/* Option B: Sans rapport */}
               <div
-                onClick={() => handleCreateDossier(formData)}
+                onClick={() => handleCreateDossier(formData, 'détail')}
                 className="flex-1 p-6 border-2 border-zinc-200 rounded-xl hover:border-zinc-400 hover:bg-zinc-50 cursor-pointer transition-all group"
               >
                 <div className="w-12 h-12 rounded-xl bg-zinc-100 flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
