@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Image, Activity, File, FolderOpen, FileSearch, ListChecks, ShieldCheck, MoreHorizontal, User, LogOut } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Image, Activity, File, FolderOpen, FileSearch, ListChecks, ShieldCheck, MoreHorizontal, User, LogOut, Copy, Plug2 } from 'lucide-react';
 
 const POSTES_TAXONOMY = [
   {
@@ -105,6 +105,7 @@ export default function App() {
     'vd-pat-temp', 'vd-expat-temp', 'vd-pat-perm', 'vd-expat-perm', 'vd-hors-conso', 'vd-annexes', 'vi-pat', 'vi-expat'
   ]);
   const [showChiffrageParams, setShowChiffrageParams] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(null); // null | 'resume' | 'expertise'
   const [creationWizard, setCreationWizard] = useState(null); // null | { step: 'infos', formData: {...} } | { step: 'mode-chiffrage', formData: {...} }
 
@@ -6027,6 +6028,74 @@ export default function App() {
   };
 
   // ========== RENDER WIZARD CRÉATION DOSSIER ==========
+  // ========== MODALE EXPORT (surfacing, non-actionable) ==========
+  const renderExportModal = () => {
+    if (!showExportModal) return null;
+
+    const options = [
+      {
+        icon: Copy,
+        label: 'Copier le texte',
+        desc: 'Copier le contenu du chiffrage (montants, calculs, argumentaire).',
+        tooltip: 'Option envisagée pour permettre une réutilisation rapide du contenu dans vos outils.',
+      },
+      {
+        icon: FileText,
+        label: 'Générer un document Word',
+        desc: 'Créer automatiquement un document Word (.docx) à partir du chiffrage.',
+        tooltip: 'Cette fonctionnalité permettra de générer un document structuré à partir des données du chiffrage.',
+      },
+      {
+        icon: FileSpreadsheet,
+        label: 'Utiliser un template personnalisé',
+        desc: 'Injecter les données du chiffrage dans votre propre modèle Word.',
+        tooltip: 'Approche basée sur des variables, similaire à celle utilisée chez Broker.',
+      },
+      {
+        icon: Plug2,
+        label: 'Installer l\'add-in Word',
+        desc: 'Importer directement les données dans Word via un add-in.',
+        tooltip: 'Objectif : synchroniser le chiffrage avec Word sans export intermédiaire.',
+      },
+    ];
+
+    const titre = currentLevel.type === 'poste'
+      ? `Exporter — ${currentLevel.fullTitle || currentLevel.title}`
+      : 'Exporter le chiffrage';
+
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowExportModal(false)}>
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-6 py-4 border-b">
+            <h2 className="text-[15px] font-semibold text-zinc-800">{titre}</h2>
+            <button onClick={() => setShowExportModal(false)} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors">
+              <X className="w-4 h-4 text-zinc-400" />
+            </button>
+          </div>
+          <div className="p-4 space-y-2">
+            {options.map((opt, i) => (
+              <div key={i} className="group relative flex items-start gap-4 p-4 rounded-xl hover:bg-zinc-50 transition-colors cursor-default">
+                <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center flex-shrink-0 group-hover:bg-zinc-200 transition-colors">
+                  <opt.icon className="w-5 h-5 text-zinc-500" strokeWidth={1.5} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-zinc-800">{opt.label}</p>
+                  <p className="text-[12px] text-zinc-500 mt-0.5 leading-relaxed">{opt.desc}</p>
+                </div>
+                <span className="absolute left-4 right-4 -bottom-1 translate-y-full p-2.5 bg-zinc-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30 pointer-events-none">
+                  {opt.tooltip}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="px-6 py-4 border-t bg-zinc-50 rounded-b-xl">
+            <p className="text-[11px] text-zinc-400 text-center">Ces options sont présentées à titre informatif pour recueillir vos retours.</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderCreationWizard = () => {
     if (!creationWizard) return null;
 
@@ -6451,16 +6520,24 @@ export default function App() {
             {/* CTAs pour Chiffrage */}
             {currentLevel.type === 'dossier' && currentLevel.activeTab === 'chiffrage' && (
               <div className="flex items-center gap-2">
-                <button className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 shadow-sm transition-colors">
+                <button onClick={() => setShowExportModal(true)} className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 shadow-sm transition-colors">
                   <Download className="w-4 h-4" strokeWidth={1.5} />
                   Exporter
                 </button>
-                <button 
+                <button
                   onClick={() => setShowChiffrageParams(true)}
                   className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 shadow-sm transition-colors"
                 >
                   <Settings className="w-4 h-4" strokeWidth={1.5} />
                   Paramètres
+                </button>
+              </div>
+            )}
+            {currentLevel.type === 'poste' && !currentLevel.subSection && (
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowExportModal(true)} className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 shadow-sm transition-colors">
+                  <Download className="w-4 h-4" strokeWidth={1.5} />
+                  Exporter
                 </button>
               </div>
             )}
@@ -6492,6 +6569,7 @@ export default function App() {
         </div>
       </div>
       {renderAddModal()}
+      {renderExportModal()}
       {renderEditPanel()}
       {renderSmartProcedureWizard()}
     </div>
