@@ -1,9 +1,84 @@
 import React, { useState } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Image, Activity, File, FolderOpen, FileSearch, ListChecks, ShieldCheck } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Image, Activity, File, FolderOpen, FileSearch, ListChecks, ShieldCheck, MoreHorizontal, User, LogOut } from 'lucide-react';
+
+const POSTES_TAXONOMY = [
+  {
+    section: 'VICTIME DIRECTE',
+    categories: [
+      { title: 'Préjudices patrimoniaux temporaires', id: 'vd-pat-temp', postes: [
+        { id: 'dsa', acronym: 'DSA', label: 'Dépenses de santé actuelles', enabled: true },
+        { id: 'pgpa', acronym: 'PGPA', label: 'Pertes de gains professionnels actuels', enabled: true },
+        { id: 'fda', label: 'Frais divers actuels', enabled: false },
+        { id: 'psuf', label: 'Préjudice scolaire, universitaire ou de formation', enabled: false },
+        { id: 'atpt', label: 'Assistance par une tierce personne temporaire', enabled: false },
+      ]},
+      { title: 'Préjudices extra patrimoniaux temporaires', id: 'vd-expat-temp', postes: [
+        { id: 'dftt', acronym: 'DFTT', label: 'Déficit fonctionnel temporaire total', enabled: true },
+        { id: 'dftp', acronym: 'DFTP', label: 'Déficit fonctionnel temporaire partiel', enabled: true },
+        { id: 'pet', label: 'Préjudice esthétique temporaire', enabled: false },
+      ]},
+      { title: 'Préjudices patrimoniaux permanents', id: 'vd-pat-perm', postes: [
+        { id: 'dsf', label: 'Dépenses de santé futures', enabled: false },
+        { id: 'fdf', label: 'Frais divers futurs', enabled: false },
+        { id: 'fla', label: 'Frais de logement adapté', enabled: false },
+        { id: 'fva', label: 'Frais de véhicule adapté', enabled: false },
+        { id: 'pgpf', label: 'Pertes de gains professionnels futurs', enabled: false },
+        { id: 'ipp', label: 'Incidence professionnelle', enabled: false },
+        { id: 'atpf', label: 'Assistance par une tierce personne future', enabled: false },
+      ]},
+      { title: 'Préjudices extra patrimoniaux permanents', id: 'vd-expat-perm', postes: [
+        { id: 'dfp', label: 'Déficit fonctionnel permanent', enabled: false },
+        { id: 'pa', label: "Préjudice d'agrément", enabled: false },
+        { id: 'pep', label: 'Préjudice esthétique permanent', enabled: false },
+        { id: 'ps', label: 'Préjudice sexuel', enabled: false },
+        { id: 'pe', label: "Préjudice d'établissement", enabled: false },
+        { id: 'ppe', label: 'Préjudice permanent exceptionnel', enabled: false },
+      ]},
+      { title: 'Autres préjudices hors consolidation', id: 'vd-hors-conso', postes: [
+        { id: 'plpe', label: 'Préjudices liés aux pathologies évolutives', enabled: false },
+        { id: 'pim', label: "Préjudices d'impréparation médicale", enabled: false },
+        { id: 'panx', label: "Préjudice d'anxiété", enabled: false },
+        { id: 'pami', label: "Préjudice d'angoisse de mort imminente", enabled: false },
+      ]},
+      { title: 'Annexes', id: 'vd-annexes', postes: [
+        { id: 'dm', label: 'Dommage matériel', enabled: false },
+        { id: 'indp', label: 'Indemnité provisionnelle', enabled: false },
+        { id: 'int', label: 'Intérêts', enabled: false },
+        { id: 'autres', label: 'Autres postes de préjudice', enabled: false },
+      ]},
+    ]
+  },
+  {
+    section: 'VICTIME(S) INDIRECTE(S)',
+    categories: [
+      { title: 'Préjudices patrimoniaux', id: 'vi-pat', postes: [
+        { id: 'fdp', label: 'Frais divers des proches', enabled: false },
+        { id: 'fo', label: "Frais d'obsèques", enabled: false },
+      ]},
+      { title: 'Préjudices extra patrimoniaux', id: 'vi-expat', postes: [
+        { id: 'pepe', label: 'Préjudices extra-patrimoniaux exceptionnels', enabled: false },
+        { id: 'pai', label: "Préjudice d'angoisse et d'inquiétude", enabled: false },
+        { id: 'pafv', label: "Préjudice d'accompagnement de fin de vie", enabled: false },
+      ]},
+    ]
+  }
+];
 
 export default function App() {
 
   // ========== STATE ==========
+  const [currentPage, setCurrentPage] = useState('list'); // 'list' | 'dossier'
+  const [activeDossierId, setActiveDossierId] = useState(null);
+
+  // ========== LISTE DES DOSSIERS ==========
+  const [dossiers, setDossiers] = useState([
+    { id: 'dossier-1', reference: 'Dupont Jean', typeFait: 'Accident du travail', date: '16/09/2013', lastEditBy: 'Meghan R.', lastEditDate: '30/01/2026' },
+    { id: 'dossier-2', reference: 'Martin Sophie', typeFait: 'Accident de la route', date: '03/04/2021', lastEditBy: 'Meghan R.', lastEditDate: '28/01/2026' },
+    { id: 'dossier-3', reference: 'Bernard Pierre', typeFait: 'Agression', date: '12/11/2022', lastEditBy: 'Thomas L.', lastEditDate: '25/01/2026' },
+    { id: 'dossier-4', reference: 'Lefebvre Marie', typeFait: 'Erreur médicale', date: '08/07/2020', lastEditBy: 'Meghan R.', lastEditDate: '20/01/2026' },
+    { id: 'dossier-5', reference: 'Moreau Lucas', typeFait: 'Accident du travail', date: '22/02/2023', lastEditBy: 'Thomas L.', lastEditDate: '15/01/2026' },
+  ]);
+
   const [navStack, setNavStack] = useState([
     { id: 'dossier-1', type: 'dossier', title: 'Dossier Dupont', activeTab: 'détail' }
   ]);
@@ -17,9 +92,17 @@ export default function App() {
   const [isDragging, setIsDragging] = useState(false);
   const [processing, setProcessing] = useState([]);
   const [searchPieces, setSearchPieces] = useState('');
+  const [searchPostes, setSearchPostes] = useState('');
+  const [expandedTaxoCategories, setExpandedTaxoCategories] = useState([
+    'vd-pat-temp', 'vd-expat-temp', 'vd-pat-perm', 'vd-expat-perm', 'vd-hors-conso', 'vd-annexes', 'vi-pat', 'vi-expat'
+  ]);
   const [showChiffrageParams, setShowChiffrageParams] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(null); // null | 'resume' | 'expertise'
+  const [creationWizard, setCreationWizard] = useState(null); // null | { step: 'infos', formData: {...} } | { step: 'mode-chiffrage', formData: {...} }
 
-  // ========== PARAMÈTRES CHIFFRAGE (niveau procédure) ==========
+  const typesFaitGenerateur = ['Accident de la route', 'Accident du travail', 'Accident médical', 'Agression', 'Accident domestique', 'Autre'];
+
+  // ========== PARAMÈTRES CHIFFRAGE (niveau dossier) ==========
   const [chiffrageParams, setChiffrageParams] = useState({
     // Dates clés
     dateOuverture: '16/09/2013',
@@ -68,29 +151,22 @@ export default function App() {
     return age;
   };
 
-  // ========== PROCÉDURES LIST ==========
-  const [procedures, setProcedures] = useState([
-    {
-      id: 'proc-1',
-      type: 'Liquidation',
-      statut: 'ouvert',
-      dateCreation: '01/10/2024',
-      dateExpertise: '12/09/2024',
-      dateLiquidation: null,
-      resumeAffaire: 'M. Jean Dupont, cycliste, a été victime d\'un accident de la circulation le 15 mars 2023 à Bordeaux. Alors qu\'il circulait sur une piste cyclable, il a été percuté par un véhicule automobile dont le conducteur n\'avait pas respecté la priorité. L\'impact a provoqué une chute violente entraînant un traumatisme du membre inférieur gauche avec fracture du plateau tibial.',
-      commentaireExpertise: 'L\'expert a retenu une consolidation au 12/09/2024 avec les séquelles suivantes : limitation de la flexion du genou gauche, douleurs résiduelles à l\'effort. Le taux d\'AIPP est fixé à 15%.',
-      isAiGenerated: false
-    }
-  ]);
+  // Conversion YYYY-MM-DD → DD/MM/YYYY
+  const formatDateFR = (isoDate) => {
+    if (!isoDate) return '';
+    const [y, m, d] = isoDate.split('-');
+    return `${d}/${m}/${y}`;
+  };
 
-
-  // Informations dossier
+  // ========== INFORMATIONS DOSSIER ==========
   const [dossierStatut, setDossierStatut] = useState('ouvert'); // 'ouvert' | 'fermé' | 'archive'
   const [dossierRef, setDossierRef] = useState('DOS-2024-001');
   const [dossierIntitule, setDossierIntitule] = useState('Dossier Dupont');
   const [dossierDateOuverture, setDossierDateOuverture] = useState('15/03/2023');
   const [dossierAvocat, setDossierAvocat] = useState('Me. Durand');
   const [dossierNotes, setDossierNotes] = useState('');
+  const [resumeAffaire, setResumeAffaire] = useState('M. Jean Dupont, cycliste, a été victime d\'un accident de la circulation le 15 mars 2023 à Bordeaux. Alors qu\'il circulait sur une piste cyclable, il a été percuté par un véhicule automobile dont le conducteur n\'avait pas respecté la priorité. L\'impact a provoqué une chute violente entraînant un traumatisme du membre inférieur gauche avec fracture du plateau tibial.');
+  const [commentaireExpertise, setCommentaireExpertise] = useState('L\'expert a retenu une consolidation au 12/09/2024 avec les séquelles suivantes : limitation de la flexion du genou gauche, douleurs résiduelles à l\'effort. Le taux d\'AIPP est fixé à 15%.');
 
   const [victimesIndirectes, setVictimesIndirectes] = useState([
     { id: 'vi-1', nom: 'Dupont', prenom: 'Marie', sexe: 'Femme', dateNaissance: '22/08/1984', lien: 'Épouse' },
@@ -169,9 +245,7 @@ export default function App() {
   const [dfttLignes, setDfttLignes] = useState([]);
   const [dftpLignes, setDftpLignes] = useState([]);
 
-  // ========== SMART PROCEDURE WIZARD ==========
-  const [wizardState, setWizardState] = useState(null);
-  // Structure: { step: 1-4, formData: {...}, uploadedFiles: [], processingState: null, extractedData: null }
+  // (wizard supprimé - sera remplacé par flow création dossier)
 
   // ========== CALCULS ==========
   const dsaTotal = dsaLignes.filter(l => l.status === 'validated').reduce((s, l) => s + (l.montant || 0), 0);
@@ -207,18 +281,32 @@ export default function App() {
   // ========== HELPERS ==========
   const currentLevel = navStack[navStack.length - 1];
 
-  // Procédure active (pour compatibilité)
-  const procedureData = procedures.find(p => p.id === (currentLevel.type === 'procedure' ? currentLevel.id : 'proc-1')) || procedures[0];
-  const setProcedureData = (data) => {
-    setProcedures(prev => prev.map(p => p.id === procedureData.id ? { ...p, ...data } : p));
-  };
-
   const fmt = (n) => n != null ? n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' €' : '— €';
   const getPieceLabel = (pieceId) => {
     const idx = pieces.findIndex(p => p.id === pieceId);
     return idx >= 0 ? `P${idx + 1}` : '?';
   };
   const getPiece = (pieceId) => pieces.find(p => p.id === pieceId);
+
+  const getFilteredTaxonomy = () => {
+    const search = searchPostes.trim().toLowerCase();
+    if (!search) return POSTES_TAXONOMY;
+    return POSTES_TAXONOMY.map(section => ({
+      ...section,
+      categories: section.categories.map(cat => ({
+        ...cat,
+        postes: cat.postes.filter(p =>
+          p.label.toLowerCase().includes(search) ||
+          (p.acronym && p.acronym.toLowerCase().includes(search))
+        )
+      })).filter(cat => cat.postes.length > 0)
+    })).filter(section => section.categories.length > 0);
+  };
+
+  const getPosteMontant = (posteId) => {
+    const poste = allPostes.find(p => p.id === posteId);
+    return poste ? poste.montant : null;
+  };
 
   // ========== PIECES HELPERS ==========
   const getTypeColor = (type) => {
@@ -300,7 +388,6 @@ export default function App() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">N°</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Date</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Utilisé dans</th>
               </tr>
             </thead>
@@ -330,7 +417,6 @@ export default function App() {
                         {piece.type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{piece.date}</td>
                     <td className="px-4 py-3">
                       {usages.length > 0 ? (
                         <div className="flex items-center gap-1">
@@ -352,7 +438,7 @@ export default function App() {
     );
   };
 
-  const tabsConfig = { dossier: ['Détail', 'Pièces'], procedure: ['Détail', 'Chiffrage', 'Pièces'] };
+  const tabsConfig = { dossier: ['Détail', 'Chiffrage', 'Pièces'], poste: [] };
   const currentTabs = tabsConfig[currentLevel.type] || [];
   const getSiblings = () => currentLevel.type === 'poste' ? allPostes.filter(p => p.id !== currentLevel.id) : [];
 
@@ -372,34 +458,7 @@ export default function App() {
   const toggleCategory = (id) => setExpandedCategories(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
   const toggleSection = (id) => setExpandedSections(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
 
-  // ========== SMART PROCEDURE WIZARD HANDLERS ==========
-  const handleOpenSmartProcedure = () => {
-    setWizardState({
-      step: 1,
-      formData: {
-        type: 'provision', // 'provision' | 'liquidation'
-        dateOuverture: '',
-        dateExpertise: '',
-        dateLiquidation: '',
-        dateConsolidation: ''
-      },
-      uploadedFiles: [],
-      processingState: null, // null | 'processing' | 'done'
-      extractedData: null
-    });
-  };
-
-  const handleCloseWizard = () => {
-    setWizardState(null);
-  };
-
-  const handleWizardFormChange = (field, value) => {
-    setWizardState(prev => prev ? {
-      ...prev,
-      formData: { ...prev.formData, [field]: value }
-    } : null);
-  };
-
+  // ========== DOCUMENT DETECTION HELPERS ==========
   const detectDocumentType = (fileName) => {
     const ln = fileName.toLowerCase();
 
@@ -460,33 +519,8 @@ export default function App() {
   };
 
   const handleStartExtraction = async () => {
-    // Capturer les données du formulaire avant de démarrer
-    const formData = wizardState?.formData || {};
-    // Capturer les fichiers MAINTENANT (ils ont déjà leurs types assignés par handleWizardUpload)
-    const uploadedFiles = wizardState?.uploadedFiles || [];
-
-    setWizardState(prev => prev ? { ...prev, step: 3, processingState: 'processing', processingPhase: 'lecture' } : null);
-
-    // Simuler le processing en phases détaillées (~10 secondes total)
-    await new Promise(r => setTimeout(r, 1500));
-    setWizardState(prev => prev ? { ...prev, processingPhase: 'ocr' } : null);
-
-    await new Promise(r => setTimeout(r, 1800));
-    setWizardState(prev => prev ? { ...prev, processingPhase: 'analyse' } : null);
-
-    await new Promise(r => setTimeout(r, 2000));
-    setWizardState(prev => prev ? { ...prev, processingPhase: 'extraction' } : null);
-
-    await new Promise(r => setTimeout(r, 1500));
-    setWizardState(prev => prev ? { ...prev, processingPhase: 'calculs' } : null);
-
-    await new Promise(r => setTimeout(r, 1500));
-    setWizardState(prev => prev ? { ...prev, processingPhase: 'postes' } : null);
-
-    await new Promise(r => setTimeout(r, 1200));
-    setWizardState(prev => prev ? { ...prev, processingPhase: 'finalisation' } : null);
-
-    await new Promise(r => setTimeout(r, 800));
+    const formData = {};
+    const uploadedFiles = [];
 
     // Utiliser les fichiers capturés au début (déjà avec types assignés)
     const currentFiles = uploadedFiles;
@@ -501,10 +535,7 @@ export default function App() {
       ? simulateRapportExtraction(rapportFile?.name || 'document.pdf')
       : getDefaultExtractedData();
 
-    // Créer la procédure avec les données extraites
-    const newProcId = `proc-${Date.now()}`;
-    const procType = formData.type === 'liquidation' ? 'Liquidation' : 'Provision';
-    const hasAiData = extractedData && (extractedData.dsaLines?.length > 0 || extractedData.dfttPeriods?.length > 0 || extractedData.pgpaData);
+    // Appliquer les données extraites au dossier
 
     // Ajouter les lignes DSA
     if (extractedData?.dsaLines?.length > 0) {
@@ -566,42 +597,19 @@ export default function App() {
       });
     }
 
-    // Créer la procédure
-    const newProcedure = {
-      id: newProcId,
-      type: procType,
-      statut: 'ouvert',
-      dateCreation: new Date().toLocaleDateString('fr-FR'),
-      dateExpertise: formData.dateExpertise || null,
-      dateConsolidation: formData.dateConsolidation || null,
-      dateLiquidation: formData.dateLiquidation || null,
-      resumeAffaire: extractedData?.resumeAffaire || '',
-      commentaireExpertise: extractedData?.commentaireExpertise || '',
-      isAiGenerated: hasAiData
-    };
+    // Update dossier-level resume/expertise from extracted data
+    if (extractedData?.resumeAffaire) {
+      setResumeAffaire(extractedData.resumeAffaire);
+    }
+    if (extractedData?.commentaireExpertise) {
+      setCommentaireExpertise(extractedData.commentaireExpertise);
+    }
 
-    setProcedures(prev => [newProcedure, ...prev]);
-
-    // Mettre à jour le wizard state
-    setWizardState(prev => prev ? {
-      ...prev,
-      processingState: 'done',
-      processingPhase: null,
-      extractedData
-    } : null);
-
-    // Naviguer vers la nouvelle procédure après un délai
+    // Navigate to dossier chiffrage tab after extraction
     setTimeout(() => {
       setNavStack(prev => [
-        prev[0],
-        {
-          id: newProcId,
-          type: 'procedure',
-          title: procType,
-          activeTab: 'chiffrage'
-        }
+        { ...prev[0], activeTab: 'chiffrage' }
       ]);
-      setWizardState(null);
     }, 500);
   };
 
@@ -918,110 +926,74 @@ export default function App() {
     };
   };
 
-  const handleCreateProcedureFromWizard = () => {
-    if (!wizardState) return;
+  // (handleCreateProcedureFromWizard supprimé - wizard supprimé)
 
-    const { extractedData, uploadedFiles } = wizardState;
+  // ========== ACTIONS IA — Génération à la demande ==========
+  const handleGenerateResume = async () => {
+    setAiGenerating('resume');
+    await new Promise(r => setTimeout(r, 2000));
+    setFaitGenerateur(prev => ({
+      ...prev,
+      resume: `M. ${victimeData.prenom} ${victimeData.nom}, ${victimeData.sexe === 'Homme' ? 'âgé' : 'âgée'} de ${calcAge(victimeData.dateNaissance)} ans, a été victime d'un ${faitGenerateur.type.toLowerCase()} survenu le ${faitGenerateur.dateAccident}. L'accident a entraîné un traumatisme nécessitant une prise en charge médicale immédiate avec hospitalisation. La consolidation a été fixée au ${faitGenerateur.dateConsolidation || '[date à préciser]'}.`
+    }));
+    setAiGenerating(null);
+  };
 
-    // Ajouter les lignes DSA suggérées (si extraction)
-    if (extractedData?.dsaLines?.length > 0) {
-      setDsaLignes(prev => [
-        ...extractedData.dsaLines.map(line => ({
-          ...line,
-          pieceIds: [],
-          dejaRembourse: 0
-        })),
-        ...prev
-      ]);
-    }
+  const handleGenerateExpertise = async () => {
+    setAiGenerating('expertise');
+    await new Promise(r => setTimeout(r, 2500));
+    setCommentaireExpertise(`L'expert judiciaire a examiné ${victimeData.sexe === 'Homme' ? 'M.' : 'Mme'} ${victimeData.prenom} ${victimeData.nom} et retenu une consolidation au ${faitGenerateur.dateConsolidation || '[date à préciser]'}. Les séquelles fonctionnelles persistent avec des limitations dans les activités quotidiennes. Le déficit fonctionnel permanent est évalué. L'expert note un retentissement professionnel significatif sur l'activité antérieure.`);
+    setAiGenerating(null);
+  };
 
-    // Ajouter les périodes DFTT (si extraction)
-    if (extractedData?.dfttPeriods?.length > 0) {
-      setDfttLignes(prev => [
-        ...extractedData.dfttPeriods,
-        ...prev
-      ]);
-    }
+  // ========== CRÉATION DOSSIER ==========
+  const handleCreateDossier = (formData) => {
+    const newId = `dossier-${Date.now()}`;
 
-    // Ajouter les périodes DFTP (si extraction)
-    if (extractedData?.dftpPeriods?.length > 0) {
-      setDftpLignes(prev => [
-        ...extractedData.dftpPeriods,
-        ...prev
-      ]);
-    }
+    setDossiers(prev => [{
+      id: newId,
+      reference: `${formData.nom} ${formData.prenom}`,
+      typeFait: formData.typeFait,
+      date: formatDateFR(formData.dateAccident),
+      lastEditBy: 'Meghan R.',
+      lastEditDate: new Date().toLocaleDateString('fr-FR')
+    }, ...prev]);
 
-    // Ajouter les données PGPA (si extraction)
-    if (extractedData?.pgpaData) {
-      const pgpa = extractedData.pgpaData;
-      setPgpaData(prev => ({
-        periode: pgpa.periode || prev.periode,
-        revenuRef: {
-          revalorisation: pgpa.revenuRef?.revalorisation || prev.revenuRef.revalorisation,
-          total: pgpa.revenuRef?.total || 0,
-          lignes: [
-            ...(pgpa.revenuRef?.lignes || []),
-            ...prev.revenuRef.lignes.filter(l => !l.status || l.status !== 'ai-suggested')
-          ]
-        },
-        revenusPercus: [
-          ...(pgpa.revenusPercus || []),
-          ...prev.revenusPercus.filter(l => !l.status || l.status !== 'ai-suggested')
-        ],
-        ijPercues: [
-          ...(pgpa.ijPercues || []),
-          ...prev.ijPercues.filter(l => !l.status || l.status !== 'ai-suggested')
-        ]
+    setVictimeData({
+      nom: formData.nom,
+      prenom: formData.prenom,
+      sexe: formData.sexe,
+      dateNaissance: formatDateFR(formData.dateNaissance),
+      dateDeces: formData.dateDeces ? formatDateFR(formData.dateDeces) : null
+    });
+    setFaitGenerateur({
+      type: formData.typeFait,
+      dateAccident: formatDateFR(formData.dateAccident),
+      datePremiereConstatation: formatDateFR(formData.dateAccident),
+      dateConsolidation: formatDateFR(formData.dateConsolidation),
+      resume: ''
+    });
+    if (formData.dateConsolidation || formData.dateLiquidation) {
+      setChiffrageParams(prev => ({
+        ...prev,
+        ...(formData.dateConsolidation ? { dateConsolidation: formatDateFR(formData.dateConsolidation) } : {}),
+        ...(formData.dateLiquidation ? { dateLiquidation: formatDateFR(formData.dateLiquidation) } : {})
       }));
     }
+    setCommentaireExpertise('');
+    setResumeAffaire('');
+    setVictimesIndirectes([]);
+    setPieces([]);
+    setDsaLignes([]);
+    setDfttLignes([]);
+    setDftpLignes([]);
+    setPgpaData({ periode: { debut: '', fin: '', mois: 0 }, revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 0 }, revenusPercus: [], ijPercues: [] });
+    setPgpfData({ periodes: {} });
 
-    // Créer les pièces pour les fichiers uploadés
-    if (uploadedFiles?.length > 0) {
-      uploadedFiles.forEach(file => {
-        const newPieceId = `p-${Date.now()}-${Math.random()}`;
-        setPieces(prev => [...prev, {
-          id: newPieceId,
-          nom: file.name,
-          date: new Date().toLocaleDateString('fr-FR'),
-          type: file.type === 'rapport' ? 'Rapport expertise' : 'Document',
-          used: true
-        }]);
-      });
-    }
-
-    // Créer la nouvelle procédure
-    const newProcId = `proc-${Date.now()}`;
-    const procType = wizardState.formData.type === 'liquidation' ? 'Liquidation' : 'Provision';
-    const hasAiData = extractedData && (extractedData.dsaLines?.length > 0 || extractedData.dfttPeriods?.length > 0);
-
-    const newProcedure = {
-      id: newProcId,
-      type: procType,
-      statut: 'ouvert',
-      dateCreation: new Date().toLocaleDateString('fr-FR'),
-      dateExpertise: wizardState.formData.dateExpertise || null,
-      dateConsolidation: wizardState.formData.dateConsolidation || null,
-      dateLiquidation: wizardState.formData.dateLiquidation || null,
-      resumeAffaire: extractedData?.resumeAffaire || '',
-      commentaireExpertise: extractedData?.commentaireExpertise || '',
-      isAiGenerated: hasAiData
-    };
-
-    setProcedures(prev => [newProcedure, ...prev]);
-
-    // Fermer le wizard et naviguer vers la nouvelle procédure
-    setWizardState(null);
-
-    // Naviguer vers la procédure avec l'onglet chiffrage
-    setNavStack(prev => [
-      prev[0], // Garder le dossier
-      {
-        id: newProcId,
-        type: 'procedure',
-        title: procType,
-        activeTab: 'chiffrage'
-      }
-    ]);
+    setNavStack([{ id: newId, type: 'dossier', title: `${formData.nom} ${formData.prenom}`, activeTab: 'chiffrage' }]);
+    setActiveDossierId(newId);
+    setCurrentPage('dossier');
+    setCreationWizard(null);
   };
 
   // ========== EXTRACTION DEPUIS EMPTY STATE ==========
@@ -1054,22 +1026,7 @@ export default function App() {
     const extractedData = simulateRapportExtraction(fileList[0].name);
     const timestamp = Date.now();
 
-    // Créer des pièces fictives pour la démo (simulant l'extraction depuis le rapport)
-    const demoPieces = [
-      { id: `p-ai-${timestamp}-1`, nom: 'Rapport expertise Dr. Martin.pdf', intitule: 'Rapport d\'expertise médicale', type: 'Expertise', date: '12/09/2024' },
-      { id: `p-ai-${timestamp}-2`, nom: 'Facture CHU Bordeaux.pdf', intitule: 'Facture hospitalisation initiale', type: 'Facture', date: '22/03/2023' },
-      { id: `p-ai-${timestamp}-3`, nom: 'Facture Clinique du Sport.pdf', intitule: 'Facture chirurgie LCA', type: 'Facture', date: '02/04/2023' },
-      { id: `p-ai-${timestamp}-4`, nom: 'Factures kiné (lot).pdf', intitule: 'Factures kinésithérapie 45 séances', type: 'Facture', date: '2023-2024' },
-      { id: `p-ai-${timestamp}-5`, nom: 'Facture IRM contrôle.pdf', intitule: 'Facture IRM genou', type: 'Facture', date: '15/06/2023' },
-      { id: `p-ai-${timestamp}-6`, nom: 'Ordonnances médicaments.pdf', intitule: 'Ordonnances anti-inflammatoires', type: 'Ordonnance', date: '03/2023' },
-      { id: `p-ai-${timestamp}-7`, nom: 'Bulletins salaire 2022.pdf', intitule: 'Bulletins de salaire année 2022', type: 'Bulletin', date: '2022' },
-      { id: `p-ai-${timestamp}-8`, nom: 'Bulletins salaire 2021.pdf', intitule: 'Bulletins de salaire année 2021', type: 'Bulletin', date: '2021' },
-      { id: `p-ai-${timestamp}-9`, nom: 'Attestation CPAM.pdf', intitule: 'Attestation indemnités journalières', type: 'Attestation', date: '20/05/2023' },
-      { id: `p-ai-${timestamp}-10`, nom: 'Décompte AG2R.pdf', intitule: 'Décompte prévoyance AG2R', type: 'Décompte', date: '15/08/2023' },
-      { id: `p-ai-${timestamp}-11`, nom: 'Attestation employeur.pdf', intitule: 'Attestation maintien salaire', type: 'Attestation', date: '30/06/2023' },
-    ];
-
-    // Ajouter les pièces uploadées + les pièces démo
+    // Ajouter les pièces uploadées (rapport)
     const uploadedPieceIds = [];
     fileList.forEach(file => {
       const detected = detectDocumentType(file.name);
@@ -1087,36 +1044,10 @@ export default function App() {
       }]);
     });
 
-    // Ajouter les pièces démo
-    setPieces(prev => [...prev, ...demoPieces.map(p => ({ ...p, used: true }))]);
-
-    // Ajouter les lignes DSA avec pièces liées
-    if (extractedData?.dsaLines?.length > 0) {
-      setDsaLignes(prev => [
-        ...extractedData.dsaLines.map((line, idx) => {
-          // Associer des pièces selon le type de dépense
-          let linkedPieces = [demoPieces[0].id]; // Toujours le rapport
-          if (line.type === 'Hospitalisation' && idx === 0) linkedPieces = [demoPieces[1].id, demoPieces[0].id];
-          else if (line.type === 'Hospitalisation') linkedPieces = [demoPieces[2].id, demoPieces[0].id];
-          else if (line.type === 'Rééducation') linkedPieces = [demoPieces[3].id, demoPieces[0].id, demoPieces[5].id];
-          else if (line.type === 'Imagerie') linkedPieces = [demoPieces[4].id];
-          else if (line.type === 'Pharmacie') linkedPieces = [demoPieces[5].id];
-          else if (line.type === 'Appareillage') linkedPieces = [demoPieces[0].id];
-          else if (line.type === 'Consultation') linkedPieces = [demoPieces[0].id];
-          return {
-            ...line,
-            pieceIds: linkedPieces,
-            dejaRembourse: 0
-          };
-        }),
-        ...prev
-      ]);
-    }
-
     // Ajouter les périodes DFTT avec pièce rapport
     if (extractedData?.dfttPeriods?.length > 0) {
       setDfttLignes(prev => [
-        ...extractedData.dfttPeriods.map(p => ({ ...p, pieceIds: [demoPieces[0].id] })),
+        ...extractedData.dfttPeriods.map(p => ({ ...p, pieceIds: [uploadedPieceIds[0]] })),
         ...prev
       ]);
     }
@@ -1124,45 +1055,10 @@ export default function App() {
     // Ajouter les périodes DFTP avec pièce rapport
     if (extractedData?.dftpPeriods?.length > 0) {
       setDftpLignes(prev => [
-        ...extractedData.dftpPeriods.map(p => ({ ...p, pieceIds: [demoPieces[0].id] })),
+        ...extractedData.dftpPeriods.map(p => ({ ...p, pieceIds: [uploadedPieceIds[0]] })),
         ...prev
       ]);
     }
-
-    // Ajouter les données PGPA avec pièces liées
-    if (extractedData?.pgpaData) {
-      const pgpa = extractedData.pgpaData;
-      setPgpaData(prev => ({
-        periode: pgpa.periode || prev.periode,
-        revenuRef: {
-          revalorisation: pgpa.revenuRef?.revalorisation || prev.revenuRef.revalorisation,
-          total: pgpa.revenuRef?.total || 0,
-          lignes: [
-            ...(pgpa.revenuRef?.lignes || []).map((l, idx) => ({
-              ...l,
-              pieceIds: l.annee === '2022' ? [demoPieces[6].id] : [demoPieces[7].id]
-            })),
-            ...prev.revenuRef.lignes
-          ]
-        },
-        revenusPercus: [
-          ...(pgpa.revenusPercus || []).map(l => ({ ...l, pieceIds: [demoPieces[10].id, demoPieces[6].id] })),
-          ...prev.revenusPercus
-        ],
-        ijPercues: [
-          ...(pgpa.ijPercues || []).map((l, idx) => ({
-            ...l,
-            pieceIds: idx === 0 ? [demoPieces[8].id] : [demoPieces[9].id]
-          })),
-          ...prev.ijPercues
-        ]
-      }));
-    }
-
-    // Marquer la procédure comme non-vide APRÈS génération des suggestions
-    setProcedures(prev => prev.map(p =>
-      p.id === currentLevel.id ? { ...p, isEmpty: false } : p
-    ));
 
     // Finaliser
     await new Promise(r => setTimeout(r, 500));
@@ -1181,7 +1077,14 @@ export default function App() {
     if (ln.includes('kine') || ln.includes('kiné')) return { status: 'success', confidence: 91, data: { label: 'Kinésithérapie (10 séances)', type: 'Rééducation', date: '15/10/2024', montant: 400, tiers: 'Cabinet Kiné' }};
     if (ln.includes('flou') || ln.includes('illisible')) return { status: 'partial', confidence: 35, data: {}, warnings: ['Document illisible', 'Aucune donnée extraite'] };
     if (ln.includes('erreur') || ln.includes('corrupt')) return { status: 'error', error: 'Impossible de lire le fichier' };
-    return { status: 'partial', confidence: 62, data: { label: 'Document médical', date: '2024' }, warnings: ['Type non identifié', 'Montant non détecté'] };
+    const fallbackPool = [
+      { label: 'Consultation spécialiste', type: 'Consultation', date: '15/09/2024', montant: 75, tiers: 'Dr Martin' },
+      { label: 'Séance ostéopathie', type: 'Rééducation', date: '22/10/2024', montant: 60, tiers: 'Cabinet Ostéo' },
+      { label: 'Analyses biologiques', type: 'Biologie', date: '08/11/2024', montant: 145.30, tiers: 'Laboratoire Central' },
+      { label: 'Transport médical (taxi)', type: 'Transport', date: '03/10/2024', montant: 42, tiers: 'Taxi Médical' },
+    ];
+    const fb = fallbackPool[Math.floor(Math.random() * fallbackPool.length)];
+    return { status: 'success', confidence: 82, data: fb };
   };
 
   const handleUploadFiles = async (files, posteType) => {
@@ -1201,7 +1104,7 @@ export default function App() {
         const hasAllData = result.data?.label && result.data?.type && result.data?.date && result.data?.montant;
         setDsaLignes(prev => [{
           id: `dsa-${Date.now()}`,
-          status: result.status === 'error' ? 'error' : hasAllData ? 'pending-ok' : 'pending',
+          status: result.status === 'error' ? 'error' : hasAllData ? 'ai-suggested' : 'pending',
           fileName: file.name,
           pieceIds: [newPieceId],
           confidence: result.confidence,
@@ -1215,6 +1118,125 @@ export default function App() {
           dejaRembourse: 0
         }, ...prev]);
       }
+      else if (posteType === 'pgpa-revenu-ref') {
+        const mockRevRef = [
+          { label: 'Salaire net imposable', type: 'revenu', montant: 32000 + Math.round(Math.random() * 6000), confidence: 91 },
+          { label: 'Prime annuelle', type: 'gain', montant: 1500 + Math.round(Math.random() * 1500), confidence: 87 },
+          { label: 'Heures supplémentaires', type: 'gain', montant: 800 + Math.round(Math.random() * 1200), confidence: 83 },
+        ];
+        const mock = mockRevRef[Math.floor(Math.random() * mockRevRef.length)];
+        const annee = (new Date().getFullYear() - 1 - Math.floor(Math.random() * 2)) + '';
+        setPgpaData(prev => ({
+          ...prev,
+          revenuRef: {
+            ...prev.revenuRef,
+            lignes: [{
+              id: `pgpa-rev-${Date.now()}`,
+              type: mock.type,
+              status: 'ai-suggested',
+              label: mock.label,
+              annee,
+              montant: mock.montant,
+              revalorise: Math.round(mock.montant * 1.04),
+              aRevaloriser: true,
+              pieceIds: [newPieceId],
+              confidence: mock.confidence
+            }, ...prev.revenuRef.lignes],
+            total: prev.revenuRef.total + mock.montant
+          }
+        }));
+      }
+      else if (posteType === 'pgpa-revenu-percu') {
+        const mockRevPercu = [
+          { label: 'Maintien de salaire employeur', montant: 8500, tiers: 'Employeur', dureeJours: 107, confidence: 88 },
+          { label: 'Salaire partiel pendant arrêt', montant: 4200, tiers: 'Employeur', dureeJours: 75, confidence: 85 },
+        ];
+        const mock = mockRevPercu[Math.floor(Math.random() * mockRevPercu.length)];
+        setPgpaData(prev => ({
+          ...prev,
+          revenusPercus: [{
+            id: `pgpa-percu-${Date.now()}`,
+            status: 'ai-suggested',
+            label: mock.label,
+            periode: 'Mars - Juin 2023',
+            periodeDebut: '15/03/2023',
+            periodeFin: '30/06/2023',
+            dureeJours: mock.dureeJours,
+            montant: mock.montant,
+            tiers: mock.tiers,
+            pieceIds: [newPieceId],
+            confidence: mock.confidence
+          }, ...prev.revenusPercus]
+        }));
+      }
+      else if (posteType === 'pgpa-ij') {
+        const mockIJ = [
+          { label: 'IJ Sécurité sociale', tiers: 'CPAM', montantBrut: 12500, jours: 546, confidence: 90 },
+          { label: 'IJ Prévoyance complémentaire', tiers: 'AG2R', montantBrut: 5200, jours: 439, confidence: 86 },
+        ];
+        const mock = mockIJ[Math.floor(Math.random() * mockIJ.length)];
+        const csgCrds = Math.round(mock.montantBrut * 0.067);
+        setPgpaData(prev => ({
+          ...prev,
+          ijPercues: [{
+            id: `pgpa-ij-${Date.now()}`,
+            status: 'ai-suggested',
+            label: mock.label,
+            tiers: mock.tiers,
+            periode: 'Mars 2023 - Sept 2024',
+            periodeDebut: '15/03/2023',
+            periodeFin: '12/09/2024',
+            jours: mock.jours,
+            montantBrut: mock.montantBrut,
+            csgCrds: csgCrds,
+            montant: mock.montantBrut - csgCrds,
+            pieceIds: [newPieceId],
+            confidence: mock.confidence
+          }, ...prev.ijPercues]
+        }));
+      }
+      else if (posteType === 'dftt') {
+        const mockDftt = [
+          { label: 'Hospitalisation', jours: 8, confidence: 94 },
+          { label: 'Alitement strict post-opératoire', jours: 13, confidence: 91 },
+          { label: 'Hospitalisation chirurgie', jours: 6, confidence: 88 },
+        ];
+        const mock = mockDftt[Math.floor(Math.random() * mockDftt.length)];
+        const baseJ = chiffrageParams.baseJournaliereDFTT || 33;
+        setDfttLignes(prev => [{
+          id: `dftt-${Date.now()}`,
+          status: 'ai-suggested',
+          label: mock.label,
+          debut: '15/03/2023',
+          fin: (() => { const d = new Date(2023, 2, 15 + mock.jours); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })(),
+          jours: mock.jours,
+          taux: 100,
+          montant: Math.round(mock.jours * baseJ),
+          pieceIds: [newPieceId],
+          confidence: mock.confidence
+        }, ...prev]);
+      }
+      else if (posteType === 'dftp') {
+        const mockDftp = [
+          { label: 'Convalescence post-opératoire', jours: 76, taux: 50, confidence: 89 },
+          { label: 'Rééducation active intensive', jours: 92, taux: 40, confidence: 86 },
+          { label: 'Gêne résiduelle pré-consolidation', jours: 256, taux: 15, confidence: 82 },
+        ];
+        const mock = mockDftp[Math.floor(Math.random() * mockDftp.length)];
+        const baseJ = chiffrageParams.baseJournaliereDFTP || 33;
+        setDftpLignes(prev => [{
+          id: `dftp-${Date.now()}`,
+          status: 'ai-suggested',
+          label: mock.label,
+          debut: '16/04/2023',
+          fin: (() => { const d = new Date(2023, 3, 16 + mock.jours); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })(),
+          jours: mock.jours,
+          taux: mock.taux,
+          montant: Math.round(mock.jours * baseJ * mock.taux / 100),
+          pieceIds: [newPieceId],
+          confidence: mock.confidence
+        }, ...prev]);
+      }
       setProcessing(prev => prev.filter(p => p.id !== procId));
     }
   };
@@ -1226,7 +1248,7 @@ export default function App() {
       const hasAllData = result.data?.label && result.data?.type && result.data?.date && result.data?.montant;
       setDsaLignes(prev => [{
         id: `dsa-${Date.now()}`,
-        status: hasAllData ? 'pending-ok' : 'pending',
+        status: hasAllData ? 'ai-suggested' : 'pending',
         fileName: piece.nom,
         pieceIds: [piece.id],
         confidence: result.confidence,
@@ -1237,6 +1259,130 @@ export default function App() {
         montant: result.data?.montant || null,
         tiers: result.data?.tiers || null,
         dejaRembourse: 0
+      }, ...prev]);
+      setPieces(prev => prev.map(p => p.id === piece.id ? { ...p, used: true } : p));
+    }
+    else if (posteType === 'pgpa-revenu-ref') {
+      const mockRevRef = [
+        { label: 'Salaire net imposable', type: 'revenu', montant: 32000 + Math.round(Math.random() * 6000), confidence: 91 },
+        { label: 'Prime annuelle', type: 'gain', montant: 1500 + Math.round(Math.random() * 1500), confidence: 87 },
+        { label: 'Heures supplémentaires', type: 'gain', montant: 800 + Math.round(Math.random() * 1200), confidence: 83 },
+      ];
+      const mock = mockRevRef[Math.floor(Math.random() * mockRevRef.length)];
+      const annee = (new Date().getFullYear() - 1 - Math.floor(Math.random() * 2)) + '';
+      setPgpaData(prev => ({
+        ...prev,
+        revenuRef: {
+          ...prev.revenuRef,
+          lignes: [{
+            id: `pgpa-rev-${Date.now()}`,
+            type: mock.type,
+            status: 'ai-suggested',
+            label: mock.label,
+            annee,
+            montant: mock.montant,
+            revalorise: Math.round(mock.montant * 1.04),
+            aRevaloriser: true,
+            pieceIds: [piece.id],
+            confidence: mock.confidence
+          }, ...prev.revenuRef.lignes],
+          total: prev.revenuRef.total + mock.montant
+        }
+      }));
+      setPieces(prev => prev.map(p => p.id === piece.id ? { ...p, used: true } : p));
+    }
+    else if (posteType === 'pgpa-revenu-percu') {
+      const mockRevPercu = [
+        { label: 'Maintien de salaire employeur', montant: 8500, tiers: 'Employeur', dureeJours: 107, confidence: 88 },
+        { label: 'Salaire partiel pendant arrêt', montant: 4200, tiers: 'Employeur', dureeJours: 75, confidence: 85 },
+      ];
+      const mock = mockRevPercu[Math.floor(Math.random() * mockRevPercu.length)];
+      setPgpaData(prev => ({
+        ...prev,
+        revenusPercus: [{
+          id: `pgpa-percu-${Date.now()}`,
+          status: 'ai-suggested',
+          label: mock.label,
+          periode: 'Mars - Juin 2023',
+          periodeDebut: '15/03/2023',
+          periodeFin: '30/06/2023',
+          dureeJours: mock.dureeJours,
+          montant: mock.montant,
+          tiers: mock.tiers,
+          pieceIds: [piece.id],
+          confidence: mock.confidence
+        }, ...prev.revenusPercus]
+      }));
+      setPieces(prev => prev.map(p => p.id === piece.id ? { ...p, used: true } : p));
+    }
+    else if (posteType === 'pgpa-ij') {
+      const mockIJ = [
+        { label: 'IJ Sécurité sociale', tiers: 'CPAM', montantBrut: 12500, jours: 546, confidence: 90 },
+        { label: 'IJ Prévoyance complémentaire', tiers: 'AG2R', montantBrut: 5200, jours: 439, confidence: 86 },
+      ];
+      const mock = mockIJ[Math.floor(Math.random() * mockIJ.length)];
+      const csgCrds = Math.round(mock.montantBrut * 0.067);
+      setPgpaData(prev => ({
+        ...prev,
+        ijPercues: [{
+          id: `pgpa-ij-${Date.now()}`,
+          status: 'ai-suggested',
+          label: mock.label,
+          tiers: mock.tiers,
+          periode: 'Mars 2023 - Sept 2024',
+          periodeDebut: '15/03/2023',
+          periodeFin: '12/09/2024',
+          jours: mock.jours,
+          montantBrut: mock.montantBrut,
+          csgCrds: csgCrds,
+          montant: mock.montantBrut - csgCrds,
+          pieceIds: [piece.id],
+          confidence: mock.confidence
+        }, ...prev.ijPercues]
+      }));
+      setPieces(prev => prev.map(p => p.id === piece.id ? { ...p, used: true } : p));
+    }
+    else if (posteType === 'dftt') {
+      const mockDftt = [
+        { label: 'Hospitalisation', jours: 8, confidence: 94 },
+        { label: 'Alitement strict post-opératoire', jours: 13, confidence: 91 },
+        { label: 'Hospitalisation chirurgie', jours: 6, confidence: 88 },
+      ];
+      const mock = mockDftt[Math.floor(Math.random() * mockDftt.length)];
+      const baseJ = chiffrageParams.baseJournaliereDFTT || 33;
+      setDfttLignes(prev => [{
+        id: `dftt-${Date.now()}`,
+        status: 'ai-suggested',
+        label: mock.label,
+        debut: '15/03/2023',
+        fin: (() => { const d = new Date(2023, 2, 15 + mock.jours); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })(),
+        jours: mock.jours,
+        taux: 100,
+        montant: Math.round(mock.jours * baseJ),
+        pieceIds: [piece.id],
+        confidence: mock.confidence
+      }, ...prev]);
+      setPieces(prev => prev.map(p => p.id === piece.id ? { ...p, used: true } : p));
+    }
+    else if (posteType === 'dftp') {
+      const mockDftp = [
+        { label: 'Convalescence post-opératoire', jours: 76, taux: 50, confidence: 89 },
+        { label: 'Rééducation active intensive', jours: 92, taux: 40, confidence: 86 },
+        { label: 'Gêne résiduelle pré-consolidation', jours: 256, taux: 15, confidence: 82 },
+      ];
+      const mock = mockDftp[Math.floor(Math.random() * mockDftp.length)];
+      const baseJ = chiffrageParams.baseJournaliereDFTP || 33;
+      setDftpLignes(prev => [{
+        id: `dftp-${Date.now()}`,
+        status: 'ai-suggested',
+        label: mock.label,
+        debut: '16/04/2023',
+        fin: (() => { const d = new Date(2023, 3, 16 + mock.jours); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })(),
+        jours: mock.jours,
+        taux: mock.taux,
+        montant: Math.round(mock.jours * baseJ * mock.taux / 100),
+        pieceIds: [piece.id],
+        confidence: mock.confidence
       }, ...prev]);
       setPieces(prev => prev.map(p => p.id === piece.id ? { ...p, used: true } : p));
     }
@@ -1261,6 +1407,33 @@ export default function App() {
       };
       setDsaLignes(prev => [newLigne, ...prev]);
       openDsaEditPanel(newLigne);
+    }
+    else if (posteType === 'pgpa-revenu-ref') {
+      const newLigne = { id: `pgpa-rev-${Date.now()}`, type: 'revenu', status: 'pending', label: null, annee: '', montant: null, revalorise: null, aRevaloriser: true, pieceIds: [] };
+      setPgpaData(prev => ({ ...prev, revenuRef: { ...prev.revenuRef, lignes: [newLigne, ...prev.revenuRef.lignes] } }));
+      openPgpaEditPanel('pgpa-revenu', newLigne);
+    }
+    else if (posteType === 'pgpa-revenu-percu') {
+      const newLigne = { id: `pgpa-percu-${Date.now()}`, status: 'pending', label: null, periode: '', periodeDebut: '', periodeFin: '', dureeJours: 0, montant: null, tiers: '', pieceIds: [] };
+      setPgpaData(prev => ({ ...prev, revenusPercus: [newLigne, ...prev.revenusPercus] }));
+      openPgpaEditPanel('pgpa-revenu-percu', newLigne);
+    }
+    else if (posteType === 'pgpa-ij') {
+      const newLigne = { id: `pgpa-ij-${Date.now()}`, status: 'pending', label: null, tiers: '', periode: '', periodeDebut: '', periodeFin: '', jours: 0, montantBrut: null, csgCrds: 0, montant: null, pieceIds: [] };
+      setPgpaData(prev => ({ ...prev, ijPercues: [newLigne, ...prev.ijPercues] }));
+      openPgpaEditPanel('pgpa-ij', newLigne);
+    }
+    else if (posteType === 'dftt') {
+      const newLigne = { id: `dftt-${Date.now()}`, status: 'pending', label: null, debut: '', fin: '', jours: 0, taux: 100, montant: 0, pieceIds: [], confidence: null, commentaire: '' };
+      setDfttLignes(prev => [newLigne, ...prev]);
+      setEditingPieceIds([]);
+      setEditPanel({ type: 'dftt-ligne', data: newLigne });
+    }
+    else if (posteType === 'dftp') {
+      const newLigne = { id: `dftp-${Date.now()}`, status: 'pending', label: null, debut: '', fin: '', jours: 0, taux: 50, montant: 0, deductionDftt: false, joursDfttDeduits: 0, joursRetenus: 0, pieceIds: [], confidence: null, baseOverride: null };
+      setDftpLignes(prev => [newLigne, ...prev]);
+      setEditingPieceIds([]);
+      setEditPanel({ type: 'dftp-ligne', data: newLigne });
     }
   };
 
@@ -1287,7 +1460,7 @@ export default function App() {
 
   // ========== SIDEBAR ==========
   const renderSidebar = () => {
-    const icons = { dossier: Folder, procedure: Calculator, poste: FileText };
+    const icons = { dossier: Folder, poste: FileText };
     
     // Titre dynamique par niveau
     const getItemTitle = (item) => {
@@ -1312,16 +1485,6 @@ export default function App() {
         return null;
       }
       
-      if (item.type === 'procedure') {
-        // Montant seulement si on n'est plus au niveau procédure (on est dans un poste)
-        if (!isLast) {
-          return {
-            line1: fmt(totalChiffrage)
-          };
-        }
-        return null;
-      }
-      
       if (item.type === 'poste') {
         // Seulement si on descendrait plus bas (ex: périodes PGPF)
         return null;
@@ -1332,9 +1495,9 @@ export default function App() {
     
     return (
       <div className="w-64 bg-white border-r border-zinc-200/60 flex flex-col h-full">
-        {/* Logo Norma - clic = retour home */}
-        <button 
-          onClick={() => setNavStack([{ id: 'dossier-1', type: 'dossier', title: 'Dossier Dupont', activeTab: 'détail' }])}
+        {/* Logo Norma - clic = retour liste dossiers */}
+        <button
+          onClick={backToList}
           className="px-4 py-4 border-b border-zinc-200 hover:bg-zinc-50 transition-colors"
         >
           <div className="flex items-center gap-2.5">
@@ -1385,10 +1548,9 @@ export default function App() {
               );
             }
             
-            // === PROCEDURE / POSTE ===
+            // === POSTE ===
             const Icon = icons[item.type] || FileText;
             let montant = null;
-            if (item.type === 'procedure') montant = totalChiffrage;
             if (item.type === 'poste') montant = item.montant || (item.id === 'pgpa' ? pgpaTotal : item.id === 'dsa' ? dsaTotal : 0);
             
             // Highlight seulement si c'est le dernier ET pas de sous-section
@@ -1510,52 +1672,98 @@ export default function App() {
                 )}
                 {(currentLevel.id === 'dftt' || currentLevel.id === 'dftp') && (
                   <div>
-                    <label className="block text-[12px] text-zinc-500 mb-1">Taux journalier</label>
+                    <label className="block text-[12px] text-zinc-500 mb-1">Base journalière</label>
                     <div className="relative">
-                      <input 
-                        type="number" 
-                        defaultValue={28}
+                      <input
+                        type="number"
+                        value={currentLevel.id === 'dftt' ? chiffrageParams.baseJournaliereDFTT : chiffrageParams.baseJournaliereDFTP}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          const key = currentLevel.id === 'dftt' ? 'baseJournaliereDFTT' : 'baseJournaliereDFTP';
+                          setChiffrageParams(prev => ({ ...prev, [key]: val }));
+                        }}
                         className="w-full px-2.5 py-1.5 pr-10 text-[13px] border border-zinc-200 rounded-md"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-zinc-400">€/j</span>
                     </div>
+                    <p className="text-[11px] text-zinc-400 mt-1">Utilisée par défaut pour chaque ligne</p>
                   </div>
                 )}
               </div>
             </div>
           )}
           
-          {/* Liste des postes à ajouter */}
-          {currentLevel.type === 'procedure' && currentLevel.activeTab === 'chiffrage' && (() => {
-            const existingPosteIds = allPostes.map(p => p.id);
-            const availablePostes = [
-              { id: 'dsa', label: 'Dépenses de Santé Actuelles', fullTitle: 'Dépenses de Santé Actuelles' },
-              { id: 'pgpa', label: 'Pertes de Gains Prof. Actuels', fullTitle: 'Pertes de Gains Professionnels Actuels' },
-              { id: 'dftt', label: 'Déficit Fonct. Temp. Total', fullTitle: 'Déficit Fonctionnel Temporaire Total' },
-              { id: 'dftp', label: 'Déficit Fonct. Temp. Partiel', fullTitle: 'Déficit Fonctionnel Temporaire Partiel' },
-              { id: 'pgpf', label: 'Pertes de Gains Prof. Futurs', fullTitle: 'Pertes de Gains Professionnels Futurs' },
-            ].filter(p => !existingPosteIds.includes(p.id));
-            
-            if (availablePostes.length === 0) return null;
-            
-            return (
-              <div className="px-4 py-3">
-                <div className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-2">Ajouter un poste</div>
-                <div className="space-y-1">
-                  {availablePostes.map(p => (
-                    <button 
-                      key={p.id}
-                      onClick={() => navigateTo({ id: p.id, title: p.id.toUpperCase(), fullTitle: p.fullTitle, type: 'poste', montant: 0 })}
-                      className="w-full flex items-center gap-2 px-2 py-2 rounded-md text-[12px] text-zinc-600 hover:bg-zinc-100 text-left transition-colors"
-                    >
-                      <Plus className="w-3.5 h-3.5 flex-shrink-0 text-zinc-400" strokeWidth={1.5} />
-                      <span>{p.label}</span>
-                    </button>
-                  ))}
-                </div>
+          {/* Taxonomie des postes */}
+          {currentLevel.type === 'dossier' && currentLevel.activeTab === 'chiffrage' && (
+            <div className="px-4 py-3 border-t border-zinc-200">
+              <div className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-2">Postes</div>
+
+              {/* Search */}
+              <div className="relative mb-3">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
+                <input type="text" value={searchPostes} onChange={(e) => setSearchPostes(e.target.value)}
+                  placeholder="Rechercher un poste..."
+                  className="w-full pl-8 pr-7 py-1.5 text-[12px] border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
+                {searchPostes && (
+                  <button onClick={() => setSearchPostes('')} className="absolute right-2 top-1/2 -translate-y-1/2">
+                    <X className="w-3 h-3 text-zinc-400" />
+                  </button>
+                )}
               </div>
-            );
-          })()}
+
+              {/* Taxonomy */}
+              {(() => {
+                const filtered = getFilteredTaxonomy();
+                if (filtered.length === 0) return <p className="text-[12px] text-zinc-400 text-center py-4">Aucun poste trouvé</p>;
+                return (
+                  <div className="space-y-3">
+                    {filtered.map(section => (
+                      <div key={section.section}>
+                        <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">{section.section}</div>
+                        <div className="space-y-0.5">
+                          {section.categories.map(cat => {
+                            const isExpanded = expandedTaxoCategories.includes(cat.id) || searchPostes.trim() !== '';
+                            const sorted = [...cat.postes.filter(p => p.enabled), ...cat.postes.filter(p => !p.enabled)];
+                            return (
+                              <div key={cat.id}>
+                                <button onClick={() => setExpandedTaxoCategories(prev => prev.includes(cat.id) ? prev.filter(id => id !== cat.id) : [...prev, cat.id])}
+                                  className="w-full flex items-center gap-1.5 py-1.5 text-[11px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors">
+                                  {isExpanded ? <ChevronDown className="w-3 h-3 flex-shrink-0" strokeWidth={2} /> : <ChevronRight className="w-3 h-3 flex-shrink-0" strokeWidth={2} />}
+                                  <span className="truncate text-left">{cat.title}</span>
+                                </button>
+                                {isExpanded && (
+                                  <div className="ml-4 space-y-0.5">
+                                    {sorted.map(p => {
+                                      const montant = getPosteMontant(p.id);
+                                      if (p.enabled) {
+                                        return (
+                                          <button key={p.id} onClick={() => navigateTo({ id: p.id, title: p.acronym, fullTitle: p.label, type: 'poste', montant: montant || 0 })}
+                                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors hover:bg-zinc-100 group">
+                                            {p.acronym && <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold bg-zinc-100 text-zinc-700 rounded flex-shrink-0 group-hover:bg-zinc-200">{p.acronym}</span>}
+                                            <span className="text-[12px] text-zinc-700 truncate flex-1">{p.label}</span>
+                                            {montant != null && montant > 0 && <span className="text-[11px] font-medium text-zinc-500 tabular-nums flex-shrink-0">{fmt(montant)}</span>}
+                                          </button>
+                                        );
+                                      }
+                                      return (
+                                        <div key={p.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-default">
+                                          <span className="text-[12px] text-zinc-300 truncate">{p.label}</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </div>
         
         {/* User section - bottom */}
@@ -1704,6 +1912,11 @@ export default function App() {
             <div className="flex items-center gap-3">
               {isPieceDetail && <span className="px-2.5 py-1 bg-zinc-800 text-white text-[11px] font-medium rounded">P{data.index}</span>}
               <h3 className="text-[15px] font-semibold text-zinc-800">{isPieceDetail ? (data.intitule || data.nom) : (editPanel.title || 'Édition')}</h3>
+              {data?.status === 'ai-suggested' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[11px] font-medium rounded-full">
+                  <Sparkles className="w-3 h-3" />AI suggested
+                </span>
+              )}
             </div>
             <button onClick={() => { setEditPanel(null); setShowPreview(false); }} className="p-2 hover:bg-zinc-100 rounded-lg transition-colors">
               <X className="w-5 h-5 text-zinc-400" />
@@ -1769,8 +1982,8 @@ export default function App() {
                               <p className="text-xs text-amber-600 mt-0.5">Vérifiez les champs surlignés</p>
                             )}
                           </div>
-                          {data.status === 'pending-ok' && (
-                            <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">Prêt à valider</span>
+                          {data.status === 'ai-suggested' && (
+                            <span className="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded">Suggestion IA</span>
                           )}
                         </div>
                       )}
@@ -1791,7 +2004,7 @@ export default function App() {
                                   </span>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium truncate">{piece.intitule || piece.nom}</p>
-                                    <p className="text-xs text-gray-500">{piece.type} • {piece.date}</p>
+                                    <p className="text-xs text-gray-500">{piece.type}</p>
                                   </div>
                                   <button
                                     onClick={() => setShowPreview(!showPreview)}
@@ -2121,12 +2334,8 @@ export default function App() {
                             <option>Document</option>
                           </select>
                         </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Date</label>
-                          <input id="piece-date" type="text" defaultValue={data.date} className="mt-1 w-full px-3 py-2 border rounded-lg" placeholder="JJ/MM/AAAA" />
-                        </div>
                       </div>
-                      
+
                       {/* Utilisations */}
                       <div>
                         <label className="text-sm font-medium text-gray-700 mb-2 block">Utilisé dans</label>
@@ -2250,47 +2459,14 @@ export default function App() {
                   </>
                 )}
                 
-                {/* Panel édition Contexte procédure */}
-                {editPanel.type === 'procedure-contexte' && (
-                  <>
-                    <FormSection title="Informations procédure">
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField label="Type de procédure">
-                          <select id="proc-type" defaultValue={procedureData.type} className={selectClass}>
-                            <option>Liquidation</option>
-                            <option>Provision</option>
-                            <option>Référé</option>
-                            <option>Appel</option>
-                          </select>
-                        </FormField>
-                        <FormField label="Date d'expertise">
-                          <input type="text" id="proc-date-expertise" defaultValue={procedureData.dateExpertise} className={inputClass} placeholder="JJ/MM/AAAA" />
-                        </FormField>
-                      </div>
-                    </FormSection>
-                    
-                    <FormSection title="Résumé de l'affaire" noBorder>
-                      <FormField>
-                        <textarea 
-                          id="proc-resume" 
-                          defaultValue={procedureData.resumeAffaire} 
-                          rows={8}
-                          className={`${inputClass} resize-none`}
-                          placeholder="Résumé détaillé de l'affaire..."
-                        />
-                      </FormField>
-                    </FormSection>
-                  </>
-                )}
-                
                 {/* Panel édition Commentaire expertise */}
-                {editPanel.type === 'procedure-expertise' && (
+                {editPanel.type === 'dossier-expertise' && (
                   <>
                     <FormSection title="Commentaire d'expertise" noBorder>
                       <FormField>
                         <textarea
                           id="proc-commentaire"
-                          defaultValue={procedureData.commentaireExpertise}
+                          defaultValue={commentaireExpertise}
                           rows={10}
                           className="w-full px-3 py-2 border rounded-lg resize-none"
                           placeholder="Conclusions et observations de l'expert..."
@@ -2360,50 +2536,7 @@ export default function App() {
                   </div>
                 )}
                 
-                {/* Panel Nouvelle procédure */}
-                {editPanel.type === 'nouvelle-procedure' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Type de procédure</h4>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700">Type</label>
-                        <select id="new-proc-type" className="mt-1 w-full px-3 py-2 border rounded-lg">
-                          <option>Liquidation</option>
-                          <option>Provision</option>
-                          <option>Référé</option>
-                          <option>Appel</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Dates</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Date d'expertise</label>
-                          <input type="text" id="new-proc-expertise" className="mt-1 w-full px-3 py-2 border rounded-lg" placeholder="JJ/MM/AAAA" />
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Date de liquidation</label>
-                          <input type="text" id="new-proc-liquidation" className="mt-1 w-full px-3 py-2 border rounded-lg" placeholder="JJ/MM/AAAA (optionnel)" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Résumé</h4>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700">Résumé de l'affaire</label>
-                        <textarea
-                          id="new-proc-resume"
-                          rows={5}
-                          className="mt-1 w-full px-3 py-2 border rounded-lg resize-none"
-                          placeholder="Décrivez le contexte de cette procédure..."
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {/* Panel Nouvelle procédure supprimé */}
 
                 {/* Panel Édition Dossier */}
                 {editPanel.type === 'dossier-edit' && (
@@ -2447,68 +2580,6 @@ export default function App() {
                   </>
                 )}
 
-                {/* Panel Édition Procédure */}
-                {editPanel.type === 'procedure-edit' && (
-                  <>
-                    <FormSection title="Type et statut">
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField label="Type de procédure">
-                          <select id="proc-edit-type" defaultValue={data?.type || 'Liquidation'} className={selectClass}>
-                            <option>Liquidation</option>
-                            <option>Provision</option>
-                            <option>Référé</option>
-                            <option>Appel</option>
-                          </select>
-                        </FormField>
-                        <FormField label="Statut">
-                          <select id="proc-edit-statut" defaultValue={data?.statut || 'ouvert'} className={selectClass}>
-                            <option value="ouvert">En cours</option>
-                            <option value="ferme">Clôturée</option>
-                          </select>
-                        </FormField>
-                      </div>
-                    </FormSection>
-
-                    <FormSection title="Dates clés">
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField label="Date de création">
-                          <input type="text" id="proc-edit-creation" defaultValue={data?.dateCreation || ''} className={inputClass} placeholder="JJ/MM/AAAA" />
-                        </FormField>
-                        <FormField label="Date d'expertise">
-                          <input type="text" id="proc-edit-expertise" defaultValue={data?.dateExpertise || ''} className={inputClass} placeholder="JJ/MM/AAAA" />
-                        </FormField>
-                        <FormField label="Date de consolidation">
-                          <input type="text" id="proc-edit-consolidation" defaultValue={data?.dateConsolidation || ''} className={inputClass} placeholder="JJ/MM/AAAA" />
-                        </FormField>
-                        <FormField label="Date de liquidation">
-                          <input type="text" id="proc-edit-liquidation" defaultValue={data?.dateLiquidation || ''} className={inputClass} placeholder="JJ/MM/AAAA" />
-                        </FormField>
-                      </div>
-                    </FormSection>
-
-                    <FormSection title="Contexte" noBorder>
-                      <FormField label="Résumé de l'affaire">
-                        <textarea
-                          id="proc-edit-resume"
-                          rows={4}
-                          className={`${inputClass} resize-none`}
-                          defaultValue={data?.resumeAffaire || ''}
-                          placeholder="Résumé de la procédure..."
-                        />
-                      </FormField>
-                      <FormField label="Commentaire d'expertise">
-                        <textarea
-                          id="proc-edit-expertise-comment"
-                          rows={4}
-                          className={`${inputClass} resize-none`}
-                          defaultValue={data?.commentaireExpertise || ''}
-                          placeholder="Conclusions de l'expert..."
-                        />
-                      </FormField>
-                    </FormSection>
-                  </>
-                )}
-
                 {/* ========== PANELS PGPA ========== */}
                 
                 {/* Panel PGPA - Revenu de référence */}
@@ -2529,7 +2600,7 @@ export default function App() {
                                 </span>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium truncate">{piece.intitule || piece.nom}</p>
-                                  <p className="text-xs text-gray-500">{piece.type} • {piece.date}</p>
+                                  <p className="text-xs text-gray-500">{piece.type}</p>
                                 </div>
                                 <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded">
                                   <Eye className="w-4 h-4" />
@@ -2934,8 +3005,201 @@ export default function App() {
                     </div>
                   </div>
                 )}
+
+                {/* Panel DFTT */}
+                {editPanel.type === 'dftt-ligne' && (
+                  <>
+                    {data?.status === 'ai-suggested' && data?.confidence && (
+                      <div className="flex items-center gap-3 p-4 rounded-xl bg-indigo-50 border border-indigo-200 mb-4">
+                        <Sparkles className="w-5 h-5 text-indigo-600" />
+                        <span className="text-[13px] font-medium text-indigo-700">Suggestion IA · Confiance {data.confidence}%</span>
+                      </div>
+                    )}
+                    <div className="space-y-6">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
+
+                        {editingPieceIds.length > 0 && (
+                          <div className="space-y-2 mb-3">
+                            {editingPieceIds.map(pid => {
+                              const piece = getPiece(pid);
+                              return piece ? (
+                                <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
+                                  <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center flex-shrink-0">
+                                    {getPieceLabel(pid)}
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{piece.intitule || piece.nom}</p>
+                                    <p className="text-xs text-gray-500">{piece.type}</p>
+                                  </div>
+                                  <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded">
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                  <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ) : null;
+                            })}
+                          </div>
+                        )}
+
+                        <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
+                          {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
+                            <div>
+                              <p className="text-xs text-gray-500 mb-2">Ajouter une pièce existante :</p>
+                              <div className="max-h-32 overflow-y-auto space-y-1">
+                                {pieces.filter(p => !editingPieceIds.includes(p.id)).map(piece => (
+                                  <button key={piece.id} onClick={() => setEditingPieceIds(prev => [...prev, piece.id])}
+                                    className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                                    <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">
+                                      {getPieceLabel(piece.id)}
+                                    </span>
+                                    <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
+                                    <span className="text-xs text-gray-400">{piece.type}</span>
+                                    <Plus className="w-4 h-4 text-blue-600" />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {editingPieceIds.length === 0 && pieces.length === 0 && (
+                            <p className="text-xs text-center text-gray-500">Aucune pièce disponible. Déposez un document pour commencer.</p>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Période</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><label className="block text-xs text-gray-500 mb-1">Date début</label><input type="text" id="dftt-debut" defaultValue={data.debut} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" /></div>
+                          <div><label className="block text-xs text-gray-500 mb-1">Date fin</label><input type="text" id="dftt-fin" defaultValue={data.fin} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" /></div>
+                        </div>
+                        <div className="mt-3"><label className="block text-xs text-gray-500 mb-1">Total jours</label><input type="number" id="dftt-jours" defaultValue={data.jours} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Contenu</h4>
+                        <div><label className="block text-xs text-gray-500 mb-1">Libellé</label><input type="text" id="dftt-label" defaultValue={data.label || ''} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                        <div className="mt-3"><label className="block text-xs text-gray-500 mb-1">Commentaire</label><textarea id="dftt-commentaire" defaultValue={data.commentaire || ''} rows={3} className="w-full px-3 py-2 border rounded-lg text-sm resize-none" /></div>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Paramètres</h4>
+                        <div><label className="block text-xs text-gray-500 mb-1">Base journalière</label><div className="relative"><input type="number" id="dftt-base" defaultValue={chiffrageParams.baseJournaliereDFTT || 33} className="w-full px-3 py-2 pr-10 border rounded-lg text-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">€/j</span></div></div>
+                      </div>
+                      <div className="p-4 bg-zinc-50 rounded-xl border">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
+                          <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant)}</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 mt-1">{data.jours}j × {chiffrageParams.baseJournaliereDFTT || 33} €/j</p>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Panel DFTP */}
+                {editPanel.type === 'dftp-ligne' && (
+                  <>
+                    {data?.status === 'ai-suggested' && data?.confidence && (
+                      <div className="flex items-center gap-3 p-4 rounded-xl bg-indigo-50 border border-indigo-200 mb-4">
+                        <Sparkles className="w-5 h-5 text-indigo-600" />
+                        <span className="text-[13px] font-medium text-indigo-700">Suggestion IA · Confiance {data.confidence}%</span>
+                      </div>
+                    )}
+                    <div className="space-y-6">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
+
+                        {editingPieceIds.length > 0 && (
+                          <div className="space-y-2 mb-3">
+                            {editingPieceIds.map(pid => {
+                              const piece = getPiece(pid);
+                              return piece ? (
+                                <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
+                                  <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center flex-shrink-0">
+                                    {getPieceLabel(pid)}
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{piece.intitule || piece.nom}</p>
+                                    <p className="text-xs text-gray-500">{piece.type}</p>
+                                  </div>
+                                  <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded">
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                  <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ) : null;
+                            })}
+                          </div>
+                        )}
+
+                        <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
+                          {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
+                            <div>
+                              <p className="text-xs text-gray-500 mb-2">Ajouter une pièce existante :</p>
+                              <div className="max-h-32 overflow-y-auto space-y-1">
+                                {pieces.filter(p => !editingPieceIds.includes(p.id)).map(piece => (
+                                  <button key={piece.id} onClick={() => setEditingPieceIds(prev => [...prev, piece.id])}
+                                    className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                                    <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">
+                                      {getPieceLabel(piece.id)}
+                                    </span>
+                                    <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
+                                    <span className="text-xs text-gray-400">{piece.type}</span>
+                                    <Plus className="w-4 h-4 text-blue-600" />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {editingPieceIds.length === 0 && pieces.length === 0 && (
+                            <p className="text-xs text-center text-gray-500">Aucune pièce disponible. Déposez un document pour commencer.</p>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Période</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><label className="block text-xs text-gray-500 mb-1">Date début</label><input type="text" id="dftp-debut" defaultValue={data.debut} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" /></div>
+                          <div><label className="block text-xs text-gray-500 mb-1">Date fin</label><input type="text" id="dftp-fin" defaultValue={data.fin} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" /></div>
+                        </div>
+                        <div className="mt-3"><label className="block text-xs text-gray-500 mb-1">Nb jours période</label><input type="number" id="dftp-jours" defaultValue={data.jours} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Déductions</h4>
+                        <div className="flex items-center gap-2 mb-3">
+                          <input type="checkbox" id="dftp-deduction" defaultChecked={data.deductionDftt || false} className="rounded" />
+                          <label htmlFor="dftp-deduction" className="text-sm text-gray-700">Déduire jours DFTT</label>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><label className="block text-xs text-gray-500 mb-1">Jours DFTT déduits</label><input type="number" id="dftp-jours-dftt" defaultValue={data.joursDfttDeduits || 0} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                          <div><label className="block text-xs text-gray-500 mb-1">Jours retenus</label><input type="number" id="dftp-jours-retenus" defaultValue={data.joursRetenus || data.jours} className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50" readOnly /></div>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Paramètres</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><label className="block text-xs text-gray-500 mb-1">% DFTP</label><div className="relative"><input type="number" id="dftp-taux" defaultValue={data.taux} min={0} max={100} className="w-full px-3 py-2 pr-8 border rounded-lg text-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">%</span></div></div>
+                          <div><label className="block text-xs text-gray-500 mb-1">Base journalière</label><div className="relative"><input type="number" id="dftp-base" defaultValue={data.baseOverride || chiffrageParams.baseJournaliereDFTP || 33} className="w-full px-3 py-2 pr-10 border rounded-lg text-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">€/j</span></div></div>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Contenu</h4>
+                        <div><label className="block text-xs text-gray-500 mb-1">Libellé / Nature</label><input type="text" id="dftp-label" defaultValue={data.label || ''} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                      </div>
+                      <div className="p-4 bg-zinc-50 rounded-xl border">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
+                          <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant)}</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 mt-1">{data.jours}j × {data.taux}% × {data.baseOverride || chiffrageParams.baseJournaliereDFTP || 33} €/j</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-              
+
               {/* Footer */}
               {editPanel.type === 'dsa-ligne' && (
                 <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
@@ -3027,23 +3291,11 @@ export default function App() {
                   }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
                 </div>
               )}
-              {(editPanel.type === 'procedure-contexte' || editPanel.type === 'procedure-expertise') && (
+              {editPanel.type === 'dossier-expertise' && (
                 <div className="px-5 py-4 border-t bg-gray-50 flex justify-end gap-2">
                   <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
                   <button onClick={() => {
-                    if (editPanel.type === 'procedure-contexte') {
-                      setProcedureData(prev => ({
-                        ...prev,
-                        type: document.getElementById('proc-type')?.value || prev.type,
-                        dateExpertise: document.getElementById('proc-date-expertise')?.value || prev.dateExpertise,
-                        resumeAffaire: document.getElementById('proc-resume')?.value || prev.resumeAffaire
-                      }));
-                    } else {
-                      setProcedureData(prev => ({
-                        ...prev,
-                        commentaireExpertise: document.getElementById('proc-commentaire')?.value || ''
-                      }));
-                    }
+                    setCommentaireExpertise(document.getElementById('proc-commentaire')?.value || '');
                     setEditPanel(null);
                   }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
                 </div>
@@ -3080,15 +3332,7 @@ export default function App() {
                   </div>
                 </div>
               )}
-              {editPanel.type === 'nouvelle-procedure' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-end gap-2">
-                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
-                  <button onClick={() => {
-                    // Pour l'instant juste fermer (simulation)
-                    setEditPanel(null);
-                  }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Créer la procédure</button>
-                </div>
-              )}
+              {/* Panel nouvelle-procedure supprimé */}
               {editPanel.type === 'dossier-edit' && (
                 <div className="px-5 py-4 border-t bg-gray-50 flex justify-end gap-2">
                   <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
@@ -3103,29 +3347,6 @@ export default function App() {
                   }} className="px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700">Enregistrer</button>
                 </div>
               )}
-              {editPanel.type === 'procedure-edit' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-end gap-2">
-                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
-                  <button onClick={() => {
-                    const procId = data?.id;
-                    if (procId) {
-                      setProcedures(prev => prev.map(p => p.id === procId ? {
-                        ...p,
-                        type: document.getElementById('proc-edit-type')?.value || p.type,
-                        statut: document.getElementById('proc-edit-statut')?.value || p.statut,
-                        dateCreation: document.getElementById('proc-edit-creation')?.value || p.dateCreation,
-                        dateExpertise: document.getElementById('proc-edit-expertise')?.value || p.dateExpertise,
-                        dateConsolidation: document.getElementById('proc-edit-consolidation')?.value || p.dateConsolidation,
-                        dateLiquidation: document.getElementById('proc-edit-liquidation')?.value || p.dateLiquidation,
-                        resumeAffaire: document.getElementById('proc-edit-resume')?.value || p.resumeAffaire,
-                        commentaireExpertise: document.getElementById('proc-edit-expertise-comment')?.value || p.commentaireExpertise
-                      } : p));
-                    }
-                    setEditPanel(null);
-                  }} className="px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700">Enregistrer</button>
-                </div>
-              )}
-
               {/* ========== PANELS PGPA ========== */}
 
               {/* Panel PGPA Revenu de référence */}
@@ -3255,6 +3476,74 @@ export default function App() {
                   </div>
                 </div>
               )}
+
+              {/* Panel DFTT Footer */}
+              {editPanel.type === 'dftt-ligne' && (
+                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
+                  <button onClick={() => {
+                    setDfttLignes(prev => prev.filter(l => l.id !== data.id));
+                    setEditPanel(null); setEditingPieceIds([]);
+                  }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
+                    <Trash2 className="w-4 h-4" />Supprimer
+                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                    <button onClick={() => {
+                      const jours = parseInt(document.getElementById('dftt-jours')?.value) || data.jours;
+                      const baseJ = parseFloat(document.getElementById('dftt-base')?.value) || chiffrageParams.baseJournaliereDFTT || 33;
+                      const updatedLigne = {
+                        ...data,
+                        label: document.getElementById('dftt-label')?.value || data.label,
+                        debut: document.getElementById('dftt-debut')?.value || data.debut,
+                        fin: document.getElementById('dftt-fin')?.value || data.fin,
+                        jours,
+                        commentaire: document.getElementById('dftt-commentaire')?.value || '',
+                        montant: Math.round(jours * baseJ),
+                        pieceIds: editingPieceIds,
+                        status: 'validated'
+                      };
+                      setDfttLignes(prev => prev.map(l => l.id === data.id ? updatedLigne : l));
+                      setEditPanel(null); setEditingPieceIds([]);
+                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Panel DFTP Footer */}
+              {editPanel.type === 'dftp-ligne' && (
+                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
+                  <button onClick={() => {
+                    setDftpLignes(prev => prev.filter(l => l.id !== data.id));
+                    setEditPanel(null); setEditingPieceIds([]);
+                  }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
+                    <Trash2 className="w-4 h-4" />Supprimer
+                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                    <button onClick={() => {
+                      const jours = parseInt(document.getElementById('dftp-jours')?.value) || data.jours;
+                      const taux = parseInt(document.getElementById('dftp-taux')?.value) || data.taux;
+                      const baseJ = parseFloat(document.getElementById('dftp-base')?.value) || chiffrageParams.baseJournaliereDFTP || 33;
+                      const deductionDftt = document.getElementById('dftp-deduction')?.checked || false;
+                      const joursDfttDeduits = parseInt(document.getElementById('dftp-jours-dftt')?.value) || 0;
+                      const joursRetenus = deductionDftt ? Math.max(0, jours - joursDfttDeduits) : jours;
+                      const updatedLigne = {
+                        ...data,
+                        label: document.getElementById('dftp-label')?.value || data.label,
+                        debut: document.getElementById('dftp-debut')?.value || data.debut,
+                        fin: document.getElementById('dftp-fin')?.value || data.fin,
+                        jours, taux, deductionDftt, joursDfttDeduits, joursRetenus,
+                        baseOverride: baseJ !== (chiffrageParams.baseJournaliereDFTP || 33) ? baseJ : null,
+                        montant: Math.round(joursRetenus * baseJ * taux / 100),
+                        pieceIds: editingPieceIds,
+                        status: 'validated'
+                      };
+                      setDftpLignes(prev => prev.map(l => l.id === data.id ? updatedLigne : l));
+                      setEditPanel(null); setEditingPieceIds([]);
+                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -3273,13 +3562,7 @@ export default function App() {
   // Statut effectif d'une ligne
   const getLigneStatus = (ligne) => {
     if (ligne.status === 'ai-suggested' || ligne.status === 'suggested') return 'suggested';
-    if (ligne.status === 'validated') {
-      // Même validée, si incomplète on le signale
-      return isLigneIncomplete(ligne) ? 'incomplete' : 'validated';
-    }
-    // Lignes en cours de saisie
-    if (isLigneIncomplete(ligne)) return 'incomplete';
-    return 'validated';
+    return 'normal';
   };
 
   // ========== DSA LIGNE COMPONENT ==========
@@ -3311,8 +3594,7 @@ export default function App() {
     // Icône de statut
     const StatusIcon = () => {
       if (status === 'suggested') return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-      if (status === 'incomplete') return <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0" title="Incomplet"><AlertTriangle className="w-3 h-3 text-amber-500" /></div>;
-      return <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0" title="Validé"><Check className="w-3 h-3 text-emerald-500" /></div>;
+      return null;
     };
 
     // Indicateur pièces avec tooltip
@@ -3375,14 +3657,12 @@ export default function App() {
   // ========== PGPA/PGPF LIGNE COMPONENT ==========
   const renderPGLigne = (ligne, { onEdit, onDelete, showTiers = true, showPeriode = true, onValidate }) => {
     const isSuggested = ligne.status === 'ai-suggested' || ligne.status === 'suggested';
-    const isIncomplete = !ligne.label || (ligne.montant == null && ligne.revalorise == null);
     const pieceCount = ligne.pieceIds?.length || 0;
 
     // Icône de statut - harmonisé
     const StatusIcon = () => {
       if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-      if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-zinc-200 flex items-center justify-center flex-shrink-0" title="Incomplet"><AlertTriangle className="w-3 h-3 text-zinc-500" /></div>;
-      return <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center flex-shrink-0 animate-bounce-in" title="Validé"><Check className="w-3 h-3 text-white" /></div>;
+      return null;
     };
 
     // Indicateur pièces avec tooltip
@@ -3453,150 +3733,8 @@ export default function App() {
     );
   };
 
-  // ========== SMART PROCEDURE WIZARD ==========
-  const renderSmartProcedureWizard = () => {
-    if (!wizardState) return null;
-
-    const { step, formData, uploadedFiles, processingPhase } = wizardState;
-
-    // Wizard simplifié - une seule étape
-    const renderStepIndicator = () => null; // Plus besoin d'indicateur avec une seule étape
-
-    // Étape 1: Formulaire minimal - 3 champs essentiels
-    const renderStep1 = () => (
-      <div className="space-y-4">
-        {/* Nom du dossier */}
-        <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1.5">Nom du dossier</label>
-          <input
-            type="text"
-            placeholder="Ex: Dupont Jean - AT 2024"
-            value={formData.nom || ''}
-            onChange={(e) => handleWizardFormChange('nom', e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400"
-          />
-        </div>
-
-        {/* Type de procédure */}
-        <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1.5">Type de procédure</label>
-          <select
-            value={formData.type}
-            onChange={(e) => handleWizardFormChange('type', e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg bg-white focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400"
-          >
-            <option value="provision">Provision</option>
-            <option value="liquidation">Liquidation</option>
-          </select>
-        </div>
-
-        {/* Dates clés */}
-        <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1.5">Dates clés</label>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <span className="text-[10px] text-zinc-400 block mb-1">Accident / Fait générateur</span>
-              <input
-                type="date"
-                value={formData.dateAccident || ''}
-                onChange={(e) => handleWizardFormChange('dateAccident', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400"
-              />
-            </div>
-            <div>
-              <span className="text-[10px] text-zinc-400 block mb-1">
-                {formData.type === 'liquidation' ? 'Consolidation' : 'Expertise (optionnel)'}
-              </span>
-              <input
-                type="date"
-                value={formData.type === 'liquidation' ? (formData.dateConsolidation || '') : (formData.dateExpertise || '')}
-                onChange={(e) => handleWizardFormChange(
-                  formData.type === 'liquidation' ? 'dateConsolidation' : 'dateExpertise',
-                  e.target.value
-                )}
-                className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-
-    const canProceed = () => {
-      return formData.nom && formData.type;
-    };
-
-    // Créer une procédure vide et naviguer vers le chiffrage
-    const handleCreateEmptyProcedure = () => {
-      const newProcId = `proc-${Date.now()}`;
-      const procType = formData.type === 'liquidation' ? 'Liquidation' : 'Provision';
-
-      const newProc = {
-        id: newProcId,
-        label: procType,
-        type: formData.type,
-        status: 'en-cours',
-        meta: {
-          nom: formData.nom,
-          dateAccident: formData.dateAccident,
-          dateConsolidation: formData.dateConsolidation,
-          dateExpertise: formData.dateExpertise
-        },
-        dsaCount: 0,
-        pgpaCount: 0,
-        // Flag pour indiquer que c'est une nouvelle procédure vide (pour afficher l'empty state)
-        isEmpty: true
-      };
-
-      setProcedures(prev => [...prev, newProc]);
-
-      // Fermer le wizard et naviguer vers le chiffrage de la nouvelle procédure
-      setWizardState(null);
-      setNavStack(prev => [
-        prev[0], // Garder le dossier
-        { type: 'procedure', id: newProcId, title: procType, activeTab: 'chiffrage' }
-      ]);
-    };
-
-    return (
-      <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-xl w-[420px] flex flex-col">
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-zinc-100 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-zinc-800">Nouvelle procédure</h2>
-              <button onClick={handleCloseWizard} className="p-1.5 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-6">
-            {renderStep1()}
-          </div>
-
-          {/* Footer */}
-          <div className="px-6 py-4 border-t border-zinc-100 flex items-center justify-between flex-shrink-0">
-            <button
-              onClick={handleCloseWizard}
-              className="px-4 py-2 text-sm text-zinc-500 hover:text-zinc-700 font-medium"
-            >
-              Annuler
-            </button>
-            <button
-              onClick={handleCreateEmptyProcedure}
-              disabled={!canProceed()}
-              className="px-5 py-2 text-sm bg-zinc-800 text-white rounded-lg font-medium hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              Créer la procédure
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  // (wizard supprimé - aplati au niveau dossier)
+  const renderSmartProcedureWizard = () => null;
 
   // ========== RENDER CONTENT ==========
   const renderContent = () => {
@@ -3604,278 +3742,215 @@ export default function App() {
     if (currentLevel.type === 'dossier') {
       if (currentLevel.activeTab === 'détail') {
         return (
-          <div className="space-y-4">
-            {/* Infos Victime */}
-            <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
-              <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-zinc-400">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                  </svg>
-                  <span className="text-[13px] font-medium">Informations victime</span>
+          <div className="grid grid-cols-3 gap-4 items-start">
+            {/* Colonne gauche */}
+            <div className="col-span-2 space-y-4">
+              {/* Infos Victime */}
+              <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
+                <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                    </svg>
+                    <span className="text-[13px] font-medium">Informations victime</span>
+                  </div>
+                  <button onClick={() => setEditPanel({ type: 'victime', title: 'Informations victime' })} className="p-1 text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
                 </div>
-                <button onClick={() => setEditPanel({ type: 'victime', title: 'Informations victime' })} className="p-1 text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
-              </div>
-              <div className="p-4">
-                <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                  <div>
-                    <div className="text-[12px] text-zinc-400 mb-0.5">Nom</div>
-                    <div className="text-[14px] text-zinc-700">{victimeData.nom}</div>
-                  </div>
-                  <div>
-                    <div className="text-[12px] text-zinc-400 mb-0.5">Prénom</div>
-                    <div className="text-[14px] text-zinc-700">{victimeData.prenom}</div>
-                  </div>
-                  <div>
-                    <div className="text-[12px] text-zinc-400 mb-0.5">Sexe</div>
-                    <div className="text-[14px] text-zinc-700">{victimeData.sexe}</div>
-                  </div>
-                  <div>
-                    <div className="text-[12px] text-zinc-400 mb-0.5">Date de naissance</div>
-                    <div className="text-[14px] text-zinc-700">{victimeData.dateNaissance} <span className="text-zinc-400">({calcAge(victimeData.dateNaissance)} ans)</span></div>
-                  </div>
-                  {victimeData.dateDeces && (
+                <div className="p-4">
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-3">
                     <div>
-                      <div className="text-[12px] text-zinc-400 mb-0.5">Date de décès</div>
-                      <div className="text-[14px] text-zinc-700">{victimeData.dateDeces} <span className="text-zinc-400">({calcAge(victimeData.dateNaissance, victimeData.dateDeces)} ans)</span></div>
+                      <div className="text-[12px] text-zinc-400 mb-0.5">Nom</div>
+                      <div className="text-[14px] text-zinc-700">{victimeData.nom}</div>
                     </div>
+                    <div>
+                      <div className="text-[12px] text-zinc-400 mb-0.5">Prénom</div>
+                      <div className="text-[14px] text-zinc-700">{victimeData.prenom}</div>
+                    </div>
+                    <div>
+                      <div className="text-[12px] text-zinc-400 mb-0.5">Sexe</div>
+                      <div className="text-[14px] text-zinc-700">{victimeData.sexe}</div>
+                    </div>
+                    <div>
+                      <div className="text-[12px] text-zinc-400 mb-0.5">Date de naissance</div>
+                      <div className="text-[14px] text-zinc-700">{victimeData.dateNaissance} <span className="text-zinc-400">({calcAge(victimeData.dateNaissance)} ans)</span></div>
+                    </div>
+                    {victimeData.dateDeces && (
+                      <div>
+                        <div className="text-[12px] text-zinc-400 mb-0.5">Date de décès</div>
+                        <div className="text-[14px] text-zinc-700">{victimeData.dateDeces} <span className="text-zinc-400">({calcAge(victimeData.dateNaissance, victimeData.dateDeces)} ans)</span></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Infos Accident */}
+              <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
+                <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                    <span className="text-[13px] font-medium">Fait générateur</span>
+                  </div>
+                  <button onClick={() => setEditPanel({ type: 'fait-generateur', title: 'Fait générateur' })} className="p-1 text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
+                </div>
+                <div className="p-4">
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-3 mb-4">
+                    <div>
+                      <div className="text-[12px] text-zinc-400 mb-0.5">Type</div>
+                      <div className="text-[14px] text-zinc-700">{faitGenerateur.type}</div>
+                    </div>
+                    <div>
+                      <div className="text-[12px] text-zinc-400 mb-0.5">Date de l'accident</div>
+                      <div className="text-[14px] text-zinc-700">{faitGenerateur.dateAccident}</div>
+                    </div>
+                    <div>
+                      <div className="text-[12px] text-zinc-400 mb-0.5">Première constatation</div>
+                      <div className="text-[14px] text-zinc-700">{faitGenerateur.datePremiereConstatation}</div>
+                    </div>
+                    <div>
+                      <div className="text-[12px] text-zinc-400 mb-0.5">Consolidation</div>
+                      <div className="text-[14px] text-zinc-700">{faitGenerateur.dateConsolidation}</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="text-[12px] text-zinc-400">Résumé des faits</div>
+                      {!faitGenerateur.resume && (
+                        <button
+                          onClick={handleGenerateResume}
+                          disabled={aiGenerating === 'resume'}
+                          className="flex items-center gap-1 text-[11px] font-medium text-violet-500 hover:text-violet-700 transition-colors disabled:opacity-50"
+                        >
+                          {aiGenerating === 'resume' ? (
+                            <><Loader2 className="w-3 h-3 animate-spin" strokeWidth={2} />Génération...</>
+                          ) : (
+                            <><Sparkles className="w-3 h-3" strokeWidth={2} />Générer avec l'IA</>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    <div className="text-[14px] text-zinc-600 leading-relaxed">
+                      {faitGenerateur.resume || <span className="text-zinc-300 italic">Aucun résumé renseigné.</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Commentaire d'expertise */}
+              <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
+                <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                    </svg>
+                    <span className="text-[13px] font-medium">Commentaire d'expertise</span>
+                  </div>
+                  <button onClick={() => setEditPanel({ type: 'dossier-expertise', title: "Commentaire d'expertise" })} className="p-1 text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
+                </div>
+                <div className="p-4">
+                  <div className="text-[14px] text-zinc-600 leading-relaxed">
+                    {commentaireExpertise || <span className="text-zinc-300 italic">Aucun commentaire d'expertise renseigné.</span>}
+                  </div>
+                  {!commentaireExpertise && (
+                    <button
+                      onClick={handleGenerateExpertise}
+                      disabled={aiGenerating === 'expertise'}
+                      className="mt-3 flex items-center gap-1.5 text-[12px] font-medium text-violet-500 hover:text-violet-700 transition-colors disabled:opacity-50"
+                    >
+                      {aiGenerating === 'expertise' ? (
+                        <><Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} />Génération en cours...</>
+                      ) : (
+                        <><Sparkles className="w-3.5 h-3.5" strokeWidth={2} />Générer avec l'IA</>
+                      )}
+                    </button>
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* Infos Accident */}
-            <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
-              <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-zinc-400">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                  </svg>
-                  <span className="text-[13px] font-medium">Fait générateur</span>
-                </div>
-                <button onClick={() => setEditPanel({ type: 'fait-generateur', title: 'Fait générateur' })} className="p-1 text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
-              </div>
-              <div className="p-4">
-                <div className="grid grid-cols-2 gap-x-8 gap-y-3 mb-4">
-                  <div>
-                    <div className="text-[12px] text-zinc-400 mb-0.5">Type</div>
-                    <div className="text-[14px] text-zinc-700">{faitGenerateur.type}</div>
+              {/* Victimes indirectes */}
+              <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
+                <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                    </svg>
+                    <span className="text-[13px] font-medium">Victimes indirectes</span>
                   </div>
-                  <div>
-                    <div className="text-[12px] text-zinc-400 mb-0.5">Date de l'accident</div>
-                    <div className="text-[14px] text-zinc-700">{faitGenerateur.dateAccident}</div>
-                  </div>
-                  <div>
-                    <div className="text-[12px] text-zinc-400 mb-0.5">Première constatation</div>
-                    <div className="text-[14px] text-zinc-700">{faitGenerateur.datePremiereConstatation}</div>
-                  </div>
-                  <div>
-                    <div className="text-[12px] text-zinc-400 mb-0.5">Consolidation</div>
-                    <div className="text-[14px] text-zinc-700">{faitGenerateur.dateConsolidation}</div>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[12px] text-zinc-400 mb-1.5">Résumé des faits</div>
-                  <div className="text-[14px] text-zinc-600 leading-relaxed">{faitGenerateur.resume}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Procédures */}
-            <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
-              <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-zinc-400">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
-                  </svg>
-                  <span className="text-[13px] font-medium">Procédures ({procedures.length})</span>
-                </div>
-              </div>
-              <div className="divide-y divide-zinc-100">
-                {procedures.map((proc) => (
-                  <button key={proc.id} onClick={() => navigateTo({ id: proc.id, type: 'procedure', title: proc.type })} className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 group transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${proc.isAiGenerated ? 'bg-indigo-100' : 'bg-zinc-100'}`}>
-                        {proc.isAiGenerated ? (
-                          <Sparkles className="w-5 h-5 text-indigo-600" strokeWidth={1.5} />
-                        ) : (
-                          <Landmark className="w-5 h-5 text-zinc-500" strokeWidth={1.5} />
-                        )}
-                      </div>
-                      <div className="text-left">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[14px] font-medium text-zinc-800">{proc.type}</span>
-                          {proc.isAiGenerated && (
-                            <span className="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-indigo-100 text-indigo-700 flex items-center gap-0.5">
-                              <Sparkles className="w-2.5 h-2.5" /> IA
-                            </span>
-                          )}
-                          <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${
-                            proc.statut === 'ouvert'
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-zinc-100 text-zinc-500'
-                          }`}>
-                            {proc.statut === 'ouvert' ? 'En cours' : 'Clôturée'}
-                          </span>
-                        </div>
-                        <div className="text-[12px] text-zinc-400 mt-0.5">Créée le {proc.dateCreation}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[16px] font-semibold text-zinc-800 tabular-nums">{fmt(totalChiffrage)}</span>
-                      <ChevronRight className="w-4 h-4 text-zinc-300" strokeWidth={1.5} />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-      }
-      if (currentLevel.activeTab === 'procédures') {
-        return (
-          <button onClick={() => navigateTo({ id: 'proc-1', type: 'procedure', title: 'Liquidation' })} className="w-full flex items-center justify-between p-3 bg-white rounded-lg border border-zinc-200/60 shadow-sm hover:border-zinc-300 group transition-colors">
-            <div className="flex items-center gap-2"><Calculator className="w-4 h-4 text-zinc-400" strokeWidth={1.5} /><div><div className="text-[14px] text-zinc-700">Liquidation</div><div className="text-[12px] text-zinc-400">En cours</div></div></div>
-            <div className="flex items-center gap-2"><span className="text-[14px] font-semibold tabular-nums text-zinc-800">{fmt(totalChiffrage)}</span><ChevronRight className="w-4 h-4 text-zinc-300" strokeWidth={1.5} /></div>
-          </button>
-        );
-      }
-      if (currentLevel.activeTab === 'pièces') {
-        return renderPiecesList(pieces, true);
-      }
-    }
-
-    // PROCÉDURE
-    if (currentLevel.type === 'procedure') {
-      if (currentLevel.activeTab === 'détail') {
-        return (
-          <div className="space-y-4">
-            {/* Chiffrage summary - EN HAUT */}
-            <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
-              <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-zinc-400">
-                  <Calculator className="w-4 h-4" strokeWidth={1.5} />
-                  <span className="text-[13px] font-medium">Chiffrage</span>
-                </div>
-                <button 
-                  onClick={() => setActiveTab('Chiffrage')}
-                  className="flex items-center gap-1 text-[12px] text-zinc-400 hover:text-zinc-600 transition-colors"
-                >
-                  Voir le détail
-                  <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
-                </button>
-              </div>
-              <div className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-[36px] font-semibold text-zinc-800 tabular-nums leading-none">{fmt(totalChiffrage)}</div>
-                    <div className="text-[13px] text-zinc-400 mt-1">{allPostes.length} postes de préjudice chiffrés</div>
-                  </div>
-                  <button 
-                    onClick={() => setActiveTab('Chiffrage')}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-700 transition-colors"
+                  <button
+                    onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Nouvelle victime indirecte', data: null })}
+                    className="flex items-center gap-1 px-2 py-1 text-[12px] text-zinc-500 hover:bg-zinc-100 rounded transition-colors"
                   >
-                    Voir le chiffrage
-                    <ChevronRight className="w-4 h-4" strokeWidth={2} />
+                    <Plus className="w-3 h-3" strokeWidth={1.5} />Ajouter
                   </button>
                 </div>
-              </div>
-            </div>
-
-            {/* Contexte affaire - SANS commentaire expertise */}
-            <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
-              <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-zinc-400">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                  </svg>
-                  <span className="text-[13px] font-medium">Résumé procédure</span>
-                </div>
-                <button onClick={() => setEditPanel({ type: 'procedure-contexte', title: 'Résumé procédure' })} className="p-1 text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
-              </div>
-              <div className="p-4">
-                <div className="text-[14px] text-zinc-600 leading-relaxed">{procedureData.resumeAffaire}</div>
-                <div className="grid grid-cols-2 gap-6 mt-4 pt-4 border-t border-zinc-100">
-                  <div>
-                    <div className="text-[12px] text-zinc-400 mb-0.5">Date d'expertise</div>
-                    <div className="text-[14px] text-zinc-700">{procedureData.dateExpertise}</div>
-                  </div>
-                  <div>
-                    <div className="text-[12px] text-zinc-400 mb-0.5">Date de création</div>
-                    <div className="text-[14px] text-zinc-700">{procedureData.dateCreation}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Commentaire d'expertise - bloc séparé */}
-            <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
-              <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-zinc-400">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-                  </svg>
-                  <span className="text-[13px] font-medium">Commentaire d'expertise</span>
-                </div>
-                <button onClick={() => setEditPanel({ type: 'procedure-expertise', title: 'Commentaire d\'expertise' })} className="p-1 text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
-              </div>
-              <div className="p-4">
-                <div className="text-[14px] text-zinc-600 leading-relaxed">
-                  {procedureData.commentaireExpertise || "L'expert a retenu un taux de DFP de 15% compte tenu des séquelles au niveau du membre inférieur gauche. La consolidation a été fixée au 12/09/2024 après une période de soins de 18 mois."}
-                </div>
-              </div>
-            </div>
-
-            {/* Victimes indirectes */}
-            <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
-              <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-zinc-400">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                  </svg>
-                  <span className="text-[13px] font-medium">Victimes indirectes</span>
-                </div>
-                <button 
-                  onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Nouvelle victime indirecte', data: null })} 
-                  className="flex items-center gap-1 px-2 py-1 text-[12px] text-zinc-500 hover:bg-zinc-100 rounded transition-colors"
-                >
-                  <Plus className="w-3 h-3" strokeWidth={1.5} />Ajouter
-                </button>
-              </div>
-              {victimesIndirectes.length > 0 ? (
-                <div className="divide-y divide-zinc-100">
-                  {victimesIndirectes.map(vi => (
-                    <div key={vi.id} className="flex items-center justify-between p-3 hover:bg-zinc-50 group transition-colors">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-[12px] text-zinc-500 font-medium">
-                          {vi.prenom[0]}{vi.nom[0]}
+                {victimesIndirectes.length > 0 ? (
+                  <div className="divide-y divide-zinc-100">
+                    {victimesIndirectes.map(vi => (
+                      <div key={vi.id} className="flex items-center justify-between p-3 hover:bg-zinc-50 group transition-colors">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-[12px] text-zinc-500 font-medium">
+                            {vi.prenom[0]}{vi.nom[0]}
+                          </div>
+                          <div>
+                            <div className="text-[14px] text-zinc-700">{vi.prenom} {vi.nom}</div>
+                            <div className="text-[12px] text-zinc-400">{vi.lien} • {calcAge(vi.dateNaissance)} ans</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="text-[14px] text-zinc-700">{vi.prenom} {vi.nom}</div>
-                          <div className="text-[12px] text-zinc-400">{vi.lien} • {calcAge(vi.dateNaissance)} ans</div>
-                        </div>
+                        <button
+                          onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Modifier victime indirecte', data: vi })}
+                          className="p-1 text-zinc-300 hover:text-zinc-500 rounded opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                        </button>
                       </div>
-                      <button 
-                        onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Modifier victime indirecte', data: vi })}
-                        className="p-1 text-zinc-300 hover:text-zinc-500 rounded opacity-0 group-hover:opacity-100 transition-all"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} />
-                      </button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center">
+                    <div className="text-[13px] text-zinc-400">Aucune victime indirecte</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Colonne droite — Encart Chiffrage (sticky) */}
+            <div className="col-span-1 sticky top-0">
+              <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
+                <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <Calculator className="w-4 h-4" strokeWidth={1.5} />
+                    <span className="text-[13px] font-medium">Chiffrage</span>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('Chiffrage')}
+                    className="flex items-center gap-1 text-[12px] text-zinc-400 hover:text-zinc-600 transition-colors"
+                  >
+                    Voir le détail
+                    <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
+                  </button>
                 </div>
-              ) : (
-                <div className="p-4 text-center">
-                  <div className="text-[13px] text-zinc-400">Aucune victime indirecte</div>
+                <div className="p-5">
+                  <div className="text-center">
+                    <div className="text-[36px] font-semibold text-zinc-800 tabular-nums leading-none">{fmt(totalChiffrage)}</div>
+                    <div className="text-[13px] text-zinc-400 mt-1.5">{allPostes.length} postes de préjudice chiffrés</div>
+                    <button
+                      onClick={() => setActiveTab('Chiffrage')}
+                      className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-800 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-700 transition-colors"
+                    >
+                      Voir le chiffrage
+                      <ChevronRight className="w-4 h-4" strokeWidth={2} />
+                    </button>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         );
       }
       if (currentLevel.activeTab === 'chiffrage') {
         // ========== CALCUL STATUT POSTE ==========
-        // Statuts possibles: 'suggested' (toutes lignes IA), 'in_progress' (au moins une suggested/incomplete), 'validated' (toutes validées)
         const getPosteStatus = (posteId) => {
           let lignes = [];
           if (posteId === 'dsa') lignes = dsaLignes;
@@ -3888,33 +3963,17 @@ export default function App() {
               ...pgpaData.ijPercues
             ];
           }
-
           if (lignes.length === 0) return 'validated';
-
-          const hasSuggested = lignes.some(l => l.status === 'ai-suggested' || l.status === 'suggested');
           const allSuggested = lignes.every(l => l.status === 'ai-suggested' || l.status === 'suggested');
-          const hasIncomplete = lignes.some(l => isLigneIncomplete(l));
           const allValidated = lignes.every(l => l.status === 'validated' && !isLigneIncomplete(l));
-
           if (allSuggested) return 'suggested';
           if (allValidated) return 'validated';
-          return 'in_progress'; // Au moins une suggested ou incomplete
+          return 'in_progress';
         };
 
-        // Vérifier si un poste a été créé par IA (a un aiReasoning)
-        const getPosteAiReasoning = (posteId) => {
-          const currentProc = procedures.find(p => p.id === currentLevel.id);
-          return currentProc?.aiReasonings?.[posteId] || null;
-        };
+        const getPosteAiReasoning = () => null;
 
-        // Vérifier si la procédure a des données
-        const currentProc = procedures.find(p => p.id === currentLevel.id);
-
-        // Une nouvelle procédure est vide si elle a le flag isEmpty
-        // (les données seront ajoutées après upload de documents)
-        const isEmptyProcedure = currentProc?.isEmpty === true;
-
-        // UI de progression pendant l'extraction - Version sobre
+        // UI de progression pendant l'extraction
         if (extractionState && extractionState.phase !== 'done') {
           const extractionPhases = [
             { key: 'upload', label: 'Réception', icon: Upload },
@@ -3927,228 +3986,87 @@ export default function App() {
 
           return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fade-up">
-              {/* Cercle central sobre */}
               <div className="relative w-20 h-20 mb-8">
-                {/* Cercle tournant sobre */}
                 <div
                   className="absolute inset-0 rounded-full animate-spin-slow"
-                  style={{
-                    background: 'conic-gradient(from 0deg, #71717a, #a1a1aa, #71717a, transparent 70%)',
-                  }}
+                  style={{ background: 'conic-gradient(from 0deg, #71717a, #a1a1aa, #71717a, transparent 70%)' }}
                 />
-                {/* Centre blanc avec icône */}
                 <div className="absolute inset-[3px] rounded-full bg-white flex items-center justify-center">
                   <Sparkles className="w-8 h-8 text-zinc-600 animate-pulse" />
                 </div>
               </div>
-
-              {/* Titre dynamique */}
               <h2 className="text-lg font-semibold text-zinc-800 mb-1 tracking-tight">
                 {extractionPhases[currentPhaseIndex]?.label || 'Analyse'} en cours...
               </h2>
-              <p className="text-sm text-zinc-500 mb-8">
-                L'IA analyse vos documents
-              </p>
-
-              {/* Étapes visuelles - tout en zinc */}
+              <p className="text-sm text-zinc-500 mb-8">L'IA analyse vos documents</p>
               <div className="flex items-center gap-1 mb-8">
                 {extractionPhases.map((phase, i) => {
                   const Icon = phase.icon;
                   const isActive = i === currentPhaseIndex;
                   const isDone = i < currentPhaseIndex;
-
                   return (
                     <div key={phase.key} className="flex items-center">
-                      <div className={`
-                        w-8 h-8 rounded-lg flex items-center justify-center
-                        transition-all duration-500
-                        ${isDone
-                          ? 'bg-zinc-200'
-                          : isActive
-                            ? 'bg-zinc-200 scale-110'
-                            : 'bg-zinc-100'
-                        }
-                      `}>
-                        {isDone ? (
-                          <Check className="w-4 h-4 text-zinc-600 animate-bounce-in" />
-                        ) : (
-                          <Icon className={`
-                            w-4 h-4 transition-colors duration-300
-                            ${isActive ? 'text-zinc-700' : 'text-zinc-400'}
-                          `} />
-                        )}
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-500 ${isDone ? 'bg-zinc-200' : isActive ? 'bg-zinc-200 scale-110' : 'bg-zinc-100'}`}>
+                        {isDone ? <Check className="w-4 h-4 text-zinc-600 animate-bounce-in" /> : <Icon className={`w-4 h-4 transition-colors duration-300 ${isActive ? 'text-zinc-700' : 'text-zinc-400'}`} />}
                       </div>
-                      {i < extractionPhases.length - 1 && (
-                        <div className={`
-                          w-3 h-0.5 mx-0.5 transition-colors duration-500
-                          ${isDone ? 'bg-zinc-400' : 'bg-zinc-200'}
-                        `} />
-                      )}
+                      {i < extractionPhases.length - 1 && <div className={`w-3 h-0.5 mx-0.5 transition-colors duration-500 ${isDone ? 'bg-zinc-400' : 'bg-zinc-200'}`} />}
                     </div>
                   );
                 })}
               </div>
-
-              {/* Progress bar sobre */}
               <div className="w-56 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-zinc-500 rounded-full transition-all duration-700 ease-out"
-                  style={{ width: `${extractionState.progress}%` }}
-                />
+                <div className="h-full bg-zinc-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${extractionState.progress}%` }} />
               </div>
               <p className="text-xs text-zinc-400 mt-3">{extractionState.progress}%</p>
             </div>
           );
         }
 
-        // Empty state pédagogique pour nouvelle procédure
-        if (isEmptyProcedure) {
+        // Empty state - no postes yet
+        if (allPostes.length === 0) {
           return (
             <div className="flex flex-col min-h-[70vh] p-6 animate-fade-up">
-              {/* Zone de drop principale - prend toute la largeur */}
               <label
                 className="group flex-1 flex flex-col cursor-pointer"
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                 onDragLeave={() => setIsDragging(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragging(false);
-                  if (e.dataTransfer.files?.length) {
-                    handleDocumentUploadForExtraction(e.dataTransfer.files);
-                  }
-                }}
+                onDrop={(e) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files?.length) { handleDocumentUploadForExtraction(e.dataTransfer.files); } }}
               >
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  className="hidden"
-                  id="drop-zone-input"
-                  onChange={(e) => {
-                    if (e.target.files?.length) {
-                      handleDocumentUploadForExtraction(e.target.files);
-                    }
-                  }}
+                <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" id="drop-zone-input"
+                  onChange={(e) => { if (e.target.files?.length) { handleDocumentUploadForExtraction(e.target.files); } }}
                 />
-                <div className={`
-                  flex-1 flex flex-col items-center justify-center rounded-2xl
-                  transition-all duration-300
-                  ${isDragging
-                    ? 'bg-zinc-100 border-2 border-zinc-400'
-                    : 'border-2 border-dashed border-zinc-200 group-hover:border-zinc-300 group-hover:bg-zinc-50/50'
-                  }
-                `}>
-                  {/* Contenu centré */}
+                <div className={`flex-1 flex flex-col items-center justify-center rounded-2xl transition-all duration-300 ${isDragging ? 'bg-zinc-100 border-2 border-zinc-400' : 'border-2 border-dashed border-zinc-200 group-hover:border-zinc-300 group-hover:bg-zinc-50/50'}`}>
                   <div className="text-center max-w-lg px-8 py-12">
-                    {/* Icône avec animation */}
-                    <div className={`
-                      w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center
-                      transition-all duration-300
-                      ${isDragging
-                        ? 'bg-zinc-200 scale-110'
-                        : 'bg-zinc-100 group-hover:bg-zinc-200/70 group-hover:scale-105'
-                      }
-                    `}>
-                      <Upload className={`
-                        w-7 h-7 transition-all duration-300
-                        ${isDragging ? 'text-zinc-600' : 'text-zinc-400 group-hover:text-zinc-500'}
-                      `} />
+                    <div className={`w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center transition-all duration-300 ${isDragging ? 'bg-zinc-200 scale-110' : 'bg-zinc-100 group-hover:bg-zinc-200/70 group-hover:scale-105'}`}>
+                      <Upload className={`w-7 h-7 transition-all duration-300 ${isDragging ? 'text-zinc-600' : 'text-zinc-400 group-hover:text-zinc-500'}`} />
                     </div>
-
-                    {/* Titre */}
-                    <h2 className={`
-                      text-xl font-semibold mb-2 tracking-tight transition-colors duration-300
-                      ${isDragging ? 'text-zinc-700' : 'text-zinc-800'}
-                    `}>
+                    <h2 className={`text-xl font-semibold mb-2 tracking-tight transition-colors duration-300 ${isDragging ? 'text-zinc-700' : 'text-zinc-800'}`}>
                       {isDragging ? 'Relâchez pour analyser' : 'Déposez vos documents'}
                     </h2>
-
-                    {/* Sous-titre */}
-                    <p className={`
-                      text-sm mb-6 transition-colors duration-300 text-zinc-500
-                    `}>
+                    <p className="text-sm mb-6 transition-colors duration-300 text-zinc-500">
                       {isDragging ? '' : 'Plus vous ajoutez de pièces, plus le chiffrage sera précis'}
                     </p>
-
-                    {/* CTA Button */}
                     {!isDragging && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          document.getElementById('drop-zone-input')?.click();
-                        }}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 active:scale-[0.98] transition-all mb-4"
-                      >
-                        <FolderOpen className="w-4 h-4" />
-                        Choisir des fichiers
+                      <button type="button" onClick={(e) => { e.preventDefault(); document.getElementById('drop-zone-input')?.click(); }}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 active:scale-[0.98] transition-all mb-4">
+                        <FolderOpen className="w-4 h-4" />Choisir des fichiers
                       </button>
                     )}
-
-                    {/* Hint */}
-                    {!isDragging && (
-                      <p className="text-xs text-zinc-400">
-                        ou glissez-déposez directement ici
-                      </p>
-                    )}
-
-                    {/* Types acceptés */}
+                    {!isDragging && <p className="text-xs text-zinc-400">ou glissez-déposez directement ici</p>}
                     {!isDragging && (
                       <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t border-zinc-100">
-                        <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                          <FileText className="w-3.5 h-3.5" />
-                          <span>PDF</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                          <Image className="w-3.5 h-3.5" />
-                          <span>Images</span>
-                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-zinc-400"><FileText className="w-3.5 h-3.5" /><span>PDF</span></div>
+                        <div className="flex items-center gap-1.5 text-xs text-zinc-400"><Image className="w-3.5 h-3.5" /><span>Images</span></div>
                       </div>
                     )}
                   </div>
                 </div>
               </label>
-
-              {/* Lien saisie manuelle */}
-              <div className="text-center mt-4">
-                <button
-                  onClick={() => {
-                    setProcedures(prev => prev.map(p =>
-                      p.id === currentLevel.id ? { ...p, isEmpty: false } : p
-                    ));
-                  }}
-                  className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
-                >
-                  ou saisir manuellement
-                </button>
-              </div>
-
-              {/* 4 blocs explicatifs en ligne */}
               <div className="grid grid-cols-4 gap-6 mt-8 pt-6 border-t border-zinc-100">
-                <div className="text-center">
-                  <div className="w-9 h-9 mx-auto mb-3 rounded-lg bg-zinc-100 flex items-center justify-center">
-                    <FileSearch className="w-4 h-4 text-zinc-500" />
-                  </div>
-                  <p className="text-xs text-zinc-500 leading-relaxed">L'IA analyse vos documents</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-9 h-9 mx-auto mb-3 rounded-lg bg-zinc-100 flex items-center justify-center">
-                    <ListChecks className="w-4 h-4 text-zinc-500" />
-                  </div>
-                  <p className="text-xs text-zinc-500 leading-relaxed">Elle identifie les postes de préjudice</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-9 h-9 mx-auto mb-3 rounded-lg bg-zinc-100 flex items-center justify-center">
-                    <Calculator className="w-4 h-4 text-zinc-500" />
-                  </div>
-                  <p className="text-xs text-zinc-500 leading-relaxed">Elle génère un premier chiffrage</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-9 h-9 mx-auto mb-3 rounded-lg bg-zinc-100 flex items-center justify-center">
-                    <ShieldCheck className="w-4 h-4 text-zinc-500" />
-                  </div>
-                  <p className="text-xs text-zinc-600 leading-relaxed font-medium">Vous gardez le contrôle</p>
-                </div>
+                <div className="text-center"><div className="w-9 h-9 mx-auto mb-3 rounded-lg bg-zinc-100 flex items-center justify-center"><FileSearch className="w-4 h-4 text-zinc-500" /></div><p className="text-xs text-zinc-500 leading-relaxed">L'IA analyse vos documents</p></div>
+                <div className="text-center"><div className="w-9 h-9 mx-auto mb-3 rounded-lg bg-zinc-100 flex items-center justify-center"><ListChecks className="w-4 h-4 text-zinc-500" /></div><p className="text-xs text-zinc-500 leading-relaxed">Elle identifie les postes de préjudice</p></div>
+                <div className="text-center"><div className="w-9 h-9 mx-auto mb-3 rounded-lg bg-zinc-100 flex items-center justify-center"><Calculator className="w-4 h-4 text-zinc-500" /></div><p className="text-xs text-zinc-500 leading-relaxed">Elle génère un premier chiffrage</p></div>
+                <div className="text-center"><div className="w-9 h-9 mx-auto mb-3 rounded-lg bg-zinc-100 flex items-center justify-center"><ShieldCheck className="w-4 h-4 text-zinc-500" /></div><p className="text-xs text-zinc-600 leading-relaxed font-medium">Vous gardez le contrôle</p></div>
               </div>
             </div>
           );
@@ -4158,7 +4076,7 @@ export default function App() {
           pgpaData.revenusPercus.filter(l => l.status === 'ai-suggested').length +
           pgpaData.ijPercues.filter(l => l.status === 'ai-suggested').length;
 
-        const hasAiSuggestions = currentProc?.isAiGenerated ||
+        const hasAiSuggestions =
           dsaLignes.some(l => l.status === 'ai-suggested') ||
           dfttLignes.some(l => l.status === 'ai-suggested') ||
           dftpLignes.some(l => l.status === 'ai-suggested') ||
@@ -4176,72 +4094,34 @@ export default function App() {
             <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm overflow-hidden">
               {categories.filter(cat => cat.postes.length > 0).map((cat, catIndex) => (
                 <div key={cat.id}>
-                  {/* Header de catégorie */}
                   <div className={`px-4 py-2 bg-zinc-50/50 border-b border-zinc-100 ${catIndex > 0 ? 'border-t' : ''}`}>
                     <span className="text-[12px] text-zinc-400">{cat.title}</span>
                   </div>
-
-                  {/* Lignes de postes */}
                   <div className="divide-y divide-zinc-100">
                     {cat.postes.map(p => {
                       const status = getPosteStatus(p.id);
-
-                      // Reasoning IA dynamique (stocké sur la procédure ou par défaut)
                       const aiReasoning = getPosteAiReasoning(p.id) || {
                         dsa: "Identifié à partir des factures et frais médicaux détectés dans vos documents",
                         pgpa: "Calculé sur la base de l'arrêt de travail et des revenus identifiés",
                         dftt: "Périodes d'incapacité totale identifiées dans le rapport d'expertise",
                         dftp: "Périodes d'incapacité partielle déduites du rapport d'expertise"
                       }[p.id];
-
-                      // Le poste est "IA" s'il est en statut suggested ou in_progress avec des lignes IA
                       const isAiPoste = status === 'suggested' || status === 'in_progress';
-
-                      // Icône de statut pour le poste
                       const PosteStatusIcon = () => {
-                        if (status === 'suggested') {
-                          return (
-                            <span className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Poste suggéré par l'IA">
-                              <Sparkles className="w-3 h-3 text-indigo-500" />
-                            </span>
-                          );
-                        }
-                        if (status === 'in_progress') {
-                          return (
-                            <span className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center" title="En cours de validation">
-                              <Loader2 className="w-3 h-3 text-amber-500" />
-                            </span>
-                          );
-                        }
-                        // validated
-                        return (
-                          <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center" title="Validé">
-                            <Check className="w-3 h-3 text-emerald-500" />
-                          </span>
-                        );
+                        if (status === 'suggested') return <span className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Poste suggéré par l'IA"><Sparkles className="w-3 h-3 text-indigo-500" /></span>;
+                        if (status === 'in_progress') return <span className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center" title="En cours de validation"><Loader2 className="w-3 h-3 text-amber-500" /></span>;
+                        return <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center" title="Validé"><Check className="w-3 h-3 text-emerald-500" /></span>;
                       };
-
                       return (
                         <div key={p.id} className="relative group">
-                          <button
-                            onClick={() => navigateTo(p)}
-                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-zinc-50 transition-colors"
-                          >
+                          <button onClick={() => navigateTo(p)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-zinc-50 transition-colors">
                             <div className="flex items-center gap-3">
-                              {/* Icône statut */}
                               <PosteStatusIcon />
-
-                              {/* Code poste */}
                               <span className="text-[13px] font-medium w-12 text-zinc-400">{p.title}</span>
-
-                              {/* Nom complet */}
                               <span className="text-[13px] text-zinc-700">{p.fullTitle}</span>
-
-                              {/* Sparkle IA avec tooltip (seulement si poste non validé) */}
                               {status !== 'validated' && aiReasoning && (
                                 <span className="relative cursor-help">
                                   <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                                  {/* Tooltip */}
                                   <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 w-64 p-2.5 bg-zinc-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30 pointer-events-none">
                                     <span className="flex items-start gap-2">
                                       <Sparkles className="w-3 h-3 text-indigo-400 flex-shrink-0 mt-0.5" />
@@ -4252,9 +4132,7 @@ export default function App() {
                                 </span>
                               )}
                             </div>
-
                             <div className="flex items-center gap-3">
-                              {/* Montant - TOUJOURS prioritaire */}
                               <span className="text-[14px] font-semibold text-zinc-900 tabular-nums">{fmt(p.montant)}</span>
                               <ChevronRight className="w-4 h-4 text-zinc-300" strokeWidth={1.5} />
                             </div>
@@ -4266,11 +4144,11 @@ export default function App() {
                 </div>
               ))}
             </div>
-            
+
             {/* Spacer pour le bandeau sticky */}
             <div className="h-28" />
-            
-            {/* Bandeau sticky full width - GROS */}
+
+            {/* Bandeau sticky full width */}
             <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-zinc-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-30">
               <div className="flex items-center justify-between px-8 py-6">
                 <div className="flex items-center gap-3">
@@ -4287,232 +4165,48 @@ export default function App() {
                 </div>
               </div>
             </div>
-            
+
             {/* Panel Paramètres Chiffrage */}
             {showChiffrageParams && (
               <div className="fixed inset-0 z-50 flex justify-end">
-                {/* Overlay */}
                 <div className="absolute inset-0 bg-black/30" onClick={() => setShowChiffrageParams(false)} />
-                
-                {/* Panel */}
                 <div className="relative w-full max-w-md bg-white shadow-xl flex flex-col">
-                  {/* Header */}
                   <div className="flex items-center justify-between px-5 py-3 border-b">
                     <h2 className="text-sm font-semibold">Paramètres du chiffrage</h2>
-                    <button 
-                      onClick={() => setShowChiffrageParams(false)}
-                      className="p-1 hover:bg-gray-100 rounded"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                    <button onClick={() => setShowChiffrageParams(false)} className="p-1 hover:bg-gray-100 rounded"><X className="w-4 h-4" /></button>
                   </div>
-                  
-                  {/* Content */}
                   <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                    {/* Fraction indemnisable */}
                     <div>
                       <div className="flex items-center gap-2 mb-4">
                         <h3 className="font-semibold text-gray-900">Fraction indemnisable des préjudices</h3>
-                        <button className="text-gray-400 hover:text-gray-600">
-                          <HelpCircle className="w-4 h-4" />
-                        </button>
+                        <button className="text-gray-400 hover:text-gray-600"><HelpCircle className="w-4 h-4" /></button>
                       </div>
                       <div className="space-y-3">
-                        <input 
-                          type="range" 
-                          min="0" 
-                          max="100" 
-                          value={chiffrageParams.fractionIndemnisable}
-                          onChange={(e) => setChiffrageParams(prev => ({ ...prev, fractionIndemnisable: parseInt(e.target.value) }))}
-                          className="w-full"
-                        />
+                        <input type="range" min="0" max="100" value={chiffrageParams.fractionIndemnisable}
+                          onChange={(e) => setChiffrageParams(prev => ({ ...prev, fractionIndemnisable: parseInt(e.target.value) }))} className="w-full" />
                         <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>0</span>
-                          <span>1/4</span>
-                          <span>1/3</span>
-                          <span>1/2</span>
-                          <span>2/3</span>
-                          <span>3/4</span>
-                          <span>1</span>
+                          <span>0</span><span>1/4</span><span>1/3</span><span>1/2</span><span>2/3</span><span>3/4</span><span>1</span>
                         </div>
-                        <div className="flex justify-end">
-                          <div className="px-3 py-1.5 border rounded-lg text-sm font-medium">
-                            {chiffrageParams.fractionIndemnisable} %
-                          </div>
-                        </div>
+                        <div className="flex justify-end"><div className="px-3 py-1.5 border rounded-lg text-sm font-medium">{chiffrageParams.fractionIndemnisable} %</div></div>
                       </div>
                     </div>
-                    
-                    {/* Tiers payeurs */}
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-4">Tiers payeurs</h3>
                       <div className="space-y-2">
                         {chiffrageParams.tiersPayeurs.map((tiers, idx) => (
                           <div key={idx} className="flex items-center gap-2">
                             <label className="text-xs text-gray-500 w-12">Nom *</label>
-                            <input 
-                              type="text" 
-                              value={tiers}
-                              onChange={(e) => {
-                                const newTiers = [...chiffrageParams.tiersPayeurs];
-                                newTiers[idx] = e.target.value;
-                                setChiffrageParams(prev => ({ ...prev, tiersPayeurs: newTiers }));
-                              }}
-                              className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                            />
-                            <button 
-                              onClick={() => {
-                                const newTiers = chiffrageParams.tiersPayeurs.filter((_, i) => i !== idx);
-                                setChiffrageParams(prev => ({ ...prev, tiersPayeurs: newTiers }));
-                              }}
-                              className="p-2 text-gray-400 hover:text-red-600"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <input type="text" value={tiers} onChange={(e) => { const newTiers = [...chiffrageParams.tiersPayeurs]; newTiers[idx] = e.target.value; setChiffrageParams(prev => ({ ...prev, tiersPayeurs: newTiers })); }} className="flex-1 px-3 py-2 border rounded-lg text-sm" />
+                            <button onClick={() => { const newTiers = chiffrageParams.tiersPayeurs.filter((_, i) => i !== idx); setChiffrageParams(prev => ({ ...prev, tiersPayeurs: newTiers })); }} className="p-2 text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         ))}
-                        <button 
-                          onClick={() => setChiffrageParams(prev => ({ ...prev, tiersPayeurs: [...prev.tiersPayeurs, ''] }))}
-                          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                        >
-                          + Ajouter un tiers payeur
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* Référentiels et barèmes */}
-                    <div>
-                      <h3 className="font-semibold text-gray-900 mb-2">Référentiels et barèmes</h3>
-                      <p className="text-sm text-gray-500 mb-4">Renseignez ici des barèmes et des valeurs par défaut qui seront appliqués à toutes vos procédures.</p>
-                      
-                      {/* Souffrances endurées */}
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Souffrances endurées, Préjudice esthétique temporaire et permanent
-                          </label>
-                          <div className="flex items-center gap-4 mb-2">
-                            <span className="text-sm text-gray-600">Référentiel souffrance endurées, PET et PEP</span>
-                            <div className="flex items-center gap-4">
-                              <label className="flex items-center gap-1.5">
-                                <input 
-                                  type="radio" 
-                                  name="seMode" 
-                                  checked={chiffrageParams.referentielSEMode === 'minimum'}
-                                  onChange={() => setChiffrageParams(prev => ({ ...prev, referentielSEMode: 'minimum' }))}
-                                />
-                                <span className="text-sm">Minimum</span>
-                              </label>
-                              <label className="flex items-center gap-1.5">
-                                <input 
-                                  type="radio" 
-                                  name="seMode" 
-                                  checked={chiffrageParams.referentielSEMode === 'moyenne'}
-                                  onChange={() => setChiffrageParams(prev => ({ ...prev, referentielSEMode: 'moyenne' }))}
-                                />
-                                <span className="text-sm">Moyenne</span>
-                              </label>
-                              <label className="flex items-center gap-1.5">
-                                <input 
-                                  type="radio" 
-                                  name="seMode" 
-                                  checked={chiffrageParams.referentielSEMode === 'maximum'}
-                                  onChange={() => setChiffrageParams(prev => ({ ...prev, referentielSEMode: 'maximum' }))}
-                                />
-                                <span className="text-sm">Maximum</span>
-                              </label>
-                            </div>
-                          </div>
-                          <select className="w-full px-3 py-2 border rounded-lg text-sm">
-                            <option>Réf. Cours d'Appel 2024</option>
-                            <option>Réf. Cours d'Appel 2023</option>
-                          </select>
-                        </div>
-                        
-                        {/* Capitalisation */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Capitalisation</label>
-                          <span className="block text-xs text-gray-500 mb-1">Barèmes de capitalisation</span>
-                          <select className="w-full px-3 py-2 border rounded-lg text-sm">
-                            <option>Gazette du Palais 2025 - 0,5%</option>
-                            <option>Gazette du Palais 2024 - 0,5%</option>
-                            <option>Gazette du Palais 2024 - 0%</option>
-                          </select>
-                        </div>
-                        
-                        {/* DFP */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Déficit fonctionnel permanent</label>
-                          <span className="block text-xs text-gray-500 mb-1">Référentiel DFP</span>
-                          <select className="w-full px-3 py-2 border rounded-lg text-sm">
-                            <option>Réf. Cours d'Appel 2024</option>
-                            <option>Réf. Cours d'Appel 2023</option>
-                          </select>
-                        </div>
-                        
-                        {/* DFTP */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Déficit fonctionnel temporaire partiel</label>
-                          <span className="block text-xs text-gray-500 mb-1">Base journalière DFTP</span>
-                          <div className="flex items-center gap-2">
-                            <input 
-                              type="number" 
-                              value={chiffrageParams.baseJournaliereDFTP}
-                              onChange={(e) => setChiffrageParams(prev => ({ ...prev, baseJournaliereDFTP: parseInt(e.target.value) }))}
-                              className="w-24 px-3 py-2 border rounded-lg text-sm"
-                            />
-                            <span className="text-sm text-gray-500">€</span>
-                          </div>
-                        </div>
-                        
-                        {/* DFTT */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Déficit fonctionnel temporaire total</label>
-                          <span className="block text-xs text-gray-500 mb-1">Base journalière DFTT</span>
-                          <div className="flex items-center gap-2">
-                            <input 
-                              type="number" 
-                              value={chiffrageParams.baseJournaliereDFTT}
-                              onChange={(e) => setChiffrageParams(prev => ({ ...prev, baseJournaliereDFTT: parseInt(e.target.value) }))}
-                              className="w-24 px-3 py-2 border rounded-lg text-sm"
-                            />
-                            <span className="text-sm text-gray-500">€</span>
-                          </div>
-                        </div>
-                        
-                        {/* ATPT */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Assistance par une tierce personne temporaire</label>
-                          <span className="block text-xs text-gray-500 mb-1">Forfait horaire ATPT</span>
-                          <div className="flex items-center gap-2">
-                            <input 
-                              type="number" 
-                              value={chiffrageParams.forfaitHoraireATPT || ''}
-                              onChange={(e) => setChiffrageParams(prev => ({ ...prev, forfaitHoraireATPT: e.target.value ? parseInt(e.target.value) : null }))}
-                              placeholder=""
-                              className="w-24 px-3 py-2 border rounded-lg text-sm"
-                            />
-                            <span className="text-sm text-gray-500">€</span>
-                          </div>
-                        </div>
+                        <button onClick={() => setChiffrageParams(prev => ({ ...prev, tiersPayeurs: [...prev.tiersPayeurs, ''] }))} className="text-sm text-blue-600 hover:text-blue-700 font-medium">+ Ajouter un tiers payeur</button>
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Footer */}
-                  <div className="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
-                    <button 
-                      onClick={() => setShowChiffrageParams(false)}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
-                    >
-                      Annuler
-                    </button>
-                    <button 
-                      onClick={() => setShowChiffrageParams(false)}
-                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
-                    >
-                      Enregistrer
-                    </button>
+                  <div className="px-5 py-3 border-t flex justify-end gap-2">
+                    <button onClick={() => setShowChiffrageParams(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Fermer</button>
+                    <button onClick={() => setShowChiffrageParams(false)} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Enregistrer</button>
                   </div>
                 </div>
               </div>
@@ -4521,11 +4215,10 @@ export default function App() {
         );
       }
       if (currentLevel.activeTab === 'pièces') {
-        // Pièces utilisées dans cette procédure
-        const usedPieces = pieces.filter(p => getPieceUsage(p.id).length > 0);
-        return renderPiecesList(usedPieces, false);
+        return renderPiecesList(pieces, true);
       }
     }
+
 
     // ========== DSA ==========
     if (currentLevel.id === 'dsa') {
@@ -4550,31 +4243,59 @@ export default function App() {
       
       return (
         <div className="space-y-4 pb-32">
-          {/* Note / Argumentaire - texte éditable directement */}
-          <div className="bg-white rounded-lg border border-zinc-200/60">
-            <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-zinc-400" />
-                <h3 className="text-[13px] font-medium text-zinc-700">Note explicative</h3>
-              </div>
-              <button className="text-[12px] text-zinc-500 hover:text-zinc-700 flex items-center gap-1.5 px-2 py-1 rounded hover:bg-zinc-100 transition-colors">
-                <Sparkles className="w-3 h-3" />
-                Générer avec l'IA
-              </button>
-            </div>
-            <div 
-              contentEditable
-              suppressContentEditableWarning
-              className="px-4 py-4 text-[14px] text-zinc-600 leading-relaxed focus:outline-none focus:bg-zinc-50/50 min-h-[80px] transition-colors"
+          {/* Empty state DSA */}
+          {dsaLignes.length === 0 && processing.length === 0 && (
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dsa'); }}
+              className={`bg-white rounded-lg border-2 border-dashed overflow-hidden transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50/50' : 'border-zinc-200'}`}
             >
-              M. Dupont a engagé des frais médicaux consécutifs à l'accident du 15 mars 2023. Les dépenses présentées correspondent aux soins nécessités par le traumatisme du membre inférieur gauche, de la date de l'accident jusqu'à la consolidation fixée au 12 septembre 2024.
+              <div className="px-8 py-12 text-center">
+                {isDragging ? (
+                  <>
+                    <Upload className="w-10 h-10 text-emerald-500 mx-auto mb-4" />
+                    <h3 className="text-[15px] font-semibold text-emerald-700 mb-1">Déposez vos documents ici</h3>
+                    <p className="text-[13px] text-emerald-600">Les fichiers seront analysés automatiquement</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
+                      <Receipt className="w-7 h-7 text-zinc-400" />
+                    </div>
+                    <h3 className="text-[15px] font-semibold text-zinc-800 mb-1.5">Aucune dépense de santé</h3>
+                    <p className="text-[13px] text-zinc-400 mb-6 max-w-sm mx-auto">Commencez par ajouter des justificatifs ou créez une ligne manuellement.</p>
+
+                    <div className="flex items-center justify-center gap-3 mb-8">
+                      <button onClick={() => document.getElementById('dsa-file-input-empty').click()} className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors">
+                        <Upload className="w-4 h-4" /> Ajouter des documents
+                      </button>
+                      <button onClick={() => handleAddManual('dsa')} className="flex items-center gap-2 px-4 py-2.5 border border-zinc-200 text-zinc-700 text-[13px] font-medium rounded-lg hover:bg-zinc-50 transition-colors">
+                        <Edit3 className="w-4 h-4" /> Créer une dépense manuellement
+                      </button>
+                    </div>
+                    <input type="file" id="dsa-file-input-empty" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dsa'); e.target.value = ''; } }} />
+
+                    <div className="border-t border-zinc-100 pt-5">
+                      <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-3">Documents attendus</p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {['Factures médicales', 'Ordonnances', 'Justificatifs de médicaments', 'Autres justificatifs de dépenses'].map(doc => (
+                          <span key={doc} className="px-2.5 py-1 bg-zinc-50 text-[12px] text-zinc-500 rounded-md border border-zinc-100">{doc}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-          
+          )}
+
           {/* Table des dépenses avec zone d'ajout intégrée */}
+          {(dsaLignes.length > 0 || processing.length > 0) && (
           <div className="bg-white rounded-lg border border-zinc-200/60 overflow-hidden">
-            {/* Zone d'ajout - simple mais affordante */}
-            <div 
+            {/* Zone d'ajout - only when lines exist */}
+            {dsaLignes.length > 0 && (
+            <div
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
               onDrop={(e) => {
@@ -4587,8 +4308,8 @@ export default function App() {
               }`}
             >
               {/* Input file caché */}
-              <input 
-                type="file" 
+              <input
+                type="file"
                 id="dsa-file-input"
                 multiple
                 accept=".pdf,.jpg,.jpeg,.png"
@@ -4600,14 +4321,14 @@ export default function App() {
                   }
                 }}
               />
-              
+
               <div className="flex items-center gap-4">
                 {/* Drop zone compacte - cliquable */}
-                <div 
+                <div
                   onClick={() => document.getElementById('dsa-file-input').click()}
                   className={`flex items-center gap-3 px-4 py-2.5 border-2 border-dashed rounded-lg flex-1 transition-all cursor-pointer ${
-                    isDragging 
-                      ? 'border-emerald-400 bg-emerald-50' 
+                    isDragging
+                      ? 'border-emerald-400 bg-emerald-50'
                       : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'
                   }`}
                 >
@@ -4616,7 +4337,7 @@ export default function App() {
                     {isDragging ? 'Relâchez pour ajouter' : 'Déposez ou cliquez pour ajouter un justificatif'}
                   </span>
                 </div>
-                
+
                 {/* Recherche pièce */}
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
@@ -4627,7 +4348,7 @@ export default function App() {
                     onChange={(e) => setSearchPieces(e.target.value)}
                     className="w-full pl-9 pr-3 py-2.5 border border-zinc-200 rounded-lg text-[13px] bg-white focus:outline-none focus:ring-2 focus:ring-zinc-300"
                   />
-                  
+
                   {searchPieces && (
                     <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white rounded-lg border shadow-lg max-h-48 overflow-y-auto">
                       {filteredPiecesForSearch.length === 0 ? (
@@ -4635,8 +4356,8 @@ export default function App() {
                       ) : (
                         <div className="py-1">
                           {filteredPiecesForSearch.map(p => (
-                            <button 
-                              key={p.id} 
+                            <button
+                              key={p.id}
                               onClick={() => { handleAddFromPiece(p, 'dsa'); setSearchPieces(''); }}
                               className="w-full flex items-center gap-3 px-3 py-2 hover:bg-zinc-50 text-left"
                             >
@@ -4655,9 +4376,9 @@ export default function App() {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Saisie manuelle */}
-                <button 
+                <button
                   onClick={() => handleAddManual('dsa')}
                   className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors whitespace-nowrap"
                 >
@@ -4665,6 +4386,7 @@ export default function App() {
                 </button>
               </div>
             </div>
+            )}
             
             {/* Processing - Version sobre */}
             {processing.length > 0 && (
@@ -4737,7 +4459,6 @@ export default function App() {
                 <div className="divide-y">
                   {allLignes.map(l => {
                     const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                    const isIncomplete = !l.label || l.montant == null;
                     const isError = l.status === 'error';
                     const pieceCount = l.pieceIds?.length || 0;
 
@@ -4747,21 +4468,7 @@ export default function App() {
                           <Sparkles className="w-3 h-3 text-indigo-500" />
                         </div>
                       );
-                      if (isError) return (
-                        <div className="w-5 h-5 rounded-full bg-zinc-200 flex items-center justify-center" title="Erreur">
-                          <X className="w-3 h-3 text-zinc-500" />
-                        </div>
-                      );
-                      if (isIncomplete) return (
-                        <div className="w-5 h-5 rounded-full bg-zinc-200 flex items-center justify-center" title="Incomplet">
-                          <AlertTriangle className="w-3 h-3 text-zinc-500" />
-                        </div>
-                      );
-                      return (
-                        <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center animate-bounce-in" title="Validé">
-                          <Check className="w-3 h-3 text-white" />
-                        </div>
-                      );
+                      return null;
                     };
 
                     // Composant indicateur pièces avec tooltip
@@ -4864,15 +4571,9 @@ export default function App() {
               </>
             )}
             
-            {/* Empty state si pas de lignes */}
-            {allLignes.length === 0 && processing.length === 0 && (
-              <div className="px-4 py-8 text-center text-gray-500">
-                <p className="text-sm">Aucune dépense enregistrée</p>
-                <p className="text-xs mt-1">Déposez un justificatif ou utilisez une pièce existante</p>
-              </div>
-            )}
           </div>
-          
+          )}
+
           {/* Bandeau sticky totaux - Pattern ticket de caisse */}
           <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
             <div className="flex items-start justify-between px-6 py-5">
@@ -4937,56 +4638,135 @@ export default function App() {
           
           return (
             <div className="space-y-4 pb-32">
+              {/* Empty state revenus de référence */}
+              {pgpaData.revenuRef.lignes.length === 0 && (
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-ref'); }}
+                  className={`bg-white rounded-lg border-2 border-dashed overflow-hidden transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50/50' : 'border-zinc-200'}`}
+                >
+                  <div className="px-8 py-12 text-center">
+                    {isDragging ? (
+                      <>
+                        <Upload className="w-10 h-10 text-emerald-500 mx-auto mb-4" />
+                        <h3 className="text-[15px] font-semibold text-emerald-700 mb-1">Déposez vos documents ici</h3>
+                        <p className="text-[13px] text-emerald-600">Les fichiers seront analysés automatiquement</p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
+                          <FileSpreadsheet className="w-7 h-7 text-zinc-400" />
+                        </div>
+                        <h3 className="text-[15px] font-semibold text-zinc-800 mb-1.5">Aucun revenu de référence</h3>
+                        <p className="text-[13px] text-zinc-400 mb-6 max-w-sm mx-auto">Ajoutez les justificatifs de revenus ou créez une ligne manuellement.</p>
+
+                        <div className="flex items-center justify-center gap-3 mb-8">
+                          <button onClick={() => document.getElementById('pgpa-revref-file-input-empty').click()} className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors">
+                            <Upload className="w-4 h-4" /> Ajouter des documents
+                          </button>
+                          <button onClick={() => handleAddManual('pgpa-revenu-ref')} className="flex items-center gap-2 px-4 py-2.5 border border-zinc-200 text-zinc-700 text-[13px] font-medium rounded-lg hover:bg-zinc-50 transition-colors">
+                            <Edit3 className="w-4 h-4" /> Créer une ligne manuellement
+                          </button>
+                        </div>
+                        <input type="file" id="pgpa-revref-file-input-empty" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-ref'); e.target.value = ''; } }} />
+
+                        <div className="border-t border-zinc-100 pt-5">
+                          <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-3">Documents attendus</p>
+                          <div className="flex flex-wrap justify-center gap-2">
+                            {['Bulletins de salaire', 'Attestations employeur', "Avis d'imposition", 'Bilans comptables'].map(doc => (
+                              <span key={doc} className="px-2.5 py-1 bg-zinc-50 text-[12px] text-zinc-500 rounded-md border border-zinc-100">{doc}</span>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Table avec zone d'ajout */}
+              {pgpaData.revenuRef.lignes.length > 0 && (
               <div className="bg-white rounded-lg border overflow-hidden">
                 {/* Zone d'ajout */}
-                <div className="px-4 py-3 border-b bg-gray-50">
+                <div
+                  onDragOver={(e) => { e.preventDefault(); }}
+                  onDrop={(e) => { e.preventDefault(); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-ref'); }}
+                  className="px-4 py-3 border-b bg-gray-50"
+                >
+                  <input type="file" id="pgpa-revref-file-input" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-ref'); e.target.value = ''; } }} />
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3 px-3 py-2 border-2 border-dashed rounded-lg flex-1 hover:border-gray-400 cursor-pointer">
+                    <div
+                      onClick={() => document.getElementById('pgpa-revref-file-input').click()}
+                      className="flex items-center gap-3 px-3 py-2 border-2 border-dashed rounded-lg flex-1 hover:border-gray-400 cursor-pointer"
+                    >
                       <Upload className="w-4 h-4 text-gray-400" />
                       <span className="text-sm text-gray-500">Déposez bulletins de salaire, avis d'imposition...</span>
                     </div>
-                    <button className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg whitespace-nowrap">
+                    <button onClick={() => handleAddManual('pgpa-revenu-ref')} className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg whitespace-nowrap">
                       Ajouter un revenu
                     </button>
                   </div>
                 </div>
-                
+
                 {/* Section REVENUS */}
                 <div className="px-4 py-2 bg-gray-100 border-b">
                   <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Revenus professionnels</span>
                 </div>
                 
-                <div className="grid grid-cols-12 gap-3 px-4 py-2 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  <div className="col-span-1">Pièce</div>
-                  <div className="col-span-5">Intitulé</div>
-                  <div className="col-span-2">Année</div>
-                  <div className="col-span-2 text-right">Montant</div>
-                  <div className="col-span-2 text-right">Revalorisé</div>
+                <div className="flex items-center px-4 py-2 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  <div className="w-10 flex-shrink-0">Statut</div>
+                  <div className="w-12 flex-shrink-0">Pièce</div>
+                  <div className="flex-1">Intitulé</div>
+                  <div className="w-20 text-right">Année</div>
+                  <div className="w-24 text-right">Montant</div>
+                  <div className="w-28 text-right">Revalorisé</div>
                 </div>
-                
+
                 <div className="divide-y">
                   {revenus.map(l => {
                     const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                    const isIncomplete = !l.label || l.montant == null;
+                    const pieceCount = l.pieceIds?.length || 0;
 
                     const StatusIcon = () => {
                       if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-                      if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-zinc-200 flex items-center justify-center" title="Incomplet"><AlertTriangle className="w-3 h-3 text-zinc-500" /></div>;
-                      return <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center animate-bounce-in" title="Validé"><Check className="w-3 h-3 text-white" /></div>;
+                      return null;
+                    };
+
+                    const PieceIndicator = () => {
+                      if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
+                      return (
+                        <div className="relative group/piece">
+                          <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
+                            <FileText className="w-3.5 h-3.5" />
+                            {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
+                          </span>
+                          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
+                            <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
+                            <div className="space-y-1">
+                              {l.pieceIds?.map(pid => {
+                                const piece = getPiece(pid);
+                                return <div key={pid} className="flex items-center gap-2 text-xs"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
+                              })}
+                            </div>
+                            <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
+                          </div>
+                        </div>
+                      );
                     };
 
                     return (
                       <div
                         key={l.id}
                         onClick={() => openPgpaEditPanel('pgpa-revenu', l)}
-                        className="grid grid-cols-12 gap-3 px-4 py-3 group items-center cursor-pointer hover:bg-zinc-50 transition-colors"
+                        className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}
                       >
-                        <div className="col-span-1"><StatusIcon /></div>
-                        <div className="col-span-5 text-sm font-medium truncate text-zinc-800">{l.label || 'Sans libellé'}</div>
-                        <div className="col-span-2 text-sm text-zinc-500">{l.annee}</div>
-                        <div className="col-span-2 text-right text-sm tabular-nums text-zinc-500">{fmt(l.montant)}</div>
-                        <div className="col-span-2 flex items-center justify-end gap-2">
+                        <div className="w-10 flex-shrink-0"><StatusIcon /></div>
+                        <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
+                        <div className="flex-1 min-w-0 pr-4 text-sm font-medium truncate text-zinc-800">{l.label || 'Sans libellé'}</div>
+                        <div className="w-20 text-right text-sm text-zinc-500 flex-shrink-0">{l.annee}</div>
+                        <div className="w-24 text-right text-sm tabular-nums text-zinc-500 flex-shrink-0">{fmt(l.montant)}</div>
+                        <div className="w-28 text-right flex-shrink-0">
                           <span className="font-semibold tabular-nums text-zinc-900">{fmt(l.revalorise)}</span>
                         </div>
                       </div>
@@ -5010,25 +4790,47 @@ export default function App() {
                 <div className="divide-y">
                   {gains.map(l => {
                     const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                    const isIncomplete = !l.label || l.montant == null;
+                    const pieceCount = l.pieceIds?.length || 0;
 
                     const StatusIcon = () => {
                       if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-                      if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-zinc-200 flex items-center justify-center" title="Incomplet"><AlertTriangle className="w-3 h-3 text-zinc-500" /></div>;
-                      return <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center animate-bounce-in" title="Validé"><Check className="w-3 h-3 text-white" /></div>;
+                      return null;
+                    };
+
+                    const PieceIndicator = () => {
+                      if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
+                      return (
+                        <div className="relative group/piece">
+                          <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
+                            <FileText className="w-3.5 h-3.5" />
+                            {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
+                          </span>
+                          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
+                            <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
+                            <div className="space-y-1">
+                              {l.pieceIds?.map(pid => {
+                                const piece = getPiece(pid);
+                                return <div key={pid} className="flex items-center gap-2 text-xs"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
+                              })}
+                            </div>
+                            <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
+                          </div>
+                        </div>
+                      );
                     };
 
                     return (
                       <div
                         key={l.id}
                         onClick={() => openPgpaEditPanel('pgpa-revenu', l)}
-                        className="grid grid-cols-12 gap-3 px-4 py-3 group items-center cursor-pointer hover:bg-zinc-50 transition-colors"
+                        className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}
                       >
-                        <div className="col-span-1"><StatusIcon /></div>
-                        <div className="col-span-5 text-sm font-medium truncate text-zinc-800">{l.label || 'Sans libellé'}</div>
-                        <div className="col-span-2 text-sm text-zinc-500">{l.annee}</div>
-                        <div className="col-span-2 text-right text-sm tabular-nums text-zinc-500">{fmt(l.montant)}</div>
-                        <div className="col-span-2 flex items-center justify-end">
+                        <div className="w-10 flex-shrink-0"><StatusIcon /></div>
+                        <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
+                        <div className="flex-1 min-w-0 pr-4 text-sm font-medium truncate text-zinc-800">{l.label || 'Sans libellé'}</div>
+                        <div className="w-20 text-right text-sm text-zinc-500 flex-shrink-0">{l.annee}</div>
+                        <div className="w-24 text-right text-sm tabular-nums text-zinc-500 flex-shrink-0">{fmt(l.montant)}</div>
+                        <div className="w-28 text-right flex-shrink-0">
                           <span className="font-semibold tabular-nums text-zinc-900">{fmt(l.revalorise)}</span>
                         </div>
                       </div>
@@ -5044,7 +4846,8 @@ export default function App() {
                   <span className="text-sm text-gray-600">Indemnité annuelle moyenne : <span className="font-semibold tabular-nums">{fmt(totalGains)}</span></span>
                 </div>
               </div>
-              
+              )}
+
               {/* Bandeau ticket */}
               <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
                 <div className="flex items-start justify-between px-6 py-5">
@@ -5079,69 +4882,140 @@ export default function App() {
         if (subSection === 'revenus-percus') {
           return (
             <div className="space-y-4 pb-32">
+              {/* Empty state revenus perçus */}
+              {pgpaData.revenusPercus.length === 0 && (
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-percu'); }}
+                  className={`bg-white rounded-lg border-2 border-dashed overflow-hidden transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50/50' : 'border-zinc-200'}`}
+                >
+                  <div className="px-8 py-12 text-center">
+                    {isDragging ? (
+                      <>
+                        <Upload className="w-10 h-10 text-emerald-500 mx-auto mb-4" />
+                        <h3 className="text-[15px] font-semibold text-emerald-700 mb-1">Déposez vos documents ici</h3>
+                        <p className="text-[13px] text-emerald-600">Les fichiers seront analysés automatiquement</p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
+                          <FileSpreadsheet className="w-7 h-7 text-zinc-400" />
+                        </div>
+                        <h3 className="text-[15px] font-semibold text-zinc-800 mb-1.5">Aucun revenu perçu sur la période</h3>
+                        <p className="text-[13px] text-zinc-400 mb-6 max-w-sm mx-auto">Ajoutez les justificatifs de revenus perçus pendant l'arrêt ou créez une ligne.</p>
+
+                        <div className="flex items-center justify-center gap-3 mb-8">
+                          <button onClick={() => document.getElementById('pgpa-revpercu-file-input-empty').click()} className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors">
+                            <Upload className="w-4 h-4" /> Ajouter des documents
+                          </button>
+                          <button onClick={() => handleAddManual('pgpa-revenu-percu')} className="flex items-center gap-2 px-4 py-2.5 border border-zinc-200 text-zinc-700 text-[13px] font-medium rounded-lg hover:bg-zinc-50 transition-colors">
+                            <Edit3 className="w-4 h-4" /> Créer une ligne manuellement
+                          </button>
+                        </div>
+                        <input type="file" id="pgpa-revpercu-file-input-empty" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-percu'); e.target.value = ''; } }} />
+
+                        <div className="border-t border-zinc-100 pt-5">
+                          <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-3">Documents attendus</p>
+                          <div className="flex flex-wrap justify-center gap-2">
+                            {['Bulletins de salaire (période accident)', 'Relevés de revenus', 'Attestations employeur'].map(doc => (
+                              <span key={doc} className="px-2.5 py-1 bg-zinc-50 text-[12px] text-zinc-500 rounded-md border border-zinc-100">{doc}</span>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Table avec zone d'ajout */}
+              {pgpaData.revenusPercus.length > 0 && (
               <div className="bg-white rounded-lg border overflow-hidden">
-                <div className="px-4 py-3 border-b bg-gray-50">
+                <div
+                  onDragOver={(e) => { e.preventDefault(); }}
+                  onDrop={(e) => { e.preventDefault(); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-percu'); }}
+                  className="px-4 py-3 border-b bg-gray-50"
+                >
+                  <input type="file" id="pgpa-revpercu-file-input" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-percu'); e.target.value = ''; } }} />
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3 px-3 py-2 border-2 border-dashed rounded-lg flex-1 hover:border-gray-400 cursor-pointer">
+                    <div
+                      onClick={() => document.getElementById('pgpa-revpercu-file-input').click()}
+                      className="flex items-center gap-3 px-3 py-2 border-2 border-dashed rounded-lg flex-1 hover:border-gray-400 cursor-pointer"
+                    >
                       <Upload className="w-4 h-4 text-gray-400" />
                       <span className="text-sm text-gray-500">Déposez bulletins pendant arrêt, attestations employeur...</span>
                     </div>
-                    <button className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg whitespace-nowrap">
+                    <button onClick={() => handleAddManual('pgpa-revenu-percu')} className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg whitespace-nowrap">
                       Ajouter un revenu
                     </button>
                   </div>
                 </div>
-                
-                <div className="grid grid-cols-12 gap-3 px-4 py-2 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  <div className="col-span-1">Pièce</div>
-                  <div className="col-span-4">Intitulé</div>
-                  <div className="col-span-3">Période</div>
-                  <div className="col-span-2 text-right">Durée</div>
-                  <div className="col-span-2 text-right">Montant</div>
+
+                <div className="flex items-center px-4 py-2 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  <div className="w-10 flex-shrink-0">Statut</div>
+                  <div className="w-12 flex-shrink-0">Pièce</div>
+                  <div className="flex-1">Intitulé</div>
+                  <div className="w-28">Période</div>
+                  <div className="w-16 text-right">Durée</div>
+                  <div className="w-28 text-right">Montant</div>
                 </div>
-                
+
                 <div className="divide-y">
-                  {pgpaData.revenusPercus.map(l => (
-                    <div 
-                      key={l.id}
-                      onClick={() => openPgpaEditPanel('pgpa-revenu-percu', l)}
-                      className="grid grid-cols-12 gap-3 px-4 py-3 group items-center cursor-pointer hover:bg-gray-50"
-                    >
-                      <div className="col-span-1">
-                        {l.pieceIds?.length > 0 ? (
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-100 text-blue-700 text-xs font-medium rounded">
-                            {getPieceLabel(l.pieceIds[0])}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-gray-50 text-gray-300 rounded border border-dashed border-gray-200">
+                  {pgpaData.revenusPercus.map(l => {
+                    const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
+                    const pieceCount = l.pieceIds?.length || 0;
+
+                    const StatusIcon = () => {
+                      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
+                      return null;
+                    };
+
+                    const PieceIndicator = () => {
+                      if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
+                      return (
+                        <div className="relative group/piece">
+                          <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
                             <FileText className="w-3.5 h-3.5" />
+                            {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
                           </span>
-                        )}
-                      </div>
-                      <div className="col-span-4 min-w-0">
-                        <div className="font-medium text-gray-900 truncate">{l.label}</div>
-                        <div className="text-xs text-gray-500">{l.tiers}</div>
-                      </div>
-                      <div className="col-span-3 text-sm text-gray-600">{l.periode}</div>
-                      <div className="col-span-2 text-right text-sm text-gray-600 tabular-nums">{l.dureeJours} j</div>
-                      <div className="col-span-2 flex items-center justify-end gap-2">
-                        <span className="font-semibold tabular-nums text-gray-900 group-hover:hidden">{fmt(l.montant)}</span>
-                        <div className="hidden group-hover:flex items-center gap-1">
-                          <button onClick={(e) => e.stopPropagation()} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded">
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button onClick={(e) => e.stopPropagation()} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
+                            <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
+                            <div className="space-y-1">
+                              {l.pieceIds?.map(pid => {
+                                const piece = getPiece(pid);
+                                return <div key={pid} className="flex items-center gap-2 text-xs"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
+                              })}
+                            </div>
+                            <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
+                          </div>
+                        </div>
+                      );
+                    };
+
+                    return (
+                      <div
+                        key={l.id}
+                        onClick={() => openPgpaEditPanel('pgpa-revenu-percu', l)}
+                        className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}
+                      >
+                        <div className="w-10 flex-shrink-0"><StatusIcon /></div>
+                        <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
+                        <div className="flex-1 min-w-0 pr-4">
+                          <div className="text-sm font-medium text-zinc-800 truncate">{l.label || 'Sans libellé'}</div>
+                          <div className="text-xs text-zinc-500">{l.tiers}</div>
+                        </div>
+                        <div className="w-28 text-sm text-zinc-500 flex-shrink-0">{l.periode}</div>
+                        <div className="w-16 text-right text-sm text-zinc-500 tabular-nums flex-shrink-0">{l.dureeJours} j</div>
+                        <div className="w-28 text-right flex-shrink-0">
+                          <span className="font-semibold tabular-nums text-zinc-900">{fmt(l.montant)}</span>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                  {pgpaData.revenusPercus.length === 0 && (
-                    <div className="px-4 py-8 text-center text-gray-500 text-sm">Aucun revenu perçu enregistré</div>
-                  )}
+                    );
+                  })}
                 </div>
               </div>
+              )}
               
               {/* Bandeau ticket */}
               <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
@@ -5166,71 +5040,142 @@ export default function App() {
         if (subSection === 'ij') {
           return (
             <div className="space-y-4 pb-32">
+              {/* Empty state indemnités journalières */}
+              {pgpaData.ijPercues.length === 0 && (
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-ij'); }}
+                  className={`bg-white rounded-lg border-2 border-dashed overflow-hidden transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50/50' : 'border-zinc-200'}`}
+                >
+                  <div className="px-8 py-12 text-center">
+                    {isDragging ? (
+                      <>
+                        <Upload className="w-10 h-10 text-emerald-500 mx-auto mb-4" />
+                        <h3 className="text-[15px] font-semibold text-emerald-700 mb-1">Déposez vos documents ici</h3>
+                        <p className="text-[13px] text-emerald-600">Les fichiers seront analysés automatiquement</p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
+                          <Landmark className="w-7 h-7 text-zinc-400" />
+                        </div>
+                        <h3 className="text-[15px] font-semibold text-zinc-800 mb-1.5">Aucune indemnité journalière</h3>
+                        <p className="text-[13px] text-zinc-400 mb-6 max-w-sm mx-auto">Ajoutez les décomptes de tiers payeurs ou créez une ligne manuellement.</p>
+
+                        <div className="flex items-center justify-center gap-3 mb-8">
+                          <button onClick={() => document.getElementById('pgpa-ij-file-input-empty').click()} className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors">
+                            <Upload className="w-4 h-4" /> Ajouter des documents
+                          </button>
+                          <button onClick={() => handleAddManual('pgpa-ij')} className="flex items-center gap-2 px-4 py-2.5 border border-zinc-200 text-zinc-700 text-[13px] font-medium rounded-lg hover:bg-zinc-50 transition-colors">
+                            <Edit3 className="w-4 h-4" /> Créer une ligne manuellement
+                          </button>
+                        </div>
+                        <input type="file" id="pgpa-ij-file-input-empty" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-ij'); e.target.value = ''; } }} />
+
+                        <div className="border-t border-zinc-100 pt-5">
+                          <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-3">Documents attendus</p>
+                          <div className="flex flex-wrap justify-center gap-2">
+                            {['Décomptes IJ Sécurité sociale', 'Décomptes mutuelle / prévoyance', 'Attestations de tiers payeur'].map(doc => (
+                              <span key={doc} className="px-2.5 py-1 bg-zinc-50 text-[12px] text-zinc-500 rounded-md border border-zinc-100">{doc}</span>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Table avec zone d'ajout */}
+              {pgpaData.ijPercues.length > 0 && (
               <div className="bg-white rounded-lg border overflow-hidden">
-                <div className="px-4 py-3 border-b bg-gray-50">
+                <div
+                  onDragOver={(e) => { e.preventDefault(); }}
+                  onDrop={(e) => { e.preventDefault(); handleUploadFiles(e.dataTransfer.files, 'pgpa-ij'); }}
+                  className="px-4 py-3 border-b bg-gray-50"
+                >
+                  <input type="file" id="pgpa-ij-file-input" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-ij'); e.target.value = ''; } }} />
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3 px-3 py-2 border-2 border-dashed rounded-lg flex-1 hover:border-gray-400 cursor-pointer">
+                    <div
+                      onClick={() => document.getElementById('pgpa-ij-file-input').click()}
+                      className="flex items-center gap-3 px-3 py-2 border-2 border-dashed rounded-lg flex-1 hover:border-gray-400 cursor-pointer"
+                    >
                       <Upload className="w-4 h-4 text-gray-400" />
                       <span className="text-sm text-gray-500">Déposez attestations CPAM, relevés de prévoyance...</span>
                     </div>
-                    <button className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg whitespace-nowrap">
+                    <button onClick={() => handleAddManual('pgpa-ij')} className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg whitespace-nowrap">
                       Ajouter des IJ
                     </button>
                   </div>
                 </div>
-                
-                <div className="grid grid-cols-12 gap-3 px-4 py-2 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  <div className="col-span-1">Pièce</div>
-                  <div className="col-span-3">Tiers payeur</div>
-                  <div className="col-span-3">Période</div>
-                  <div className="col-span-1 text-right">Jours</div>
-                  <div className="col-span-2 text-right">Brut</div>
-                  <div className="col-span-2 text-right">Net versé</div>
+
+                <div className="flex items-center px-4 py-2 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  <div className="w-10 flex-shrink-0">Statut</div>
+                  <div className="w-12 flex-shrink-0">Pièce</div>
+                  <div className="flex-1">Tiers payeur</div>
+                  <div className="w-28">Période</div>
+                  <div className="w-14 text-right">Jours</div>
+                  <div className="w-24 text-right">Brut</div>
+                  <div className="w-28 text-right">Net versé</div>
                 </div>
-                
+
                 <div className="divide-y">
-                  {pgpaData.ijPercues.map(l => (
-                    <div 
-                      key={l.id}
-                      onClick={() => openPgpaEditPanel('pgpa-ij', l)}
-                      className="grid grid-cols-12 gap-3 px-4 py-3 group items-center cursor-pointer hover:bg-gray-50"
-                    >
-                      <div className="col-span-1">
-                        {l.pieceIds?.length > 0 ? (
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-100 text-blue-700 text-xs font-medium rounded">
-                            {getPieceLabel(l.pieceIds[0])}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-gray-50 text-gray-300 rounded border border-dashed border-gray-200">
+                  {pgpaData.ijPercues.map(l => {
+                    const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
+                    const pieceCount = l.pieceIds?.length || 0;
+
+                    const StatusIcon = () => {
+                      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
+                      return null;
+                    };
+
+                    const PieceIndicator = () => {
+                      if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
+                      return (
+                        <div className="relative group/piece">
+                          <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
                             <FileText className="w-3.5 h-3.5" />
+                            {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
                           </span>
-                        )}
-                      </div>
-                      <div className="col-span-3 min-w-0">
-                        <div className="font-medium text-gray-900 truncate">{l.tiers}</div>
-                        <div className="text-xs text-gray-500">{l.label}</div>
-                      </div>
-                      <div className="col-span-3 text-sm text-gray-600">{l.periode}</div>
-                      <div className="col-span-1 text-right text-sm text-gray-600 tabular-nums">{l.jours}</div>
-                      <div className="col-span-2 text-right text-sm text-gray-500 tabular-nums">{fmt(l.montantBrut)}</div>
-                      <div className="col-span-2 flex items-center justify-end gap-2">
-                        <span className="font-semibold tabular-nums text-gray-900 group-hover:hidden">{fmt(l.montant)}</span>
-                        <div className="hidden group-hover:flex items-center gap-1">
-                          <button onClick={(e) => e.stopPropagation()} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded">
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button onClick={(e) => e.stopPropagation()} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
+                            <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
+                            <div className="space-y-1">
+                              {l.pieceIds?.map(pid => {
+                                const piece = getPiece(pid);
+                                return <div key={pid} className="flex items-center gap-2 text-xs"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
+                              })}
+                            </div>
+                            <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
+                          </div>
+                        </div>
+                      );
+                    };
+
+                    return (
+                      <div
+                        key={l.id}
+                        onClick={() => openPgpaEditPanel('pgpa-ij', l)}
+                        className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}
+                      >
+                        <div className="w-10 flex-shrink-0"><StatusIcon /></div>
+                        <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
+                        <div className="flex-1 min-w-0 pr-4">
+                          <div className="text-sm font-medium text-zinc-800 truncate">{l.tiers || 'Sans tiers'}</div>
+                          <div className="text-xs text-zinc-500">{l.label}</div>
+                        </div>
+                        <div className="w-28 text-sm text-zinc-500 flex-shrink-0">{l.periode}</div>
+                        <div className="w-14 text-right text-sm text-zinc-500 tabular-nums flex-shrink-0">{l.jours}</div>
+                        <div className="w-24 text-right text-sm text-zinc-500 tabular-nums flex-shrink-0">{fmt(l.montantBrut)}</div>
+                        <div className="w-28 text-right flex-shrink-0">
+                          <span className="font-semibold tabular-nums text-zinc-900">{fmt(l.montant)}</span>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                  {pgpaData.ijPercues.length === 0 && (
-                    <div className="px-4 py-8 text-center text-gray-500 text-sm">Aucune IJ enregistrée</div>
-                  )}
+                    );
+                  })}
                 </div>
               </div>
+              )}
               
               {/* Bandeau ticket */}
               <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
@@ -5266,27 +5211,6 @@ export default function App() {
       // ===== VUE SOMMAIRE PGPA =====
       return (
         <div className="space-y-4 pb-32">
-          {/* Note / Argumentaire - texte éditable directement */}
-          <div className="bg-white rounded-lg border border-zinc-200/60">
-            <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-zinc-400" />
-                <h3 className="text-[13px] font-medium text-zinc-700">Note explicative</h3>
-              </div>
-              <button className="text-[12px] text-zinc-500 hover:text-zinc-700 flex items-center gap-1.5 px-2 py-1 rounded hover:bg-zinc-100 transition-colors">
-                <Sparkles className="w-3 h-3" />
-                Générer avec l'IA
-              </button>
-            </div>
-            <div 
-              contentEditable
-              suppressContentEditableWarning
-              className="px-4 py-4 text-[14px] text-zinc-600 leading-relaxed focus:outline-none focus:bg-zinc-50/50 min-h-[80px] transition-colors"
-            >
-              M. Dupont exerçait la profession de technicien de maintenance (CDI) avant l'accident. Son arrêt de travail a débuté le 15 mars 2023 et s'est prolongé jusqu'à la consolidation. Les revenus de référence sont calculés sur la base des 12 mois précédant l'accident.
-            </div>
-          </div>
-          
           {/* Liste des sous-sections */}
           <div className="bg-white rounded-lg border border-zinc-200/60 divide-y divide-zinc-100">
             <button
@@ -5535,107 +5459,408 @@ export default function App() {
 
     // ========== DFTT ==========
     if (currentLevel.id === 'dftt') {
+      const filteredPiecesForSearch = pieces.filter(p =>
+        !p.used && (p.intitule || p.nom).toLowerCase().includes(searchPieces.toLowerCase())
+      );
       return (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-2xl font-bold">{fmt(dfttTotal)}</div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              <Plus className="w-4 h-4" />Ajouter période
-            </button>
-          </div>
-          
-          {/* Liste */}
-          <div className="bg-white rounded-lg border divide-y">
-            {dfttLignes.map(l => {
-              const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-              const isIncomplete = !l.label || l.montant == null;
-              const isValidated = l.status === 'validated' && !isIncomplete;
-
-              const StatusIcon = () => {
-                if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-                if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-zinc-200 flex items-center justify-center" title="Incomplet"><AlertTriangle className="w-3 h-3 text-zinc-500" /></div>;
-                return <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center animate-bounce-in" title="Validé"><Check className="w-3 h-3 text-white" /></div>;
-              };
-
-              return (
-                <div key={l.id} className="flex items-center justify-between p-3 hover:bg-zinc-50 group transition-colors">
-                  <div className="flex items-center gap-3">
-                    <StatusIcon />
-                    <div className="w-10 h-10 rounded flex items-center justify-center text-sm font-bold text-white bg-red-500">100%</div>
-                    <div>
-                      <div className="text-sm font-medium text-zinc-800">{l.label || 'Sans libellé'}</div>
-                      <div className="text-xs text-zinc-400">{l.debut || l.dateDebut} → {l.fin || l.dateFin} ({l.jours}j)</div>
+          {/* Empty state */}
+          {dfttLignes.length === 0 && processing.length === 0 && (
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dftt'); }}
+              className={`bg-white rounded-lg border-2 border-dashed overflow-hidden transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50/50' : 'border-zinc-200'}`}
+            >
+              <div className="px-8 py-12 text-center">
+                {isDragging ? (
+                  <>
+                    <Upload className="w-10 h-10 text-emerald-500 mx-auto mb-4" />
+                    <h3 className="text-[15px] font-semibold text-emerald-700 mb-1">Déposez vos documents ici</h3>
+                    <p className="text-[13px] text-emerald-600">Les fichiers seront analysés automatiquement</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
+                      <Calendar className="w-7 h-7 text-zinc-400" />
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-zinc-900 tabular-nums min-w-[80px] text-right">{fmt(l.montant)}</span>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => setDfttLignes(prev => prev.filter(x => x.id !== l.id))} className="p-1.5 text-zinc-400 hover:text-zinc-600 transition-colors" title="Supprimer"><X className="w-4 h-4" /></button>
+                    <h3 className="text-[15px] font-semibold text-zinc-800 mb-1.5">Aucune période de déficit temporaire total</h3>
+                    <p className="text-[13px] text-zinc-400 mb-6 max-w-sm mx-auto">Commencez par ajouter un rapport d'expertise ou créez une période manuellement.</p>
+                    <div className="flex items-center justify-center gap-3 mb-8">
+                      <button onClick={() => document.getElementById('dftt-file-input-empty').click()} className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors">
+                        <Upload className="w-4 h-4" /> Ajouter des documents
+                      </button>
+                      <button onClick={() => handleAddManual('dftt')} className="flex items-center gap-2 px-4 py-2.5 border border-zinc-200 text-zinc-700 text-[13px] font-medium rounded-lg hover:bg-zinc-50 transition-colors">
+                        <Edit3 className="w-4 h-4" /> Créer une période manuellement
+                      </button>
                     </div>
+                    <input type="file" id="dftt-file-input-empty" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dftt'); e.target.value = ''; } }} />
+                    <div className="border-t border-zinc-100 pt-5">
+                      <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-3">Documents attendus</p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {['Rapport d\'expertise médicale', 'Rapport médical du médecin expert'].map(doc => (
+                          <span key={doc} className="px-2.5 py-1 bg-zinc-50 text-[12px] text-zinc-500 rounded-md border border-zinc-100">{doc}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Processing */}
+          {processing.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {processing.map(p => (
+                <div key={p.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-zinc-200">
+                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm text-zinc-600">{p.phase === 'upload' ? 'Téléchargement...' : 'Analyse en cours...'}</span>
+                  <span className="text-sm text-zinc-400 truncate">{p.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Action header when lines exist */}
+          {dfttLignes.length > 0 && (
+            <div className={`px-4 py-3 border-b transition-colors ${isDragging ? 'bg-emerald-50 border-emerald-200' : 'bg-zinc-50/50'}`}
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dftt'); }}
+            >
+              <input type="file" id="dftt-file-input" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dftt'); e.target.value = ''; } }} />
+              <div className="flex items-center gap-4">
+                {/* Drop zone compacte - cliquable */}
+                <div
+                  onClick={() => document.getElementById('dftt-file-input').click()}
+                  className={`flex items-center gap-3 px-4 py-2.5 border-2 border-dashed rounded-lg flex-1 transition-all cursor-pointer ${
+                    isDragging ? 'border-emerald-400 bg-emerald-50' : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'
+                  }`}
+                >
+                  <Upload className={`w-5 h-5 ${isDragging ? 'text-emerald-600' : 'text-zinc-400'}`} strokeWidth={1.5} />
+                  <span className={`text-[13px] ${isDragging ? 'text-emerald-700 font-medium' : 'text-zinc-500'}`}>
+                    {isDragging ? 'Relâchez pour ajouter' : 'Déposez ou cliquez pour ajouter un document'}
+                  </span>
+                </div>
+
+                {/* Recherche pièce */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher une pièce existante..."
+                    value={searchPieces}
+                    onChange={(e) => setSearchPieces(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2.5 border border-zinc-200 rounded-lg text-[13px] bg-white focus:outline-none focus:ring-2 focus:ring-zinc-300"
+                  />
+                  {searchPieces && (
+                    <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white rounded-lg border shadow-lg max-h-48 overflow-y-auto">
+                      {filteredPiecesForSearch.length === 0 ? (
+                        <p className="text-center text-zinc-500 py-3 text-[13px]">Aucune pièce</p>
+                      ) : (
+                        <div className="py-1">
+                          {filteredPiecesForSearch.map(p => (
+                            <button key={p.id} onClick={() => { handleAddFromPiece(p, 'dftt'); setSearchPieces(''); }} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-zinc-50 text-left">
+                              <span className="w-6 h-6 bg-zinc-100 text-zinc-600 text-[11px] font-medium rounded flex items-center justify-center">P{pieces.findIndex(x => x.id === p.id) + 1}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate">{p.intitule || p.nom}</div>
+                                <div className="text-xs text-gray-500">{p.type}</div>
+                              </div>
+                              <Plus className="w-4 h-4 text-blue-600" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Saisie manuelle */}
+                <button onClick={() => handleAddManual('dftt')} className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors whitespace-nowrap">
+                  Ajouter une période
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Table */}
+          {dfttLignes.length > 0 && (
+            <div className="bg-white rounded-lg border overflow-hidden">
+              {/* Table header */}
+              <div className="flex items-center px-4 py-2 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
+                <div className="w-10 flex-shrink-0"></div>
+                <div className="w-12 flex-shrink-0">Pièce</div>
+                <div className="flex-1 min-w-0">Période & jours</div>
+                <div className="w-32 flex-shrink-0">Commentaire</div>
+                <div className="w-28 text-right flex-shrink-0">Montant</div>
+              </div>
+              {/* Lines */}
+              <div className="divide-y">
+                {dfttLignes.map(l => {
+                  const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
+                  const pieceCount = l.pieceIds?.length || 0;
+
+                  const StatusIcon = () => {
+                    if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
+                    return null;
+                  };
+
+                  const PieceIndicator = () => {
+                    if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
+                    return (
+                      <div className="relative group/piece">
+                        <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
+                          <FileText className="w-3.5 h-3.5" />
+                          {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
+                        </span>
+                      </div>
+                    );
+                  };
+
+                  return (
+                    <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setEditPanel({ type: 'dftt-ligne', data: l }); }}
+                      className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}>
+                      <div className="w-10 flex-shrink-0"><StatusIcon /></div>
+                      <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
+                      <div className="flex-1 min-w-0 pr-4">
+                        <div className="text-sm font-medium text-zinc-800">{l.label || 'Sans libellé'}</div>
+                        <div className="text-xs text-zinc-400">{l.debut} → {l.fin} · {l.jours}j</div>
+                      </div>
+                      <div className="w-32 text-sm text-zinc-500 truncate flex-shrink-0">{l.commentaire || '—'}</div>
+                      <div className="w-28 text-right flex-shrink-0">
+                        <span className="text-sm font-semibold tabular-nums text-zinc-900">{fmt(l.montant)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Sticky recap footer */}
+          {dfttLignes.length > 0 && (
+            <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
+              <div className="flex items-start justify-between px-6 py-5">
+                <div className="flex items-center gap-2 text-gray-400 pt-1">
+                  <Calculator className="w-5 h-5" />
+                  <span className="text-sm font-medium">Récapitulatif</span>
+                </div>
+                <div className="text-right min-w-[240px]">
+                  <div className="flex items-center justify-between py-2 px-3 -mx-3 rounded" style={{ backgroundColor: '#F5F5F0' }}>
+                    <span className="font-semibold text-zinc-700">Total DFTT</span>
+                    <span className="text-xl font-bold text-zinc-900 tabular-nums">{fmt(dfttTotal)}</span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
 
     // ========== DFTP ==========
     if (currentLevel.id === 'dftp') {
+      const filteredPiecesForSearch = pieces.filter(p =>
+        !p.used && (p.intitule || p.nom).toLowerCase().includes(searchPieces.toLowerCase())
+      );
       return (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-2xl font-bold">{fmt(dftpTotal)}</div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              <Plus className="w-4 h-4" />Ajouter période
-            </button>
-          </div>
+          {/* Empty state */}
+          {dftpLignes.length === 0 && processing.length === 0 && (
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dftp'); }}
+              className={`bg-white rounded-lg border-2 border-dashed overflow-hidden transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50/50' : 'border-zinc-200'}`}
+            >
+              <div className="px-8 py-12 text-center">
+                {isDragging ? (
+                  <>
+                    <Upload className="w-10 h-10 text-emerald-500 mx-auto mb-4" />
+                    <h3 className="text-[15px] font-semibold text-emerald-700 mb-1">Déposez vos documents ici</h3>
+                    <p className="text-[13px] text-emerald-600">Les fichiers seront analysés automatiquement</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
+                      <Calendar className="w-7 h-7 text-zinc-400" />
+                    </div>
+                    <h3 className="text-[15px] font-semibold text-zinc-800 mb-1.5">Aucune période de déficit temporaire partiel</h3>
+                    <p className="text-[13px] text-zinc-400 mb-6 max-w-sm mx-auto">Commencez par ajouter un rapport d'expertise ou créez une période manuellement.</p>
+                    <div className="flex items-center justify-center gap-3 mb-8">
+                      <button onClick={() => document.getElementById('dftp-file-input-empty').click()} className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors">
+                        <Upload className="w-4 h-4" /> Ajouter des documents
+                      </button>
+                      <button onClick={() => handleAddManual('dftp')} className="flex items-center gap-2 px-4 py-2.5 border border-zinc-200 text-zinc-700 text-[13px] font-medium rounded-lg hover:bg-zinc-50 transition-colors">
+                        <Edit3 className="w-4 h-4" /> Créer une période manuellement
+                      </button>
+                    </div>
+                    <input type="file" id="dftp-file-input-empty" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dftp'); e.target.value = ''; } }} />
+                    <div className="border-t border-zinc-100 pt-5">
+                      <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-3">Documents attendus</p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {['Rapport d\'expertise médicale', 'Rapport médical du médecin expert'].map(doc => (
+                          <span key={doc} className="px-2.5 py-1 bg-zinc-50 text-[12px] text-zinc-500 rounded-md border border-zinc-100">{doc}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
-          {/* Timeline */}
-          <div className="bg-white rounded-lg border p-4 mb-4">
-            <div className="h-8 flex rounded overflow-hidden">
-              {dftpLignes.map(l => (
-                <div key={l.id} className={`flex items-center justify-center text-xs font-bold text-white ${l.taux >= 50 ? 'bg-orange-500' : 'bg-yellow-500'}`} style={{ flex: l.jours }}>
-                  {l.taux}%
+          {/* Processing */}
+          {processing.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {processing.map(p => (
+                <div key={p.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-zinc-200">
+                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm text-zinc-600">{p.phase === 'upload' ? 'Téléchargement...' : 'Analyse en cours...'}</span>
+                  <span className="text-sm text-zinc-400 truncate">{p.name}</span>
                 </div>
               ))}
             </div>
-          </div>
+          )}
 
-          {/* Liste */}
-          <div className="bg-white rounded-lg border divide-y">
-            {dftpLignes.map(l => {
-              const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-              const isIncomplete = !l.label || l.montant == null;
-              const isValidated = l.status === 'validated' && !isIncomplete;
+          {/* Action header when lines exist */}
+          {dftpLignes.length > 0 && (
+            <div className={`px-4 py-3 border-b transition-colors ${isDragging ? 'bg-emerald-50 border-emerald-200' : 'bg-zinc-50/50'}`}
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dftp'); }}
+            >
+              <input type="file" id="dftp-file-input" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dftp'); e.target.value = ''; } }} />
+              <div className="flex items-center gap-4">
+                {/* Drop zone compacte - cliquable */}
+                <div
+                  onClick={() => document.getElementById('dftp-file-input').click()}
+                  className={`flex items-center gap-3 px-4 py-2.5 border-2 border-dashed rounded-lg flex-1 transition-all cursor-pointer ${
+                    isDragging ? 'border-emerald-400 bg-emerald-50' : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'
+                  }`}
+                >
+                  <Upload className={`w-5 h-5 ${isDragging ? 'text-emerald-600' : 'text-zinc-400'}`} strokeWidth={1.5} />
+                  <span className={`text-[13px] ${isDragging ? 'text-emerald-700 font-medium' : 'text-zinc-500'}`}>
+                    {isDragging ? 'Relâchez pour ajouter' : 'Déposez ou cliquez pour ajouter un document'}
+                  </span>
+                </div>
 
-              const StatusIcon = () => {
-                if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-                if (isIncomplete) return <div className="w-5 h-5 rounded-full bg-zinc-200 flex items-center justify-center" title="Incomplet"><AlertTriangle className="w-3 h-3 text-zinc-500" /></div>;
-                return <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center animate-bounce-in" title="Validé"><Check className="w-3 h-3 text-white" /></div>;
-              };
-
-              return (
-                <div key={l.id} className="flex items-center justify-between p-3 hover:bg-zinc-50 group transition-colors">
-                  <div className="flex items-center gap-3">
-                    <StatusIcon />
-                    <div className={`w-10 h-10 rounded flex items-center justify-center text-sm font-bold text-white ${l.taux >= 50 ? 'bg-orange-500' : 'bg-yellow-500'}`}>{l.taux}%</div>
-                    <div>
-                      <div className="text-sm font-medium text-zinc-800">{l.label || 'Sans libellé'}</div>
-                      <div className="text-xs text-zinc-400">{l.debut || l.dateDebut} → {l.fin || l.dateFin} ({l.jours}j)</div>
+                {/* Recherche pièce */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher une pièce existante..."
+                    value={searchPieces}
+                    onChange={(e) => setSearchPieces(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2.5 border border-zinc-200 rounded-lg text-[13px] bg-white focus:outline-none focus:ring-2 focus:ring-zinc-300"
+                  />
+                  {searchPieces && (
+                    <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white rounded-lg border shadow-lg max-h-48 overflow-y-auto">
+                      {filteredPiecesForSearch.length === 0 ? (
+                        <p className="text-center text-zinc-500 py-3 text-[13px]">Aucune pièce</p>
+                      ) : (
+                        <div className="py-1">
+                          {filteredPiecesForSearch.map(p => (
+                            <button key={p.id} onClick={() => { handleAddFromPiece(p, 'dftp'); setSearchPieces(''); }} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-zinc-50 text-left">
+                              <span className="w-6 h-6 bg-zinc-100 text-zinc-600 text-[11px] font-medium rounded flex items-center justify-center">P{pieces.findIndex(x => x.id === p.id) + 1}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate">{p.intitule || p.nom}</div>
+                                <div className="text-xs text-gray-500">{p.type}</div>
+                              </div>
+                              <Plus className="w-4 h-4 text-blue-600" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-zinc-900 tabular-nums min-w-[80px] text-right">{fmt(l.montant)}</span>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => setDftpLignes(prev => prev.filter(x => x.id !== l.id))} className="p-1.5 text-zinc-400 hover:text-zinc-600 transition-colors" title="Supprimer"><X className="w-4 h-4" /></button>
+                  )}
+                </div>
+
+                {/* Saisie manuelle */}
+                <button onClick={() => handleAddManual('dftp')} className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors whitespace-nowrap">
+                  Ajouter une période
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Table */}
+          {dftpLignes.length > 0 && (
+            <div className="bg-white rounded-lg border overflow-hidden">
+              {/* Table header */}
+              <div className="flex items-center px-4 py-2 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
+                <div className="w-10 flex-shrink-0"></div>
+                <div className="w-12 flex-shrink-0">Pièce</div>
+                <div className="flex-1 min-w-0">Période & jours</div>
+                <div className="w-16 text-center flex-shrink-0">% DFTP</div>
+                <div className="w-24 text-center flex-shrink-0">Déduction</div>
+                <div className="w-28 text-right flex-shrink-0">Montant</div>
+              </div>
+              {/* Lines */}
+              <div className="divide-y">
+                {dftpLignes.map(l => {
+                  const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
+                  const pieceCount = l.pieceIds?.length || 0;
+
+                  const StatusIcon = () => {
+                    if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
+                    return null;
+                  };
+
+                  const PieceIndicator = () => {
+                    if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
+                    return (
+                      <div className="relative group/piece">
+                        <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
+                          <FileText className="w-3.5 h-3.5" />
+                          {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
+                        </span>
+                      </div>
+                    );
+                  };
+
+                  return (
+                    <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setEditPanel({ type: 'dftp-ligne', data: l }); }}
+                      className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}>
+                      <div className="w-10 flex-shrink-0"><StatusIcon /></div>
+                      <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
+                      <div className="flex-1 min-w-0 pr-4">
+                        <div className="text-sm font-medium text-zinc-800">{l.label || 'Sans libellé'}</div>
+                        <div className="text-xs text-zinc-400">{l.debut} → {l.fin} · {l.jours}j</div>
+                      </div>
+                      <div className="w-16 text-center flex-shrink-0">
+                        <span className={`px-2 py-0.5 text-xs font-bold rounded ${l.taux >= 50 ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700'}`}>{l.taux}%</span>
+                      </div>
+                      <div className="w-24 text-sm text-zinc-500 text-center flex-shrink-0">{l.deductionDftt ? `−${l.joursDfttDeduits}j` : '—'}</div>
+                      <div className="w-28 text-right flex-shrink-0">
+                        <span className="text-sm font-semibold tabular-nums text-zinc-900">{fmt(l.montant)}</span>
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Sticky recap footer */}
+          {dftpLignes.length > 0 && (
+            <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
+              <div className="flex items-start justify-between px-6 py-5">
+                <div className="flex items-center gap-2 text-gray-400 pt-1">
+                  <Calculator className="w-5 h-5" />
+                  <span className="text-sm font-medium">Récapitulatif</span>
+                </div>
+                <div className="text-right min-w-[240px]">
+                  <div className="flex items-center justify-between py-2 px-3 -mx-3 rounded" style={{ backgroundColor: '#F5F5F0' }}>
+                    <span className="font-semibold text-zinc-700">Total DFTP</span>
+                    <span className="text-xl font-bold text-zinc-900 tabular-nums">{fmt(dftpTotal)}</span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -5651,6 +5876,341 @@ export default function App() {
     dftp: "Indemnisation de la perte de qualité de vie pendant les périodes d'incapacité temporaire partielle.",
     pgpf: "Pertes de revenus professionnels subies après la consolidation, évaluées selon la méthode du calcul ou de la capitalisation."
   };
+
+  // ========== NAVIGATION DOSSIER LIST ==========
+  const openDossier = (dossier) => {
+    setActiveDossierId(dossier.id);
+    setNavStack([{ id: dossier.id, type: 'dossier', title: dossier.reference, activeTab: 'détail' }]);
+    setCurrentPage('dossier');
+  };
+
+  const backToList = () => {
+    setCurrentPage('list');
+    setActiveDossierId(null);
+  };
+
+  // ========== RENDER WIZARD CRÉATION DOSSIER ==========
+  const renderCreationWizard = () => {
+    if (!creationWizard) return null;
+
+    const { step, formData } = creationWizard;
+
+    const updateFormData = (field, value) => {
+      setCreationWizard(prev => ({ ...prev, formData: { ...prev.formData, [field]: value } }));
+    };
+
+    const ageFromInput = (val) => { if (!val) return null; const b = new Date(val); const n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--; return a; };
+    const computedAge = ageFromInput(formData.dateNaissance);
+
+    const canSubmitInfos = formData.nom && formData.prenom && formData.dateNaissance && formData.dateAccident;
+
+    if (step === 'infos') {
+      return (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-zinc-100">
+              <h2 className="text-lg font-semibold text-zinc-800">Nouveau dossier</h2>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5 space-y-6">
+              {/* Section Identité */}
+              <div>
+                <h3 className="text-[13px] font-semibold text-zinc-700 mb-3">Identité de la victime</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Nom *</label>
+                    <input
+                      type="text"
+                      value={formData.nom}
+                      onChange={(e) => updateFormData('nom', e.target.value)}
+                      placeholder="Nom de famille"
+                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Prénom *</label>
+                    <input
+                      type="text"
+                      value={formData.prenom}
+                      onChange={(e) => updateFormData('prenom', e.target.value)}
+                      placeholder="Prénom"
+                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Sexe</label>
+                    <select
+                      value={formData.sexe}
+                      onChange={(e) => updateFormData('sexe', e.target.value)}
+                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                    >
+                      <option value="Homme">Homme</option>
+                      <option value="Femme">Femme</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de naissance *</label>
+                    <input
+                      type="date"
+                      value={formData.dateNaissance}
+                      onChange={(e) => updateFormData('dateNaissance', e.target.value)}
+                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                    />
+                    {computedAge !== null && <div className="text-[11px] text-zinc-400 mt-1">{computedAge} ans</div>}
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de décès</label>
+                    <input
+                      type="date"
+                      value={formData.dateDeces}
+                      onChange={(e) => updateFormData('dateDeces', e.target.value)}
+                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section Contexte */}
+              <div>
+                <h3 className="text-[13px] font-semibold text-zinc-700 mb-3">Contexte</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Type de fait générateur</label>
+                    <select
+                      value={formData.typeFait}
+                      onChange={(e) => updateFormData('typeFait', e.target.value)}
+                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                    >
+                      {typesFaitGenerateur.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de l'accident *</label>
+                    <input
+                      type="date"
+                      value={formData.dateAccident}
+                      onChange={(e) => updateFormData('dateAccident', e.target.value)}
+                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de consolidation <span className="text-zinc-300 font-normal">(facultatif)</span></label>
+                    <input
+                      type="date"
+                      value={formData.dateConsolidation}
+                      onChange={(e) => updateFormData('dateConsolidation', e.target.value)}
+                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de liquidation <span className="text-zinc-300 font-normal">(facultatif)</span></label>
+                    <input
+                      type="date"
+                      value={formData.dateLiquidation}
+                      onChange={(e) => updateFormData('dateLiquidation', e.target.value)}
+                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-zinc-100 flex justify-end gap-3">
+              <button
+                onClick={() => setCreationWizard(null)}
+                className="px-4 py-2.5 text-[13px] text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => setCreationWizard(prev => ({ ...prev, step: 'mode-chiffrage' }))}
+                disabled={!canSubmitInfos}
+                className="px-5 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Créer le dossier
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (step === 'mode-chiffrage') {
+      return (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-zinc-100">
+              <h2 className="text-lg font-semibold text-zinc-800">Comment souhaitez-vous commencer ?</h2>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-6 flex gap-4">
+              {/* Option A: Avec rapport */}
+              <div
+                onClick={() => document.getElementById('wizard-file-input').click()}
+                className="flex-1 p-6 border-2 border-zinc-200 rounded-xl hover:border-zinc-400 hover:bg-zinc-50 cursor-pointer transition-all group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-zinc-100 flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
+                  <FileText className="w-6 h-6 text-zinc-600" />
+                </div>
+                <h3 className="text-[15px] font-semibold text-zinc-800 mb-2">J'ai le rapport médical</h3>
+                <p className="text-[13px] text-zinc-500 leading-relaxed">Importez le rapport d'expertise et Norma extraira automatiquement les données pour pré-remplir le chiffrage.</p>
+                <input
+                  id="wizard-file-input"
+                  type="file"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files && files.length > 0) {
+                      handleCreateDossier(formData);
+                      setTimeout(() => handleDocumentUploadForExtraction(files), 100);
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Option B: Sans rapport */}
+              <div
+                onClick={() => handleCreateDossier(formData)}
+                className="flex-1 p-6 border-2 border-zinc-200 rounded-xl hover:border-zinc-400 hover:bg-zinc-50 cursor-pointer transition-all group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-zinc-100 flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
+                  <Edit3 className="w-6 h-6 text-zinc-600" />
+                </div>
+                <h3 className="text-[15px] font-semibold text-zinc-800 mb-2">Chiffrer sans rapport médical</h3>
+                <p className="text-[13px] text-zinc-500 leading-relaxed">Commencez avec un dossier vide et ajoutez manuellement les postes de préjudice au fur et à mesure.</p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-zinc-100 flex justify-end gap-3">
+              <button
+                onClick={() => setCreationWizard(prev => ({ ...prev, step: 'infos' }))}
+                className="px-4 py-2.5 text-[13px] text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
+              >
+                Retour
+              </button>
+              <button
+                onClick={() => setCreationWizard(null)}
+                className="px-4 py-2.5 text-[13px] text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  // ========== RENDER PAGE LISTE ==========
+  const renderDossierListPage = () => (
+    <div className="h-screen flex relative" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: '#27272a' }}>
+      {/* Sidebar Rail - anthracite */}
+      <div className="w-14 bg-zinc-900 flex flex-col items-center py-4 flex-shrink-0">
+        {/* Logo Norma */}
+        <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center mb-6">
+          <span className="text-zinc-900 font-bold text-[15px]">N</span>
+        </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Bottom: Settings + User */}
+        <div className="flex flex-col items-center gap-3">
+          <button className="w-9 h-9 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors">
+            <Settings className="w-[18px] h-[18px]" />
+          </button>
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-xs font-medium cursor-pointer">
+            MR
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
+        {/* Header */}
+        <div className="px-8 pt-8 pb-6">
+          <div className="flex items-center justify-between">
+            <h1 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '28px', fontWeight: 400, color: '#18181b', letterSpacing: '-0.01em' }}>
+              Mes dossiers
+            </h1>
+            <button
+              onClick={() => setCreationWizard({ step: 'infos', formData: { nom: '', prenom: '', sexe: 'Homme', dateNaissance: '', dateDeces: '', reference: '', typeFait: 'Accident de la route', dateAccident: '', dateConsolidation: '', dateLiquidation: '' } })}
+              className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Nouveau dossier
+            </button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="flex-1 overflow-y-auto px-8 pb-8">
+          <div className="bg-white rounded-lg border border-zinc-200/60 overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-zinc-100">
+                  <th className="px-5 py-3 text-left text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Référence</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Type de fait</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Date</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Dernier édit</th>
+                  <th className="px-5 py-3 w-10"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {dossiers.map(dossier => (
+                  <tr
+                    key={dossier.id}
+                    onClick={() => openDossier(dossier)}
+                    className="hover:bg-zinc-50 cursor-pointer transition-colors group"
+                  >
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center flex-shrink-0">
+                          <Folder className="w-4 h-4 text-zinc-400" />
+                        </div>
+                        <span className="text-[14px] font-medium text-zinc-800">{dossier.reference}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-[13px] text-zinc-500">{dossier.typeFait}</td>
+                    <td className="px-5 py-4 text-[13px] text-zinc-500 tabular-nums">{dossier.date}</td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
+                          <span className="text-[9px] text-white font-medium">{dossier.lastEditBy.split(' ').map(n => n[0]).join('')}</span>
+                        </div>
+                        <span className="text-[13px] text-zinc-500">{dossier.lastEditDate}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); }}
+                        className="p-1.5 rounded-lg text-zinc-300 hover:text-zinc-600 hover:bg-zinc-100 opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {renderCreationWizard()}
+    </div>
+  );
 
   // ========== MAIN ==========
   // Obtenir le parent pour le bouton back
@@ -5671,12 +6231,17 @@ export default function App() {
   };
   
   const parentInfo = getParentInfo();
-  
+
+  // ========== ROUTING ==========
+  if (currentPage === 'list') {
+    return renderDossierListPage();
+  }
+
   return (
-    <div 
-      className="h-screen flex" 
-      style={{ 
-        backgroundColor: '#F8F7F5', 
+    <div
+      className="h-screen flex"
+      style={{
+        backgroundColor: '#F8F7F5',
         fontFamily: "'Inter', system-ui, sans-serif",
         fontSize: '13px',
         color: '#27272a'
@@ -5729,31 +6294,10 @@ export default function App() {
                   </span>
                 )}
                 
-                {/* Badge statut procédure */}
-                {currentLevel.type === 'procedure' && (
-                  <span className={`px-2.5 py-1 text-[11px] font-medium rounded-full ${
-                    procedureData.statut === 'ouvert'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-zinc-100 text-zinc-500'
-                  }`}>
-                    {procedureData.statut === 'ouvert' ? 'En cours' : 'Clôturée'}
-                  </span>
-                )}
-
                 {/* Bouton édition dossier */}
                 {currentLevel.type === 'dossier' && (
                   <button
                     onClick={() => setEditPanel({ type: 'dossier-edit', title: 'Modifier le dossier' })}
-                    className="ml-2 p-1.5 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
-                  >
-                    <Edit3 className="w-4 h-4" strokeWidth={1.5} />
-                  </button>
-                )}
-
-                {/* Bouton édition procédure */}
-                {currentLevel.type === 'procedure' && (
-                  <button
-                    onClick={() => setEditPanel({ type: 'procedure-edit', title: 'Modifier la procédure', data: procedureData })}
                     className="ml-2 p-1.5 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
                   >
                     <Edit3 className="w-4 h-4" strokeWidth={1.5} />
@@ -5767,19 +6311,8 @@ export default function App() {
               )}
             </div>
             
-            {/* CTA Nouvelle procédure - Niveau Dossier */}
-            {currentLevel.type === 'dossier' && currentLevel.activeTab === 'détail' && (
-              <button
-                onClick={handleOpenSmartProcedure}
-                className="flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium text-white bg-zinc-800 rounded-lg hover:bg-zinc-700 shadow-sm transition-colors"
-              >
-                <Plus className="w-4 h-4" strokeWidth={2} />
-                Nouvelle procédure
-              </button>
-            )}
-            
             {/* CTAs pour Chiffrage */}
-            {currentLevel.type === 'procedure' && currentLevel.activeTab === 'chiffrage' && (
+            {currentLevel.type === 'dossier' && currentLevel.activeTab === 'chiffrage' && (
               <div className="flex items-center gap-2">
                 <button className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 shadow-sm transition-colors">
                   <Download className="w-4 h-4" strokeWidth={1.5} />
