@@ -1057,7 +1057,7 @@ export default function App() {
       id: newId,
       reference: `${formData.nom} ${formData.prenom}`,
       typeFait: formData.typeFait,
-      date: formatDateFR(formData.dateAccident),
+      date: formData.dateAccident,
       lastEditBy: 'Meghan R.',
       lastEditDate: new Date().toLocaleDateString('fr-FR')
     }, ...prev]);
@@ -1066,20 +1066,20 @@ export default function App() {
       nom: formData.nom,
       prenom: formData.prenom,
       sexe: formData.sexe,
-      dateNaissance: formatDateFR(formData.dateNaissance),
-      dateDeces: formData.dateDeces ? formatDateFR(formData.dateDeces) : null
+      dateNaissance: formData.dateNaissance,
+      dateDeces: formData.dateDeces || null
     });
     setFaitGenerateur({
       type: formData.typeFait,
-      dateAccident: formatDateFR(formData.dateAccident),
-      datePremiereConstatation: formatDateFR(formData.dateAccident),
-      dateConsolidation: formatDateFR(formData.dateConsolidation),
+      dateAccident: formData.dateAccident,
+      datePremiereConstatation: formData.dateAccident,
+      dateConsolidation: formData.dateConsolidation,
       resume: ''
     });
     setChiffrageParams(prev => ({
       ...EMPTY_DOSSIER.chiffrageParams,
-      ...(formData.dateConsolidation ? { dateConsolidation: formatDateFR(formData.dateConsolidation) } : {}),
-      ...(formData.dateLiquidation ? { dateLiquidation: formatDateFR(formData.dateLiquidation) } : {})
+      ...(formData.dateConsolidation ? { dateConsolidation: formData.dateConsolidation } : {}),
+      ...(formData.dateLiquidation ? { dateLiquidation: formData.dateLiquidation } : {})
     }));
     setDossierStatut('ouvert');
     setDossierRef('');
@@ -6125,7 +6125,7 @@ export default function App() {
       setCreationWizard(prev => ({ ...prev, formData: { ...prev.formData, [field]: value } }));
     };
 
-    const ageFromInput = (val) => { if (!val) return null; const b = new Date(val); const n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--; return a; };
+    const ageFromInput = (val) => { if (!val || val.length < 10) return null; const [d, m, y] = val.split('/'); if (!d || !m || !y) return null; const b = new Date(y, m - 1, d); const n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--; return a; };
     const computedAge = ageFromInput(formData.dateNaissance);
 
     const canSubmitInfos = formData.nom && formData.prenom && formData.dateNaissance && formData.dateAccident;
@@ -6179,7 +6179,8 @@ export default function App() {
                   <div>
                     <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de naissance *</label>
                     <input
-                      type="date"
+                      type="text"
+                      placeholder="JJ/MM/AAAA"
                       value={formData.dateNaissance}
                       onChange={(e) => updateFormData('dateNaissance', e.target.value)}
                       className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
@@ -6189,7 +6190,8 @@ export default function App() {
                   <div className="col-span-2">
                     <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de décès</label>
                     <input
-                      type="date"
+                      type="text"
+                      placeholder="JJ/MM/AAAA"
                       value={formData.dateDeces}
                       onChange={(e) => updateFormData('dateDeces', e.target.value)}
                       className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
@@ -6217,7 +6219,8 @@ export default function App() {
                   <div>
                     <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de l'accident *</label>
                     <input
-                      type="date"
+                      type="text"
+                      placeholder="JJ/MM/AAAA"
                       value={formData.dateAccident}
                       onChange={(e) => updateFormData('dateAccident', e.target.value)}
                       className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
@@ -6226,7 +6229,8 @@ export default function App() {
                   <div>
                     <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de consolidation <span className="text-zinc-300 font-normal">(facultatif)</span></label>
                     <input
-                      type="date"
+                      type="text"
+                      placeholder="JJ/MM/AAAA"
                       value={formData.dateConsolidation}
                       onChange={(e) => updateFormData('dateConsolidation', e.target.value)}
                       className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
@@ -6235,7 +6239,8 @@ export default function App() {
                   <div>
                     <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de liquidation <span className="text-zinc-300 font-normal">(facultatif)</span></label>
                     <input
-                      type="date"
+                      type="text"
+                      placeholder="JJ/MM/AAAA"
                       value={formData.dateLiquidation}
                       onChange={(e) => updateFormData('dateLiquidation', e.target.value)}
                       className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
