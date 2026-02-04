@@ -187,7 +187,7 @@ export default function App() {
     { id: 'p-2', nom: 'Factures kiné (lot).pdf', nomOriginal: 'kine_factures_lot.pdf', intitule: 'Factures kinésithérapie Cabinet Martin', date: '01/04/2023', type: 'Facture', used: true },
     { id: 'p-3', nom: 'Bulletins salaire 2022.pdf', nomOriginal: 'bulletins_2022.pdf', intitule: 'Bulletins de salaire année 2022', date: '10/01/2023', type: 'Bulletin', used: true },
     { id: 'p-4', nom: 'Attestation CPAM.pdf', nomOriginal: 'cpam_attestation.pdf', intitule: 'Attestation de versement IJ CPAM', date: '20/05/2023', type: 'Attestation', used: true },
-    { id: 'p-5', nom: 'Rapport Dr. Martin.pdf', nomOriginal: 'rapport_expertise_martin.pdf', intitule: 'Rapport d\'expertise médicale Dr. Martin', date: '12/09/2024', type: 'Expertise', used: true },
+    { id: 'p-5', nom: 'Rapport Dr. Martin.pdf', nomOriginal: 'rapport_expertise_martin.pdf', intitule: 'Rapport Médical Médecin Expert', date: '12/09/2024', type: 'Rapport', used: true },
     { id: 'p-6', nom: 'Ordonnance médicaments.pdf', nomOriginal: 'ordonnance_jul2023.pdf', intitule: 'Ordonnance médicaments juillet', date: '18/07/2023', type: 'Ordonnance', used: true },
     { id: 'p-7', nom: 'Facture pharmacie.pdf', nomOriginal: 'pharmacie_2023.pdf', intitule: 'Facture pharmacie des Lilas', date: '20/07/2023', type: 'Facture', used: true },
     { id: 'p-8', nom: 'Compte-rendu urgences.pdf', nomOriginal: 'cr_urgences_150323.pdf', intitule: 'Compte-rendu passage urgences', date: '15/03/2023', type: 'Compte-rendu', used: true },
@@ -300,7 +300,11 @@ export default function App() {
     setResumeAffaire(data.resumeAffaire ?? '');
     setCommentaireExpertise(data.commentaireExpertise ?? '');
     setVictimesIndirectes(data.victimesIndirectes ?? []);
-    setPieces(data.pieces ?? []);
+    // Migration: corriger l'intitulé du rapport médical si ancien format
+    const loadedPieces = data.pieces ?? [];
+    setPieces(loadedPieces.map(p =>
+      p.id === 'p-5' ? { ...p, intitule: 'Rapport Médical Médecin Expert', type: 'Rapport' } : p
+    ));
     setDsaLignes(data.dsaLignes ?? []);
     setPgpaData(data.pgpaData ?? EMPTY_DOSSIER.pgpaData);
     setPgpfData(data.pgpfData ?? EMPTY_DOSSIER.pgpfData);
