@@ -358,12 +358,21 @@ export default function App() {
   const dftTotal = dftLignes.reduce((s, l) => s + l.montant, 0);
 
   // Postes actifs = seulement ceux qui ont des données
-  const allPostes = [
+  const activePostes = [
     dsaLignes.length > 0 && { id: 'dsa', title: 'DSA', fullTitle: 'Dépenses de Santé Actuelles', montant: dsaTotal, category: 'patrimoniaux-temp' },
     pgpaData.revenuRef.lignes.length > 0 && { id: 'pgpa', title: 'PGPA', fullTitle: 'Pertes de Gains Professionnels Actuels', montant: pgpaTotal, category: 'patrimoniaux-temp' },
     dftLignes.length > 0 && { id: 'dft', title: 'DFT', fullTitle: 'Déficit Fonctionnel Temporaire', montant: dftTotal, category: 'extra-patrimoniaux-temp' },
     Object.keys(pgpfData.periodes).length > 0 && { id: 'pgpf', title: 'PGPF', fullTitle: 'Pertes de Gains Professionnels Futurs', montant: pgpfTotal, category: 'patrimoniaux-perm' }
   ].filter(Boolean);
+
+  // Postes suggérés désactivés (non modélisés, affichage uniquement)
+  const disabledPostes = [
+    { id: 'atpt', title: 'ATPT', fullTitle: 'Assistance Tierce Personne Temporaire', montant: 8400, category: 'patrimoniaux-temp', disabled: true, pieceIds: ['p-5'] },
+    { id: 'pet', title: 'PET', fullTitle: 'Préjudice Esthétique Temporaire', montant: 2500, category: 'extra-patrimoniaux-temp', disabled: true, pieceIds: ['p-5'] },
+    { id: 'se', title: 'SE', fullTitle: 'Souffrances Endurées', montant: 15000, category: 'extra-patrimoniaux-temp', disabled: true, pieceIds: ['p-5'] },
+  ];
+
+  const allPostes = [...activePostes, ...disabledPostes];
 
   const categories = [
     { id: 'patrimoniaux-temp', title: 'Préjudices Patrimoniaux Temporaires', postes: allPostes.filter(p => p.category === 'patrimoniaux-temp') },
@@ -371,7 +380,7 @@ export default function App() {
     { id: 'patrimoniaux-perm', title: 'Préjudices Patrimoniaux Permanents', postes: allPostes.filter(p => p.category === 'patrimoniaux-perm') }
   ];
 
-  const totalChiffrage = allPostes.reduce((s, p) => s + p.montant, 0);
+  const totalChiffrage = allPostes.filter(p => !p.disabled).reduce((s, p) => s + p.montant, 0);
 
   // ========== HELPERS ==========
   const currentLevel = navStack[navStack.length - 1];
@@ -534,7 +543,7 @@ export default function App() {
 
   const tabsConfig = { dossier: ['Détail', 'Chiffrage', 'Pièces'], poste: [] };
   const currentTabs = tabsConfig[currentLevel.type] || [];
-  const getSiblings = () => currentLevel.type === 'poste' ? allPostes.filter(p => p.id !== currentLevel.id) : [];
+  const getSiblings = () => currentLevel.type === 'poste' ? allPostes.filter(p => p.id !== currentLevel.id && !p.disabled) : [];
 
   // ========== NAVIGATION ==========
   const navigateTo = (item) => setNavStack([...navStack, { ...item, type: item.type || 'poste', activeTab: tabsConfig[item.type]?.[0]?.toLowerCase() }]);
@@ -643,9 +652,12 @@ export default function App() {
       ]);
     }
 
-    // Ajouter les périodes DFT
+    // Ajouter les périodes DFT avec pièce rapport d'expertise
     if (extractedData?.dftPeriods?.length > 0) {
-      setDftLignes(prev => [...extractedData.dftPeriods, ...prev]);
+      setDftLignes(prev => [
+        ...extractedData.dftPeriods.map(p => ({ ...p, pieceIds: ['p-5'] })),
+        ...prev
+      ]);
     }
 
     // Ajouter les données PGPA
@@ -3882,7 +3894,7 @@ export default function App() {
                 <div className="p-5">
                   <div className="text-center">
                     <div className="text-[36px] font-semibold text-zinc-800 tabular-nums leading-none">{fmt(totalChiffrage)}</div>
-                    <div className="text-[13px] text-zinc-400 mt-1.5">{allPostes.length} postes de préjudice chiffrés</div>
+                    <div className="text-[13px] text-zinc-400 mt-1.5">{allPostes.filter(p => !p.disabled).length} postes de préjudice chiffrés</div>
                     <button
                       onClick={() => setActiveTab('Chiffrage')}
                       className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-800 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-700 transition-colors"
@@ -4013,7 +4025,10 @@ export default function App() {
                       const aiReasoning = getPosteAiReasoning(p.id) || {
                         dsa: "Identifié à partir des factures et frais médicaux détectés dans vos documents",
                         pgpa: "Calculé sur la base de l'arrêt de travail et des revenus identifiés",
-                        dft: "Périodes d'incapacité temporaire identifiées dans le rapport d'expertise"
+                        dft: "Périodes d'incapacité temporaire identifiées dans le rapport d'expertise",
+                        pet: "Préjudice esthétique temporaire identifié dans le rapport d'expertise médicale (cicatrices, appareillage)",
+                        atpt: "Besoin d'assistance tierce personne identifié pendant la période de convalescence",
+                        se: "Souffrances endurées évaluées à 4/7 par l'expert dans le rapport d'expertise"
                       }[p.id];
                       const isAiPoste = status === 'suggested' || status === 'in_progress';
                       const PosteStatusIcon = () => {
@@ -4021,6 +4036,35 @@ export default function App() {
                         if (status === 'in_progress') return <span className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center" title="En cours de validation"><Loader2 className="w-3 h-3 text-amber-500" /></span>;
                         return <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center" title="Validé"><Check className="w-3 h-3 text-emerald-500" /></span>;
                       };
+                      if (p.disabled) {
+                        return (
+                          <div key={p.id} className="relative group">
+                            <div className="w-full flex items-center justify-between px-4 py-3 opacity-50 cursor-default">
+                              <div className="flex items-center gap-3">
+                                <span className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Poste suggéré par l'IA"><Sparkles className="w-3 h-3 text-indigo-500" /></span>
+                                <span className="text-[13px] font-medium w-12 text-zinc-400">{p.title}</span>
+                                <span className="text-[13px] text-zinc-700">{p.fullTitle}</span>
+                                {aiReasoning && (
+                                  <span className="relative cursor-help">
+                                    <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                                    <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 w-64 p-2.5 bg-zinc-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30 pointer-events-none">
+                                      <span className="flex items-start gap-2">
+                                        <Sparkles className="w-3 h-3 text-indigo-400 flex-shrink-0 mt-0.5" />
+                                        <span className="text-zinc-300 leading-relaxed">{aiReasoning}</span>
+                                      </span>
+                                      <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-zinc-900" />
+                                    </span>
+                                  </span>
+                                )}
+                                <span className="text-[10px] font-medium text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-full">Bientôt</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-[14px] font-semibold text-zinc-900 tabular-nums">{fmt(p.montant)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
                       return (
                         <div key={p.id} className="relative group">
                           <button onClick={() => navigateTo(p)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-zinc-50 transition-colors">
@@ -4066,7 +4110,7 @@ export default function App() {
                   </div>
                   <div>
                     <div className="text-[14px] font-medium text-zinc-700">Total du chiffrage</div>
-                    <div className="text-[12px] text-zinc-400">{allPostes.length} postes · {categories.filter(c => c.postes.length > 0).length} catégories</div>
+                    <div className="text-[12px] text-zinc-400">{allPostes.filter(p => !p.disabled).length} postes · {categories.filter(c => c.postes.length > 0).length} catégories</div>
                   </div>
                 </div>
                 <div className="text-right">
