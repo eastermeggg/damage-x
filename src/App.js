@@ -249,7 +249,15 @@ export default function App() {
   });
 
   // ========== DFT ==========
-  const [dftLignes, setDftLignes] = useState([]);
+  const [dftLignes, setDftLignes] = useState([
+    { id: 'dft-1', status: 'validated', label: 'Hospitalisation initiale', debut: '15/03/2023', fin: '22/03/2023', jours: 8, taux: 100, montant: 264, pieceIds: ['p-5'], confidence: null, commentaire: '' },
+    { id: 'dft-2', status: 'validated', label: 'Hospitalisation chirurgie', debut: '28/03/2023', fin: '02/04/2023', jours: 6, taux: 100, montant: 198, pieceIds: ['p-5'], confidence: null, commentaire: '' },
+    { id: 'dft-3', status: 'validated', label: 'Alitement strict post-op', debut: '03/04/2023', fin: '15/04/2023', jours: 13, taux: 100, montant: 429, pieceIds: ['p-5'], confidence: null, commentaire: '' },
+    { id: 'dft-4', status: 'validated', label: 'Convalescence post-opératoire', debut: '16/04/2023', fin: '30/06/2023', jours: 76, taux: 50, montant: 1254, pieceIds: ['p-5'], confidence: null, commentaire: '' },
+    { id: 'dft-5', status: 'validated', label: 'Rééducation active intensive', debut: '01/07/2023', fin: '30/09/2023', jours: 92, taux: 40, montant: 1214, pieceIds: ['p-5'], confidence: null, commentaire: '' },
+    { id: 'dft-6', status: 'validated', label: 'Rééducation d\'entretien', debut: '01/10/2023', fin: '31/12/2023', jours: 92, taux: 25, montant: 759, pieceIds: ['p-5'], confidence: null, commentaire: '' },
+    { id: 'dft-7', status: 'validated', label: 'Gêne résiduelle pré-consolidation', debut: '01/01/2024', fin: '12/09/2024', jours: 256, taux: 15, montant: 1267, pieceIds: ['p-5'], confidence: null, commentaire: '' },
+  ]);
 
   // (wizard supprimé - sera remplacé par flow création dossier)
 
