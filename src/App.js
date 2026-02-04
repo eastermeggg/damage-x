@@ -5887,47 +5887,64 @@ export default function App() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden">
             {/* Header */}
             <div className="px-6 py-5 border-b border-zinc-100">
-              <h2 className="text-lg font-semibold text-zinc-800">Comment souhaitez-vous commencer ?</h2>
+              <h2 className="text-lg font-semibold text-zinc-800">Comment souhaitez-vous créer votre chiffrage ?</h2>
             </div>
 
             {/* Body */}
-            <div className="px-6 py-6 flex gap-4">
-              {/* Option A: Avec rapport */}
-              <div
-                onClick={() => document.getElementById('wizard-file-input').click()}
-                className="flex-1 p-6 border-2 border-zinc-200 rounded-xl hover:border-zinc-400 hover:bg-zinc-50 cursor-pointer transition-all group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-zinc-100 flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
-                  <FileText className="w-6 h-6 text-zinc-600" />
+            <div className="px-6 py-6">
+              {/* Options principales */}
+              <div className="flex gap-4">
+                {/* Option 1: Importer le rapport */}
+                <div
+                  onClick={() => document.getElementById('wizard-file-input').click()}
+                  className="flex-1 p-6 border-2 border-zinc-200 rounded-xl hover:border-zinc-400 hover:bg-zinc-50 cursor-pointer transition-all group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-zinc-100 flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
+                    <Upload className="w-6 h-6 text-zinc-600" />
+                  </div>
+                  <h3 className="text-[15px] font-semibold text-zinc-800 mb-2">Importer mon rapport médical</h3>
+                  <p className="text-[13px] text-zinc-500 leading-relaxed">Extraction automatique des données. Pré-remplissage des postes et calculs.</p>
+                  <input
+                    id="wizard-file-input"
+                    type="file"
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      if (files && files.length > 0) {
+                        handleCreateDossier(formData);
+                        setTimeout(() => handleDocumentUploadForExtraction(files), 100);
+                      }
+                    }}
+                  />
                 </div>
-                <h3 className="text-[15px] font-semibold text-zinc-800 mb-2">J'ai le rapport médical</h3>
-                <p className="text-[13px] text-zinc-500 leading-relaxed">Importez le rapport d'expertise et Norma extraira automatiquement les données pour pré-remplir le chiffrage.</p>
-                <input
-                  id="wizard-file-input"
-                  type="file"
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    const files = e.target.files;
-                    if (files && files.length > 0) {
-                      handleCreateDossier(formData);
-                      setTimeout(() => handleDocumentUploadForExtraction(files), 100);
-                    }
-                  }}
-                />
+
+                {/* Option 2: Saisie manuelle */}
+                <div
+                  onClick={() => handleCreateDossier(formData, 'chiffrage')}
+                  className="flex-1 p-6 border-2 border-zinc-200 rounded-xl hover:border-zinc-400 hover:bg-zinc-50 cursor-pointer transition-all group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-zinc-100 flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
+                    <Edit3 className="w-6 h-6 text-zinc-600" />
+                  </div>
+                  <h3 className="text-[15px] font-semibold text-zinc-800 mb-2">Saisir les données manuellement</h3>
+                  <p className="text-[13px] text-zinc-500 leading-relaxed">Le rapport est sous vos yeux. Renseignez les informations à la main.</p>
+                </div>
               </div>
 
-              {/* Option B: Sans rapport */}
+              {/* Option 3: Pas encore de rapport (secondaire) */}
               <div
                 onClick={() => handleCreateDossier(formData, 'détail')}
-                className="flex-1 p-6 border-2 border-zinc-200 rounded-xl hover:border-zinc-400 hover:bg-zinc-50 cursor-pointer transition-all group"
+                className="mt-4 px-4 py-3 border border-zinc-200 rounded-lg hover:bg-zinc-50 cursor-pointer transition-all flex items-center gap-3 group"
               >
-                <div className="w-12 h-12 rounded-xl bg-zinc-100 flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
-                  <Edit3 className="w-6 h-6 text-zinc-600" />
+                <div className="w-8 h-8 rounded-lg bg-zinc-50 flex items-center justify-center flex-shrink-0 group-hover:bg-zinc-100 transition-colors">
+                  <FileText className="w-4 h-4 text-zinc-400" />
                 </div>
-                <h3 className="text-[15px] font-semibold text-zinc-800 mb-2">Chiffrer sans rapport médical</h3>
-                <p className="text-[13px] text-zinc-500 leading-relaxed">Commencez avec un dossier vide et ajoutez manuellement les postes de préjudice au fur et à mesure.</p>
+                <div>
+                  <h3 className="text-[13px] font-medium text-zinc-500 group-hover:text-zinc-700 transition-colors">Je n'ai pas encore le rapport médical</h3>
+                  <p className="text-[12px] text-zinc-400 leading-relaxed">Créer le dossier maintenant, le chiffrage pourra démarrer après.</p>
+                </div>
               </div>
             </div>
 
