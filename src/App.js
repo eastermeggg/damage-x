@@ -13,8 +13,7 @@ const POSTES_TAXONOMY = [
         { id: 'atpt', label: 'Assistance par une tierce personne temporaire', enabled: false },
       ]},
       { title: 'Préjudices extra patrimoniaux temporaires', id: 'vd-expat-temp', postes: [
-        { id: 'dftt', acronym: 'DFTT', label: 'Déficit fonctionnel temporaire total', enabled: true },
-        { id: 'dftp', acronym: 'DFTP', label: 'Déficit fonctionnel temporaire partiel', enabled: true },
+        { id: 'dft', acronym: 'DFT', label: 'Déficit fonctionnel temporaire', enabled: true },
         { id: 'pet', label: 'Préjudice esthétique temporaire', enabled: false },
       ]},
       { title: 'Préjudices patrimoniaux permanents', id: 'vd-pat-perm', postes: [
@@ -128,8 +127,7 @@ export default function App() {
     baremeCapitalisation: 'gazette-palais-2025-0.5',
     referentielDFP: 'cours-appel-2024',
     // Bases journalières
-    baseJournaliereDFTP: 33,
-    baseJournaliereDFTT: 33,
+    baseJournaliereDFT: 33,
     forfaitHoraireATPT: null,
   });
 
@@ -251,8 +249,7 @@ export default function App() {
   });
 
   // ========== DFT ==========
-  const [dfttLignes, setDfttLignes] = useState([]);
-  const [dftpLignes, setDftpLignes] = useState([]);
+  const [dftLignes, setDftLignes] = useState([]);
 
   // (wizard supprimé - sera remplacé par flow création dossier)
 
@@ -265,20 +262,20 @@ export default function App() {
       fractionIndemnisable: 100, tiersPayeurs: [],
       referentielSE: 'cours-appel-2024', referentielSEMode: 'maximum',
       baremeCapitalisation: 'gazette-palais-2025-0.5', referentielDFP: 'cours-appel-2024',
-      baseJournaliereDFTP: 33, baseJournaliereDFTT: 33, forfaitHoraireATPT: null,
+      baseJournaliereDFT: 33, forfaitHoraireATPT: null,
     },
     dossierStatut: 'ouvert', dossierRef: '', dossierIntitule: '', dossierDateOuverture: '',
     dossierAvocat: '', dossierNotes: '', resumeAffaire: '', commentaireExpertise: '',
     victimesIndirectes: [], pieces: [], dsaLignes: [],
     pgpaData: { periode: { debut: '', fin: '', mois: 0 }, revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 0 }, revenusPercus: [], ijPercues: [] },
-    pgpfData: { periodes: {} }, dfttLignes: [], dftpLignes: [],
+    pgpfData: { periodes: {} }, dftLignes: [],
   };
 
   const collectCurrentDossierData = () => ({
     victimeData, faitGenerateur, chiffrageParams,
     dossierStatut, dossierRef, dossierIntitule, dossierDateOuverture, dossierAvocat, dossierNotes,
     resumeAffaire, commentaireExpertise, victimesIndirectes, pieces,
-    dsaLignes, pgpaData, pgpfData, dfttLignes, dftpLignes,
+    dsaLignes, pgpaData, pgpfData, dftLignes,
   });
 
   const loadDossierData = (dossierId) => {
@@ -299,8 +296,8 @@ export default function App() {
     setDsaLignes(data.dsaLignes ?? []);
     setPgpaData(data.pgpaData ?? EMPTY_DOSSIER.pgpaData);
     setPgpfData(data.pgpfData ?? EMPTY_DOSSIER.pgpfData);
-    setDfttLignes(data.dfttLignes ?? []);
-    setDftpLignes(data.dftpLignes ?? []);
+    // Migration: fusionner anciens dfttLignes + dftpLignes si format legacy
+    setDftLignes(data.dftLignes ?? [...(data.dfttLignes ?? []), ...(data.dftpLignes ?? [])]);
   };
 
   const saveDossierData = (dossierId) => {
@@ -338,7 +335,7 @@ export default function App() {
   }, [activeDossierId, victimeData, faitGenerateur, chiffrageParams,
     dossierStatut, dossierRef, dossierIntitule, dossierDateOuverture, dossierAvocat, dossierNotes,
     resumeAffaire, commentaireExpertise, victimesIndirectes, pieces,
-    dsaLignes, pgpaData, pgpfData, dfttLignes, dftpLignes]);
+    dsaLignes, pgpaData, pgpfData, dftLignes]);
 
   // Auto-save global state
   useEffect(() => {
@@ -358,15 +355,13 @@ export default function App() {
   const pgpfClTotal = 0; // PGPF Consolidation -> Liquidation (échu)
   const pgpfAlTotal = 0; // PGPF Après Liquidation (capitalisation)
 
-  const dfttTotal = dfttLignes.reduce((s, l) => s + l.montant, 0);
-  const dftpTotal = dftpLignes.reduce((s, l) => s + l.montant, 0);
+  const dftTotal = dftLignes.reduce((s, l) => s + l.montant, 0);
 
   // Postes actifs = seulement ceux qui ont des données
   const allPostes = [
     dsaLignes.length > 0 && { id: 'dsa', title: 'DSA', fullTitle: 'Dépenses de Santé Actuelles', montant: dsaTotal, category: 'patrimoniaux-temp' },
     pgpaData.revenuRef.lignes.length > 0 && { id: 'pgpa', title: 'PGPA', fullTitle: 'Pertes de Gains Professionnels Actuels', montant: pgpaTotal, category: 'patrimoniaux-temp' },
-    dfttLignes.length > 0 && { id: 'dftt', title: 'DFTT', fullTitle: 'Déficit Fonctionnel Temporaire Total', montant: dfttTotal, category: 'extra-patrimoniaux-temp' },
-    dftpLignes.length > 0 && { id: 'dftp', title: 'DFTP', fullTitle: 'Déficit Fonctionnel Temporaire Partiel', montant: dftpTotal, category: 'extra-patrimoniaux-temp' },
+    dftLignes.length > 0 && { id: 'dft', title: 'DFT', fullTitle: 'Déficit Fonctionnel Temporaire', montant: dftTotal, category: 'extra-patrimoniaux-temp' },
     Object.keys(pgpfData.periodes).length > 0 && { id: 'pgpf', title: 'PGPF', fullTitle: 'Pertes de Gains Professionnels Futurs', montant: pgpfTotal, category: 'patrimoniaux-perm' }
   ].filter(Boolean);
 
@@ -427,8 +422,7 @@ export default function App() {
     if (pgpaData.revenuRef.lignes.some(l => l.pieceIds?.includes(pieceId))) usages.push('PGPA');
     if (pgpaData.revenusPercus.some(l => l.pieceIds?.includes(pieceId))) usages.push('PGPA');
     if (pgpaData.ijPercues.some(l => l.pieceIds?.includes(pieceId))) usages.push('PGPA');
-    if (dfttLignes.some(l => l.pieceIds?.includes(pieceId))) usages.push('DFTT');
-    if (dftpLignes.some(l => l.pieceIds?.includes(pieceId))) usages.push('DFTP');
+    if (dftLignes.some(l => l.pieceIds?.includes(pieceId))) usages.push('DFT');
     return [...new Set(usages)];
   };
 
@@ -649,14 +643,9 @@ export default function App() {
       ]);
     }
 
-    // Ajouter les périodes DFTT
-    if (extractedData?.dfttPeriods?.length > 0) {
-      setDfttLignes(prev => [...extractedData.dfttPeriods, ...prev]);
-    }
-
-    // Ajouter les périodes DFTP
-    if (extractedData?.dftpPeriods?.length > 0) {
-      setDftpLignes(prev => [...extractedData.dftpPeriods, ...prev]);
+    // Ajouter les périodes DFT
+    if (extractedData?.dftPeriods?.length > 0) {
+      setDftLignes(prev => [...extractedData.dftPeriods, ...prev]);
     }
 
     // Ajouter les données PGPA
@@ -719,8 +708,7 @@ export default function App() {
     dateConsolidation: '',
     tauxAIPP: null,
     dsaLines: [],
-    dfttPeriods: [],
-    dftpPeriods: [],
+    dftPeriods: [],
     dfpData: null
   });
 
@@ -819,10 +807,10 @@ export default function App() {
         }
       ],
 
-      // Périodes DFTT (100%)
-      dfttPeriods: [
+      // Périodes DFT (toutes incapacités temporaires)
+      dftPeriods: [
         {
-          id: `dftt-ai-${timestamp}-1`,
+          id: `dft-ai-${timestamp}-1`,
           label: 'Hospitalisation initiale',
           debut: '15/03/2023',
           fin: '22/03/2023',
@@ -833,7 +821,7 @@ export default function App() {
           status: 'ai-suggested'
         },
         {
-          id: `dftt-ai-${timestamp}-2`,
+          id: `dft-ai-${timestamp}-2`,
           label: 'Hospitalisation chirurgie',
           debut: '28/03/2023',
           fin: '02/04/2023',
@@ -844,7 +832,7 @@ export default function App() {
           status: 'ai-suggested'
         },
         {
-          id: `dftt-ai-${timestamp}-3`,
+          id: `dft-ai-${timestamp}-3`,
           label: 'Alitement strict post-op',
           debut: '03/04/2023',
           fin: '15/04/2023',
@@ -853,13 +841,9 @@ export default function App() {
           montant: 325,
           confidence: 91,
           status: 'ai-suggested'
-        }
-      ],
-
-      // Périodes DFTP (partiel)
-      dftpPeriods: [
+        },
         {
-          id: `dftp-ai-${timestamp}-1`,
+          id: `dft-ai-${timestamp}-4`,
           label: 'Convalescence post-opératoire',
           debut: '16/04/2023',
           fin: '30/06/2023',
@@ -870,7 +854,7 @@ export default function App() {
           status: 'ai-suggested'
         },
         {
-          id: `dftp-ai-${timestamp}-2`,
+          id: `dft-ai-${timestamp}-5`,
           label: 'Rééducation active intensive',
           debut: '01/07/2023',
           fin: '30/09/2023',
@@ -881,7 +865,7 @@ export default function App() {
           status: 'ai-suggested'
         },
         {
-          id: `dftp-ai-${timestamp}-3`,
+          id: `dft-ai-${timestamp}-6`,
           label: 'Rééducation d\'entretien',
           debut: '01/10/2023',
           fin: '31/12/2023',
@@ -892,7 +876,7 @@ export default function App() {
           status: 'ai-suggested'
         },
         {
-          id: `dftp-ai-${timestamp}-4`,
+          id: `dft-ai-${timestamp}-7`,
           label: 'Gêne résiduelle pré-consolidation',
           debut: '01/01/2024',
           fin: '12/09/2024',
@@ -1092,8 +1076,7 @@ export default function App() {
     setVictimesIndirectes([]);
     setPieces([]);
     setDsaLignes([]);
-    setDfttLignes([]);
-    setDftpLignes([]);
+    setDftLignes([]);
     setPgpaData({ periode: { debut: '', fin: '', mois: 0 }, revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 0 }, revenusPercus: [], ijPercues: [] });
     setPgpfData({ periodes: {} });
 
@@ -1151,18 +1134,10 @@ export default function App() {
       }]);
     });
 
-    // Ajouter les périodes DFTT avec pièce rapport
-    if (extractedData?.dfttPeriods?.length > 0) {
-      setDfttLignes(prev => [
-        ...extractedData.dfttPeriods.map(p => ({ ...p, pieceIds: [uploadedPieceIds[0]] })),
-        ...prev
-      ]);
-    }
-
-    // Ajouter les périodes DFTP avec pièce rapport
-    if (extractedData?.dftpPeriods?.length > 0) {
-      setDftpLignes(prev => [
-        ...extractedData.dftpPeriods.map(p => ({ ...p, pieceIds: [uploadedPieceIds[0]] })),
+    // Ajouter les périodes DFT avec pièce rapport
+    if (extractedData?.dftPeriods?.length > 0) {
+      setDftLignes(prev => [
+        ...extractedData.dftPeriods.map(p => ({ ...p, pieceIds: [uploadedPieceIds[0]] })),
         ...prev
       ]);
     }
@@ -1318,41 +1293,23 @@ export default function App() {
           }, ...prev.ijPercues]
         }));
       }
-      else if (posteType === 'dftt') {
-        const mockDftt = [
-          { label: 'Hospitalisation', jours: 8, confidence: 94 },
-          { label: 'Alitement strict post-opératoire', jours: 13, confidence: 91 },
-          { label: 'Hospitalisation chirurgie', jours: 6, confidence: 88 },
-        ];
-        const mock = mockDftt[Math.floor(Math.random() * mockDftt.length)];
-        const baseJ = chiffrageParams.baseJournaliereDFTT || 33;
-        setDfttLignes(prev => [{
-          id: `dftt-${Date.now()}`,
-          status: 'ai-suggested',
-          label: mock.label,
-          debut: '15/03/2023',
-          fin: (() => { const d = new Date(2023, 2, 15 + mock.jours); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })(),
-          jours: mock.jours,
-          taux: 100,
-          montant: Math.round(mock.jours * baseJ),
-          pieceIds: [newPieceId],
-          confidence: mock.confidence
-        }, ...prev]);
-      }
-      else if (posteType === 'dftp') {
-        const mockDftp = [
+      else if (posteType === 'dft') {
+        const mockDft = [
+          { label: 'Hospitalisation', jours: 8, taux: 100, confidence: 94 },
+          { label: 'Alitement strict post-opératoire', jours: 13, taux: 100, confidence: 91 },
+          { label: 'Hospitalisation chirurgie', jours: 6, taux: 100, confidence: 88 },
           { label: 'Convalescence post-opératoire', jours: 76, taux: 50, confidence: 89 },
           { label: 'Rééducation active intensive', jours: 92, taux: 40, confidence: 86 },
           { label: 'Gêne résiduelle pré-consolidation', jours: 256, taux: 15, confidence: 82 },
         ];
-        const mock = mockDftp[Math.floor(Math.random() * mockDftp.length)];
-        const baseJ = chiffrageParams.baseJournaliereDFTP || 33;
-        setDftpLignes(prev => [{
-          id: `dftp-${Date.now()}`,
+        const mock = mockDft[Math.floor(Math.random() * mockDft.length)];
+        const baseJ = chiffrageParams.baseJournaliereDFT || 33;
+        setDftLignes(prev => [{
+          id: `dft-${Date.now()}`,
           status: 'ai-suggested',
           label: mock.label,
-          debut: '16/04/2023',
-          fin: (() => { const d = new Date(2023, 3, 16 + mock.jours); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })(),
+          debut: '15/03/2023',
+          fin: (() => { const d = new Date(2023, 2, 15 + mock.jours); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })(),
           jours: mock.jours,
           taux: mock.taux,
           montant: Math.round(mock.jours * baseJ * mock.taux / 100),
@@ -1465,42 +1422,23 @@ export default function App() {
       }));
       setPieces(prev => prev.map(p => p.id === piece.id ? { ...p, used: true } : p));
     }
-    else if (posteType === 'dftt') {
-      const mockDftt = [
-        { label: 'Hospitalisation', jours: 8, confidence: 94 },
-        { label: 'Alitement strict post-opératoire', jours: 13, confidence: 91 },
-        { label: 'Hospitalisation chirurgie', jours: 6, confidence: 88 },
-      ];
-      const mock = mockDftt[Math.floor(Math.random() * mockDftt.length)];
-      const baseJ = chiffrageParams.baseJournaliereDFTT || 33;
-      setDfttLignes(prev => [{
-        id: `dftt-${Date.now()}`,
-        status: 'ai-suggested',
-        label: mock.label,
-        debut: '15/03/2023',
-        fin: (() => { const d = new Date(2023, 2, 15 + mock.jours); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })(),
-        jours: mock.jours,
-        taux: 100,
-        montant: Math.round(mock.jours * baseJ),
-        pieceIds: [piece.id],
-        confidence: mock.confidence
-      }, ...prev]);
-      setPieces(prev => prev.map(p => p.id === piece.id ? { ...p, used: true } : p));
-    }
-    else if (posteType === 'dftp') {
-      const mockDftp = [
+    else if (posteType === 'dft') {
+      const mockDft = [
+        { label: 'Hospitalisation', jours: 8, taux: 100, confidence: 94 },
+        { label: 'Alitement strict post-opératoire', jours: 13, taux: 100, confidence: 91 },
+        { label: 'Hospitalisation chirurgie', jours: 6, taux: 100, confidence: 88 },
         { label: 'Convalescence post-opératoire', jours: 76, taux: 50, confidence: 89 },
         { label: 'Rééducation active intensive', jours: 92, taux: 40, confidence: 86 },
         { label: 'Gêne résiduelle pré-consolidation', jours: 256, taux: 15, confidence: 82 },
       ];
-      const mock = mockDftp[Math.floor(Math.random() * mockDftp.length)];
-      const baseJ = chiffrageParams.baseJournaliereDFTP || 33;
-      setDftpLignes(prev => [{
-        id: `dftp-${Date.now()}`,
+      const mock = mockDft[Math.floor(Math.random() * mockDft.length)];
+      const baseJ = chiffrageParams.baseJournaliereDFT || 33;
+      setDftLignes(prev => [{
+        id: `dft-${Date.now()}`,
         status: 'ai-suggested',
         label: mock.label,
-        debut: '16/04/2023',
-        fin: (() => { const d = new Date(2023, 3, 16 + mock.jours); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })(),
+        debut: '15/03/2023',
+        fin: (() => { const d = new Date(2023, 2, 15 + mock.jours); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })(),
         jours: mock.jours,
         taux: mock.taux,
         montant: Math.round(mock.jours * baseJ * mock.taux / 100),
@@ -1546,19 +1484,12 @@ export default function App() {
       setPgpaData(prev => ({ ...prev, ijPercues: [newLigne, ...prev.ijPercues] }));
       openPgpaEditPanel('pgpa-ij', newLigne);
     }
-    else if (posteType === 'dftt') {
-      const newLigne = { id: `dftt-${Date.now()}`, status: 'pending', label: null, debut: '', fin: '', jours: 0, taux: 100, montant: 0, pieceIds: [], confidence: null, commentaire: '' };
-      setDfttLignes(prev => [newLigne, ...prev]);
+    else if (posteType === 'dft') {
+      const newLigne = { id: `dft-${Date.now()}`, status: 'pending', label: null, debut: '', fin: '', jours: 0, taux: 100, montant: 0, pieceIds: [], confidence: null, commentaire: '' };
+      setDftLignes(prev => [newLigne, ...prev]);
       setEditingPieceIds([]);
       setSearchPiecesPanel('');
-      setEditPanel({ type: 'dftt-ligne', data: newLigne });
-    }
-    else if (posteType === 'dftp') {
-      const newLigne = { id: `dftp-${Date.now()}`, status: 'pending', label: null, debut: '', fin: '', jours: 0, taux: 50, montant: 0, deductionDftt: false, joursDfttDeduits: 0, joursRetenus: 0, pieceIds: [], confidence: null, baseOverride: null };
-      setDftpLignes(prev => [newLigne, ...prev]);
-      setEditingPieceIds([]);
-      setSearchPiecesPanel('');
-      setEditPanel({ type: 'dftp-ligne', data: newLigne });
+      setEditPanel({ type: 'dft-ligne', data: newLigne });
     }
   };
 
@@ -1797,17 +1728,16 @@ export default function App() {
                     </select>
                   </div>
                 )}
-                {(currentLevel.id === 'dftt' || currentLevel.id === 'dftp') && (
+                {currentLevel.id === 'dft' && (
                   <div>
                     <label className="block text-[12px] text-zinc-500 mb-1">Base journalière</label>
                     <div className="relative">
                       <input
                         type="number"
-                        value={currentLevel.id === 'dftt' ? chiffrageParams.baseJournaliereDFTT : chiffrageParams.baseJournaliereDFTP}
+                        value={chiffrageParams.baseJournaliereDFT}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value) || 0;
-                          const key = currentLevel.id === 'dftt' ? 'baseJournaliereDFTT' : 'baseJournaliereDFTP';
-                          setChiffrageParams(prev => ({ ...prev, [key]: val }));
+                          setChiffrageParams(prev => ({ ...prev, baseJournaliereDFT: val }));
                         }}
                         className="w-full px-2.5 py-1.5 pr-10 text-[13px] border border-zinc-200 rounded-md"
                       />
@@ -3111,8 +3041,8 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Panel DFTT */}
-                {editPanel.type === 'dftt-ligne' && (
+                {/* Panel DFT */}
+                {editPanel.type === 'dft-ligne' && (
                   <>
                     {data?.status === 'ai-suggested' && data?.confidence && (
                       <div className="flex items-center gap-3 p-4 rounded-xl bg-indigo-50 border border-indigo-200 mb-4">
@@ -3183,135 +3113,27 @@ export default function App() {
                       <div>
                         <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Période</h4>
                         <div className="grid grid-cols-2 gap-3">
-                          <div><label className="block text-xs text-gray-500 mb-1">Date début</label><input type="text" id="dftt-debut" defaultValue={data.debut} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" /></div>
-                          <div><label className="block text-xs text-gray-500 mb-1">Date fin</label><input type="text" id="dftt-fin" defaultValue={data.fin} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" /></div>
+                          <div><label className="block text-xs text-gray-500 mb-1">Date début</label><input type="text" id="dft-debut" defaultValue={data.debut} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" /></div>
+                          <div><label className="block text-xs text-gray-500 mb-1">Date fin</label><input type="text" id="dft-fin" defaultValue={data.fin} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" /></div>
                         </div>
-                        <div className="mt-3"><label className="block text-xs text-gray-500 mb-1">Total jours</label><input type="number" id="dftt-jours" defaultValue={data.jours} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Contenu</h4>
-                        <div><label className="block text-xs text-gray-500 mb-1">Libellé</label><input type="text" id="dftt-label" defaultValue={data.label || ''} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
-                        <div className="mt-3"><label className="block text-xs text-gray-500 mb-1">Commentaire</label><textarea id="dftt-commentaire" defaultValue={data.commentaire || ''} rows={3} className="w-full px-3 py-2 border rounded-lg text-sm resize-none" /></div>
+                        <div className="mt-3"><label className="block text-xs text-gray-500 mb-1">Total jours</label><input type="number" id="dft-jours" defaultValue={data.jours} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
                       </div>
                       <div>
                         <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Paramètres</h4>
-                        <div><label className="block text-xs text-gray-500 mb-1">Base journalière</label><div className="relative"><input type="number" id="dftt-base" defaultValue={chiffrageParams.baseJournaliereDFTT || 33} className="w-full px-3 py-2 pr-10 border rounded-lg text-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">€/j</span></div></div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><label className="block text-xs text-gray-500 mb-1">Taux DFT</label><div className="relative"><input type="number" id="dft-taux" defaultValue={data.taux || 100} min={0} max={100} className="w-full px-3 py-2 pr-8 border rounded-lg text-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">%</span></div></div>
+                          <div><label className="block text-xs text-gray-500 mb-1">Base journalière</label><div className="relative"><input type="number" id="dft-base" defaultValue={chiffrageParams.baseJournaliereDFT || 33} className="w-full px-3 py-2 pr-10 border rounded-lg text-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">€/j</span></div></div>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Contenu</h4>
+                        <div><label className="block text-xs text-gray-500 mb-1">Libellé</label><input type="text" id="dft-label" defaultValue={data.label || ''} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                        <div className="mt-3"><label className="block text-xs text-gray-500 mb-1">Commentaire</label><textarea id="dft-commentaire" defaultValue={data.commentaire || ''} rows={3} className="w-full px-3 py-2 border rounded-lg text-sm resize-none" /></div>
                       </div>
                     </div>
                   </>
                 )}
 
-                {/* Panel DFTP */}
-                {editPanel.type === 'dftp-ligne' && (
-                  <>
-                    {data?.status === 'ai-suggested' && data?.confidence && (
-                      <div className="flex items-center gap-3 p-4 rounded-xl bg-indigo-50 border border-indigo-200 mb-4">
-                        <Sparkles className="w-5 h-5 text-indigo-600" />
-                        <span className="text-[13px] font-medium text-indigo-700">Suggestion IA · Confiance {data.confidence}%</span>
-                      </div>
-                    )}
-                    <div className="space-y-6">
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
-
-                        {editingPieceIds.length > 0 && (
-                          <div className="space-y-2 mb-3">
-                            {editingPieceIds.map(pid => {
-                              const piece = getPiece(pid);
-                              return piece ? (
-                                <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
-                                  <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center flex-shrink-0">
-                                    {getPieceLabel(pid)}
-                                  </span>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{piece.intitule || piece.nom}</p>
-                                    <p className="text-xs text-gray-500">{piece.type}</p>
-                                  </div>
-                                  <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded">
-                                    <Eye className="w-4 h-4" />
-                                  </button>
-                                  <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100">
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              ) : null;
-                            })}
-                          </div>
-                        )}
-
-                        <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
-                          {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
-                            <div>
-                              <div className="relative mb-2">
-                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
-                                <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)}
-                                  placeholder="Rechercher une pièce..."
-                                  className="w-full pl-8 pr-7 py-1.5 text-[12px] border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
-                                {searchPiecesPanel && (
-                                  <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2">
-                                    <X className="w-3 h-3 text-zinc-400" />
-                                  </button>
-                                )}
-                              </div>
-                              <div className="max-h-32 overflow-y-auto space-y-1">
-                                {pieces.filter(p => !editingPieceIds.includes(p.id))
-                                  .filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()))
-                                  .map(piece => (
-                                  <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
-                                    className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                                    <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">
-                                      {getPieceLabel(piece.id)}
-                                    </span>
-                                    <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
-                                    <span className="text-xs text-gray-400">{piece.type}</span>
-                                    <Plus className="w-4 h-4 text-blue-600" />
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-                            onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
-                          <button onClick={() => document.getElementById('panel-piece-upload').click()}
-                            className="w-full flex items-center justify-center gap-2 p-2 text-sm text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
-                            <Upload className="w-4 h-4" />
-                            Ajouter un document
-                          </button>
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Période</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div><label className="block text-xs text-gray-500 mb-1">Date début</label><input type="text" id="dftp-debut" defaultValue={data.debut} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" /></div>
-                          <div><label className="block text-xs text-gray-500 mb-1">Date fin</label><input type="text" id="dftp-fin" defaultValue={data.fin} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" /></div>
-                        </div>
-                        <div className="mt-3"><label className="block text-xs text-gray-500 mb-1">Nb jours période</label><input type="number" id="dftp-jours" defaultValue={data.jours} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Déductions</h4>
-                        <div className="flex items-center gap-2 mb-3">
-                          <input type="checkbox" id="dftp-deduction" defaultChecked={data.deductionDftt || false} className="rounded" />
-                          <label htmlFor="dftp-deduction" className="text-sm text-gray-700">Déduire jours DFTT</label>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div><label className="block text-xs text-gray-500 mb-1">Jours DFTT déduits</label><input type="number" id="dftp-jours-dftt" defaultValue={data.joursDfttDeduits || 0} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
-                          <div><label className="block text-xs text-gray-500 mb-1">Jours retenus</label><input type="number" id="dftp-jours-retenus" defaultValue={data.joursRetenus || data.jours} className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50" readOnly /></div>
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Paramètres</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div><label className="block text-xs text-gray-500 mb-1">% DFTP</label><div className="relative"><input type="number" id="dftp-taux" defaultValue={data.taux} min={0} max={100} className="w-full px-3 py-2 pr-8 border rounded-lg text-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">%</span></div></div>
-                          <div><label className="block text-xs text-gray-500 mb-1">Base journalière</label><div className="relative"><input type="number" id="dftp-base" defaultValue={data.baseOverride || chiffrageParams.baseJournaliereDFTP || 33} className="w-full px-3 py-2 pr-10 border rounded-lg text-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">€/j</span></div></div>
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Contenu</h4>
-                        <div><label className="block text-xs text-gray-500 mb-1">Libellé / Nature</label><input type="text" id="dftp-label" defaultValue={data.label || ''} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
-                      </div>
-                    </div>
-                  </>
-                )}
               </div>
 
               {/* Bandeau Montant calculé — sticky entre scroll et action bar */}
@@ -3351,20 +3173,11 @@ export default function App() {
                   <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
                 </div>
               )}
-              {editPanel.type === 'dftt-ligne' && (
+              {editPanel.type === 'dft-ligne' && (
                 <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
                   <div>
                     <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
-                    <p className="text-[11px] text-zinc-400">{data.jours || 0}j × {chiffrageParams.baseJournaliereDFTT || 33} €/j</p>
-                  </div>
-                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
-                </div>
-              )}
-              {editPanel.type === 'dftp-ligne' && (
-                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
-                  <div>
-                    <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
-                    <p className="text-[11px] text-zinc-400">{data.jours || 0}j × {data.taux || 0}% × {data.baseOverride || chiffrageParams.baseJournaliereDFTP || 33} €/j</p>
+                    <p className="text-[11px] text-zinc-400">{data.jours || 0}j × {data.taux || 100}% × {chiffrageParams.baseJournaliereDFT || 33} €/j</p>
                   </div>
                   <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
                 </div>
@@ -3647,11 +3460,11 @@ export default function App() {
                 </div>
               )}
 
-              {/* Panel DFTT Footer */}
-              {editPanel.type === 'dftt-ligne' && (
+              {/* Panel DFT Footer */}
+              {editPanel.type === 'dft-ligne' && (
                 <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
                   <button onClick={() => {
-                    setDfttLignes(prev => prev.filter(l => l.id !== data.id));
+                    setDftLignes(prev => prev.filter(l => l.id !== data.id));
                     setEditPanel(null); setEditingPieceIds([]);
                   }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
                     <Trash2 className="w-4 h-4" />Supprimer
@@ -3659,56 +3472,21 @@ export default function App() {
                   <div className="flex gap-2">
                     <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
                     <button onClick={() => {
-                      const jours = parseInt(document.getElementById('dftt-jours')?.value) || data.jours;
-                      const baseJ = parseFloat(document.getElementById('dftt-base')?.value) || chiffrageParams.baseJournaliereDFTT || 33;
+                      const jours = parseInt(document.getElementById('dft-jours')?.value) || data.jours;
+                      const taux = parseInt(document.getElementById('dft-taux')?.value) || data.taux || 100;
+                      const baseJ = parseFloat(document.getElementById('dft-base')?.value) || chiffrageParams.baseJournaliereDFT || 33;
                       const updatedLigne = {
                         ...data,
-                        label: document.getElementById('dftt-label')?.value || data.label,
-                        debut: document.getElementById('dftt-debut')?.value || data.debut,
-                        fin: document.getElementById('dftt-fin')?.value || data.fin,
-                        jours,
-                        commentaire: document.getElementById('dftt-commentaire')?.value || '',
-                        montant: Math.round(jours * baseJ),
+                        label: document.getElementById('dft-label')?.value || data.label,
+                        debut: document.getElementById('dft-debut')?.value || data.debut,
+                        fin: document.getElementById('dft-fin')?.value || data.fin,
+                        jours, taux,
+                        commentaire: document.getElementById('dft-commentaire')?.value || '',
+                        montant: Math.round(jours * taux / 100 * baseJ),
                         pieceIds: editingPieceIds,
                         status: 'validated'
                       };
-                      setDfttLignes(prev => prev.map(l => l.id === data.id ? updatedLigne : l));
-                      setEditPanel(null); setEditingPieceIds([]);
-                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
-                  </div>
-                </div>
-              )}
-
-              {/* Panel DFTP Footer */}
-              {editPanel.type === 'dftp-ligne' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
-                  <button onClick={() => {
-                    setDftpLignes(prev => prev.filter(l => l.id !== data.id));
-                    setEditPanel(null); setEditingPieceIds([]);
-                  }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
-                    <Trash2 className="w-4 h-4" />Supprimer
-                  </button>
-                  <div className="flex gap-2">
-                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
-                    <button onClick={() => {
-                      const jours = parseInt(document.getElementById('dftp-jours')?.value) || data.jours;
-                      const taux = parseInt(document.getElementById('dftp-taux')?.value) || data.taux;
-                      const baseJ = parseFloat(document.getElementById('dftp-base')?.value) || chiffrageParams.baseJournaliereDFTP || 33;
-                      const deductionDftt = document.getElementById('dftp-deduction')?.checked || false;
-                      const joursDfttDeduits = parseInt(document.getElementById('dftp-jours-dftt')?.value) || 0;
-                      const joursRetenus = deductionDftt ? Math.max(0, jours - joursDfttDeduits) : jours;
-                      const updatedLigne = {
-                        ...data,
-                        label: document.getElementById('dftp-label')?.value || data.label,
-                        debut: document.getElementById('dftp-debut')?.value || data.debut,
-                        fin: document.getElementById('dftp-fin')?.value || data.fin,
-                        jours, taux, deductionDftt, joursDfttDeduits, joursRetenus,
-                        baseOverride: baseJ !== (chiffrageParams.baseJournaliereDFTP || 33) ? baseJ : null,
-                        montant: Math.round(joursRetenus * baseJ * taux / 100),
-                        pieceIds: editingPieceIds,
-                        status: 'validated'
-                      };
-                      setDftpLignes(prev => prev.map(l => l.id === data.id ? updatedLigne : l));
+                      setDftLignes(prev => prev.map(l => l.id === data.id ? updatedLigne : l));
                       setEditPanel(null); setEditingPieceIds([]);
                     }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
                   </div>
@@ -4124,8 +3902,7 @@ export default function App() {
         const getPosteStatus = (posteId) => {
           let lignes = [];
           if (posteId === 'dsa') lignes = dsaLignes;
-          else if (posteId === 'dftt') lignes = dfttLignes;
-          else if (posteId === 'dftp') lignes = dftpLignes;
+          else if (posteId === 'dft') lignes = dftLignes;
           else if (posteId === 'pgpa') {
             lignes = [
               ...pgpaData.revenuRef.lignes,
@@ -4213,14 +3990,12 @@ export default function App() {
 
         const hasAiSuggestions =
           dsaLignes.some(l => l.status === 'ai-suggested') ||
-          dfttLignes.some(l => l.status === 'ai-suggested') ||
-          dftpLignes.some(l => l.status === 'ai-suggested') ||
+          dftLignes.some(l => l.status === 'ai-suggested') ||
           pgpaAiCount > 0;
 
         const aiSuggestedCount =
           dsaLignes.filter(l => l.status === 'ai-suggested').length +
-          dfttLignes.filter(l => l.status === 'ai-suggested').length +
-          dftpLignes.filter(l => l.status === 'ai-suggested').length +
+          dftLignes.filter(l => l.status === 'ai-suggested').length +
           pgpaAiCount;
 
         return (
@@ -4238,8 +4013,7 @@ export default function App() {
                       const aiReasoning = getPosteAiReasoning(p.id) || {
                         dsa: "Identifié à partir des factures et frais médicaux détectés dans vos documents",
                         pgpa: "Calculé sur la base de l'arrêt de travail et des revenus identifiés",
-                        dftt: "Périodes d'incapacité totale identifiées dans le rapport d'expertise",
-                        dftp: "Périodes d'incapacité partielle déduites du rapport d'expertise"
+                        dft: "Périodes d'incapacité temporaire identifiées dans le rapport d'expertise"
                       }[p.id];
                       const isAiPoste = status === 'suggested' || status === 'in_progress';
                       const PosteStatusIcon = () => {
@@ -5592,19 +5366,19 @@ export default function App() {
       );
     }
 
-    // ========== DFTT ==========
-    if (currentLevel.id === 'dftt') {
+    // ========== DFT ==========
+    if (currentLevel.id === 'dft') {
       const filteredPiecesForSearch = pieces.filter(p =>
         !p.used && (p.intitule || p.nom).toLowerCase().includes(searchPieces.toLowerCase())
       );
       return (
         <div>
           {/* Empty state */}
-          {dfttLignes.length === 0 && processing.length === 0 && (
+          {dftLignes.length === 0 && processing.length === 0 && (
             <div
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dftt'); }}
+              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dft'); }}
               className={`bg-white rounded-lg border-2 border-dashed overflow-hidden transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50/50' : 'border-zinc-200'}`}
             >
               <div className="px-8 py-12 text-center">
@@ -5619,17 +5393,17 @@ export default function App() {
                     <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
                       <Calendar className="w-7 h-7 text-zinc-400" />
                     </div>
-                    <h3 className="text-[15px] font-semibold text-zinc-800 mb-1.5">Aucune période de déficit temporaire total</h3>
+                    <h3 className="text-[15px] font-semibold text-zinc-800 mb-1.5">Aucune période de déficit fonctionnel temporaire</h3>
                     <p className="text-[13px] text-zinc-400 mb-6 max-w-sm mx-auto">Commencez par ajouter un rapport d'expertise ou créez une période manuellement.</p>
                     <div className="flex items-center justify-center gap-3 mb-8">
-                      <button onClick={() => document.getElementById('dftt-file-input-empty').click()} className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors">
+                      <button onClick={() => document.getElementById('dft-file-input-empty').click()} className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors">
                         <Upload className="w-4 h-4" /> Ajouter des documents
                       </button>
-                      <button onClick={() => handleAddManual('dftt')} className="flex items-center gap-2 px-4 py-2.5 border border-zinc-200 text-zinc-700 text-[13px] font-medium rounded-lg hover:bg-zinc-50 transition-colors">
+                      <button onClick={() => handleAddManual('dft')} className="flex items-center gap-2 px-4 py-2.5 border border-zinc-200 text-zinc-700 text-[13px] font-medium rounded-lg hover:bg-zinc-50 transition-colors">
                         <Edit3 className="w-4 h-4" /> Créer une période manuellement
                       </button>
                     </div>
-                    <input type="file" id="dftt-file-input-empty" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dftt'); e.target.value = ''; } }} />
+                    <input type="file" id="dft-file-input-empty" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dft'); e.target.value = ''; } }} />
                     <div className="border-t border-zinc-100 pt-5">
                       <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-3">Documents attendus</p>
                       <div className="flex flex-wrap justify-center gap-2">
@@ -5658,17 +5432,16 @@ export default function App() {
           )}
 
           {/* Action header when lines exist */}
-          {dfttLignes.length > 0 && (
+          {dftLignes.length > 0 && (
             <div className={`px-4 py-3 border-b transition-colors ${isDragging ? 'bg-emerald-50 border-emerald-200' : 'bg-zinc-50/50'}`}
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dftt'); }}
+              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dft'); }}
             >
-              <input type="file" id="dftt-file-input" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dftt'); e.target.value = ''; } }} />
+              <input type="file" id="dft-file-input" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dft'); e.target.value = ''; } }} />
               <div className="flex items-center gap-4">
-                {/* Drop zone compacte - cliquable */}
                 <div
-                  onClick={() => document.getElementById('dftt-file-input').click()}
+                  onClick={() => document.getElementById('dft-file-input').click()}
                   className={`flex items-center gap-3 px-4 py-2.5 border-2 border-dashed rounded-lg flex-1 transition-all cursor-pointer ${
                     isDragging ? 'border-emerald-400 bg-emerald-50' : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'
                   }`}
@@ -5679,7 +5452,6 @@ export default function App() {
                   </span>
                 </div>
 
-                {/* Recherche pièce */}
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                   <input
@@ -5696,7 +5468,7 @@ export default function App() {
                       ) : (
                         <div className="py-1">
                           {filteredPiecesForSearch.map(p => (
-                            <button key={p.id} onClick={() => { handleAddFromPiece(p, 'dftt'); setSearchPieces(''); }} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-zinc-50 text-left">
+                            <button key={p.id} onClick={() => { handleAddFromPiece(p, 'dft'); setSearchPieces(''); }} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-zinc-50 text-left">
                               <span className="w-6 h-6 bg-zinc-100 text-zinc-600 text-[11px] font-medium rounded flex items-center justify-center">P{pieces.findIndex(x => x.id === p.id) + 1}</span>
                               <div className="flex-1 min-w-0">
                                 <div className="text-sm font-medium truncate">{p.intitule || p.nom}</div>
@@ -5711,8 +5483,7 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Saisie manuelle */}
-                <button onClick={() => handleAddManual('dftt')} className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors whitespace-nowrap">
+                <button onClick={() => handleAddManual('dft')} className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors whitespace-nowrap">
                   Ajouter une période
                 </button>
               </div>
@@ -5720,19 +5491,17 @@ export default function App() {
           )}
 
           {/* Table */}
-          {dfttLignes.length > 0 && (
+          {dftLignes.length > 0 && (
             <div className="bg-white rounded-lg border overflow-hidden">
-              {/* Table header */}
               <div className="flex items-center px-4 py-2 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
                 <div className="w-10 flex-shrink-0"></div>
                 <div className="w-12 flex-shrink-0">Pièce</div>
                 <div className="flex-1 min-w-0">Période & jours</div>
-                <div className="w-32 flex-shrink-0">Commentaire</div>
+                <div className="w-16 text-center flex-shrink-0">Taux</div>
                 <div className="w-28 text-right flex-shrink-0">Montant</div>
               </div>
-              {/* Lines */}
               <div className="divide-y">
-                {dfttLignes.map(l => {
+                {dftLignes.map(l => {
                   const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
                   const pieceCount = l.pieceIds?.length || 0;
 
@@ -5764,220 +5533,7 @@ export default function App() {
                   };
 
                   return (
-                    <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'dftt-ligne', data: l }); }}
-                      className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}>
-                      <div className="w-10 flex-shrink-0"><StatusIcon /></div>
-                      <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
-                      <div className="flex-1 min-w-0 pr-4">
-                        <div className="text-sm font-medium text-zinc-800">{l.label || 'Sans libellé'}</div>
-                        <div className="text-xs text-zinc-400">{l.debut} → {l.fin} · {l.jours}j</div>
-                      </div>
-                      <div className="w-32 text-sm text-zinc-500 truncate flex-shrink-0">{l.commentaire || '—'}</div>
-                      <div className="w-28 text-right flex-shrink-0">
-                        <span className="text-sm font-semibold tabular-nums text-zinc-900">{fmt(l.montant)}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Sticky recap footer */}
-          {dfttLignes.length > 0 && (
-            <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
-              <div className="flex items-start justify-between px-6 py-5">
-                <div className="flex items-center gap-2 text-gray-400 pt-1">
-                  <Calculator className="w-5 h-5" />
-                  <span className="text-sm font-medium">Récapitulatif</span>
-                </div>
-                <div className="text-right min-w-[240px]">
-                  <div className="flex items-center justify-between py-2 px-3 -mx-3 rounded" style={{ backgroundColor: '#F5F5F0' }}>
-                    <span className="font-semibold text-zinc-700">Total DFTT</span>
-                    <span className="text-xl font-bold text-zinc-900 tabular-nums">{fmt(dfttTotal)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // ========== DFTP ==========
-    if (currentLevel.id === 'dftp') {
-      const filteredPiecesForSearch = pieces.filter(p =>
-        !p.used && (p.intitule || p.nom).toLowerCase().includes(searchPieces.toLowerCase())
-      );
-      return (
-        <div>
-          {/* Empty state */}
-          {dftpLignes.length === 0 && processing.length === 0 && (
-            <div
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dftp'); }}
-              className={`bg-white rounded-lg border-2 border-dashed overflow-hidden transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50/50' : 'border-zinc-200'}`}
-            >
-              <div className="px-8 py-12 text-center">
-                {isDragging ? (
-                  <>
-                    <Upload className="w-10 h-10 text-emerald-500 mx-auto mb-4" />
-                    <h3 className="text-[15px] font-semibold text-emerald-700 mb-1">Déposez vos documents ici</h3>
-                    <p className="text-[13px] text-emerald-600">Les fichiers seront analysés automatiquement</p>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
-                      <Calendar className="w-7 h-7 text-zinc-400" />
-                    </div>
-                    <h3 className="text-[15px] font-semibold text-zinc-800 mb-1.5">Aucune période de déficit temporaire partiel</h3>
-                    <p className="text-[13px] text-zinc-400 mb-6 max-w-sm mx-auto">Commencez par ajouter un rapport d'expertise ou créez une période manuellement.</p>
-                    <div className="flex items-center justify-center gap-3 mb-8">
-                      <button onClick={() => document.getElementById('dftp-file-input-empty').click()} className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors">
-                        <Upload className="w-4 h-4" /> Ajouter des documents
-                      </button>
-                      <button onClick={() => handleAddManual('dftp')} className="flex items-center gap-2 px-4 py-2.5 border border-zinc-200 text-zinc-700 text-[13px] font-medium rounded-lg hover:bg-zinc-50 transition-colors">
-                        <Edit3 className="w-4 h-4" /> Créer une période manuellement
-                      </button>
-                    </div>
-                    <input type="file" id="dftp-file-input-empty" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dftp'); e.target.value = ''; } }} />
-                    <div className="border-t border-zinc-100 pt-5">
-                      <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-3">Documents attendus</p>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {['Rapport d\'expertise médicale', 'Rapport médical du médecin expert'].map(doc => (
-                          <span key={doc} className="px-2.5 py-1 bg-zinc-50 text-[12px] text-zinc-500 rounded-md border border-zinc-100">{doc}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Processing */}
-          {processing.length > 0 && (
-            <div className="space-y-2 mb-4">
-              {processing.map(p => (
-                <div key={p.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-zinc-200">
-                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm text-zinc-600">{p.phase === 'upload' ? 'Téléchargement...' : 'Analyse en cours...'}</span>
-                  <span className="text-sm text-zinc-400 truncate">{p.name}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Action header when lines exist */}
-          {dftpLignes.length > 0 && (
-            <div className={`px-4 py-3 border-b transition-colors ${isDragging ? 'bg-emerald-50 border-emerald-200' : 'bg-zinc-50/50'}`}
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dftp'); }}
-            >
-              <input type="file" id="dftp-file-input" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dftp'); e.target.value = ''; } }} />
-              <div className="flex items-center gap-4">
-                {/* Drop zone compacte - cliquable */}
-                <div
-                  onClick={() => document.getElementById('dftp-file-input').click()}
-                  className={`flex items-center gap-3 px-4 py-2.5 border-2 border-dashed rounded-lg flex-1 transition-all cursor-pointer ${
-                    isDragging ? 'border-emerald-400 bg-emerald-50' : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'
-                  }`}
-                >
-                  <Upload className={`w-5 h-5 ${isDragging ? 'text-emerald-600' : 'text-zinc-400'}`} strokeWidth={1.5} />
-                  <span className={`text-[13px] ${isDragging ? 'text-emerald-700 font-medium' : 'text-zinc-500'}`}>
-                    {isDragging ? 'Relâchez pour ajouter' : 'Déposez ou cliquez pour ajouter un document'}
-                  </span>
-                </div>
-
-                {/* Recherche pièce */}
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                  <input
-                    type="text"
-                    placeholder="Rechercher une pièce existante..."
-                    value={searchPieces}
-                    onChange={(e) => setSearchPieces(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 border border-zinc-200 rounded-lg text-[13px] bg-white focus:outline-none focus:ring-2 focus:ring-zinc-300"
-                  />
-                  {searchPieces && (
-                    <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white rounded-lg border shadow-lg max-h-48 overflow-y-auto">
-                      {filteredPiecesForSearch.length === 0 ? (
-                        <p className="text-center text-zinc-500 py-3 text-[13px]">Aucune pièce</p>
-                      ) : (
-                        <div className="py-1">
-                          {filteredPiecesForSearch.map(p => (
-                            <button key={p.id} onClick={() => { handleAddFromPiece(p, 'dftp'); setSearchPieces(''); }} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-zinc-50 text-left">
-                              <span className="w-6 h-6 bg-zinc-100 text-zinc-600 text-[11px] font-medium rounded flex items-center justify-center">P{pieces.findIndex(x => x.id === p.id) + 1}</span>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium truncate">{p.intitule || p.nom}</div>
-                                <div className="text-xs text-gray-500">{p.type}</div>
-                              </div>
-                              <Plus className="w-4 h-4 text-blue-600" />
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Saisie manuelle */}
-                <button onClick={() => handleAddManual('dftp')} className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors whitespace-nowrap">
-                  Ajouter une période
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Table */}
-          {dftpLignes.length > 0 && (
-            <div className="bg-white rounded-lg border overflow-hidden">
-              {/* Table header */}
-              <div className="flex items-center px-4 py-2 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
-                <div className="w-10 flex-shrink-0"></div>
-                <div className="w-12 flex-shrink-0">Pièce</div>
-                <div className="flex-1 min-w-0">Période & jours</div>
-                <div className="w-16 text-center flex-shrink-0">% DFTP</div>
-                <div className="w-24 text-center flex-shrink-0">Déduction</div>
-                <div className="w-28 text-right flex-shrink-0">Montant</div>
-              </div>
-              {/* Lines */}
-              <div className="divide-y">
-                {dftpLignes.map(l => {
-                  const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                  const pieceCount = l.pieceIds?.length || 0;
-
-                  const StatusIcon = () => {
-                    if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-                    return null;
-                  };
-
-                  const PieceIndicator = () => {
-                    if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
-                    return (
-                      <div className="relative group/piece">
-                        <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
-                          <FileText className="w-3.5 h-3.5" />
-                          {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
-                        </span>
-                        <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
-                          <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
-                          <div className="space-y-1">
-                            {l.pieceIds?.map(pid => {
-                              const piece = getPiece(pid);
-                              return <div key={pid} className="flex items-center gap-2 text-xs"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
-                            })}
-                          </div>
-                          <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
-                        </div>
-                      </div>
-                    );
-                  };
-
-                  return (
-                    <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'dftp-ligne', data: l }); }}
+                    <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'dft-ligne', data: l }); }}
                       className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}>
                       <div className="w-10 flex-shrink-0"><StatusIcon /></div>
                       <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
@@ -5986,9 +5542,8 @@ export default function App() {
                         <div className="text-xs text-zinc-400">{l.debut} → {l.fin} · {l.jours}j</div>
                       </div>
                       <div className="w-16 text-center flex-shrink-0">
-                        <span className={`px-2 py-0.5 text-xs font-bold rounded ${l.taux >= 50 ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700'}`}>{l.taux}%</span>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${l.taux === 100 ? 'bg-zinc-100 text-zinc-700' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>{l.taux || 100}%</span>
                       </div>
-                      <div className="w-24 text-sm text-zinc-500 text-center flex-shrink-0">{l.deductionDftt ? `−${l.joursDfttDeduits}j` : '—'}</div>
                       <div className="w-28 text-right flex-shrink-0">
                         <span className="text-sm font-semibold tabular-nums text-zinc-900">{fmt(l.montant)}</span>
                       </div>
@@ -6000,7 +5555,7 @@ export default function App() {
           )}
 
           {/* Sticky recap footer */}
-          {dftpLignes.length > 0 && (
+          {dftLignes.length > 0 && (
             <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
               <div className="flex items-start justify-between px-6 py-5">
                 <div className="flex items-center gap-2 text-gray-400 pt-1">
@@ -6009,8 +5564,8 @@ export default function App() {
                 </div>
                 <div className="text-right min-w-[240px]">
                   <div className="flex items-center justify-between py-2 px-3 -mx-3 rounded" style={{ backgroundColor: '#F5F5F0' }}>
-                    <span className="font-semibold text-zinc-700">Total DFTP</span>
-                    <span className="text-xl font-bold text-zinc-900 tabular-nums">{fmt(dftpTotal)}</span>
+                    <span className="font-semibold text-zinc-700">Total DFT</span>
+                    <span className="text-xl font-bold text-zinc-900 tabular-nums">{fmt(dftTotal)}</span>
                   </div>
                 </div>
               </div>
@@ -6020,6 +5575,7 @@ export default function App() {
       );
     }
 
+
     return null;
   };
 
@@ -6027,8 +5583,7 @@ export default function App() {
   const posteDescriptions = {
     dsa: "Ensemble des frais médicaux, pharmaceutiques, paramédicaux et d'hospitalisation engagés entre la date du fait dommageable et la consolidation.",
     pgpa: "Pertes de revenus professionnels subies entre le fait dommageable et la consolidation, déduction faite des indemnités journalières perçues.",
-    dftt: "Indemnisation de la perte de qualité de vie pendant les périodes d'incapacité temporaire totale (hospitalisation, alitement).",
-    dftp: "Indemnisation de la perte de qualité de vie pendant les périodes d'incapacité temporaire partielle.",
+    dft: "Indemnisation de la perte de qualité de vie pendant les périodes d'incapacité temporaire (hospitalisation, rééducation, gêne résiduelle).",
     pgpf: "Pertes de revenus professionnels subies après la consolidation, évaluées selon la méthode du calcul ou de la capitalisation."
   };
 
