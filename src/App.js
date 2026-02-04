@@ -3088,7 +3088,7 @@ export default function App() {
                                     {getPieceLabel(pid)}
                                   </span>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{piece.intitule || piece.nom}</p>
+                                    <p className="text-sm font-medium truncate">Rapport médical expertise</p>
                                     <p className="text-xs text-gray-500">{piece.type}</p>
                                   </div>
                                   <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded">
@@ -3117,7 +3117,7 @@ export default function App() {
                                   <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
                                     className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
                                     <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
-                                    <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
+                                    <span className="truncate flex-1">Rapport médical expertise</span>
                                     <span className="text-xs text-gray-400">{piece.type}</span>
                                     <Plus className="w-4 h-4 text-blue-600" />
                                   </button>
@@ -5578,8 +5578,7 @@ export default function App() {
                           <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
                           <div className="space-y-1">
                             {l.pieceIds?.map(pid => {
-                              const piece = getPiece(pid);
-                              return <div key={pid} className="flex items-center gap-2 text-xs"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
+                              return <div key={pid} className="flex items-center gap-2 text-xs"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">Rapport médical expertise</span></div>;
                             })}
                           </div>
                           <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
