@@ -173,6 +173,18 @@ export default function App() {
     return digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
   };
 
+  // Calcul jours entre deux dates DD/MM/YYYY (inclusif)
+  const calcDaysBetween = (dateDebut, dateFin) => {
+    if (!dateDebut || !dateFin || dateDebut.length < 10 || dateFin.length < 10) return null;
+    const [dD, mD, yD] = dateDebut.split('/');
+    const [dF, mF, yF] = dateFin.split('/');
+    const debut = new Date(yD, mD - 1, dD);
+    const fin = new Date(yF, mF - 1, dF);
+    if (isNaN(debut.getTime()) || isNaN(fin.getTime())) return null;
+    const diff = Math.floor((fin - debut) / (1000 * 60 * 60 * 24));
+    return diff >= 0 ? diff + 1 : null;
+  };
+
   // ========== INFORMATIONS DOSSIER ==========
   const [dossierStatut, setDossierStatut] = useState('ouvert'); // 'ouvert' | 'fermé' | 'archive'
   const [dossierRef, setDossierRef] = useState('DOS-2024-001');
@@ -3030,10 +3042,9 @@ export default function App() {
                           </div>
                         </div>
 
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Nombre de jours indemnisés</label>
-                          <input id="pgpa-ij-jours" type="number" defaultValue={data.jours || ''} placeholder="0" className="mt-1 w-full px-3 py-2 border rounded-lg" />
-                          <p className="mt-1 text-xs text-gray-500">Peut différer de la durée calendaire (carence, plafond...)</p>
+                        <div className="p-3 bg-blue-50 rounded-lg flex items-center justify-between">
+                          <span className="text-sm text-blue-700">Durée calculée</span>
+                          <span className="font-semibold text-blue-900">{data.jours || '—'} jours</span>
                         </div>
                       </div>
                     </div>
@@ -3154,7 +3165,10 @@ export default function App() {
                           <div><label className="block text-xs text-gray-500 mb-1">Date début</label><input type="text" id="dft-debut" defaultValue={data.debut} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} /></div>
                           <div><label className="block text-xs text-gray-500 mb-1">Date fin</label><input type="text" id="dft-fin" defaultValue={data.fin} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} /></div>
                         </div>
-                        <div className="mt-3"><label className="block text-xs text-gray-500 mb-1">Total jours</label><input type="number" id="dft-jours" defaultValue={data.jours} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                        <div className="mt-3 p-2.5 bg-blue-50 rounded-lg flex items-center justify-between">
+                          <span className="text-xs text-blue-700">Durée calculée</span>
+                          <span className="text-sm font-semibold text-blue-900">{data.jours || '—'} jours</span>
+                        </div>
                       </div>
                       <div>
                         <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Paramètres</h4>
@@ -3431,13 +3445,16 @@ export default function App() {
                   <div className="flex gap-2">
                     <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
                     <button onClick={() => {
+                      const debutVal = document.getElementById('pgpa-percu-debut')?.value || data.periodeDebut;
+                      const finVal = document.getElementById('pgpa-percu-fin')?.value || data.periodeFin;
                       const updatedLigne = {
                         ...data,
                         label: document.getElementById('pgpa-percu-label')?.value || data.label,
                         tiers: document.getElementById('pgpa-percu-tiers')?.value || data.tiers,
                         commentaire: document.getElementById('pgpa-percu-commentaire')?.value || '',
-                        periodeDebut: document.getElementById('pgpa-percu-debut')?.value || data.periodeDebut,
-                        periodeFin: document.getElementById('pgpa-percu-fin')?.value || data.periodeFin,
+                        periodeDebut: debutVal,
+                        periodeFin: finVal,
+                        dureeJours: calcDaysBetween(debutVal, finVal) || data.dureeJours || 0,
                         montant: parseFloat(document.getElementById('pgpa-percu-montant')?.value) || data.montant,
                         unite: document.getElementById('pgpa-percu-unite')?.value || data.unite,
                         noRevalo: document.getElementById('pgpa-percu-no-revalo')?.checked ?? false,
@@ -3473,14 +3490,16 @@ export default function App() {
                     <button onClick={() => {
                       const montantBrut = parseFloat(document.getElementById('pgpa-ij-brut')?.value) || 0;
                       const csgCrds = parseFloat(document.getElementById('pgpa-ij-csg')?.value) || 0;
+                      const debutVal = document.getElementById('pgpa-ij-debut')?.value || data.periodeDebut;
+                      const finVal = document.getElementById('pgpa-ij-fin')?.value || data.periodeFin;
                       const updatedLigne = {
                         ...data,
                         tiers: document.getElementById('pgpa-ij-tiers')?.value || data.tiers,
                         label: document.getElementById('pgpa-ij-label')?.value || data.label,
                         commentaire: document.getElementById('pgpa-ij-commentaire')?.value || '',
-                        periodeDebut: document.getElementById('pgpa-ij-debut')?.value || data.periodeDebut,
-                        periodeFin: document.getElementById('pgpa-ij-fin')?.value || data.periodeFin,
-                        jours: parseInt(document.getElementById('pgpa-ij-jours')?.value) || data.jours,
+                        periodeDebut: debutVal,
+                        periodeFin: finVal,
+                        jours: calcDaysBetween(debutVal, finVal) || data.jours || 0,
                         montantBrut: montantBrut,
                         csgCrds: csgCrds,
                         montant: montantBrut - csgCrds,
@@ -3510,14 +3529,16 @@ export default function App() {
                   <div className="flex gap-2">
                     <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
                     <button onClick={() => {
-                      const jours = parseInt(document.getElementById('dft-jours')?.value) || data.jours;
+                      const debutVal = document.getElementById('dft-debut')?.value || data.debut;
+                      const finVal = document.getElementById('dft-fin')?.value || data.fin;
+                      const jours = calcDaysBetween(debutVal, finVal) || data.jours || 0;
                       const taux = parseInt(document.getElementById('dft-taux')?.value) || data.taux || 100;
                       const baseJ = parseFloat(document.getElementById('dft-base')?.value) || chiffrageParams.baseJournaliereDFT || 33;
                       const updatedLigne = {
                         ...data,
                         label: document.getElementById('dft-label')?.value || data.label,
-                        debut: document.getElementById('dft-debut')?.value || data.debut,
-                        fin: document.getElementById('dft-fin')?.value || data.fin,
+                        debut: debutVal,
+                        fin: finVal,
                         jours, taux,
                         commentaire: document.getElementById('dft-commentaire')?.value || '',
                         montant: Math.round(jours * taux / 100 * baseJ),
