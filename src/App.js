@@ -2205,85 +2205,68 @@ export default function App() {
                       {/* Section Dates */}
                       <div>
                         <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Dates</h4>
-                        
                         <div className="space-y-3">
-                          {/* Toggle ponctuel / périodique */}
-                          <div className="flex items-center gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input 
-                                type="radio" 
-                                name="date-type" 
-                                value="ponctuel" 
-                                defaultChecked={!data.isPeriodique}
-                                className="text-blue-600"
-                              />
-                              <span className="text-sm">Ponctuelle</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input 
-                                type="radio" 
-                                name="date-type" 
-                                value="periodique" 
-                                defaultChecked={data.isPeriodique}
-                                className="text-blue-600"
-                              />
-                              <span className="text-sm">Périodique</span>
-                            </label>
+                          {/* Toggle Ponctuelle / Période */}
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Type de dépense</label>
+                            <select
+                              id="edit-date-type"
+                              defaultValue={data.isPeriodique ? 'periode' : 'ponctuelle'}
+                              className="mt-1 w-full px-3 py-2 border rounded-lg"
+                              onChange={(e) => {
+                                document.getElementById('dsa-periode-fields').style.display = e.target.value === 'periode' ? 'block' : 'none';
+                                document.getElementById('dsa-ponctuelle-label').textContent = e.target.value === 'periode' ? 'Date de début' : 'Date de la dépense';
+                              }}
+                            >
+                              <option value="ponctuelle">Ponctuelle</option>
+                              <option value="periode">Période</option>
+                            </select>
                           </div>
-                          
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-sm font-medium text-gray-700">Date dépense</label>
-                              <input
-                                type="text"
-                                defaultValue={data.date || ''}
-                                id="edit-date"
-                                placeholder="JJ/MM/AAAA"
-                                maxLength={10}
-                                onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
-                                className={`mt-1 w-full px-3 py-2 border rounded-lg ${iaFieldClass(data.date)}`}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium text-gray-700">Date fin</label>
-                              <input
-                                type="text"
-                                defaultValue={data.dateFin || ''}
-                                id="edit-date-fin"
-                                placeholder="JJ/MM/AAAA"
-                                maxLength={10}
-                                onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
-                                className="mt-1 w-full px-3 py-2 border rounded-lg"
-                              />
-                            </div>
+
+                          {/* Date principale (toujours visible) */}
+                          <div>
+                            <label id="dsa-ponctuelle-label" className="text-sm font-medium text-gray-700">
+                              {data.isPeriodique ? 'Date de début' : 'Date de la dépense'}
+                            </label>
+                            <input type="text" defaultValue={data.date || ''} id="edit-date"
+                              placeholder="JJ/MM/AAAA" maxLength={10}
+                              onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
+                              className={`mt-1 w-full px-3 py-2 border rounded-lg ${iaFieldClass(data.date)}`}
+                            />
                           </div>
-                          
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-sm font-medium text-gray-700">Périodicité</label>
-                              <select 
-                                defaultValue={data.periodicite || ''} 
-                                id="edit-periodicite" 
-                                className="mt-1 w-full px-3 py-2 border rounded-lg"
-                              >
-                                <option value="">—</option>
-                                <option>Quotidien</option>
-                                <option>Hebdomadaire</option>
-                                <option>Mensuel</option>
-                                <option>Annuel</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium text-gray-700">Date devis</label>
-                              <input
-                                type="text"
-                                defaultValue={data.dateDevis || ''}
-                                id="edit-date-devis"
-                                placeholder="JJ/MM/AAAA"
-                                maxLength={10}
-                                onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
-                                className="mt-1 w-full px-3 py-2 border rounded-lg"
-                              />
+
+                          {/* Champs période (masqués si ponctuelle) */}
+                          <div id="dsa-periode-fields" style={{ display: data.isPeriodique ? 'block' : 'none' }}>
+                            <div className="space-y-3">
+                              <div>
+                                <label className="text-sm font-medium text-gray-700">Date de fin</label>
+                                <input type="text" defaultValue={data.dateFin || ''} id="edit-date-fin"
+                                  placeholder="JJ/MM/AAAA" maxLength={10}
+                                  onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
+                                  className="mt-1 w-full px-3 py-2 border rounded-lg"
+                                />
+                              </div>
+
+                              {/* Durée calculée (read-only, comme DFT) */}
+                              <div className="p-2.5 bg-blue-50 rounded-lg flex items-center justify-between">
+                                <span className="text-xs text-blue-700">Durée calculée</span>
+                                <span className="text-sm font-semibold text-blue-900">
+                                  {calcDaysBetween(data.date, data.dateFin) || '—'} jours
+                                </span>
+                              </div>
+
+                              {/* Périodicité */}
+                              <div>
+                                <label className="text-sm font-medium text-gray-700">Périodicité</label>
+                                <select defaultValue={data.periodicite || ''} id="edit-periodicite"
+                                  className="mt-1 w-full px-3 py-2 border rounded-lg">
+                                  <option value="">—</option>
+                                  <option>Quotidien</option>
+                                  <option>Hebdomadaire</option>
+                                  <option>Mensuel</option>
+                                  <option>Annuel</option>
+                                </select>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -3243,14 +3226,24 @@ export default function App() {
                   </button>
                   <div className="flex gap-2">
                     <button onClick={() => { setEditPanel(null); setShowPreview(false); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
-                    <button onClick={() => handleSaveLigne(data.id, {
-                      label: document.getElementById('edit-label')?.value || 'Dépense',
-                      type: document.getElementById('edit-type')?.value || 'Autre',
-                      date: document.getElementById('edit-date')?.value || '',
-                      montant: parseFloat(document.getElementById('edit-montant')?.value) || 0,
-                      tiers: document.getElementById('edit-tiers')?.value || '',
-                      dejaRembourse: parseFloat(document.getElementById('edit-rembourse')?.value) || 0
-                    })} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                    <button onClick={() => {
+                      const isPeriode = document.getElementById('edit-date-type')?.value === 'periode';
+                      const dateVal = document.getElementById('edit-date')?.value || '';
+                      const dateFinVal = isPeriode ? (document.getElementById('edit-date-fin')?.value || '') : '';
+                      const periodiciteVal = isPeriode ? (document.getElementById('edit-periodicite')?.value || '') : '';
+                      handleSaveLigne(data.id, {
+                        label: document.getElementById('edit-label')?.value || 'Dépense',
+                        type: document.getElementById('edit-type')?.value || 'Autre',
+                        date: dateVal,
+                        dateFin: dateFinVal,
+                        isPeriodique: isPeriode,
+                        periodicite: periodiciteVal,
+                        dureeJours: isPeriode ? (calcDaysBetween(dateVal, dateFinVal) || 0) : null,
+                        montant: parseFloat(document.getElementById('edit-montant')?.value) || 0,
+                        tiers: document.getElementById('edit-tiers')?.value || '',
+                        dejaRembourse: parseFloat(document.getElementById('edit-rembourse')?.value) || 0
+                      });
+                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
                   </div>
                 </div>
               )}
