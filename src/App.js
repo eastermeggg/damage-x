@@ -165,6 +165,14 @@ export default function App() {
     return `${d}/${m}/${y}`;
   };
 
+  // Auto-format date input: 28091994 → 28/09/1994
+  const formatDateInput = (value) => {
+    const digits = value.replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return digits.slice(0, 2) + '/' + digits.slice(2);
+    return digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+  };
+
   // ========== INFORMATIONS DOSSIER ==========
   const [dossierStatut, setDossierStatut] = useState('ouvert'); // 'ouvert' | 'fermé' | 'archive'
   const [dossierRef, setDossierRef] = useState('DOS-2024-001');
@@ -2214,21 +2222,25 @@ export default function App() {
                           <div className="grid grid-cols-2 gap-3">
                             <div>
                               <label className="text-sm font-medium text-gray-700">Date dépense</label>
-                              <input 
-                                type="text" 
-                                defaultValue={data.date || ''} 
-                                id="edit-date" 
-                                placeholder="JJ/MM/AAAA" 
+                              <input
+                                type="text"
+                                defaultValue={data.date || ''}
+                                id="edit-date"
+                                placeholder="JJ/MM/AAAA"
+                                maxLength={10}
+                                onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
                                 className={`mt-1 w-full px-3 py-2 border rounded-lg ${iaFieldClass(data.date)}`}
                               />
                             </div>
                             <div>
                               <label className="text-sm font-medium text-gray-700">Date fin</label>
-                              <input 
-                                type="text" 
-                                defaultValue={data.dateFin || ''} 
-                                id="edit-date-fin" 
-                                placeholder="JJ/MM/AAAA" 
+                              <input
+                                type="text"
+                                defaultValue={data.dateFin || ''}
+                                id="edit-date-fin"
+                                placeholder="JJ/MM/AAAA"
+                                maxLength={10}
+                                onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
                                 className="mt-1 w-full px-3 py-2 border rounded-lg"
                               />
                             </div>
@@ -2251,11 +2263,13 @@ export default function App() {
                             </div>
                             <div>
                               <label className="text-sm font-medium text-gray-700">Date devis</label>
-                              <input 
-                                type="text" 
-                                defaultValue={data.dateDevis || ''} 
-                                id="edit-date-devis" 
-                                placeholder="JJ/MM/AAAA" 
+                              <input
+                                type="text"
+                                defaultValue={data.dateDevis || ''}
+                                id="edit-date-devis"
+                                placeholder="JJ/MM/AAAA"
+                                maxLength={10}
+                                onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
                                 className="mt-1 w-full px-3 py-2 border rounded-lg"
                               />
                             </div>
@@ -2467,14 +2481,14 @@ export default function App() {
                           </select>
                         </FormField>
                         <FormField label="Date de naissance">
-                          <input type="text" id="victime-naissance" defaultValue={victimeData.dateNaissance} className={inputClass} placeholder="JJ/MM/AAAA" />
+                          <input type="text" id="victime-naissance" defaultValue={victimeData.dateNaissance} className={inputClass} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                         </FormField>
                       </div>
                     </FormSection>
                     
                     <FormSection title="Décès" noBorder>
                       <FormField label="Date de décès" hint="Laisser vide si non applicable">
-                        <input type="text" id="victime-deces" defaultValue={victimeData.dateDeces || ''} className={inputClass} placeholder="JJ/MM/AAAA" />
+                        <input type="text" id="victime-deces" defaultValue={victimeData.dateDeces || ''} className={inputClass} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                       </FormField>
                     </FormSection>
                   </>
@@ -2499,13 +2513,13 @@ export default function App() {
                     <FormSection title="Dates clés">
                       <div className="grid grid-cols-2 gap-4">
                         <FormField label="Date de l'accident">
-                          <input type="text" id="fait-date-accident" defaultValue={faitGenerateur.dateAccident} className={inputClass} placeholder="JJ/MM/AAAA" />
+                          <input type="text" id="fait-date-accident" defaultValue={faitGenerateur.dateAccident} className={inputClass} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                         </FormField>
                         <FormField label="Date première constatation">
-                          <input type="text" id="fait-date-constat" defaultValue={faitGenerateur.datePremiereConstatation} className={inputClass} placeholder="JJ/MM/AAAA" />
+                          <input type="text" id="fait-date-constat" defaultValue={faitGenerateur.datePremiereConstatation} className={inputClass} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                         </FormField>
                         <FormField label="Date de consolidation">
-                          <input type="text" id="fait-date-conso" defaultValue={faitGenerateur.dateConsolidation} className={inputClass} placeholder="JJ/MM/AAAA" />
+                          <input type="text" id="fait-date-conso" defaultValue={faitGenerateur.dateConsolidation} className={inputClass} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                         </FormField>
                       </div>
                     </FormSection>
@@ -2570,7 +2584,7 @@ export default function App() {
                         </div>
                         <div>
                           <label className="text-sm font-medium text-gray-700">Date de naissance</label>
-                          <input type="text" id="vi-naissance" defaultValue={data?.dateNaissance || ''} className="mt-1 w-full px-3 py-2 border rounded-lg" placeholder="JJ/MM/AAAA" />
+                          <input type="text" id="vi-naissance" defaultValue={data?.dateNaissance || ''} className="mt-1 w-full px-3 py-2 border rounded-lg" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                         </div>
                       </div>
                     </div>
@@ -2624,7 +2638,7 @@ export default function App() {
                         </select>
                       </FormField>
                       <FormField label="Date d'ouverture">
-                        <input type="text" id="dossier-date-ouverture" defaultValue={dossierDateOuverture} className={inputClass} placeholder="JJ/MM/AAAA" />
+                        <input type="text" id="dossier-date-ouverture" defaultValue={dossierDateOuverture} className={inputClass} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                       </FormField>
                     </FormSection>
 
@@ -2862,11 +2876,11 @@ export default function App() {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="text-sm font-medium text-gray-700">Date de début</label>
-                            <input id="pgpa-percu-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                            <input id="pgpa-percu-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="mt-1 w-full px-3 py-2 border rounded-lg" />
                           </div>
                           <div>
                             <label className="text-sm font-medium text-gray-700">Date de fin</label>
-                            <input id="pgpa-percu-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                            <input id="pgpa-percu-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="mt-1 w-full px-3 py-2 border rounded-lg" />
                           </div>
                         </div>
 
@@ -3008,11 +3022,11 @@ export default function App() {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="text-sm font-medium text-gray-700">Date de début</label>
-                            <input id="pgpa-ij-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                            <input id="pgpa-ij-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="mt-1 w-full px-3 py-2 border rounded-lg" />
                           </div>
                           <div>
                             <label className="text-sm font-medium text-gray-700">Date de fin</label>
-                            <input id="pgpa-ij-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                            <input id="pgpa-ij-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="mt-1 w-full px-3 py-2 border rounded-lg" />
                           </div>
                         </div>
 
@@ -3137,8 +3151,8 @@ export default function App() {
                       <div>
                         <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Période</h4>
                         <div className="grid grid-cols-2 gap-3">
-                          <div><label className="block text-xs text-gray-500 mb-1">Date début</label><input type="text" id="dft-debut" defaultValue={data.debut} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" /></div>
-                          <div><label className="block text-xs text-gray-500 mb-1">Date fin</label><input type="text" id="dft-fin" defaultValue={data.fin} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" /></div>
+                          <div><label className="block text-xs text-gray-500 mb-1">Date début</label><input type="text" id="dft-debut" defaultValue={data.debut} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} /></div>
+                          <div><label className="block text-xs text-gray-500 mb-1">Date fin</label><input type="text" id="dft-fin" defaultValue={data.fin} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} /></div>
                         </div>
                         <div className="mt-3"><label className="block text-xs text-gray-500 mb-1">Total jours</label><input type="number" id="dft-jours" defaultValue={data.jours} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
                       </div>
@@ -5792,7 +5806,8 @@ export default function App() {
                       type="text"
                       placeholder="JJ/MM/AAAA"
                       value={formData.dateNaissance}
-                      onChange={(e) => updateFormData('dateNaissance', e.target.value)}
+                      onChange={(e) => updateFormData('dateNaissance', formatDateInput(e.target.value))}
+                      maxLength={10}
                       className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                     />
                     {computedAge !== null && <div className="text-[11px] text-zinc-400 mt-1">{computedAge} ans</div>}
@@ -5803,7 +5818,8 @@ export default function App() {
                       type="text"
                       placeholder="JJ/MM/AAAA"
                       value={formData.dateDeces}
-                      onChange={(e) => updateFormData('dateDeces', e.target.value)}
+                      onChange={(e) => updateFormData('dateDeces', formatDateInput(e.target.value))}
+                      maxLength={10}
                       className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                     />
                   </div>
@@ -5832,7 +5848,8 @@ export default function App() {
                       type="text"
                       placeholder="JJ/MM/AAAA"
                       value={formData.dateAccident}
-                      onChange={(e) => updateFormData('dateAccident', e.target.value)}
+                      onChange={(e) => updateFormData('dateAccident', formatDateInput(e.target.value))}
+                      maxLength={10}
                       className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                     />
                   </div>
@@ -5842,7 +5859,8 @@ export default function App() {
                       type="text"
                       placeholder="JJ/MM/AAAA"
                       value={formData.dateConsolidation}
-                      onChange={(e) => updateFormData('dateConsolidation', e.target.value)}
+                      onChange={(e) => updateFormData('dateConsolidation', formatDateInput(e.target.value))}
+                      maxLength={10}
                       className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                     />
                   </div>
@@ -5852,7 +5870,8 @@ export default function App() {
                       type="text"
                       placeholder="JJ/MM/AAAA"
                       value={formData.dateLiquidation}
-                      onChange={(e) => updateFormData('dateLiquidation', e.target.value)}
+                      onChange={(e) => updateFormData('dateLiquidation', formatDateInput(e.target.value))}
+                      maxLength={10}
                       className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                     />
                   </div>
