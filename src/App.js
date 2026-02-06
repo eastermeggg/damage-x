@@ -110,6 +110,9 @@ export default function App() {
 
   const typesFaitGenerateur = ['Accident de la route', 'Accident du travail', 'Accident médical', 'Agression', 'Accident domestique', 'Autre'];
 
+  // ========== NOTES / ARGUMENTAIRE PAR POSTE ==========
+  const [posteNotes, setPosteNotes] = useState({ dsa: '', dft: '', pgpa: '' });
+
   // ========== PARAMÈTRES CHIFFRAGE (niveau dossier) ==========
   const [chiffrageParams, setChiffrageParams] = useState({
     // Dates clés
@@ -173,6 +176,20 @@ export default function App() {
     return digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
   };
 
+  // Date picker helpers
+  const openDatePicker = (targetId) => {
+    const picker = document.getElementById(targetId + '-picker');
+    if (picker) picker.showPicker();
+  };
+  const handleDatePick = (e, targetId) => {
+    const val = e.target.value;
+    if (val) {
+      const formatted = formatDateFR(val);
+      const target = document.getElementById(targetId);
+      if (target) { target.value = formatted; target.dispatchEvent(new Event('input', { bubbles: true })); }
+    }
+  };
+
   // Calcul jours entre deux dates DD/MM/YYYY (inclusif)
   const calcDaysBetween = (dateDebut, dateFin) => {
     if (!dateDebut || !dateFin || dateDebut.length < 10 || dateFin.length < 10) return null;
@@ -207,7 +224,7 @@ export default function App() {
     { id: 'p-2', nom: 'Factures kiné (lot).pdf', nomOriginal: 'kine_factures_lot.pdf', intitule: 'Factures kinésithérapie Cabinet Martin', date: '01/04/2023', type: 'Facture', used: true },
     { id: 'p-3', nom: 'Bulletins salaire 2022.pdf', nomOriginal: 'bulletins_2022.pdf', intitule: 'Bulletins de salaire année 2022', date: '10/01/2023', type: 'Bulletin', used: true },
     { id: 'p-4', nom: 'Attestation CPAM.pdf', nomOriginal: 'cpam_attestation.pdf', intitule: 'Attestation de versement IJ CPAM', date: '20/05/2023', type: 'Attestation', used: true },
-    { id: 'p-5', nom: 'Rapport Dr. Martin.pdf', nomOriginal: 'rapport_expertise_martin.pdf', intitule: 'Rapport Médical Médecin Expert', date: '12/09/2024', type: 'Rapport', used: true },
+    { id: 'p-5', nom: 'Rapport Dr. Martin.pdf', nomOriginal: 'rapport_expertise_martin.pdf', intitule: "Rapport d'expertise", date: '12/09/2024', type: 'Rapport', used: true },
     { id: 'p-6', nom: 'Ordonnance médicaments.pdf', nomOriginal: 'ordonnance_jul2023.pdf', intitule: 'Ordonnance médicaments juillet', date: '18/07/2023', type: 'Ordonnance', used: true },
     { id: 'p-7', nom: 'Facture pharmacie.pdf', nomOriginal: 'pharmacie_2023.pdf', intitule: 'Facture pharmacie des Lilas', date: '20/07/2023', type: 'Facture', used: true },
     { id: 'p-8', nom: 'Compte-rendu urgences.pdf', nomOriginal: 'cr_urgences_150323.pdf', intitule: 'Compte-rendu passage urgences', date: '15/03/2023', type: 'Compte-rendu', used: true },
@@ -320,10 +337,10 @@ export default function App() {
     setResumeAffaire(data.resumeAffaire ?? '');
     setCommentaireExpertise(data.commentaireExpertise ?? '');
     setVictimesIndirectes(data.victimesIndirectes ?? []);
-    // Migration: corriger l'intitulé du rapport médical si ancien format
+    // Migration: corriger l'intitulé du rapport d'expertise si ancien format
     const loadedPieces = data.pieces ?? [];
     setPieces(loadedPieces.map(p =>
-      p.id === 'p-5' ? { ...p, intitule: 'Rapport Médical Médecin Expert', type: 'Rapport' } : p
+      p.id === 'p-5' ? { ...p, intitule: "Rapport d'expertise", type: 'Rapport' } : p
     ));
     setDsaLignes(data.dsaLignes ?? []);
     setPgpaData(data.pgpaData ?? EMPTY_DOSSIER.pgpaData);
@@ -1790,6 +1807,19 @@ export default function App() {
                     <p className="text-[11px] text-zinc-400 mt-1">Utilisée par défaut pour chaque ligne</p>
                   </div>
                 )}
+                {/* Notes / Argumentaire */}
+                {(currentLevel.id === 'dsa' || currentLevel.id === 'dft' || currentLevel.id === 'pgpa') && (
+                  <div className="mt-3">
+                    <label className="block text-[12px] text-zinc-500 mb-1">Notes / Argumentaire</label>
+                    <textarea
+                      value={posteNotes[currentLevel.id] || ''}
+                      onChange={(e) => setPosteNotes(prev => ({ ...prev, [currentLevel.id]: e.target.value }))}
+                      rows={3}
+                      className="w-full px-2.5 py-1.5 text-[13px] border border-zinc-200 rounded-md resize-none"
+                      placeholder="Notes sur ce poste..."
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -2228,11 +2258,15 @@ export default function App() {
                             <label id="dsa-ponctuelle-label" className="text-sm font-medium text-gray-700">
                               {data.isPeriodique ? 'Date de début' : 'Date de la dépense'}
                             </label>
-                            <input type="text" defaultValue={data.date || ''} id="edit-date"
-                              placeholder="JJ/MM/AAAA" maxLength={10}
-                              onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
-                              className={`mt-1 w-full px-3 py-2 border rounded-lg ${iaFieldClass(data.date)}`}
-                            />
+                            <div className="relative mt-1">
+                              <input type="text" defaultValue={data.date || ''} id="edit-date"
+                                placeholder="JJ/MM/AAAA" maxLength={10}
+                                onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
+                                className={`w-full px-3 py-2 pr-9 border rounded-lg ${iaFieldClass(data.date)}`}
+                              />
+                              <input type="date" id="edit-date-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'edit-date')} />
+                              <button type="button" onClick={() => openDatePicker('edit-date')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            </div>
                           </div>
 
                           {/* Champs période (masqués si ponctuelle) */}
@@ -2240,11 +2274,15 @@ export default function App() {
                             <div className="space-y-3">
                               <div>
                                 <label className="text-sm font-medium text-gray-700">Date de fin</label>
-                                <input type="text" defaultValue={data.dateFin || ''} id="edit-date-fin"
-                                  placeholder="JJ/MM/AAAA" maxLength={10}
-                                  onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
-                                  className="mt-1 w-full px-3 py-2 border rounded-lg"
-                                />
+                                <div className="relative mt-1">
+                                  <input type="text" defaultValue={data.dateFin || ''} id="edit-date-fin"
+                                    placeholder="JJ/MM/AAAA" maxLength={10}
+                                    onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
+                                    className="w-full px-3 py-2 pr-9 border rounded-lg"
+                                  />
+                                  <input type="date" id="edit-date-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'edit-date-fin')} />
+                                  <button type="button" onClick={() => openDatePicker('edit-date-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                                </div>
                               </div>
 
                               {/* Durée calculée (read-only, comme DFT) */}
@@ -2476,14 +2514,22 @@ export default function App() {
                           </select>
                         </FormField>
                         <FormField label="Date de naissance">
-                          <input type="text" id="victime-naissance" defaultValue={victimeData.dateNaissance} className={inputClass} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                          <div className="relative">
+                            <input type="text" id="victime-naissance" defaultValue={victimeData.dateNaissance} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                            <input type="date" id="victime-naissance-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'victime-naissance')} />
+                            <button type="button" onClick={() => openDatePicker('victime-naissance')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                          </div>
                         </FormField>
                       </div>
                     </FormSection>
                     
                     <FormSection title="Décès" noBorder>
                       <FormField label="Date de décès" hint="Laisser vide si non applicable">
-                        <input type="text" id="victime-deces" defaultValue={victimeData.dateDeces || ''} className={inputClass} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                        <div className="relative">
+                          <input type="text" id="victime-deces" defaultValue={victimeData.dateDeces || ''} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                          <input type="date" id="victime-deces-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'victime-deces')} />
+                          <button type="button" onClick={() => openDatePicker('victime-deces')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                        </div>
                       </FormField>
                     </FormSection>
                   </>
@@ -2508,13 +2554,25 @@ export default function App() {
                     <FormSection title="Dates clés">
                       <div className="grid grid-cols-2 gap-4">
                         <FormField label="Date de l'accident">
-                          <input type="text" id="fait-date-accident" defaultValue={faitGenerateur.dateAccident} className={inputClass} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                          <div className="relative">
+                            <input type="text" id="fait-date-accident" defaultValue={faitGenerateur.dateAccident} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                            <input type="date" id="fait-date-accident-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'fait-date-accident')} />
+                            <button type="button" onClick={() => openDatePicker('fait-date-accident')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                          </div>
                         </FormField>
                         <FormField label="Date première constatation">
-                          <input type="text" id="fait-date-constat" defaultValue={faitGenerateur.datePremiereConstatation} className={inputClass} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                          <div className="relative">
+                            <input type="text" id="fait-date-constat" defaultValue={faitGenerateur.datePremiereConstatation} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                            <input type="date" id="fait-date-constat-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'fait-date-constat')} />
+                            <button type="button" onClick={() => openDatePicker('fait-date-constat')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                          </div>
                         </FormField>
                         <FormField label="Date de consolidation">
-                          <input type="text" id="fait-date-conso" defaultValue={faitGenerateur.dateConsolidation} className={inputClass} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                          <div className="relative">
+                            <input type="text" id="fait-date-conso" defaultValue={faitGenerateur.dateConsolidation} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                            <input type="date" id="fait-date-conso-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'fait-date-conso')} />
+                            <button type="button" onClick={() => openDatePicker('fait-date-conso')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                          </div>
                         </FormField>
                       </div>
                     </FormSection>
@@ -2579,7 +2637,11 @@ export default function App() {
                         </div>
                         <div>
                           <label className="text-sm font-medium text-gray-700">Date de naissance</label>
-                          <input type="text" id="vi-naissance" defaultValue={data?.dateNaissance || ''} className="mt-1 w-full px-3 py-2 border rounded-lg" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                          <div className="relative mt-1">
+                            <input type="text" id="vi-naissance" defaultValue={data?.dateNaissance || ''} className="w-full px-3 py-2 pr-9 border rounded-lg" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                            <input type="date" id="vi-naissance-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'vi-naissance')} />
+                            <button type="button" onClick={() => openDatePicker('vi-naissance')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2633,7 +2695,11 @@ export default function App() {
                         </select>
                       </FormField>
                       <FormField label="Date d'ouverture">
-                        <input type="text" id="dossier-date-ouverture" defaultValue={dossierDateOuverture} className={inputClass} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                        <div className="relative">
+                          <input type="text" id="dossier-date-ouverture" defaultValue={dossierDateOuverture} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                          <input type="date" id="dossier-date-ouverture-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'dossier-date-ouverture')} />
+                          <button type="button" onClick={() => openDatePicker('dossier-date-ouverture')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                        </div>
                       </FormField>
                     </FormSection>
 
@@ -2779,7 +2845,7 @@ export default function App() {
                             <label htmlFor="pgpa-revenu-revalo-checkbox" className="text-sm font-medium text-gray-700">Appliquer la revalorisation</label>
                           </div>
                           <div className="text-sm text-gray-500">
-                            Quotient : <span className="font-medium">1.04</span>
+                            {pgpaData.revenuRef.revalorisation === 'ipc-annuel' ? 'IPC annuel' : pgpaData.revenuRef.revalorisation === 'smic-horaire' ? 'SMIC horaire' : 'Aucune'} · Quotient : <span className="font-medium">1.04</span>
                           </div>
                         </div>
                       </div>
@@ -2871,11 +2937,19 @@ export default function App() {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="text-sm font-medium text-gray-700">Date de début</label>
-                            <input id="pgpa-percu-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                            <div className="relative mt-1">
+                              <input id="pgpa-percu-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
+                              <input type="date" id="pgpa-percu-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-percu-debut')} />
+                              <button type="button" onClick={() => openDatePicker('pgpa-percu-debut')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            </div>
                           </div>
                           <div>
                             <label className="text-sm font-medium text-gray-700">Date de fin</label>
-                            <input id="pgpa-percu-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                            <div className="relative mt-1">
+                              <input id="pgpa-percu-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
+                              <input type="date" id="pgpa-percu-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-percu-fin')} />
+                              <button type="button" onClick={() => openDatePicker('pgpa-percu-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            </div>
                           </div>
                         </div>
 
@@ -3017,11 +3091,19 @@ export default function App() {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="text-sm font-medium text-gray-700">Date de début</label>
-                            <input id="pgpa-ij-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                            <div className="relative mt-1">
+                              <input id="pgpa-ij-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
+                              <input type="date" id="pgpa-ij-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-ij-debut')} />
+                              <button type="button" onClick={() => openDatePicker('pgpa-ij-debut')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            </div>
                           </div>
                           <div>
                             <label className="text-sm font-medium text-gray-700">Date de fin</label>
-                            <input id="pgpa-ij-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                            <div className="relative mt-1">
+                              <input id="pgpa-ij-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
+                              <input type="date" id="pgpa-ij-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-ij-fin')} />
+                              <button type="button" onClick={() => openDatePicker('pgpa-ij-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            </div>
                           </div>
                         </div>
 
@@ -3096,7 +3178,7 @@ export default function App() {
                                     {getPieceLabel(pid)}
                                   </span>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">Rapport médical expertise</p>
+                                    <p className="text-sm font-medium truncate">Rapport d'expertise</p>
                                     <p className="text-xs text-gray-500">{piece.type}</p>
                                   </div>
                                   <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded">
@@ -3125,7 +3207,7 @@ export default function App() {
                                   <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
                                     className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
                                     <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
-                                    <span className="truncate flex-1">Rapport médical expertise</span>
+                                    <span className="truncate flex-1">Rapport d'expertise</span>
                                     <span className="text-xs text-gray-400">{piece.type}</span>
                                     <Plus className="w-4 h-4 text-blue-600" />
                                   </button>
@@ -3145,8 +3227,8 @@ export default function App() {
                       <div>
                         <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Période</h4>
                         <div className="grid grid-cols-2 gap-3">
-                          <div><label className="block text-xs text-gray-500 mb-1">Date début</label><input type="text" id="dft-debut" defaultValue={data.debut} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} /></div>
-                          <div><label className="block text-xs text-gray-500 mb-1">Date fin</label><input type="text" id="dft-fin" defaultValue={data.fin} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} /></div>
+                          <div><label className="block text-xs text-gray-500 mb-1">Date début</label><div className="relative"><input type="text" id="dft-debut" defaultValue={data.debut} className="w-full px-3 py-2 pr-9 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} /><input type="date" id="dft-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'dft-debut')} /><button type="button" onClick={() => openDatePicker('dft-debut')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button></div></div>
+                          <div><label className="block text-xs text-gray-500 mb-1">Date fin</label><div className="relative"><input type="text" id="dft-fin" defaultValue={data.fin} className="w-full px-3 py-2 pr-9 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} /><input type="date" id="dft-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'dft-fin')} /><button type="button" onClick={() => openDatePicker('dft-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button></div></div>
                         </div>
                         <div className="mt-3 p-2.5 bg-blue-50 rounded-lg flex items-center justify-between">
                           <span className="text-xs text-blue-700">Durée calculée</span>
@@ -4626,7 +4708,9 @@ export default function App() {
           const revenus = pgpaData.revenuRef.lignes.filter(l => l.type === 'revenu');
           const gains = pgpaData.revenuRef.lignes.filter(l => l.type === 'gain');
           const totalRevenus = revenus.reduce((s, l) => s + l.revalorise, 0);
+          const totalRevenusAvant = revenus.reduce((s, l) => s + (l.montant || 0), 0);
           const totalGains = gains.reduce((s, l) => s + l.revalorise, 0);
+          const totalGainsAvant = gains.reduce((s, l) => s + (l.montant || 0), 0);
           const moyenneAnnuelle = totalRevenus + totalGains;
           
           return (
@@ -4771,8 +4855,9 @@ export default function App() {
                 </div>
 
                 {/* Sous-total revenus */}
-                <div className="px-4 py-2 border-t bg-gray-50 flex justify-end">
-                  <span className="text-sm text-gray-600">Moyenne annuelle : <span className="font-semibold tabular-nums">{fmt(totalRevenus)}</span></span>
+                <div className="px-4 py-2 border-t bg-gray-50 flex justify-between items-center">
+                  {pgpaData.revenuRef.revalorisation !== 'aucune' && <span className="text-[11px] text-zinc-400">Avant revalorisation : {fmt(totalRevenusAvant)}</span>}
+                  <span className="text-sm text-gray-600 ml-auto">Moyenne annuelle{pgpaData.revenuRef.revalorisation !== 'aucune' ? ' (revalorisée)' : ''} : <span className="font-semibold tabular-nums">{fmt(totalRevenus)}</span></span>
                 </div>
 
                 {/* Section GAINS */}
@@ -4835,8 +4920,9 @@ export default function App() {
                 </div>
                 
                 {/* Sous-total gains */}
-                <div className="px-4 py-2 border-t bg-gray-50 flex justify-end">
-                  <span className="text-sm text-gray-600">Indemnité annuelle moyenne : <span className="font-semibold tabular-nums">{fmt(totalGains)}</span></span>
+                <div className="px-4 py-2 border-t bg-gray-50 flex justify-between items-center">
+                  {pgpaData.revenuRef.revalorisation !== 'aucune' && <span className="text-[11px] text-zinc-400">Avant revalorisation : {fmt(totalGainsAvant)}</span>}
+                  <span className="text-sm text-gray-600 ml-auto">Indemnité annuelle moyenne{pgpaData.revenuRef.revalorisation !== 'aucune' ? ' (revalorisée)' : ''} : <span className="font-semibold tabular-nums">{fmt(totalGains)}</span></span>
                 </div>
               </div>
               )}
@@ -5491,7 +5577,7 @@ export default function App() {
                     <div className="border-t border-zinc-100 pt-5">
                       <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-3">Documents attendus</p>
                       <div className="flex flex-wrap justify-center gap-2">
-                        {['Rapport d\'expertise médicale', 'Rapport médical du médecin expert'].map(doc => (
+                        {["Rapport d'expertise médicale", "Rapport d'expertise"].map(doc => (
                           <span key={doc} className="px-2.5 py-1 bg-zinc-50 text-[12px] text-zinc-500 rounded-md border border-zinc-100">{doc}</span>
                         ))}
                       </div>
@@ -5606,7 +5692,7 @@ export default function App() {
                           <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
                           <div className="space-y-1">
                             {l.pieceIds?.map(pid => {
-                              return <div key={pid} className="flex items-center gap-2 text-xs"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">Rapport médical expertise</span></div>;
+                              return <div key={pid} className="flex items-center gap-2 text-xs"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">Rapport d'expertise</span></div>;
                             })}
                           </div>
                           <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
@@ -5693,7 +5779,7 @@ export default function App() {
     const options = [
       {
         icon: Copy,
-        label: 'Copier le texte',
+        label: 'Copier le calcul',
         desc: 'Copier le contenu du chiffrage (montants, calculs, argumentaire).',
         tooltip: 'Option envisagée pour permettre une réutilisation rapide du contenu dans vos outils.',
       },
@@ -5816,26 +5902,34 @@ export default function App() {
                   </div>
                   <div>
                     <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de naissance *</label>
-                    <input
-                      type="text"
-                      placeholder="JJ/MM/AAAA"
-                      value={formData.dateNaissance}
-                      onChange={(e) => updateFormData('dateNaissance', formatDateInput(e.target.value))}
-                      maxLength={10}
-                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="JJ/MM/AAAA"
+                        value={formData.dateNaissance}
+                        onChange={(e) => updateFormData('dateNaissance', formatDateInput(e.target.value))}
+                        maxLength={10}
+                        className="w-full px-3 py-2.5 pr-9 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                      />
+                      <input type="date" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => { if (e.target.value) updateFormData('dateNaissance', formatDateFR(e.target.value)); }} />
+                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                    </div>
                     {computedAge !== null && <div className="text-[11px] text-zinc-400 mt-1">{computedAge} ans</div>}
                   </div>
                   <div className="col-span-2">
                     <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de décès</label>
-                    <input
-                      type="text"
-                      placeholder="JJ/MM/AAAA"
-                      value={formData.dateDeces}
-                      onChange={(e) => updateFormData('dateDeces', formatDateInput(e.target.value))}
-                      maxLength={10}
-                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="JJ/MM/AAAA"
+                        value={formData.dateDeces}
+                        onChange={(e) => updateFormData('dateDeces', formatDateInput(e.target.value))}
+                        maxLength={10}
+                        className="w-full px-3 py-2.5 pr-9 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                      />
+                      <input type="date" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => { if (e.target.value) updateFormData('dateDeces', formatDateFR(e.target.value)); }} />
+                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -5858,36 +5952,48 @@ export default function App() {
                   </div>
                   <div>
                     <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de l'accident *</label>
-                    <input
-                      type="text"
-                      placeholder="JJ/MM/AAAA"
-                      value={formData.dateAccident}
-                      onChange={(e) => updateFormData('dateAccident', formatDateInput(e.target.value))}
-                      maxLength={10}
-                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="JJ/MM/AAAA"
+                        value={formData.dateAccident}
+                        onChange={(e) => updateFormData('dateAccident', formatDateInput(e.target.value))}
+                        maxLength={10}
+                        className="w-full px-3 py-2.5 pr-9 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                      />
+                      <input type="date" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => { if (e.target.value) updateFormData('dateAccident', formatDateFR(e.target.value)); }} />
+                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de consolidation <span className="text-zinc-300 font-normal">(facultatif)</span></label>
-                    <input
-                      type="text"
-                      placeholder="JJ/MM/AAAA"
-                      value={formData.dateConsolidation}
-                      onChange={(e) => updateFormData('dateConsolidation', formatDateInput(e.target.value))}
-                      maxLength={10}
-                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="JJ/MM/AAAA"
+                        value={formData.dateConsolidation}
+                        onChange={(e) => updateFormData('dateConsolidation', formatDateInput(e.target.value))}
+                        maxLength={10}
+                        className="w-full px-3 py-2.5 pr-9 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                      />
+                      <input type="date" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => { if (e.target.value) updateFormData('dateConsolidation', formatDateFR(e.target.value)); }} />
+                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de liquidation <span className="text-zinc-300 font-normal">(facultatif)</span></label>
-                    <input
-                      type="text"
-                      placeholder="JJ/MM/AAAA"
-                      value={formData.dateLiquidation}
-                      onChange={(e) => updateFormData('dateLiquidation', formatDateInput(e.target.value))}
-                      maxLength={10}
-                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="JJ/MM/AAAA"
+                        value={formData.dateLiquidation}
+                        onChange={(e) => updateFormData('dateLiquidation', formatDateInput(e.target.value))}
+                        maxLength={10}
+                        className="w-full px-3 py-2.5 pr-9 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                      />
+                      <input type="date" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => { if (e.target.value) updateFormData('dateLiquidation', formatDateFR(e.target.value)); }} />
+                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -5935,7 +6041,7 @@ export default function App() {
                   <div className="w-12 h-12 rounded-xl bg-zinc-100 flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
                     <Upload className="w-6 h-6 text-zinc-600" />
                   </div>
-                  <h3 className="text-[15px] font-semibold text-zinc-800 mb-2">Importer mon rapport médical</h3>
+                  <h3 className="text-[15px] font-semibold text-zinc-800 mb-2">Importer mon rapport d'expertise</h3>
                   <p className="text-[13px] text-zinc-500 leading-relaxed">Extraction automatique des données. Pré-remplissage des postes et calculs.</p>
                   <input
                     id="wizard-file-input"
@@ -5975,7 +6081,7 @@ export default function App() {
                   <FileText className="w-4 h-4 text-zinc-400" />
                 </div>
                 <div>
-                  <h3 className="text-[13px] font-medium text-zinc-500 group-hover:text-zinc-700 transition-colors">Je n'ai pas encore le rapport médical</h3>
+                  <h3 className="text-[13px] font-medium text-zinc-500 group-hover:text-zinc-700 transition-colors">Je n'ai pas encore le rapport d'expertise</h3>
                   <p className="text-[12px] text-zinc-400 leading-relaxed">Créer le dossier maintenant, le chiffrage pourra démarrer après.</p>
                 </div>
               </div>
