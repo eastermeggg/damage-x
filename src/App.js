@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Image, Activity, File, FolderOpen, FileSearch, ListChecks, ShieldCheck, MoreHorizontal, User, LogOut, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ArrowDown, Scissors, Paperclip } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ArrowDown, Scissors, Paperclip } from 'lucide-react';
 
 const POSTES_TAXONOMY = [
   {
@@ -242,7 +242,8 @@ const PIECE_TYPE_COLORS = {
 };
 
 const PIECE_TYPE_OPTIONS = ['Expertise', 'Factures', 'Revenus', 'Décision', 'Médical', 'Correspondance', 'Administratif'];
-const POSTES_DINTILHAC_ALL = ['DFT', 'DFP', 'DSA', 'DSF', 'PGPA', 'PGPF', 'SE', 'PE', 'PA', 'IP', 'PAS', 'AIPP'];
+// eslint-disable-next-line no-unused-vars
+const _POSTES_DINTILHAC_ALL = ['DFT', 'DFP', 'DSA', 'DSF', 'PGPA', 'PGPF', 'SE', 'PE', 'PA', 'IP', 'PAS', 'AIPP'];
 
 export default function App() {
 
@@ -269,7 +270,7 @@ export default function App() {
   const [navStack, setNavStack] = useState([
     { id: 'dossier-1', type: 'dossier', title: 'Dossier Dupont', activeTab: 'info dossier' }
   ]);
-  const [expandedCategories, setExpandedCategories] = useState(['patrimoniaux-temp', 'extra-patrimoniaux-temp', 'patrimoniaux-perm']);
+  const [, setExpandedCategories] = useState(['patrimoniaux-temp', 'extra-patrimoniaux-temp', 'patrimoniaux-perm']);
   const [expandedSections, setExpandedSections] = useState(['pgpf-cl', 'pgpf-al']);
   const [editPanel, setEditPanel] = useState(null);
   const [editingPieceIds, setEditingPieceIds] = useState([]); // Pour tracker les pieceIds pendant l'édition d'une ligne
@@ -297,7 +298,7 @@ export default function App() {
   const [infoDossierStreaming, setInfoDossierStreaming] = useState(null); // null | { active, fieldsRevealed: [], streamingField: null, streamingText: '' }
   const [pieceOverviewPanel, setPieceOverviewPanel] = useState(null); // null | pieceId
   const [piecesFilter, setPiecesFilter] = useState({ type: null, search: '' });
-  const [showAddPiecesZone, setShowAddPiecesZone] = useState(false);
+  const [, setShowAddPiecesZone] = useState(false);
   const [piecesTabDragOver, setPiecesTabDragOver] = useState(false);
   const [reorderDrag, setReorderDrag] = useState(null); // { pieceId, ghostX, ghostY }
   const [reorderDropIdx, setReorderDropIdx] = useState(null);
@@ -305,7 +306,6 @@ export default function App() {
   const [rapportBannerDismissed, setRapportBannerDismissed] = useState(false);
   const [editingPieceField, setEditingPieceField] = useState(null); // null | { pieceId, field }
   const [toastMessage, setToastMessage] = useState(null); // null | string
-  const [dragState, setDragState] = useState(null); // null | { pieceId, startIndex }
   const [pickerOpen, setPickerOpen] = useState(null); // null | 'dft' | 'dsa' | 'pgpa-revenu-ref' | 'pgpa-revenu-percu' | 'pgpa-ij'
   const [pickerSelected, setPickerSelected] = useState([]); // array of piece IDs (multi-select)
   const [pickerSearch, setPickerSearch] = useState('');
@@ -807,12 +807,12 @@ export default function App() {
 
   const tabsConfig = { dossier: ['Info dossier', 'Chiffrage', 'Pièces'], poste: [] };
   const currentTabs = tabsConfig[currentLevel.type] || [];
-  const getSiblings = () => currentLevel.type === 'poste' ? allPostes.filter(p => p.id !== currentLevel.id && !p.disabled) : [];
+  const _getSiblings = () => currentLevel.type === 'poste' ? allPostes.filter(p => p.id !== currentLevel.id && !p.disabled) : []; // eslint-disable-line no-unused-vars
 
   // ========== NAVIGATION ==========
   const navigateTo = (item) => setNavStack([...navStack, { ...item, type: item.type || 'poste', activeTab: tabsConfig[item.type]?.[0]?.toLowerCase() }]);
   const navigateToStackLevel = (index) => setNavStack(navStack.slice(0, index + 1));
-  const navigateToSibling = (sibling) => {
+  const _navigateToSibling = (sibling) => { // eslint-disable-line no-unused-vars
     const newStack = [...navStack];
     newStack[newStack.length - 1] = { ...sibling, type: 'poste' };
     setNavStack(newStack);
@@ -822,7 +822,7 @@ export default function App() {
     newStack[newStack.length - 1].activeTab = tab.toLowerCase();
     setNavStack(newStack);
   };
-  const toggleCategory = (id) => setExpandedCategories(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+  const _toggleCategory = (id) => setExpandedCategories(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]); // eslint-disable-line no-unused-vars
   const toggleSection = (id) => setExpandedSections(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
 
   // ========== DOCUMENT DETECTION HELPERS ==========
@@ -885,8 +885,8 @@ export default function App() {
     };
   };
 
-  const handleStartExtraction = async () => {
-    const formData = {};
+  const _handleStartExtraction = async () => { // eslint-disable-line no-unused-vars
+    const _formData = {}; // eslint-disable-line no-unused-vars
     const uploadedFiles = [];
 
     // Utiliser les fichiers capturés au début (déjà avec types assignés)
@@ -1830,7 +1830,7 @@ export default function App() {
     }
   };
 
-  const handleValidateLigne = (ligneId) => setDsaLignes(prev => prev.map(l => l.id === ligneId ? { ...l, status: 'validated' } : l));
+  const _handleValidateLigne = (ligneId) => setDsaLignes(prev => prev.map(l => l.id === ligneId ? { ...l, status: 'validated' } : l)); // eslint-disable-line no-unused-vars
   const handleRejectLigne = (ligneId) => setDsaLignes(prev => prev.filter(l => l.id !== ligneId));
   const handleSaveLigne = (ligneId, data) => {
     setDsaLignes(prev => prev.map(l => l.id === ligneId ? { ...l, ...data, pieceIds: editingPieceIds, status: 'validated' } : l));
@@ -1858,7 +1858,7 @@ export default function App() {
     const icons = { dossier: Folder, poste: FileText };
     
     // Titre dynamique par niveau
-    const getItemTitle = (item) => {
+    const _getItemTitle = (item) => { // eslint-disable-line no-unused-vars
       if (item.type === 'dossier') {
         const age = calcAge(victimeData.dateNaissance);
         return `${victimeData.nom} ${victimeData.prenom} (${age})`;
@@ -1867,7 +1867,7 @@ export default function App() {
     };
     
     // Contexte par niveau - seulement ce qui n'est plus visible quand on descend
-    const getContextInfo = (item, index) => {
+    const _getContextInfo = (item, index) => { // eslint-disable-line no-unused-vars
       const isLast = index === navStack.length - 1;
       
       if (item.type === 'dossier') {
@@ -4170,7 +4170,7 @@ export default function App() {
   };
 
   // ========== DSA LIGNE COMPONENT ==========
-  const renderDsaLigne = (ligne) => {
+  const _renderDsaLigne = (ligne) => { // eslint-disable-line no-unused-vars
     const status = getLigneStatus(ligne);
     const isError = ligne.status === 'error';
     const pieceCount = ligne.pieceIds?.length || 0;
@@ -4846,12 +4846,12 @@ export default function App() {
           pgpaData.revenusPercus.filter(l => l.status === 'ai-suggested').length +
           pgpaData.ijPercues.filter(l => l.status === 'ai-suggested').length;
 
-        const hasAiSuggestions =
+        const _hasAiSuggestions = // eslint-disable-line no-unused-vars
           dsaLignes.some(l => l.status === 'ai-suggested') ||
           dftLignes.some(l => l.status === 'ai-suggested') ||
           pgpaAiCount > 0;
 
-        const aiSuggestedCount =
+        const _aiSuggestedCount = // eslint-disable-line no-unused-vars
           dsaLignes.filter(l => l.status === 'ai-suggested').length +
           dftLignes.filter(l => l.status === 'ai-suggested').length +
           pgpaAiCount;
@@ -4876,7 +4876,7 @@ export default function App() {
                         atpt: "Besoin d'assistance tierce personne identifié pendant la période de convalescence",
                         se: "Souffrances endurées évaluées à 4/7 par l'expert dans le rapport d'expertise"
                       }[p.id];
-                      const isAiPoste = status === 'suggested' || status === 'in_progress';
+                      const _isAiPoste = status === 'suggested' || status === 'in_progress'; // eslint-disable-line no-unused-vars
                       const PosteStatusIcon = () => {
                         if (status === 'suggested') return <span className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Poste suggéré par l'IA"><Sparkles className="w-3 h-3 text-indigo-500" /></span>;
                         if (status === 'in_progress') return <span className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center" title="En cours de validation"><Loader2 className="w-3 h-3 text-amber-500" /></span>;
@@ -5027,18 +5027,10 @@ export default function App() {
         if (a.status === 'validated' && b.status !== 'validated') return 1;
         return 0;
       });
-      const hasContent = dsaLignes.length > 0 || processing.length > 0;
-      
-      // Pièces filtrées pour la recherche (non utilisées)
-      const filteredPiecesForSearch = pieces.filter(p => 
-        !p.used && (p.intitule || p.nom).toLowerCase().includes(searchPieces.toLowerCase())
-      );
-      
       // Calculs DSA
       const totalMontant = dsaLignes.filter(l => l.status === 'validated').reduce((s, l) => s + (l.montant || 0), 0);
       const totalRembourse = dsaLignes.filter(l => l.status === 'validated').reduce((s, l) => s + (l.dejaRembourse || 0), 0);
       const totalResteACharge = totalMontant - totalRembourse;
-      const partTiersPayeur = totalRembourse;
       const indemniteVictime = totalResteACharge;
       
       return (
@@ -5998,9 +5990,6 @@ export default function App() {
 
     // ========== DFT ==========
     if (currentLevel.id === 'dft') {
-      const filteredPiecesForSearch = pieces.filter(p =>
-        !p.used && (p.intitule || p.nom).toLowerCase().includes(searchPieces.toLowerCase())
-      );
       return (
         <div>
           {/* Empty state */}
@@ -6606,7 +6595,6 @@ export default function App() {
   };
 
   const renderDropFirstPiecesTab = () => {
-    const totalDone = getProcessedPieces().length;
     const totalItems = dropFirstPieces.length;
     const allDone = dropFirstProcessingDone;
     const filtered = getFilteredPieces();
@@ -6918,7 +6906,6 @@ export default function App() {
     const prevPiece = currentIdx > 0 ? donePieces[currentIdx - 1] : null;
     const nextPiece = currentIdx < donePieces.length - 1 ? donePieces[currentIdx + 1] : null;
 
-    const editingPanelName = editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'panelNom';
     const editingPanelType = editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'panelType';
 
     return (
