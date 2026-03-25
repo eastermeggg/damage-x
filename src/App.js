@@ -248,8 +248,8 @@ const _POSTES_DINTILHAC_ALL = ['DFT', 'DFP', 'DSA', 'DSF', 'PGPA', 'PGPF', 'SE',
 export default function App() {
 
   // ========== LOCALSTORAGE PERSISTENCE ==========
-  const LS_GLOBAL = 'norma_global';
-  const LS_DOSSIER = 'norma_dossier_';
+  const LS_GLOBAL = 'plato_global';
+  const LS_DOSSIER = 'plato_dossier_';
   const lsSave = (key, data) => { try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) { console.warn('LS save:', e); } };
   const lsLoad = (key) => { try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null; } catch (e) { return null; } };
   const isInitialLoad = useRef(true);
@@ -7137,14 +7137,42 @@ export default function App() {
           name: file.name,
           fakeSize: (Math.random() * 4 + 0.5).toFixed(1) + ' Mo',
           isRapport: true,
+          status: 'uploading',
+          guessedType: null,
         };
         setDropModal(prev => ({
           ...prev,
           files: [...prev.files, fileObj],
           rapportFileId: fileObj.id,
         }));
+        setTimeout(() => {
+          setDropModal(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              files: prev.files.map(f =>
+                f.id === fileObj.id ? { ...f, status: 'ready', guessedType: 'Expertise' } : f
+              ),
+            };
+          });
+        }, 1000 + Math.random() * 500);
       }
       e.target.value = '';
+    };
+
+    // Guess a document type from filename — always returns a category
+    const guessFileType = (name) => {
+      const ln = name.toLowerCase();
+      if (ln.includes('expertise') || ln.includes('rapport')) return 'Expertise';
+      if (ln.includes('facture') || ln.includes('kine') || ln.includes('kiné')) return 'Factures';
+      if (ln.includes('salaire') || ln.includes('bulletin') || ln.includes('impot') || ln.includes('impôt') || ln.includes('revenu') || ln.includes('avis')) return 'Revenus';
+      if (ln.includes('jugement') || ln.includes('decision') || ln.includes('décision') || ln.includes('arret') || ln.includes('arrêt') || ln.includes('ordonnance')) return 'Décision';
+      if (ln.includes('medical') || ln.includes('médical') || ln.includes('certificat') || ln.includes('hospitalisation') || ln.includes('cpam') || ln.includes('travail') || ln.includes('irm') || ln.includes('scanner') || ln.includes('radio') || ln.includes('compte_rendu') || ln.includes('compte-rendu') || ln.includes('decompte') || ln.includes('décompte') || ln.includes('blessure')) return 'Médical';
+      if (ln.includes('courrier') || ln.includes('lettre') || ln.includes('mail') || ln.includes('assurance') || ln.includes('correspondance')) return 'Correspondance';
+      if (ln.includes('pv') || ln.includes('police') || ln.includes('constat') || ln.includes('administratif')) return 'Administratif';
+      // Fallback: assign a random plausible type for unrecognized filenames
+      const fallbackTypes = ['Médical', 'Administratif', 'Correspondance', 'Factures', 'Revenus'];
+      return fallbackTypes[Math.floor(Math.random() * fallbackTypes.length)];
     };
 
     const addFilesToModal = (fileList) => {
@@ -7155,6 +7183,8 @@ export default function App() {
         id: `file-${Date.now()}-${i}`,
         name: f.name,
         fakeSize: (Math.random() * 4 + 0.2).toFixed(1) + ' Mo',
+        status: 'uploading',
+        guessedType: null,
       }));
 
       setDropModal(prev => {
@@ -7169,6 +7199,24 @@ export default function App() {
           if (rapportFile) newRapportId = rapportFile.id;
         }
         return { ...prev, files: updatedFiles, rapportFileId: newRapportId };
+      });
+
+      // Simulate upload + categorization per file with staggered delays
+      newFiles.forEach((fileObj, i) => {
+        const delay = 800 + i * 400 + Math.random() * 600;
+        setTimeout(() => {
+          setDropModal(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              files: prev.files.map(f =>
+                f.id === fileObj.id
+                  ? { ...f, status: 'ready', guessedType: guessFileType(fileObj.name) }
+                  : f
+              ),
+            };
+          });
+        }, delay);
       });
     };
 
@@ -7265,24 +7313,43 @@ export default function App() {
               <div className="mt-4">
                 <p className="text-body-medium text-zinc-500 mb-2">{files.length} document{files.length > 1 ? 's' : ''} ajouté{files.length > 1 ? 's' : ''}</p>
                 <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto">
-                  {files.map(f => (
-                    <div key={f.id} className="flex items-center justify-between px-3 py-3 rounded-md hover:bg-[#f8f7f5] group transition-colors">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Paperclip className="w-4 h-4 text-zinc-400 flex-shrink-0" />
-                        <span className="text-body text-[#292524] truncate">{f.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2.5 flex-shrink-0">
-                        {(f.id === rapportFileId || f.isRapport) && (
-                          <span className="badge badge-sm badge-ai">
-                            <Sparkles className="w-3 h-3" /> Expertise
+                  {files.map((f, idx) => {
+                    const isUploading = f.status === 'uploading';
+                    const fileType = (f.id === rapportFileId || f.isRapport) ? 'Expertise' : f.guessedType;
+                    return (
+                      <div key={f.id} className={`flex items-center justify-between px-3 py-2.5 rounded-lg group transition-all ${isUploading ? '' : 'hover:bg-[#f8f7f5]'}`}>
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Icon: spinner while loading, paperclip when ready */}
+                          <div className="flex items-center justify-center w-[22px] h-[22px] flex-shrink-0">
+                            {isUploading ? (
+                              <Loader2 className="w-4 h-4 text-[#78716c] animate-spin" />
+                            ) : (
+                              <>
+                                <Paperclip className="w-4 h-4 text-[#78716c] group-hover:hidden" />
+                                <Trash2
+                                  className="w-4 h-4 text-[#78716c] hover:text-red-500 hidden group-hover:block cursor-pointer"
+                                  onClick={(e) => { e.stopPropagation(); removeFile(f.id); }}
+                                />
+                              </>
+                            )}
+                          </div>
+                          {/* Filename */}
+                          <span className={`text-sm truncate ${isUploading ? 'italic opacity-40 text-[#292524]' : 'text-[#292524]'}`}>{f.name}</span>
+                        </div>
+                        {/* Badge — only shown when ready */}
+                        {!isUploading && fileType && (
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium flex-shrink-0 ${
+                            (f.id === rapportFileId || f.isRapport)
+                              ? 'bg-[#cce6d9] text-[#064e3b]'
+                              : 'bg-[#dfe8f5] text-[#1e3a8a]'
+                          }`}>
+                            {fileType}
+                            <ChevronDown className="w-3 h-3" />
                           </span>
                         )}
-                        <button onClick={(e) => { e.stopPropagation(); removeFile(f.id); }} className="text-zinc-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
