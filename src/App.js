@@ -2207,8 +2207,6 @@ export default function App() {
       const bSelected = selectedSet.has(b.id) ? 0 : 1;
       return aSelected - bSelected;
     });
-    const suggestedIds = new Set(suggested.map(s => s.id));
-
     const toggleSelect = (id) => {
       setPickerSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
       if (pickerOpen !== posteType) setPickerOpen(posteType);
