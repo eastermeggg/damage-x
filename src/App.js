@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ArrowDown, Scissors, Paperclip } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ArrowDown, ArrowDownCircle, Scissors, Paperclip } from 'lucide-react';
 
 const POSTES_TAXONOMY = [
   {
@@ -278,6 +278,7 @@ export default function App() {
   const [addModalTab, setAddModalTab] = useState('upload'); // 'upload' | 'pieces' | 'manual'
   const [showPreview, setShowPreview] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [pickerDragging, setPickerDragging] = useState(false);
   const [processing, setProcessing] = useState([]);
   const [searchPieces, setSearchPieces] = useState('');
   const [searchPostes, setSearchPostes] = useState('');
@@ -2268,18 +2269,18 @@ export default function App() {
 
     const DocRow = ({ doc, index }) => {
       const isSelected = pickerSelected.includes(doc.id);
-      const isSuggested = suggestedIds.has(doc.id);
       const isProcessing = doc.status === 'processing';
 
       if (isProcessing) {
         return (
-          <div className="flex items-center gap-2 px-3 py-3 rounded-md">
-            <span className="w-[18px] h-[18px] flex items-center justify-center flex-shrink-0">
-              <span className="w-4 h-4 border-[1.5px] border-zinc-400 border-t-transparent rounded-full animate-spin" />
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-[7px]">
+            <span className="w-4 h-4 flex items-center justify-center flex-shrink-0 opacity-0">
+              <span className="w-4 h-4 rounded border border-[#e7e5e3] bg-white" />
             </span>
-            <Paperclip className="w-4 h-4 text-zinc-300 flex-shrink-0" />
-            <span className="text-body text-zinc-400 truncate">{doc.originalName}</span>
-            <span className="text-caption text-zinc-300 ml-auto flex-shrink-0">Analyse en cours...</span>
+            <span className="w-[22px] h-[22px] flex items-center justify-center flex-shrink-0">
+              <span className="w-4 h-4 border-[1.5px] border-[#78716c] border-t-transparent rounded-full animate-spin" />
+            </span>
+            <span className="text-sm italic text-[#292524] opacity-40 truncate">{doc.originalName}</span>
           </div>
         );
       }
@@ -2287,27 +2288,26 @@ export default function App() {
       return (
         <div
           onClick={() => toggleSelect(doc.id)}
-          className={`flex items-center justify-between px-3 py-3 rounded-md group transition-colors cursor-pointer ${
-            isSelected ? 'bg-blue-50' : isSuggested ? 'bg-purple-50/30 hover:bg-purple-50/50' : 'hover:bg-[#f8f7f5]'
+          className={`flex items-center justify-between px-3 py-2.5 rounded-[7px] group transition-colors cursor-pointer ${
+            isSelected ? 'bg-[#eeece6] border border-[#d6d3d1]' : 'hover:bg-[#f8f7f5]'
           }`}
         >
-          <div className="flex items-center gap-2 min-w-0">
-            <div className={`w-[18px] h-[18px] rounded border-[1.5px] flex items-center justify-center flex-shrink-0 transition-colors ${
-              isSelected ? 'bg-blue-600 border-blue-600' : 'border-zinc-300'
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Checkbox */}
+            <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-colors shadow-[0_1px_2px_0_rgba(26,26,26,0.05)] ${
+              isSelected ? 'bg-[#292524]' : 'bg-white border border-[#e7e5e3]'
             }`}>
-              {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+              {isSelected && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
             </div>
-            <span className="text-caption text-zinc-400 w-5 text-right flex-shrink-0">{index + 1}</span>
-            <Paperclip className="w-4 h-4 text-zinc-400 flex-shrink-0" />
-            <span className="text-body text-[#292524] truncate">{doc.cleanName || doc.originalName}</span>
+            {/* Doc number badge */}
+            <span className="w-[22px] h-[22px] flex items-center justify-center flex-shrink-0 bg-[#eeece6] rounded-md text-xs font-semibold text-[#78716c]">{index + 1}</span>
+            {/* Doc name */}
+            <span className={`text-sm truncate ${isSelected ? 'font-medium text-[#292524]' : 'text-[#292524]'}`}>{doc.cleanName || doc.originalName}</span>
           </div>
-          <div className="flex items-center gap-2.5 flex-shrink-0 ml-3">
-            <span className={`badge badge-sm ${PIECE_TYPE_COLORS[doc.type] || 'badge-secondary'}`}>
+          <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+            <span className={`inline-flex items-center px-2 py-1 text-xs font-medium leading-4 rounded-md whitespace-nowrap ${PIECE_TYPE_COLORS[doc.type] || 'bg-[#dfe8f5] text-[#1e3a8a]'}`}>
               {doc.type}
             </span>
-            {isSuggested && (
-              <Sparkles className="w-3 h-3 text-purple-400" />
-            )}
           </div>
         </div>
       );
@@ -2315,121 +2315,139 @@ export default function App() {
 
     const hasSelection = pickerSelected.length > 0 && pickerOpen === posteType;
 
+    const posteLabels = {
+      dsa: 'dépenses de santé',
+      dft: 'déficits fonctionnels temporaires',
+      pgpa: 'préjudices',
+    };
+    const manualLabels = {
+      dsa: 'Ajouter une dépense manuellement',
+      dft: 'Ajouter une période manuellement',
+      pgpa: 'Ajouter un préjudice manuellement',
+    };
+
     return (
       <div
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={(e) => { e.preventDefault(); setIsDragging(false); handlePickerAddFiles(e.dataTransfer.files); }}
-        className={`rounded-xl border border-dashed overflow-hidden transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50/30 border-2' : 'border-zinc-300'}`}
+        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setPickerDragging(true); }}
+        onDragLeave={(e) => { e.preventDefault(); if (!e.currentTarget.contains(e.relatedTarget)) setPickerDragging(false); }}
+        onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setPickerDragging(false); handlePickerAddFiles(e.dataTransfer.files); }}
+        className={`rounded-lg border border-dashed overflow-hidden transition-colors flex-1 flex flex-col ${pickerDragging ? 'border-[#a8a29e] border-2' : 'border-[#d6d3d1]'}`}
       >
-        {isDragging ? (
-          <div className="px-8 py-16 text-center">
-            <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-              <ArrowDown className="w-6 h-6 text-emerald-600" />
+        {pickerDragging ? (
+          <div className="flex items-center justify-center p-4 h-full">
+            <div className="flex-1 flex flex-col items-center justify-center gap-8 p-8 rounded-lg h-full" style={{ background: 'linear-gradient(to top, rgba(238,236,230,0) 57%, #eeece6 100%)' }}>
+              <div className="w-14 h-14 rounded-full bg-[#eeece6] border border-[#d6d3d1] flex items-center justify-center shadow-[0_1px_2px_0_rgba(26,26,26,0.05)]">
+                <ArrowDownCircle className="w-6 h-6 text-[#292524]" />
+              </div>
+              <div className="flex flex-col items-center gap-2 text-center max-w-[576px]">
+                <h3 className="text-xl font-medium text-[#292524] tracking-[-0.6px] leading-7">Déposez vos documents ici !</h3>
+                <p className="text-sm text-[#78716c] leading-5">Les documents seront analysés automatiquement pour créer les lignes correspondantes</p>
+              </div>
             </div>
-            <h3 className="text-heading-sm text-emerald-700 mb-1">Déposez vos documents ici</h3>
-            <p className="text-body text-emerald-600">Les fichiers seront analysés automatiquement</p>
+          </div>
+        ) : allDocs.length > 0 ? (
+          /* ===== Doc-available state (start/doc-available variant) ===== */
+          <div className="flex flex-col items-center justify-center p-8 gap-8">
+            <div className="flex flex-col items-center gap-2 text-center max-w-[576px] w-full">
+              <h3 className="text-xl font-medium text-[#292524] tracking-[-0.6px] leading-7">
+                Commencer à calculer ce poste à partir de documents
+              </h3>
+              <p className="text-sm text-[#78716c] leading-5">{description}</p>
+            </div>
+
+            <div className="flex flex-col gap-4 items-start w-[500px] max-w-full">
+              {/* Search + upload */}
+              <div className="flex items-center gap-3 w-full">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#78716c]" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher..."
+                    value={pickerOpen === posteType ? pickerSearch : ''}
+                    onChange={(e) => { setPickerSearch(e.target.value); if (pickerOpen !== posteType) setPickerOpen(posteType); }}
+                    className="w-full pl-9 pr-3 py-2 h-10 border border-[#e7e5e3] rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200 shadow-[0_1px_2px_0_rgba(26,26,26,0.05)]"
+                  />
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); document.getElementById(`picker-file-${posteType}`).click(); }}
+                  className="flex items-center gap-2 px-4 py-2 h-10 bg-[#eeece6] rounded-lg text-sm font-medium text-[#44403c] hover:bg-[#e7e5e3] transition-colors whitespace-nowrap"
+                >
+                  <Upload className="w-4 h-4" /> Ajouter des docs
+                </button>
+                <input type="file" id={`picker-file-${posteType}`} multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handlePickerAddFiles(e.target.files); e.target.value = ''; } }} />
+              </div>
+
+              {/* Suggested label */}
+              {suggested.length > 0 && (
+                <div className="px-1.5">
+                  <span className="text-xs font-medium text-[#78716c]">Documents suggérés pour ce poste</span>
+                </div>
+              )}
+
+              {/* Doc list */}
+              <div className="flex flex-col gap-1 w-full max-h-[280px] overflow-y-auto px-1.5">
+                {filteredDocs.map((doc, i) => <DocRow key={doc.id} doc={doc} index={i} />)}
+              </div>
+
+              {filteredDocs.length === 0 && pickerSearch && (
+                <p className="text-sm text-[#78716c] text-center py-4 w-full">Aucun document trouvé</p>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-col items-center gap-3 w-[500px] max-w-full">
+              <button
+                onClick={() => handleAddMultipleFromPieces(pickerSelected, posteType)}
+                disabled={!hasSelection}
+                className={`flex items-center justify-center gap-2 w-full h-10 px-6 py-2 rounded-lg text-sm font-medium transition-colors shadow-[0_1px_2px_0_rgba(26,26,26,0.05)] ${
+                  hasSelection ? 'bg-[#292524] text-white hover:bg-[#44403c]' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+                }`}
+              >
+                Commencer à calculer{hasSelection ? ` (${pickerSelected.length} pièce${pickerSelected.length > 1 ? 's' : ''})` : ''}
+              </button>
+              <button onClick={() => handleAddManual(posteType)} className="flex items-center gap-2 h-9 text-sm font-medium text-[#78716c] hover:text-[#44403c] transition-colors">
+                <Edit3 className="w-4 h-4" /> Commencer manuellement
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="px-6 py-8">
-            {/* Header */}
-            <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-xl bg-zinc-100 flex items-center justify-center mx-auto mb-3">
-                <Icon className="w-6 h-6 text-zinc-400" />
-              </div>
-              <h3 className="text-heading-sm text-zinc-800 mb-1">{title}</h3>
-              <p className="text-body text-zinc-400 max-w-md mx-auto">{description}</p>
-            </div>
+          /* ===== Empty state (tables-empty/default variant) ===== */
+          <div className="flex items-center justify-center p-1.5">
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 py-6 rounded-lg" style={{ background: 'linear-gradient(to top, rgba(238,236,230,0) 50%, #f8f7f5 100%)' }}>
+              <Upload className="w-5 h-5 text-[#78716c]" />
 
-            {/* Document list — inline */}
-            {allDocs.length > 0 && (
-              <div className="max-w-lg mx-auto">
-                {/* Search + upload */}
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                    <input
-                      type="text"
-                      placeholder="Rechercher..."
-                      value={pickerOpen === posteType ? pickerSearch : ''}
-                      onChange={(e) => { setPickerSearch(e.target.value); if (pickerOpen !== posteType) setPickerOpen(posteType); }}
-                      className="w-full pl-9 pr-3 py-2 border border-zinc-200 rounded-lg text-body bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200"
-                    />
-                  </div>
+              <div className="flex flex-col items-center gap-1 text-center max-w-[512px] w-full">
+                <p className="text-sm font-medium text-[#44403c] leading-5">
+                  Déposez ou{' '}
                   <button
-                    onClick={(e) => { e.stopPropagation(); document.getElementById(`picker-file-${posteType}`).click(); }}
-                    className="flex items-center gap-1.5 px-3 py-2 border border-dashed border-zinc-300 rounded-lg text-body text-zinc-500 hover:border-zinc-400 hover:bg-white/60 transition-all whitespace-nowrap"
-                  >
-                    <Upload className="w-4 h-4 text-zinc-400" /> Ajouter des fichiers
-                  </button>
-                  <input type="file" id={`picker-file-${posteType}`} multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handlePickerAddFiles(e.target.files); e.target.value = ''; } }} />
-                </div>
-
-                {/* Suggested label */}
-                {suggested.length > 0 && (
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-                    <span className="text-caption-medium text-purple-600">Documents suggérés</span>
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-0.5 mb-2 max-h-[240px] overflow-y-auto">
-                  {filteredDocs.map((doc, i) => <DocRow key={doc.id} doc={doc} index={i} />)}
-                </div>
-
-                {filteredDocs.length === 0 && pickerSearch && (
-                  <p className="text-body text-zinc-400 text-center py-4">Aucun document trouvé</p>
-                )}
-
-                {/* Action bar */}
-                <div className="flex items-center justify-center mt-4 pt-4 border-t border-zinc-100">
-                  <button
-                    onClick={() => handleAddMultipleFromPieces(pickerSelected, posteType)}
-                    disabled={!hasSelection}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-body-medium transition-colors ${
-                      hasSelection ? 'bg-zinc-900 text-white hover:bg-zinc-800' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
-                    }`}
-                  >
-                    Calculer à partir de {hasSelection ? `${pickerSelected.length} pièce${pickerSelected.length > 1 ? 's' : ''}` : 'ces pièces'}
-                  </button>
-                </div>
+                    onClick={(e) => { e.stopPropagation(); document.getElementById(`picker-file-${posteType}-empty`).click(); }}
+                    className="underline text-[#1e3a8a] font-medium cursor-pointer"
+                  >parcourez</button>
+                  {' '}pour ajouter les justificatifs de {posteLabels[posteType] || '...'}
+                </p>
+                <p className="text-sm text-[#78716c] leading-5">{description}</p>
               </div>
-            )}
+              <input type="file" id={`picker-file-${posteType}-empty`} multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handlePickerAddFiles(e.target.files); e.target.value = ''; } }} />
 
-            {/* No docs at all — upload zone + expected types */}
-            {allDocs.length === 0 && (
-              <div className="text-center">
-                <button
-                  onClick={(e) => { e.stopPropagation(); document.getElementById(`picker-file-${posteType}-empty`).click(); }}
-                  className="max-w-sm mx-auto border border-dashed border-zinc-300 rounded-lg px-6 py-4 flex items-center justify-center gap-3 cursor-pointer hover:border-zinc-400 hover:bg-white/60 transition-all mb-5"
-                >
-                  <Upload className="w-5 h-5 text-zinc-400" />
-                  <span className="text-body text-zinc-500">Déposez ou <span className="text-body-medium text-blue-700">parcourez</span></span>
+              {/* Expected doc type badges */}
+              <div className="flex flex-wrap justify-center gap-3">
+                {expectedDocs.map(doc => (
+                  <span key={doc} className="inline-flex items-center px-2 py-1 bg-[#eeece6] text-[#44403c] text-xs font-medium leading-4 rounded-md whitespace-nowrap">{doc}</span>
+                ))}
+              </div>
+
+              {/* OU divider + manual link */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex items-center justify-center gap-3">
+                  <div className="h-px w-20 bg-[#d6d3d1]" />
+                  <span className="text-xs font-medium text-[#78716c]">OU</span>
+                  <div className="h-px w-20 bg-[#d6d3d1]" />
+                </div>
+                <button onClick={() => handleAddManual(posteType)} className="flex items-center gap-2 h-9 text-sm font-medium text-[#1e3a8a] hover:text-[#1e3a8a]/80 transition-colors">
+                  <Edit3 className="w-4 h-4" /> {manualLabels[posteType] || 'Ajouter manuellement'}
                 </button>
-                <input type="file" id={`picker-file-${posteType}-empty`} multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handlePickerAddFiles(e.target.files); e.target.value = ''; } }} />
-                <div className="flex flex-wrap justify-center gap-2 mb-4">
-                  {expectedDocs.map(doc => (
-                    <span key={doc} className="badge badge-sm badge-secondary">{doc}</span>
-                  ))}
-                </div>
               </div>
-            )}
-
-            {/* Secondary: manual — only when no docs to pick from */}
-            {allDocs.length === 0 && (
-              <>
-                <div className="flex items-center justify-center gap-2 mt-3">
-                  <div className="h-px w-16 bg-zinc-200" />
-                  <span className="text-caption text-zinc-400">ou</span>
-                  <div className="h-px w-16 bg-zinc-200" />
-                </div>
-                <div className="text-center mt-2">
-                  <button onClick={() => handleAddManual(posteType)} className="text-body text-blue-700 hover:text-blue-800 inline-flex items-center gap-1.5">
-                    <Edit3 className="w-3.5 h-3.5" /> Créer manuellement
-                  </button>
-                </div>
-              </>
-            )}
+            </div>
           </div>
         )}
       </div>
@@ -3852,38 +3870,8 @@ export default function App() {
                 </div>
               )}
               {editPanel.type === 'piece-detail' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
-                  <button onClick={() => {
-                    // Supprimer la pièce
-                    setPieces(prev => prev.filter(p => p.id !== data.id));
-                    // Supprimer aussi les références dans les lignes DSA, PGPA, etc.
-                    setDsaLignes(prev => prev.map(l => ({
-                      ...l,
-                      pieceIds: l.pieceIds?.filter(pid => pid !== data.id) || []
-                    })));
-                    setPgpaData(prev => ({
-                      ...prev,
-                      revenuRef: {
-                        ...prev.revenuRef,
-                        lignes: prev.revenuRef.lignes.map(l => ({
-                          ...l,
-                          pieceIds: l.pieceIds?.filter(pid => pid !== data.id) || []
-                        }))
-                      },
-                      revenusPercus: prev.revenusPercus.map(l => ({
-                        ...l,
-                        pieceIds: l.pieceIds?.filter(pid => pid !== data.id) || []
-                      })),
-                      ijPercues: prev.ijPercues.map(l => ({
-                        ...l,
-                        pieceIds: l.pieceIds?.filter(pid => pid !== data.id) || []
-                      }))
-                    }));
-                    setEditPanel(null);
-                  }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
-                    <Trash2 className="w-4 h-4" />Supprimer
-                  </button>
-                  <div className="flex gap-2">
+                <div className="px-5 py-4 border-t bg-gray-50 flex flex-col gap-3">
+                  <div className="flex justify-end gap-2">
                     <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
                     <button onClick={() => {
                       const updatedPiece = {
@@ -3895,6 +3883,36 @@ export default function App() {
                       setPieces(prev => prev.map(p => p.id === data.id ? updatedPiece : p));
                       setEditPanel(null);
                     }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                  </div>
+                  <div className="border-t border-gray-200 pt-3">
+                    <button onClick={() => {
+                      setPieces(prev => prev.filter(p => p.id !== data.id));
+                      setDsaLignes(prev => prev.map(l => ({
+                        ...l,
+                        pieceIds: l.pieceIds?.filter(pid => pid !== data.id) || []
+                      })));
+                      setPgpaData(prev => ({
+                        ...prev,
+                        revenuRef: {
+                          ...prev.revenuRef,
+                          lignes: prev.revenuRef.lignes.map(l => ({
+                            ...l,
+                            pieceIds: l.pieceIds?.filter(pid => pid !== data.id) || []
+                          }))
+                        },
+                        revenusPercus: prev.revenusPercus.map(l => ({
+                          ...l,
+                          pieceIds: l.pieceIds?.filter(pid => pid !== data.id) || []
+                        })),
+                        ijPercues: prev.ijPercues.map(l => ({
+                          ...l,
+                          pieceIds: l.pieceIds?.filter(pid => pid !== data.id) || []
+                        }))
+                      }));
+                      setEditPanel(null);
+                    }} className="w-full px-4 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg flex items-center justify-center gap-2 font-medium text-sm transition-colors">
+                      <Trash2 className="w-4 h-4" />Supprimer le document
+                    </button>
                   </div>
                 </div>
               )}
@@ -5034,13 +5052,13 @@ export default function App() {
       const indemniteVictime = totalResteACharge;
       
       return (
-        <div className="space-y-4 pb-32">
+        <div className={`space-y-4 pb-32 ${dsaLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dsa') ? 'h-full flex flex-col' : ''}`}>
           {/* Empty state DSA */}
-          {dsaLignes.length === 0 && processing.length === 0 && renderInlineDocPicker('dsa', {
+          {dsaLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dsa') && renderInlineDocPicker('dsa', {
             icon: Receipt,
-            title: 'Aucune dépense de santé',
-            description: 'Ajoutez des justificatifs ou créez une dépense manuellement.',
-            expectedDocs: ['Factures médicales', 'Ordonnances', 'Justificatifs pharmacie', 'Transport médical']
+            title: 'Ajoutez vos justificatifs pour créer vos lignes de dépenses',
+            description: 'Déposez un ou plusieurs documents. Plato lit, extrait et structure les informations pour chaque ligne.',
+            expectedDocs: ['Factures médicales', 'Ordonnances', 'Justificatifs de pharmacie', 'Facture hospitalisation']
           })}
 
           {/* Table des dépenses avec zone d'ajout intégrée */}
@@ -5053,9 +5071,9 @@ export default function App() {
               onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dsa'); }}
               className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white"
             >
-              <div className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50' : 'border-[#d6d3d1]'}`}>
+              <div className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg transition-colors ${isDragging ? 'border-[#a8a29e] bg-[#f5f5f4]' : 'border-[#d6d3d1]'}`}>
                 {isDragging ? (
-                  <><ArrowDown className="w-4 h-4 text-emerald-600 flex-shrink-0" /><span className="text-body text-emerald-700">Déposez vos documents ici</span></>
+                  <><ArrowDown className="w-4 h-4 text-[#78716c] flex-shrink-0" /><span className="text-body text-[#44403c]">Déposez vos documents ici</span></>
                 ) : (
                   <><Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" /><span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer" onClick={() => document.getElementById('dsa-header-upload')?.click()}>cliquez</span> pour ajouter un justificatif</span></>
                 )}
@@ -5291,12 +5309,12 @@ export default function App() {
                   onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                   onDragLeave={() => setIsDragging(false)}
                   onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-ref'); }}
-                  className={`flex items-center gap-3 px-4 py-3 border-b transition-colors ${isDragging ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50'}`}
+                  className={`flex items-center gap-3 px-4 py-3 border-b transition-colors ${isDragging ? 'bg-[#f5f5f4] border-[#d6d3d1]' : 'bg-gray-50'}`}
                 >
                   {isDragging ? (
                     <div className="flex items-center gap-3 flex-1 justify-center py-1">
-                      <ArrowDown className="w-5 h-5 text-emerald-600" />
-                      <span className="text-body-medium text-emerald-700">Déposez vos documents ici</span>
+                      <ArrowDown className="w-5 h-5 text-[#78716c]" />
+                      <span className="text-body-medium text-[#44403c]">Déposez vos documents ici</span>
                     </div>
                   ) : (
                     <>
@@ -5500,12 +5518,12 @@ export default function App() {
                   onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                   onDragLeave={() => setIsDragging(false)}
                   onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-percu'); }}
-                  className={`flex items-center gap-3 px-4 py-3 border-b transition-colors ${isDragging ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50'}`}
+                  className={`flex items-center gap-3 px-4 py-3 border-b transition-colors ${isDragging ? 'bg-[#f5f5f4] border-[#d6d3d1]' : 'bg-gray-50'}`}
                 >
                   {isDragging ? (
                     <div className="flex items-center gap-3 flex-1 justify-center py-1">
-                      <ArrowDown className="w-5 h-5 text-emerald-600" />
-                      <span className="text-body-medium text-emerald-700">Déposez vos documents ici</span>
+                      <ArrowDown className="w-5 h-5 text-[#78716c]" />
+                      <span className="text-body-medium text-[#44403c]">Déposez vos documents ici</span>
                     </div>
                   ) : (
                     <>
@@ -5622,12 +5640,12 @@ export default function App() {
                   onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                   onDragLeave={() => setIsDragging(false)}
                   onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-ij'); }}
-                  className={`flex items-center gap-3 px-4 py-3 border-b transition-colors ${isDragging ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50'}`}
+                  className={`flex items-center gap-3 px-4 py-3 border-b transition-colors ${isDragging ? 'bg-[#f5f5f4] border-[#d6d3d1]' : 'bg-gray-50'}`}
                 >
                   {isDragging ? (
                     <div className="flex items-center gap-3 flex-1 justify-center py-1">
-                      <ArrowDown className="w-5 h-5 text-emerald-600" />
-                      <span className="text-body-medium text-emerald-700">Déposez vos documents ici</span>
+                      <ArrowDown className="w-5 h-5 text-[#78716c]" />
+                      <span className="text-body-medium text-[#44403c]">Déposez vos documents ici</span>
                     </div>
                   ) : (
                     <>
@@ -5991,12 +6009,12 @@ export default function App() {
     // ========== DFT ==========
     if (currentLevel.id === 'dft') {
       return (
-        <div>
+        <div className={dftLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dft') ? 'h-full flex flex-col' : ''}>
           {/* Empty state */}
-          {dftLignes.length === 0 && processing.length === 0 && renderInlineDocPicker('dft', {
+          {dftLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dft') && renderInlineDocPicker('dft', {
             icon: Calendar,
-            title: 'Aucune période de déficit fonctionnel temporaire',
-            description: 'Ajoutez des documents ou créez une période manuellement.',
+            title: 'Ajoutez vos justificatifs pour créer vos lignes de périodes',
+            description: 'Déposez un ou plusieurs documents. Plato lit, extrait et structure les informations pour chaque ligne.',
             expectedDocs: ["Rapport d'expertise médicale", "Certificat médical", "Compte-rendu hospitalisation"]
           })}
 
@@ -6010,9 +6028,9 @@ export default function App() {
                 onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dft'); }}
                 className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white"
               >
-                <div className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50' : 'border-[#d6d3d1]'}`}>
+                <div className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg transition-colors ${isDragging ? 'border-[#a8a29e] bg-[#f5f5f4]' : 'border-[#d6d3d1]'}`}>
                   {isDragging ? (
-                    <><ArrowDown className="w-4 h-4 text-emerald-600 flex-shrink-0" /><span className="text-body text-emerald-700">Déposez vos documents ici</span></>
+                    <><ArrowDown className="w-4 h-4 text-[#78716c] flex-shrink-0" /><span className="text-body text-[#44403c]">Déposez vos documents ici</span></>
                   ) : (
                     <><Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" /><span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer" onClick={() => document.getElementById('dft-header-upload')?.click()}>cliquez</span> pour ajouter un justificatif</span></>
                   )}
@@ -6945,6 +6963,30 @@ export default function App() {
         <div className="flex flex-1 min-h-0">
         {/* Left: Document Preview */}
         <div className="w-[420px] flex flex-col border-r border-zinc-100 bg-zinc-50">
+          {/* Source file card — on top */}
+          <div className="px-4 pt-4 pb-2 flex-shrink-0">
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50/60 overflow-hidden">
+              <div className="flex items-center gap-1.5 px-3 py-2 border-b border-zinc-100">
+                {hasSplitInfo ? (
+                  <>
+                    <Scissors className="w-3 h-3 text-zinc-400" />
+                    <span className="text-caption-medium text-zinc-400">Document découpé · partie {piece.splitIndex + 1}/{piece.siblings.length}</span>
+                  </>
+                ) : (
+                  <span className="text-caption-medium text-zinc-400">Document original</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2.5 px-3 py-2.5">
+                <div className="flex items-center justify-center w-7 h-7 rounded-md bg-white border border-zinc-200 flex-shrink-0">
+                  <FileText className="w-3.5 h-3.5 text-zinc-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-body-medium text-zinc-600 truncate">{piece.originalName || piece.sourceFile || '—'}</p>
+                  <p className="text-caption text-zinc-400">{piece.pages || '?'} page{(piece.pages || 0) > 1 ? 's' : ''}</p>
+                </div>
+              </div>
+            </div>
+          </div>
           {/* Preview content — placeholder */}
           <div className="flex-1 p-4 overflow-y-auto">
             <div className={`w-full h-full min-h-[500px] rounded-lg border ${typeColorLight} flex flex-col items-center justify-center`}>
@@ -7047,43 +7089,20 @@ export default function App() {
               </div>
             </div>
 
-            {/* Source file card — moved after data */}
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50/60 overflow-hidden mt-5">
-              <div className="flex items-center gap-1.5 px-3 py-2 border-b border-zinc-100">
-                {hasSplitInfo ? (
-                  <>
-                    <Scissors className="w-3 h-3 text-zinc-400" />
-                    <span className="text-caption-medium text-zinc-400">Document découpé · partie {piece.splitIndex + 1}/{piece.siblings.length}</span>
-                  </>
-                ) : (
-                  <span className="text-caption-medium text-zinc-400">Document original</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2.5 px-3 py-2.5">
-                <div className="flex items-center justify-center w-7 h-7 rounded-md bg-white border border-zinc-200 flex-shrink-0">
-                  <FileText className="w-3.5 h-3.5 text-zinc-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-body-medium text-zinc-600 truncate">{piece.originalName || piece.sourceFile || '—'}</p>
-                  <p className="text-caption text-zinc-400">{piece.pages || '?'} page{(piece.pages || 0) > 1 ? 's' : ''}</p>
-                </div>
-              </div>
-            </div>
 
-            {/* Delete action */}
-            <div className="mt-6 pt-4 border-t border-zinc-100">
-              <button
-                className="flex items-center gap-2 text-caption-medium text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors w-full"
-                onClick={() => {
-                  setDropFirstPieces(prev => prev.filter(p => p.id !== piece.id));
-                  setPieceOverviewPanel(null);
-                }}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                Supprimer cette pièce
-              </button>
-            </div>
-
+          </div>
+          {/* Footer — fixed at bottom of right column */}
+          <div className="px-5 py-4 border-t border-zinc-200 bg-white flex-shrink-0">
+            <button
+              className="w-full px-4 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg flex items-center justify-center gap-2 font-medium text-sm transition-colors"
+              onClick={() => {
+                setDropFirstPieces(prev => prev.filter(p => p.id !== piece.id));
+                setPieceOverviewPanel(null);
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+              Supprimer le document
+            </button>
           </div>
         </div>
         </div>{/* end two-column body */}
@@ -7853,7 +7872,7 @@ export default function App() {
         
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-8 pb-8">
-          <div className="min-h-full">{renderContent()}</div>
+          <div className="min-h-full flex flex-col">{renderContent()}</div>
         </div>
       </div>
       {renderAddModal()}
