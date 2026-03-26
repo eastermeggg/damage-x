@@ -700,6 +700,9 @@ export default function App() {
         return newIds.length > 0 ? [...prev, ...newIds] : prev;
       });
 
+      // Auto-switch to chiffrage tab after a short pause so user sees the transition
+      setTimeout(() => setActiveTab('chiffrage'), 800);
+
       // Update the thinking stepper with extraction + postes steps
       setChatMessages(prev => {
         const updated = prev.map(m => {
@@ -7828,6 +7831,8 @@ export default function App() {
 
   const startInfoDossierStreaming = () => {
     setInfoDossierStreaming({ active: true, fieldsRevealed: [], streamingField: null, streamingText: '' });
+    // Auto-navigate to info dossier tab so user sees fields filling live
+    setActiveTab('dossier');
 
     const fields = [
       { key: 'nom', section: 'victime', value: DROP_FIRST_VICTIM_DATA.nom, delay: 400 },
