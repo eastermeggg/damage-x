@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ArrowDown, ArrowDownCircle, Scissors, Paperclip } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose } from 'lucide-react';
 
 const POSTES_TAXONOMY = [
   {
@@ -232,13 +232,13 @@ const DROP_FIRST_MEDICAL_DATA = {
 const DROP_FIRST_POSTES_DETECTES = ['DFT', 'DSA', 'PGPA', 'PGPF', 'SE', 'PE', 'AIPP'];
 
 const PIECE_TYPE_COLORS = {
-  'Expertise': 'badge-info',
-  'Décision': 'badge-ai',
-  'Revenus': 'badge-success',
-  'Factures': 'badge-warning',
-  'Médical': 'badge-info',
-  'Correspondance': 'badge-secondary',
-  'Administratif': 'badge-secondary',
+  'Expertise': 'bg-[#dfe8f5] text-[#1e3a8a]',
+  'Décision': 'bg-[#ede9fe] text-[#5b21b6]',
+  'Revenus': 'bg-[#dcfce7] text-[#166534]',
+  'Factures': 'bg-[#f9ecd6] text-[#855b31]',
+  'Médical': 'bg-[#dbeafe] text-[#1e40af]',
+  'Correspondance': 'bg-[#eeece6] text-[#44403c]',
+  'Administratif': 'bg-[#f1f5f9] text-[#475569]',
 };
 
 const PIECE_TYPE_OPTIONS = ['Expertise', 'Factures', 'Revenus', 'Décision', 'Médical', 'Correspondance', 'Administratif'];
@@ -259,17 +259,9 @@ export default function App() {
   const [activeDossierId, setActiveDossierId] = useState(null);
 
   // ========== LISTE DES DOSSIERS ==========
-  const [dossiers, setDossiers] = useState([
-    { id: 'dossier-1', reference: 'Dupont Jean', typeFait: 'Accident du travail', date: '16/09/2013', lastEditBy: 'Meghan R.', lastEditDate: '30/01/2026' },
-    { id: 'dossier-2', reference: 'Martin Sophie', typeFait: 'Accident de la route', date: '03/04/2021', lastEditBy: 'Meghan R.', lastEditDate: '28/01/2026' },
-    { id: 'dossier-3', reference: 'Bernard Pierre', typeFait: 'Agression', date: '12/11/2022', lastEditBy: 'Thomas L.', lastEditDate: '25/01/2026' },
-    { id: 'dossier-4', reference: 'Lefebvre Marie', typeFait: 'Erreur médicale', date: '08/07/2020', lastEditBy: 'Meghan R.', lastEditDate: '20/01/2026' },
-    { id: 'dossier-5', reference: 'Moreau Lucas', typeFait: 'Accident du travail', date: '22/02/2023', lastEditBy: 'Thomas L.', lastEditDate: '15/01/2026' },
-  ]);
+  const [dossiers, setDossiers] = useState([]);
 
-  const [navStack, setNavStack] = useState([
-    { id: 'dossier-1', type: 'dossier', title: 'Dossier Dupont', activeTab: 'info dossier' }
-  ]);
+  const [navStack, setNavStack] = useState([]);
   const [, setExpandedCategories] = useState(['patrimoniaux-temp', 'extra-patrimoniaux-temp', 'patrimoniaux-perm']);
   const [expandedSections, setExpandedSections] = useState(['pgpf-cl', 'pgpf-al']);
   const [editPanel, setEditPanel] = useState(null);
@@ -305,6 +297,11 @@ export default function App() {
   const [reorderDropIdx, setReorderDropIdx] = useState(null);
   const [manualReorder, setManualReorder] = useState(false);
   const [rapportBannerDismissed, setRapportBannerDismissed] = useState(false);
+  const [chatSidebarOpen, setChatSidebarOpen] = useState(true);
+  const [chatWidth, setChatWidth] = useState(408);
+  const chatResizing = useRef(false);
+  const [posteSearchOpen, setPosteSearchOpen] = useState(false);
+  const [posteSearchQuery, setPosteSearchQuery] = useState('');
   const [editingPieceField, setEditingPieceField] = useState(null); // null | { pieceId, field }
   const [toastMessage, setToastMessage] = useState(null); // null | string
   const [pickerOpen, setPickerOpen] = useState(null); // null | 'dft' | 'dsa' | 'pgpa-revenu-ref' | 'pgpa-revenu-percu' | 'pgpa-ij'
@@ -312,6 +309,25 @@ export default function App() {
   const [pickerSearch, setPickerSearch] = useState('');
   const [posteExtracting, setPosteExtracting] = useState(null); // null | { posteType, totalDocs, extractedCount, docIds: [] }
   const processingTimeouts = useRef([]);
+  const [activeParamChip, setActiveParamChip] = useState(null); // which param chip config is expanded
+  const [totalExpanded, setTotalExpanded] = useState({}); // { [posteId]: boolean }
+  const [dossierPostes, setDossierPostes] = useState(['dsa', 'pgpa', 'dft', 'pgpf', 'se', 'dfp', 'pep']); // IDs of postes added to this dossier
+  const [formPosteData, setFormPosteData] = useState({
+    se: { referentiel: 'cours-appel-2024', cotation: 4, montant: 15000 },
+    pep: { referentiel: 'cours-appel-2024', cotation: 3, montant: 4500 },
+    dfp: { referentiel: 'cours-appel-2024', age: 42, taux: 18, trancheAge: 'inferieure', trancheTaux: 'inferieure', pointBase: 1500, montant: 27000 },
+  });
+
+  // Shared style for all column/table headers — IBM Plex Mono, uppercase, small
+  const colHeaderStyle = { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em' };
+  // Section headers: DETAIL DU CALCUL, NOTES / ARGUMENTAIRE, JURISPRUDENCES
+  const sectionHeaderStyle = { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' };
+  // Serif amounts for card titles and totals
+  const serifAmountStyle = { fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '18px', letterSpacing: '-0.5px', fontWeight: 400 };
+  // Reusable card block class
+  const cardBlockClass = "bg-white rounded-lg border border-[#e7e5e3] overflow-hidden shadow-[0_1px_2px_0_rgba(26,26,26,0.05)]";
+  // Total block class
+  const totalBlockClass = "bg-[#eeece6] border border-[#e7e5e3] rounded-lg shadow-[0_1px_2px_0_rgba(26,26,26,0.05)] p-4";
 
   const typesFaitGenerateur = ['Accident de la route', 'Accident du travail', 'Accident médical', 'Agression', 'Accident domestique', 'Autre'];
 
@@ -487,7 +503,31 @@ export default function App() {
 
   // ========== PGPF ==========
   const [pgpfData, setPgpfData] = useState({
-    periodes: {}
+    periodes: {
+      'pgpf-cl': {
+        label: 'Consolidation → Liquidation',
+        periode: { debut: '12/09/2024', fin: '15/01/2025', mois: 4 },
+        revenuRef: { total: 37800 },
+        revenusPercus: [
+          { id: 'pgpf-cl-percu-1', label: 'Salaire reprise mi-temps', periode: 'Oct - Déc 2024', montant: 4800, pieceIds: ['p-10'] },
+        ],
+        ijPercues: [
+          { id: 'pgpf-cl-ij-1', label: 'IJ Sécurité sociale', tiers: 'CPAM Gironde', periode: 'Sept - Déc 2024', montant: 3200, pieceIds: ['p-4'] },
+        ],
+      },
+      'pgpf-al': {
+        label: 'Après Liquidation (capitalisation)',
+        periode: { debut: '15/01/2025', fin: 'Viager' },
+        params: {
+          age: 42, perteGainAnnuelle: 12600, bareme: 'Gazette du Palais 2025 – 0,5%',
+          ageDernierArreage: 67, coefficient: 18.234, montantCapitalise: 229750,
+        },
+        tiersPayeurs: [
+          { id: 'pgpf-tp-1', label: 'CPAM Gironde', renteAnnuelle: 4800, montantCapitalise: 87523, modified: false },
+          { id: 'pgpf-tp-2', label: 'AG2R Prévoyance', renteAnnuelle: 2400, montantCapitalise: 43762, modified: true },
+        ],
+      },
+    }
   });
 
   // ========== DFT ==========
@@ -519,6 +559,7 @@ export default function App() {
     victimesIndirectes: [], pieces: [], dsaLignes: [],
     pgpaData: { periode: { debut: '', fin: '', mois: 0 }, revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 0 }, revenusPercus: [], ijPercues: [] },
     pgpfData: { periodes: {} }, dftLignes: [],
+    dossierPostes: [], formPosteData: {},
   };
 
   const collectCurrentDossierData = () => ({
@@ -526,6 +567,7 @@ export default function App() {
     dossierStatut, dossierRef, dossierIntitule, dossierDateOuverture, dossierAvocat, dossierNotes,
     resumeAffaire, commentaireExpertise, victimesIndirectes, pieces,
     dsaLignes, pgpaData, pgpfData, dftLignes,
+    dossierPostes, formPosteData,
     dropFirstPieces: dropFirstPieces.map(p => ({ ...p, justCompleted: false })),
     dropFirstHasRapport, dropFirstProcessingDone,
   });
@@ -554,6 +596,12 @@ export default function App() {
     setPgpfData(data.pgpfData ?? EMPTY_DOSSIER.pgpfData);
     // Migration: fusionner anciens dfttLignes + dftpLignes si format legacy
     setDftLignes(data.dftLignes ?? [...(data.dfttLignes ?? []), ...(data.dftpLignes ?? [])]);
+    setDossierPostes(data.dossierPostes ?? ['dsa', 'pgpa', 'dft', 'pgpf', 'se', 'dfp', 'pep']);
+    setFormPosteData(data.formPosteData ?? {
+      se: { referentiel: 'cours-appel-2024', cotation: 4, montant: 15000 },
+      pep: { referentiel: 'cours-appel-2024', cotation: 3, montant: 4500 },
+      dfp: { referentiel: 'cours-appel-2024', age: 42, taux: 18, trancheAge: 'inferieure', trancheTaux: 'inferieure', pointBase: 1500, montant: 27000 },
+    });
     // Drop-first state restoration
     setDropFirstPieces(data.dropFirstPieces ?? []);
     setDropFirstHasRapport(data.dropFirstHasRapport ?? false);
@@ -579,14 +627,13 @@ export default function App() {
       setCurrentPage(savedGlobal.currentPage || 'list');
       setActiveDossierId(savedGlobal.activeDossierId);
       // Migration: rename 'détail' → 'info dossier' in saved navStack
-      if (savedGlobal.navStack) setNavStack(savedGlobal.navStack.map(n => ({ ...n, activeTab: n.activeTab === 'détail' ? 'info dossier' : n.activeTab })));
+      if (savedGlobal.navStack) setNavStack(savedGlobal.navStack.map(n => ({ ...n, activeTab: n.activeTab === 'détail' || n.activeTab === 'info dossier' ? 'dossier' : n.activeTab })));
       if (savedGlobal.activeDossierId && savedGlobal.currentPage === 'dossier') {
         loadDossierData(savedGlobal.activeDossierId);
       }
     } else {
-      // First-ever load: seed dossier-1 mock data
-      lsSave(LS_DOSSIER + 'dossier-1', collectCurrentDossierData());
-      lsSave(LS_GLOBAL, { dossiers, activeDossierId: null, currentPage: 'list', navStack });
+      // First-ever load: start with empty list
+      lsSave(LS_GLOBAL, { dossiers: [], activeDossierId: null, currentPage: 'list', navStack: [] });
     }
     isInitialLoad.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -616,36 +663,59 @@ export default function App() {
   const pgpaIjTotal = pgpaData.ijPercues.reduce((s, l) => s + l.montant, 0);
   const pgpaTotal = pgpaData.revenuRef.total > 0 ? Math.round((pgpaData.revenuRef.total / 12) * pgpaData.periode.mois - pgpaRevPercusTotal - pgpaIjTotal) : 0;
   
-  const pgpfTotal = 0; // Sera calculé quand on aura des données
-  const pgpfClTotal = 0; // PGPF Consolidation -> Liquidation (échu)
-  const pgpfAlTotal = 0; // PGPF Après Liquidation (capitalisation)
+  const pgpfClPeriode = pgpfData.periodes['pgpf-cl'];
+  const pgpfAlPeriode = pgpfData.periodes['pgpf-al'];
+  const pgpfClTotal = pgpfClPeriode
+    ? Math.round((pgpfClPeriode.revenuRef.total / 12) * pgpfClPeriode.periode.mois)
+      - pgpfClPeriode.revenusPercus.reduce((s, l) => s + l.montant, 0)
+      - pgpfClPeriode.ijPercues.reduce((s, l) => s + l.montant, 0)
+    : 0;
+  const pgpfAlTotal = pgpfAlPeriode?.params?.montantCapitalise || 0;
+  const pgpfTotal = pgpfClTotal + pgpfAlTotal;
 
   const dftTotal = dftLignes.reduce((s, l) => s + l.montant, 0);
 
-  // Postes actifs = seulement ceux qui ont des données
-  const activePostes = [
-    dsaLignes.length > 0 && { id: 'dsa', title: 'DSA', fullTitle: 'Dépenses de Santé Actuelles', montant: dsaTotal, category: 'patrimoniaux-temp' },
-    pgpaData.revenuRef.lignes.length > 0 && { id: 'pgpa', title: 'PGPA', fullTitle: 'Pertes de Gains Professionnels Actuels', montant: pgpaTotal, category: 'patrimoniaux-temp' },
-    dftLignes.length > 0 && { id: 'dft', title: 'DFT', fullTitle: 'Déficit Fonctionnel Temporaire', montant: dftTotal, category: 'extra-patrimoniaux-temp' },
-    Object.keys(pgpfData.periodes).length > 0 && { id: 'pgpf', title: 'PGPF', fullTitle: 'Pertes de Gains Professionnels Futurs', montant: pgpfTotal, category: 'patrimoniaux-perm' }
-  ].filter(Boolean);
+  // Category mapping for Nomenclature Dintilhac
+  const CATEGORY_MAP = {
+    'vd-pat-temp': { id: 'patrimoniaux-temp', title: 'Préjudices Patrimoniaux Temporaires' },
+    'vd-expat-temp': { id: 'extra-patrimoniaux-temp', title: 'Préjudices Extra-Patrimoniaux Temporaires' },
+    'vd-pat-perm': { id: 'patrimoniaux-perm', title: 'Préjudices Patrimoniaux Permanents' },
+    'vd-expat-perm': { id: 'extra-patrimoniaux-perm', title: 'Préjudices Extra-Patrimoniaux Permanents' },
+    'vd-hors-conso': { id: 'hors-conso', title: 'Autres Préjudices Hors Consolidation' },
+    'vd-annexes': { id: 'annexes', title: 'Annexes' },
+    'vi-pat': { id: 'vi-pat', title: 'Préjudices Patrimoniaux (Victimes Indirectes)' },
+    'vi-expat': { id: 'vi-expat', title: 'Préjudices Extra-Patrimoniaux (Victimes Indirectes)' },
+  };
 
-  // Postes suggérés désactivés (non modélisés, affichage uniquement)
-  const disabledPostes = [
-    { id: 'atpt', title: 'ATPT', fullTitle: 'Assistance Tierce Personne Temporaire', montant: 8400, category: 'patrimoniaux-temp', disabled: true, pieceIds: ['p-5'] },
-    { id: 'pet', title: 'PET', fullTitle: 'Préjudice Esthétique Temporaire', montant: 2500, category: 'extra-patrimoniaux-temp', disabled: true, pieceIds: ['p-5'] },
-    { id: 'se', title: 'SE', fullTitle: 'Souffrances Endurées', montant: 15000, category: 'extra-patrimoniaux-temp', disabled: true, pieceIds: ['p-5'] },
-  ];
+  // Flatten taxonomy for lookups
+  const allTaxoPostes = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes.map(p => ({ ...p, categoryId: c.id }))));
 
-  const allPostes = [...activePostes, ...disabledPostes];
+  const getPosteMontant = (id) => {
+    if (id === 'dsa') return dsaTotal;
+    if (id === 'pgpa') return pgpaTotal;
+    if (id === 'dft') return dftTotal;
+    if (id === 'pgpf') return pgpfTotal;
+    return formPosteData[id]?.montant || 0;
+  };
 
-  const categories = [
-    { id: 'patrimoniaux-temp', title: 'Préjudices Patrimoniaux Temporaires', postes: allPostes.filter(p => p.category === 'patrimoniaux-temp') },
-    { id: 'extra-patrimoniaux-temp', title: 'Préjudices Extra-Patrimoniaux Temporaires', postes: allPostes.filter(p => p.category === 'extra-patrimoniaux-temp') },
-    { id: 'patrimoniaux-perm', title: 'Préjudices Patrimoniaux Permanents', postes: allPostes.filter(p => p.category === 'patrimoniaux-perm') }
-  ];
+  const allPostes = dossierPostes.map(id => {
+    const taxo = allTaxoPostes.find(p => p.id === id);
+    if (!taxo) return null;
+    const cat = CATEGORY_MAP[taxo.categoryId];
+    return {
+      id,
+      title: taxo.acronym || id.toUpperCase(),
+      fullTitle: taxo.label,
+      montant: getPosteMontant(id),
+      category: cat?.id || 'patrimoniaux-temp',
+    };
+  }).filter(Boolean);
 
-  const totalChiffrage = allPostes.filter(p => !p.disabled).reduce((s, p) => s + p.montant, 0);
+  const categories = Object.values(CATEGORY_MAP)
+    .map(cat => ({ ...cat, postes: allPostes.filter(p => p.category === cat.id) }))
+    .filter(cat => cat.postes.length > 0);
+
+  const totalChiffrage = allPostes.reduce((s, p) => s + p.montant, 0);
 
   // ========== HELPERS ==========
   const currentLevel = navStack[navStack.length - 1];
@@ -672,22 +742,17 @@ export default function App() {
     })).filter(section => section.categories.length > 0);
   };
 
-  const getPosteMontant = (posteId) => {
-    const poste = allPostes.find(p => p.id === posteId);
-    return poste ? poste.montant : null;
-  };
-
   // ========== PIECES HELPERS ==========
   const getTypeColor = (type) => {
     const colors = {
-      'Facture': 'bg-blue-100 text-blue-700',
+      'Facture': 'bg-blue-100 text-[#1e3a8a]',
       'Bulletin': 'bg-green-100 text-green-700',
       'Attestation': 'bg-purple-100 text-purple-700',
       'Expertise': 'bg-amber-100 text-amber-700',
       'Imagerie': 'bg-pink-100 text-pink-700',
       'Ordonnance': 'bg-cyan-100 text-cyan-700'
     };
-    return colors[type] || 'bg-gray-100 text-gray-700';
+    return colors[type] || 'bg-[#F8F7F5] text-gray-700';
   };
 
   const getPieceUsage = (pieceId) => {
@@ -710,12 +775,31 @@ export default function App() {
   // ========== PIECES LIST COMPONENT ==========
   const renderPiecesList = (piecesArray, showUploadZone = true) => {
     const sortedPieces = sortPiecesByDate(piecesArray);
-    
+
     return (
-      <div className="space-y-4">
-        {/* Header avec upload */}
-        <div className="flex items-center justify-between">
-          <span className="text-body text-gray-500">{piecesArray.length} pièce{piecesArray.length > 1 ? 's' : ''}</span>
+      <div className="flex flex-col -mx-4 -mt-4">
+        {/* Sub-header bar — full width, edge-to-edge */}
+        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[#e7e5e3]">
+          <span className="flex-1 text-sm font-medium text-[#292524]">{piecesArray.length} pièce{piecesArray.length > 1 ? 's' : ''}</span>
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#e7e5e3] rounded-lg shadow-sm text-sm text-[#78716c] cursor-pointer hover:border-[#d6d3d1]">
+              <ListFilter className="w-4 h-4" strokeWidth={1.5} />
+              <span>Filtrer par type</span>
+              <ChevronDown className="w-4 h-4" strokeWidth={1.5} />
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#e7e5e3] rounded-lg shadow-sm">
+              <Search className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+              <span className="text-sm text-[#78716c] opacity-70">Rechercher...</span>
+            </div>
+            <button className="px-3 py-2 text-sm font-medium text-[#44403c] bg-[#eeece6] rounded-md hover:bg-[#e7e5e3] transition-colors">
+              Bordereau
+            </button>
+          </div>
+        </div>
+
+        {/* Content container with padding */}
+        <div className="p-4">
+          {/* Drop zone */}
           {showUploadZone && (
             <div
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -730,7 +814,7 @@ export default function App() {
                     nomOriginal: file.name,
                     intitule: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
                     date: new Date().toLocaleDateString('fr-FR'),
-                    type: file.name.toLowerCase().includes('facture') ? 'Facture' 
+                    type: file.name.toLowerCase().includes('facture') ? 'Facture'
                       : file.name.toLowerCase().includes('bulletin') ? 'Bulletin'
                       : file.name.toLowerCase().includes('ordo') ? 'Ordonnance'
                       : file.name.toLowerCase().includes('irm') || file.name.toLowerCase().includes('radio') ? 'Imagerie'
@@ -740,75 +824,94 @@ export default function App() {
                   setPieces(prev => [...prev, newPiece]);
                 });
               }}
-              className={`flex items-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}`}
+              className={`mb-4 flex items-center justify-center gap-4 h-16 border border-dashed rounded-lg cursor-pointer transition-colors ${isDragging ? 'border-[#d6d3d1] bg-[#f5f5f4]' : 'border-[#d6d3d1] hover:border-[#a8a29e]'}`}
+              style={{ background: isDragging ? '#f5f5f4' : 'linear-gradient(to top, rgba(238,236,230,0) 50%, #f8f7f5 100%)' }}
             >
-              <Upload className="w-4 h-4 text-gray-500" />
-              <span className="text-body text-gray-600">Déposer des documents</span>
+              <Upload className="w-5 h-5 text-[#78716c]" strokeWidth={1.5} />
+              <span className="text-sm">
+                <span className="text-[#78716c]">Déposez ou </span>
+                <span className="font-medium text-[#1e3a8a]">cliquez</span>
+                <span className="text-[#78716c]"> pour ajouter de nouvelles pièces</span>
+              </span>
             </div>
           )}
-        </div>
-        
-        {/* Liste des pièces */}
-        <div className="bg-white rounded-lg border overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-4 py-3 text-left text-caption-medium text-gray-500 uppercase tracking-wider w-16">N°</th>
-                <th className="px-4 py-3 text-left text-caption-medium text-gray-500 uppercase tracking-wider">Document</th>
-                <th className="px-4 py-3 text-left text-caption-medium text-gray-500 uppercase tracking-wider w-24">Type</th>
-                <th className="px-4 py-3 text-left text-caption-medium text-gray-500 uppercase tracking-wider w-32">Utilisé dans</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {sortedPieces.map((piece) => {
-                const globalIndex = pieces.findIndex(p => p.id === piece.id) + 1;
-                const usages = getPieceUsage(piece.id);
-                return (
-                  <tr 
-                    key={piece.id} 
-                    className="hover:bg-gray-50 cursor-pointer group"
-                    onClick={() => setEditPanel({ type: 'piece-detail', data: { ...piece, index: globalIndex, usages } })}
-                  >
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 text-gray-700 text-body-medium rounded group-hover:bg-blue-100 group-hover:text-blue-700">
-                        P{globalIndex}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                        <span className="font-medium text-gray-900">{piece.intitule || piece.nom.replace(/\.[^/.]+$/, '')}</span>
+
+          {/* Table */}
+          <div className="border border-[#e7e5e3] rounded-md overflow-hidden">
+            {/* Column headers */}
+            <div className="flex items-center bg-white border-b border-[#e7e5e3]">
+              <div className="w-[38px] h-10 shrink-0" />
+              <div className="w-[50px] shrink-0 px-3 py-3 text-center" style={colHeaderStyle}>N°</div>
+              <div className="flex-1 min-w-0 px-3 py-3" style={colHeaderStyle}>Nom du document</div>
+              <div className="w-[174px] shrink-0 px-3 py-3" style={colHeaderStyle}>Type</div>
+              <div className="w-[120px] shrink-0 px-3 py-3" style={colHeaderStyle}>Date</div>
+              <div className="w-[224px] shrink-0 px-3 py-3" style={colHeaderStyle}>Postes liés</div>
+              <div className="w-[44px] shrink-0" />
+            </div>
+
+            {/* Rows */}
+            {sortedPieces.map((piece) => {
+              const globalIndex = pieces.findIndex(p => p.id === piece.id) + 1;
+              const usages = getPieceUsage(piece.id);
+              return (
+                <div
+                  key={piece.id}
+                  className="flex items-center h-14 bg-white border-b border-[#e7e5e3] last:border-b-0 hover:bg-[#fafaf9] cursor-pointer group"
+                  onClick={() => setEditPanel({ type: 'piece-detail', data: { ...piece, index: globalIndex, usages } })}
+                >
+                  {/* Grip */}
+                  <div className="w-[38px] shrink-0 flex items-center justify-center pl-3">
+                    <GripVertical className="w-3.5 h-3.5 text-[#d6d3d1] opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                  </div>
+                  {/* Number badge */}
+                  <div className="w-[50px] shrink-0 flex items-center justify-center pl-4 pr-3">
+                    <span className="inline-flex items-center justify-center w-[22px] h-[22px] bg-[#eeece6] text-[#78716c] text-xs font-semibold rounded-md">
+                      {globalIndex}
+                    </span>
+                  </div>
+                  {/* Document name */}
+                  <div className="flex-1 min-w-0 px-3">
+                    <span className="text-sm font-medium text-black truncate block">{piece.intitule || piece.nom.replace(/\.[^/.]+$/, '')}</span>
+                  </div>
+                  {/* Type badge */}
+                  <div className="w-[174px] shrink-0 px-3">
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md ${PIECE_TYPE_COLORS[piece.type] || 'bg-[#eeece6] text-[#44403c]'}`}>
+                      {piece.type}
+                      <ChevronDown className="w-3 h-3" strokeWidth={1.5} />
+                    </span>
+                  </div>
+                  {/* Date */}
+                  <div className="w-[120px] shrink-0 px-3">
+                    <span className="text-sm text-[#292524]">{piece.date || '—'}</span>
+                  </div>
+                  {/* Postes liés */}
+                  <div className="w-[224px] shrink-0 px-3">
+                    {usages.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 overflow-hidden">
+                        {usages.map(u => (
+                          <span key={u} className="px-2 py-0.5 text-xs font-medium text-[#44403c] bg-[#eeece6] rounded-md">{u}</span>
+                        ))}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-1 text-caption-medium rounded-full ${getTypeColor(piece.type)}`}>
-                        {piece.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {usages.length > 0 ? (
-                        <div className="flex items-center gap-1">
-                          {usages.map(u => (
-                            <span key={u} className="text-caption px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">{u}</span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-caption text-gray-400">Non utilisé</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    ) : (
+                      <span className="text-xs text-[#a8a29e]">—</span>
+                    )}
+                  </div>
+                  {/* Options */}
+                  <div className="w-[44px] shrink-0 flex items-center justify-end pr-4">
+                    <MoreVertical className="w-4 h-4 text-[#78716c] opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
   };
 
-  const tabsConfig = { dossier: ['Info dossier', 'Chiffrage', 'Pièces'], poste: [] };
-  const currentTabs = tabsConfig[currentLevel.type] || [];
-  const _getSiblings = () => currentLevel.type === 'poste' ? allPostes.filter(p => p.id !== currentLevel.id && !p.disabled) : []; // eslint-disable-line no-unused-vars
+  const tabsConfig = { dossier: ['Dossier', 'Chiffrage', 'Pièces', 'Actes', 'JP'], poste: [] };
+  const currentTabs = currentLevel ? (tabsConfig[currentLevel.type] || []) : [];
+  const _getSiblings = () => currentLevel?.type === 'poste' ? allPostes.filter(p => p.id !== currentLevel.id && !p.disabled) : []; // eslint-disable-line no-unused-vars
 
   // ========== NAVIGATION ==========
   const navigateTo = (item) => setNavStack([...navStack, { ...item, type: item.type || 'poste', activeTab: tabsConfig[item.type]?.[0]?.toLowerCase() }]);
@@ -1827,7 +1930,7 @@ export default function App() {
       setDftLignes(prev => [newLigne, ...prev]);
       setEditingPieceIds([]);
       setSearchPiecesPanel('');
-      setEditPanel({ type: 'dft-ligne', data: newLigne });
+      setEditPanel({ type: 'dft-ligne', title: 'Éditer la dépense', data: newLigne });
     }
   };
 
@@ -1844,351 +1947,404 @@ export default function App() {
   const openDsaEditPanel = (ligne) => {
     setEditingPieceIds(ligne.pieceIds || []);
     setSearchPiecesPanel('');
-    setEditPanel({ type: 'dsa-ligne', data: ligne });
+    setEditPanel({ type: 'dsa-ligne', title: 'Éditer la dépense', data: ligne });
   };
 
   // Helper pour ouvrir le panel d'édition PGPA avec initialisation des pieceIds
   const openPgpaEditPanel = (type, ligne) => {
     setEditingPieceIds(ligne.pieceIds || []);
     setSearchPiecesPanel('');
-    setEditPanel({ type, data: ligne });
+    const titles = { 'pgpa-revenu': 'Ajouter/Modifier une période de revenu', 'pgpa-revenu-percu': 'Ajouter/Modifier une période de revenu perçu', 'pgpa-ij': 'Ajouter/Modifier une perte de chance' };
+    setEditPanel({ type, title: titles[type] || 'Édition', data: ligne });
   };
 
-  // ========== SIDEBAR ==========
-  const renderSidebar = () => {
-    const icons = { dossier: Folder, poste: FileText };
-    
-    // Titre dynamique par niveau
-    const _getItemTitle = (item) => { // eslint-disable-line no-unused-vars
-      if (item.type === 'dossier') {
-        const age = calcAge(victimeData.dateNaissance);
-        return `${victimeData.nom} ${victimeData.prenom} (${age})`;
-      }
-      return item.title;
-    };
-    
-    // Contexte par niveau - seulement ce qui n'est plus visible quand on descend
-    const _getContextInfo = (item, index) => { // eslint-disable-line no-unused-vars
-      const isLast = index === navStack.length - 1;
-      
-      if (item.type === 'dossier') {
-        // Dates clés seulement si on n'est plus au niveau dossier
-        if (!isLast) {
-          return {
-            line1: `${faitGenerateur.dateAccident} → ${faitGenerateur.dateConsolidation}`
-          };
-        }
-        return null;
-      }
-      
-      if (item.type === 'poste') {
-        // Seulement si on descendrait plus bas (ex: périodes PGPF)
-        return null;
-      }
-      
-      return null;
-    };
-    
+  // ========== TOP BAR ==========
+  const renderTopBar = () => {
+    const dossierTabs = tabsConfig.dossier;
     return (
-      <div className="w-64 bg-white border-r border-zinc-200/60 flex flex-col h-full">
-        {/* Logo Norma - clic = retour liste dossiers */}
-        <button
-          onClick={backToList}
-          className="px-4 py-4 border-b border-zinc-200 hover:bg-zinc-50 transition-colors"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-body">N</span>
-            </div>
-            <span className="text-heading-sm text-zinc-800">Norma</span>
-          </div>
-        </button>
-        
-        {/* Navigation Stack - Full width avec dividers */}
-        <div className="flex-1 overflow-y-auto">
-          {navStack.map((item, index) => {
-            const isLast = index === navStack.length - 1;
-            const hasSubSection = item.subSection;
-            
-            // === DOSSIER ===
-            if (item.type === 'dossier') {
+      <div className="w-full h-14 bg-white border-b border-stone-200/60 flex items-center justify-between px-4 flex-shrink-0 relative">
+        {/* Left: Home + victim name */}
+        <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
+          <button onClick={backToList} className="w-8 h-8 flex items-center justify-center bg-[#eeece6] rounded-[6px] hover:bg-[#e7e5e3] transition-colors flex-shrink-0">
+            <Folder className="w-4 h-4 text-[#44403c]" strokeWidth={1.5} />
+          </button>
+          <span className="truncate" style={{ fontFamily: "'RL Para Trial Central', Georgia, serif", fontSize: '16px', fontWeight: 500, color: '#292524', letterSpacing: '-0.3px' }}>
+            {victimeData.prenom} {victimeData.nom}
+          </span>
+        </div>
+
+        {/* Center: Tabs — absolutely centered so they never shift */}
+        <div className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 flex items-center pointer-events-none">
+          <div className="pointer-events-auto flex gap-1">
+          <div className="flex gap-1">
+            {dossierTabs.map(tab => {
+              const tabKey = tab.toLowerCase();
+              const isActive = currentLevel?.type === 'dossier'
+                ? currentLevel.activeTab === tabKey
+                : navStack[0]?.activeTab === tabKey;
+              const hasExtracted = tab === 'Dossier' && infoDossierStreaming?.fieldsRevealed?.length > 0;
+              const showDot = hasExtracted && !isActive;
               return (
-                <div key={`${item.id}-${index}`} className="border-b border-zinc-200">
-                  <button 
-                    onClick={() => !isLast && navigateToStackLevel(index)}
-                    className={`w-full px-4 py-4 text-left transition-colors ${!isLast ? 'hover:bg-zinc-50 cursor-pointer' : ''}`}
-                  >
-                    {/* Avatar + Nom */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-body-medium text-zinc-600">
-                        {victimeData.prenom[0]}{victimeData.nom[0]}
-                      </div>
-                      <div>
-                        <div className="text-body-medium text-zinc-800">{victimeData.prenom} {victimeData.nom}</div>
-                        <div className="text-caption text-zinc-400">{calcAge(victimeData.dateNaissance)} ans · {victimeData.sexe}</div>
-                      </div>
-                    </div>
-                    {/* Dates */}
-                    <div className="mt-3 text-caption text-zinc-400 space-y-1">
-                      <div className="flex justify-between">
-                        <span>Accident</span>
-                        <span className="text-zinc-600">{faitGenerateur.dateAccident}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Consolidation</span>
-                        <span className="text-zinc-600">{faitGenerateur.dateConsolidation}</span>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              );
-            }
-            
-            // === POSTE ===
-            const Icon = icons[item.type] || FileText;
-            let montant = null;
-            if (item.type === 'poste') montant = item.montant || (item.id === 'pgpa' ? pgpaTotal : item.id === 'dsa' ? dsaTotal : 0);
-            
-            // Highlight seulement si c'est le dernier ET pas de sous-section
-            const isHighlighted = isLast && !hasSubSection;
-            
-            return (
-              <div key={`${item.id}-${index}`} className="border-b border-zinc-200">
-                <button 
+                <button
+                  key={tab}
                   onClick={() => {
-                    if (isLast && hasSubSection) {
-                      // Retour au sommaire PGPA
-                      setNavStack(prev => {
-                        const newStack = [...prev];
-                        delete newStack[newStack.length - 1].subSection;
-                        return [...newStack];
-                      });
-                    } else if (!isLast) {
-                      navigateToStackLevel(index);
+                    if (currentLevel?.type === 'poste') {
+                      navigateToStackLevel(0);
+                      setTimeout(() => setActiveTab(tab), 0);
+                    } else {
+                      setActiveTab(tab);
                     }
                   }}
-                  className={`w-full px-4 py-3 text-left transition-colors relative ${
-                    isHighlighted 
-                      ? 'bg-gradient-to-r from-zinc-100 to-zinc-50' 
-                      : !isLast || hasSubSection ? 'hover:bg-zinc-50 cursor-pointer' : ''
-                  }`}
+                  className={`px-4 py-3 text-body-medium relative transition-colors ${isActive ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}`}
                 >
-                  {/* Barre active à droite */}
-                  {isHighlighted && (
-                    <div className="absolute right-0 top-2 bottom-2 w-[3px] bg-zinc-800 rounded-full" />
-                  )}
-                  <div className="flex items-center gap-2.5">
-                    <Icon className="w-4 h-4 flex-shrink-0 text-zinc-400" strokeWidth={1.5} />
-                    <span className={`text-body-medium ${isHighlighted ? 'text-zinc-800' : 'text-zinc-700'}`}>
-                      {item.title}
-                    </span>
-                  </div>
-                  {montant !== null && montant > 0 && (
-                    <div className={`mt-1 ml-[26px] text-body-medium font-semibold tabular-nums ${isHighlighted ? 'text-zinc-600' : 'text-zinc-500'}`}>
-                      {fmt(montant)}
-                    </div>
-                  )}
+                  <span className="flex items-center gap-1.5">
+                    {tab}
+                    {showDot && <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse-scale" />}
+                  </span>
+                  {isActive && <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-stone-800 rounded-full" />}
                 </button>
-                
-                {/* Sous-sections PGPA */}
-                {item.id === 'pgpa' && isLast && hasSubSection && (
-                  <div className="px-4 pb-3 space-y-0.5">
-                    {[
-                      { id: 'revenus-ref', label: 'Revenus de référence' },
-                      { id: 'revenus-percus', label: 'Revenus perçus' },
-                      { id: 'ij', label: 'Indemnités journalières' }
-                    ].map(sub => {
-                      const isSubActive = item.subSection === sub.id;
-                      return (
-                        <button
-                          key={sub.id}
-                          onClick={() => {
-                            setNavStack(prev => {
-                              const newStack = [...prev];
-                              newStack[newStack.length - 1] = { ...newStack[newStack.length - 1], subSection: sub.id };
-                              return newStack;
-                            });
-                          }}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-body transition-colors relative ${
-                            isSubActive
-                              ? 'bg-gradient-to-r from-zinc-100 to-zinc-50 font-medium text-zinc-800'
-                              : 'text-zinc-500 hover:bg-zinc-100'
-                          }`}
-                        >
-                          {isSubActive && (
-                            <div className="absolute right-1 top-1 bottom-1 w-[3px] bg-zinc-800 rounded-full" />
-                          )}
-                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isSubActive ? 'bg-zinc-800' : 'bg-zinc-300'}`} />
-                          <span>{sub.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          
-          {/* Paramètres du poste */}
-          {currentLevel.type === 'poste' && (
-            <div className="px-4 py-3 border-b border-zinc-200">
-              <div className="text-caption-medium text-zinc-400 uppercase tracking-wider mb-2">
-                Paramètres
-              </div>
-              <div className="space-y-2">
-                {currentLevel.id === 'dsa' && (
-                  <div>
-                    <label className="block text-caption text-zinc-500 mb-1">Revalorisation</label>
-                    <select 
-                      defaultValue="ipc-annuel"
-                      className="w-full px-2.5 py-1.5 text-body border border-zinc-200 rounded-md bg-white"
-                    >
-                      <option value="ipc-annuel">IPC annuel</option>
-                      <option value="ipc-mensuel">IPC mensuel</option>
-                      <option value="aucune">Aucune</option>
-                    </select>
-                  </div>
-                )}
-                {currentLevel.id === 'pgpa' && (
-                  <div>
-                    <label className="block text-caption text-zinc-500 mb-1">Revalorisation</label>
-                    <select 
-                      value={pgpaData.revenuRef.revalorisation}
-                      onChange={(e) => setPgpaData(prev => ({ 
-                        ...prev, 
-                        revenuRef: { ...prev.revenuRef, revalorisation: e.target.value } 
-                      }))}
-                      className="w-full px-2.5 py-1.5 text-body border border-zinc-200 rounded-md bg-white"
-                    >
-                      <option value="ipc-annuel">IPC annuel</option>
-                      <option value="smic-horaire">SMIC horaire</option>
-                      <option value="aucune">Aucune</option>
-                    </select>
-                  </div>
-                )}
-                {currentLevel.id === 'dft' && (
-                  <div>
-                    <label className="block text-caption text-zinc-500 mb-1">Base journalière</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        value={chiffrageParams.baseJournaliereDFT}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setChiffrageParams(prev => ({ ...prev, baseJournaliereDFT: val }));
-                        }}
-                        className="w-full px-2.5 py-1.5 pr-10 text-body border border-zinc-200 rounded-md"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-caption text-zinc-400">€/j</span>
-                    </div>
-                    <p className="text-caption text-zinc-400 mt-1">Utilisée par défaut pour chaque ligne</p>
-                  </div>
-                )}
-                {/* Notes / Argumentaire */}
-                {(currentLevel.id === 'dsa' || currentLevel.id === 'dft' || currentLevel.id === 'pgpa') && (
-                  <div className="mt-3">
-                    <label className="block text-caption text-zinc-500 mb-1">Notes / Argumentaire</label>
-                    <textarea
-                      value={posteNotes[currentLevel.id] || ''}
-                      onChange={(e) => setPosteNotes(prev => ({ ...prev, [currentLevel.id]: e.target.value }))}
-                      rows={3}
-                      className="w-full px-2.5 py-1.5 text-body border border-zinc-200 rounded-md resize-none"
-                      placeholder="Notes sur ce poste..."
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          
-          {/* Taxonomie des postes */}
-          {currentLevel.type === 'dossier' && currentLevel.activeTab === 'chiffrage' && (
-            <div className="px-4 py-3 border-t border-zinc-200">
-              <div className="text-caption-medium text-zinc-400 uppercase tracking-wider mb-2">Postes</div>
+              );
+            })}
+          </div>
+        </div></div>
 
-              {/* Search */}
-              <div className="relative mb-3">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
-                <input type="text" value={searchPostes} onChange={(e) => setSearchPostes(e.target.value)}
-                  placeholder="Rechercher un poste..."
-                  className="w-full pl-8 pr-7 py-1.5 text-caption border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
-                {searchPostes && (
-                  <button onClick={() => setSearchPostes('')} className="absolute right-2 top-1/2 -translate-y-1/2">
-                    <X className="w-3 h-3 text-zinc-400" />
-                  </button>
-                )}
-              </div>
-
-              {/* Taxonomy */}
-              {(() => {
-                const filtered = getFilteredTaxonomy();
-                if (filtered.length === 0) return <p className="text-caption text-zinc-400 text-center py-4">Aucun poste trouvé</p>;
-                return (
-                  <div className="space-y-3">
-                    {filtered.map(section => (
-                      <div key={section.section}>
-                        <div className="text-counter font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">{section.section}</div>
-                        <div className="space-y-0.5">
-                          {section.categories.map(cat => {
-                            const isExpanded = expandedTaxoCategories.includes(cat.id) || searchPostes.trim() !== '';
-                            const sorted = [...cat.postes.filter(p => p.enabled), ...cat.postes.filter(p => !p.enabled)];
-                            return (
-                              <div key={cat.id}>
-                                <button onClick={() => setExpandedTaxoCategories(prev => prev.includes(cat.id) ? prev.filter(id => id !== cat.id) : [...prev, cat.id])}
-                                  className="w-full flex items-center gap-1.5 py-1.5 text-caption-medium text-zinc-500 hover:text-zinc-700 transition-colors">
-                                  {isExpanded ? <ChevronDown className="w-3 h-3 flex-shrink-0" strokeWidth={2} /> : <ChevronRight className="w-3 h-3 flex-shrink-0" strokeWidth={2} />}
-                                  <span className="truncate text-left">{cat.title}</span>
-                                </button>
-                                {isExpanded && (
-                                  <div className="ml-4 space-y-0.5">
-                                    {sorted.map(p => {
-                                      const montant = getPosteMontant(p.id);
-                                      if (p.enabled) {
-                                        return (
-                                          <button key={p.id} onClick={() => navigateTo({ id: p.id, title: p.acronym, fullTitle: p.label, type: 'poste', montant: montant || 0 })}
-                                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors hover:bg-zinc-100 group">
-                                            {p.acronym && <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-counter font-semibold bg-zinc-100 text-zinc-700 rounded flex-shrink-0 group-hover:bg-zinc-200">{p.acronym}</span>}
-                                            <span className="text-caption text-zinc-700 truncate flex-1">{p.label}</span>
-                                            {montant != null && montant > 0 && <span className="text-caption-medium text-zinc-500 tabular-nums flex-shrink-0">{fmt(montant)}</span>}
-                                          </button>
-                                        );
-                                      }
-                                      return (
-                                        <div key={p.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-default">
-                                          <span className="text-caption text-zinc-300 truncate">{p.label}</span>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-            </div>
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2 justify-end">
+          {/* Chiffrage CTAs */}
+          {currentLevel?.activeTab === 'chiffrage' && currentLevel?.type === 'dossier' && (
+            <>
+              <button onClick={() => setShowExportModal(true)} className="h-8 flex items-center gap-2 px-4 text-[14px] font-medium text-[#292524] bg-white border border-[#e7e5e3] rounded-lg hover:bg-stone-50 transition-colors" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                <Download className="w-4 h-4" strokeWidth={1.5} />
+                Exporter
+              </button>
+              <button onClick={() => setPosteSearchOpen(true)} className="h-8 flex items-center gap-2 px-4 text-[14px] font-medium text-white bg-[#292524] rounded-lg hover:bg-[#44403c] transition-colors" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                <Plus className="w-4 h-4" strokeWidth={2} />
+                Ajouter un poste
+              </button>
+            </>
           )}
-        </div>
-        
-        {/* User section - bottom */}
-        <div className="border-t border-zinc-200 px-4 py-3">
-          <button className="w-full flex items-center gap-3 p-2 -m-2 rounded-lg hover:bg-zinc-50 transition-colors">
-            <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-caption-medium text-zinc-600">
-              JD
-            </div>
-            <div className="flex-1 text-left">
-              <div className="text-body-medium text-zinc-700">Jean Durand</div>
-              <div className="text-caption text-zinc-400">Avocat</div>
-            </div>
-            <Settings className="w-4 h-4 text-zinc-400" strokeWidth={1.5} />
-          </button>
+          <div className="w-px h-5 bg-[#e7e5e3]" />
+          {chatSidebarOpen ? (
+            <button
+              onClick={() => setChatSidebarOpen(false)}
+              className="p-1.5 hover:bg-stone-100 rounded-lg transition-colors"
+              title="Masquer le chat"
+            >
+              <PanelRightClose className="w-5 h-5 text-stone-500" strokeWidth={1.5} />
+            </button>
+          ) : (
+            <button
+              onClick={() => setChatSidebarOpen(true)}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all hover:shadow-md"
+              title="Ouvrir Plato Assistant"
+              style={{
+                border: '1px solid #aabcd5',
+                boxShadow: '0px 1px 2px 0px rgba(0,0,0,0.05)',
+                backgroundImage: `url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 36' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'><rect x='0' y='0' height='100%25' width='100%25' fill='url(%23grad)' opacity='0.2'/><defs><radialGradient id='grad' gradientUnits='userSpaceOnUse' cx='0' cy='0' r='10' gradientTransform='matrix(0 -3.29 7.6 -0.48 100 18)'><stop stop-color='rgba(185,112,63,1)' offset='0'/><stop stop-color='rgba(203,148,111,0.75)' offset='0.25'/><stop stop-color='rgba(220,183,159,0.5)' offset='0.5'/><stop stop-color='rgba(255,255,255,0)' offset='1'/></radialGradient></defs></svg>"), linear-gradient(90deg, #f8f7f5 0%, #f8f7f5 100%)`,
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                <rect width="16" height="16" rx="3" fill="#E8713A" />
+                <path d="M4.5 11V5.5H7.25C7.75 5.5 8.15 5.65 8.45 5.95C8.75 6.25 8.9 6.6 8.9 7.05C8.9 7.5 8.75 7.85 8.45 8.15C8.15 8.45 7.75 8.6 7.25 8.6H5.8V11H4.5ZM5.8 7.5H7.1C7.3 7.5 7.45 7.45 7.55 7.35C7.65 7.25 7.7 7.1 7.7 6.95C7.7 6.8 7.65 6.65 7.55 6.55C7.45 6.45 7.3 6.4 7.1 6.4H5.8V7.5Z" fill="white" />
+              </svg>
+              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '12px', color: '#50443e', whiteSpace: 'nowrap' }}>
+                PLATO ASSISTANT
+              </span>
+            </button>
+          )}
         </div>
       </div>
     );
+  };
+
+  // ========== CHAT SIDEBAR ==========
+  const handleChatResizeStart = (e) => {
+    e.preventDefault();
+    chatResizing.current = true;
+    const startX = e.clientX;
+    const startWidth = chatWidth;
+    const onMove = (ev) => {
+      const delta = startX - ev.clientX;
+      setChatWidth(Math.min(640, Math.max(300, startWidth + delta)));
+    };
+    const onUp = () => {
+      chatResizing.current = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+
+  // Plato logo icon (orange P) — reusable
+  const PlatoIcon = ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+      <rect width="16" height="16" rx="3" fill="#E8713A" />
+      <path d="M4.5 11V5.5H7.25C7.75 5.5 8.15 5.65 8.45 5.95C8.75 6.25 8.9 6.6 8.9 7.05C8.9 7.5 8.75 7.85 8.45 8.15C8.15 8.45 7.75 8.6 7.25 8.6H5.8V11H4.5ZM5.8 7.5H7.1C7.3 7.5 7.45 7.45 7.55 7.35C7.65 7.25 7.7 7.1 7.7 6.95C7.7 6.8 7.65 6.65 7.55 6.55C7.45 6.45 7.3 6.4 7.1 6.4H5.8V7.5Z" fill="white" />
+    </svg>
+  );
+
+  // Orange dot grid icon for AI thinking
+  const PlatoDotGrid = () => (
+    <div className="flex-shrink-0" style={{ width: 15, height: 15, display: 'flex', flexDirection: 'column', gap: 1 }}>
+      {[0, 1, 2].map(row => (
+        <div key={row} style={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+          {[0, 1, 2].map(col => (
+            <div key={col} style={{ width: 3, height: 3, backgroundColor: '#ea7949', borderRadius: 0.5, transform: 'rotate(45deg)' }} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+
+  // Chat state for example UI
+  const [chatInputValue, setChatInputValue] = useState('');
+  const [chatInputFocused, setChatInputFocused] = useState(false);
+
+  // Example chat messages data
+  const exampleChatMessages = [
+    { type: 'user', text: "Quelles sont les étapes à suivre pour constituer un dossier solide en cas de blessures corporelles suite à un accident de voiture impliquant un conducteur en état d'ébriété?" },
+    {
+      type: 'ai',
+      thinkingLabel: 'Done this and that and that ...',
+      steps: [
+        { icon: 'search', text: 'Calling tool blabla..' },
+        { icon: 'file', text: 'Reading documents to extract...' },
+        { icon: 'math', text: 'Doing mathematic...' },
+      ],
+      text: "L'évaluation des dommages corporels prend en compte la douleur, la perte de revenus, les frais médicaux présents et futurs. Pour les non-résidents, des accords internationaux et des lois spécifiques peuvent s'appliquer, influençant le calcul final.",
+    },
+    { type: 'ai-thinking', label: 'Crafting interactive legal calculation...' },
+  ];
+
+  const renderChatSidebar = () => {
+    const hasContent = chatInputValue.trim().length > 0;
+
+    return (
+      <>
+        {/* Draggable resize handle */}
+        <div
+          className="w-[6px] flex-shrink-0 cursor-col-resize group relative border-l border-r border-[#e7e5e3]"
+          style={{ backgroundColor: '#F8F7F5' }}
+          onMouseDown={handleChatResizeStart}
+        >
+          <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-stone-300/30 transition-colors" />
+        </div>
+        <div className="flex-shrink-0 flex flex-col h-full" style={{ width: chatWidth, backgroundColor: '#F8F7F5' }}>
+          {/* Header — Badge */}
+          <div className="px-4 h-12 border-b flex items-center gap-2.5 flex-shrink-0" style={{ borderColor: '#e7e5e3' }}>
+            <PlatoIcon />
+            <span className="flex-1" style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '12px', color: '#78716c', lineHeight: '32px' }}>
+              PLATO MASTER
+            </span>
+          </div>
+
+          {/* Chat messages area */}
+          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-2.5" style={{ backgroundColor: '#F8F7F5' }}>
+            {exampleChatMessages.map((msg, i) => {
+              // User message bubble
+              if (msg.type === 'user') {
+                return (
+                  <div key={i} className="flex flex-col items-end pb-4" style={{ paddingLeft: 32 }}>
+                    <div
+                      className="w-full"
+                      style={{
+                        backgroundColor: '#292524',
+                        borderRadius: 6,
+                        padding: '10px 12px',
+                        boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <p style={{ fontSize: 14, lineHeight: '20px', color: 'white', margin: 0 }}>{msg.text}</p>
+                      {/* Inner glow */}
+                      <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', boxShadow: 'inset 0px -5px 8px 0px rgba(255,255,255,0.12)', pointerEvents: 'none' }} />
+                    </div>
+                  </div>
+                );
+              }
+
+              // AI thinking status (in progress)
+              if (msg.type === 'ai-thinking') {
+                return (
+                  <div key={i} className="flex flex-col gap-2.5 items-start" style={{ paddingRight: 20 }}>
+                    <div className="flex items-center gap-3">
+                      <PlatoDotGrid />
+                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{msg.label}</span>
+                    </div>
+                  </div>
+                );
+              }
+
+              // AI response with thinking steps
+              if (msg.type === 'ai') {
+                return (
+                  <div key={i} className="flex flex-col gap-3 items-start pb-4" style={{ paddingRight: 20 }}>
+                    {/* Collapsible thinking steps header */}
+                    {msg.thinkingLabel && (
+                      <div className="flex flex-col gap-1.5 w-full">
+                        {/* Collapsed header */}
+                        <div className="flex items-center gap-3" style={{ paddingRight: 20 }}>
+                          <p style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'pre', margin: 0 }}>
+                            {msg.thinkingLabel}{'  >'}
+                          </p>
+                        </div>
+
+                        {/* Response text */}
+                        <p style={{ fontSize: 14, lineHeight: '20px', color: '#292524', margin: 0 }}>{msg.text}</p>
+                      </div>
+                    )}
+
+                    {/* Action icons */}
+                    <div className="flex items-center gap-2.5">
+                      <button className="p-0 bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100 transition-opacity">
+                        <Copy className="w-3.5 h-3.5 text-[#78716c]" />
+                      </button>
+                      <button className="p-0 bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100 transition-opacity">
+                        <ThumbsUp className="w-3.5 h-3.5 text-[#78716c]" />
+                      </button>
+                      <button className="p-0 bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100 transition-opacity">
+                        <ThumbsDown className="w-3.5 h-3.5 text-[#78716c]" />
+                      </button>
+                      <button className="p-0 bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100 transition-opacity">
+                        <RotateCcw className="w-3.5 h-3.5 text-[#78716c]" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })}
+          </div>
+
+          {/* Bottom input — Chat Input component */}
+          <div className="px-3 pb-3 flex-shrink-0" style={{ backgroundColor: '#F8F7F5' }}>
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                borderRadius: 2,
+                border: hasContent ? '2px solid #aabcd5' : '2px solid white',
+                boxShadow: hasContent
+                  ? '0px 0px 0px 0px transparent, 0px 4px 6px -4px rgba(26,26,26,0.05), 0px 8px 10px -1px rgba(26,26,26,0.05)'
+                  : '0px 0px 0px 1px #d6d3d1, 0px 4px 6px -4px rgba(26,26,26,0.05), 0px 8px 10px -1px rgba(26,26,26,0.05)',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {/* Text area */}
+              <div style={{ padding: '12px 12px 32px 12px' }}>
+                <textarea
+                  className="w-full text-[14px] resize-none focus:outline-none"
+                  style={{ color: chatInputValue ? '#11181c' : '#78716c', lineHeight: '20px', minHeight: 20, maxHeight: 120 }}
+                  placeholder="Demander à Plato Master de calculer, rechercher des JP, rédiger des actes..."
+                  value={chatInputValue}
+                  onChange={(e) => setChatInputValue(e.target.value)}
+                  onFocus={() => setChatInputFocused(true)}
+                  onBlur={() => setChatInputFocused(false)}
+                  rows={1}
+                />
+              </div>
+
+              {/* Bottom bar with actions */}
+              <div
+                className="flex items-center justify-between px-3 py-3"
+                style={{
+                  background: hasContent ? 'linear-gradient(to bottom, white 44.66%, #eeece6 100%)' : 'transparent',
+                }}
+              >
+                <div className="flex items-center gap-0.5">
+                  <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors">
+                    <Paperclip className="w-4 h-4 text-[#78716c]" />
+                  </button>
+                  <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors">
+                    <Lightbulb className="w-4 h-4 text-[#78716c]" />
+                  </button>
+                </div>
+                <button
+                  className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
+                  style={{
+                    backgroundColor: hasContent ? '#b9703f' : '#eeece6',
+                    boxShadow: hasContent ? '0px 1px 2px 0px rgba(26,26,26,0.05)' : 'none',
+                    opacity: hasContent ? 1 : 0.5,
+                    cursor: hasContent ? 'pointer' : 'default',
+                  }}
+                >
+                  <ArrowUp className="w-4 h-4" style={{ color: hasContent ? 'white' : '#78716c' }} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  // ========== CONTENT SUB-HEADER ==========
+  const renderContentSubHeader = () => {
+    if (!currentLevel) return null;
+
+    // Poste level: back arrow + badge + title + amount + CTA
+    if (currentLevel.type === 'poste' && !currentLevel.subSection) {
+      const posteAmounts = { dsa: dsaTotal, pgpa: pgpaTotal, dft: dftTotal };
+      const posteAmount = posteAmounts[currentLevel.id] || 0;
+      const isRevalActive = activeParamChip === 'revaloriser';
+      return (
+        <div className="border-b border-[#e7e5e3] bg-white flex-shrink-0">
+          <div className="h-[52px] px-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button onClick={() => navigateToStackLevel(navStack.length - 2)} className="p-1 hover:bg-stone-100 rounded transition-colors">
+                <ChevronRight className="w-4 h-4 rotate-180 text-[#a8a29e]" strokeWidth={1.5} />
+              </button>
+              <span className="inline-flex items-center px-2 py-0.5 text-caption-medium font-semibold border border-[#e7e5e3] text-[#292524] rounded-[6px]">
+                {currentLevel.title}
+              </span>
+              <span className="text-[14px] font-medium text-[#292524]">{currentLevel.fullTitle || currentLevel.title}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span style={serifAmountStyle} className="text-[#292524]">{fmt(posteAmount)}</span>
+              <div className="w-px h-5 bg-[#e7e5e3]" />
+              <button onClick={() => setShowExportModal(true)} className="h-8 flex items-center gap-2 px-4 text-[14px] font-medium text-white bg-[#292524] rounded-lg hover:bg-[#44403c] transition-colors" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                Copier chiffrage
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // PGPA sub-section: back to PGPA summary
+    if (currentLevel.subSection) {
+      const subLabels = { 'revenus-ref': 'Revenus de référence', 'revenus-percus': 'Revenus perçus sur la période', 'ij': 'Indemnités journalières' };
+      return (
+        <div className="border-b border-[#e7e5e3] bg-white flex-shrink-0">
+          <div className="h-[52px] px-4 flex items-center gap-3">
+            <button onClick={() => {
+              setNavStack(prev => {
+                const newStack = [...prev];
+                delete newStack[newStack.length - 1].subSection;
+                return [...newStack];
+              });
+            }} className="p-1 hover:bg-stone-100 rounded transition-colors">
+              <ChevronRight className="w-4 h-4 rotate-180 text-[#a8a29e]" strokeWidth={1.5} />
+            </button>
+            <span className="inline-flex items-center px-2 py-0.5 text-caption-medium font-semibold border border-[#e7e5e3] text-[#292524] rounded-[6px]">
+              {currentLevel.title}
+            </span>
+            <span className="text-[14px] font-medium text-[#292524]">{subLabels[currentLevel.subSection] || currentLevel.subSection}</span>
+          </div>
+        </div>
+      );
+    }
+
+    // Dossier level chiffrage: CTAs moved to top bar
+
+    return null;
   };
 
   // ========== INLINE DOCUMENT PICKER (embedded in empty states) ==========
@@ -2398,7 +2554,7 @@ export default function App() {
                 onClick={() => handleAddMultipleFromPieces(pickerSelected, posteType)}
                 disabled={!hasSelection}
                 className={`flex items-center justify-center gap-2 w-full h-10 px-6 py-2 rounded-lg text-sm font-medium transition-colors shadow-[0_1px_2px_0_rgba(26,26,26,0.05)] ${
-                  hasSelection ? 'bg-[#292524] text-white hover:bg-[#44403c]' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+                  hasSelection ? 'bg-[#292524] text-white hover:bg-[#44403c]' : 'bg-[#eeece6] text-[#a8a29e] cursor-not-allowed'
                 }`}
               >
                 Commencer à calculer{hasSelection ? ` (${pickerSelected.length} pièce${pickerSelected.length > 1 ? 's' : ''})` : ''}
@@ -2464,7 +2620,7 @@ export default function App() {
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
           <div className="px-6 py-4 border-b flex items-center justify-between">
             <h3 className="text-heading-md">Ajouter une dépense</h3>
-            <button onClick={() => setShowAddModal(null)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
+            <button onClick={() => setShowAddModal(null)} className="p-1 hover:bg-[#F8F7F5] rounded"><X className="w-5 h-5" /></button>
           </div>
           
           {/* Tabs */}
@@ -2475,7 +2631,7 @@ export default function App() {
               { id: 'manual', label: 'Saisie manuelle', icon: Edit3 }
             ].map(tab => (
               <button key={tab.id} onClick={() => setAddModalTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-body-medium ${addModalTab === tab.id ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-500 hover:text-gray-700'}`}>
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-body-medium ${addModalTab === tab.id ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-[#78716c] hover:text-gray-700'}`}>
                 <tab.icon className="w-4 h-4" />{tab.label}
               </button>
             ))}
@@ -2491,8 +2647,8 @@ export default function App() {
                   onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, showAddModal); }}
                   className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}
                 >
-                  <Upload className={`w-10 h-10 mx-auto mb-3 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
-                  <p className="text-gray-600 mb-3">Glissez vos documents ici</p>
+                  <Upload className={`w-10 h-10 mx-auto mb-3 ${isDragging ? 'text-blue-500' : 'text-[#a8a29e]'}`} />
+                  <p className="text-[#78716c] mb-3">Glissez vos documents ici</p>
                   <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => e.target.files && handleUploadFiles(e.target.files, showAddModal)} className="hidden" id="upload-input" />
                   <label htmlFor="upload-input" className="px-4 py-2 bg-blue-600 text-white text-body rounded-lg cursor-pointer hover:bg-blue-700">Parcourir</label>
                 </div>
@@ -2507,19 +2663,19 @@ export default function App() {
             {addModalTab === 'pieces' && (
               <div>
                 <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a8a29e]" />
                   <input type="text" value={searchPieces} onChange={(e) => setSearchPieces(e.target.value)} placeholder="Rechercher une pièce..." className="w-full pl-10 pr-4 py-2 border rounded-lg" />
                 </div>
                 <div className="max-h-64 overflow-y-auto space-y-2">
                   {filteredPieces.length === 0 ? (
-                    <p className="text-center text-gray-500 py-4">Aucune pièce disponible</p>
+                    <p className="text-center text-[#78716c] py-4">Aucune pièce disponible</p>
                   ) : filteredPieces.map(p => (
                     <button key={p.id} onClick={() => handleAddFromPiece(p, showAddModal)}
-                      className="w-full flex items-center gap-3 p-3 border rounded-lg hover:border-blue-400 hover:bg-blue-50 text-left">
-                      <FileText className="w-8 h-8 text-gray-400" />
+                      className="w-full flex items-center gap-3 p-3 border rounded-lg hover:border-blue-400 hover:bg-[#eef3fa] text-left">
+                      <FileText className="w-8 h-8 text-[#a8a29e]" />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{p.nom}</div>
-                        <div className="text-caption text-gray-500">{p.type} • {p.date}</div>
+                        <div className="text-caption text-[#78716c]">{p.type} • {p.date}</div>
                       </div>
                       <Plus className="w-5 h-5 text-blue-600" />
                     </button>
@@ -2531,8 +2687,8 @@ export default function App() {
             {/* Saisie manuelle */}
             {addModalTab === 'manual' && (
               <div className="text-center py-6">
-                <FileQuestion className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                <p className="text-gray-600 mb-4">Créer une ligne sans document associé</p>
+                <FileQuestion className="w-12 h-12 mx-auto mb-3 text-[#a8a29e]" />
+                <p className="text-[#78716c] mb-4">Créer une ligne sans document associé</p>
                 <button onClick={() => handleAddManual(showAddModal)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                   Créer une ligne manuelle
                 </button>
@@ -2548,81 +2704,57 @@ export default function App() {
   // Helper pour les styles de formulaire
   const FormSection = ({ title, children, noBorder }) => (
     <div className={`${noBorder ? '' : 'pb-6 mb-6 border-b border-zinc-100'}`}>
-      {title && <h4 className="text-caption-medium font-semibold text-zinc-400 uppercase tracking-wider mb-4">{title}</h4>}
+      {title && <h4 className="text-caption-medium font-semibold text-[#a8a29e] uppercase tracking-wider mb-4">{title}</h4>}
       {children}
     </div>
   );
   
   const FormField = ({ label, children, hint, className = '' }) => (
     <div className={className}>
-      {label && <label className="block text-body-medium text-zinc-700 mb-2">{label}</label>}
+      {label && <label className="block text-body-medium text-[#44403c] mb-2">{label}</label>}
       {children}
-      {hint && <p className="mt-1.5 text-caption text-zinc-400">{hint}</p>}
+      {hint && <p className="mt-1.5 text-caption text-[#a8a29e]">{hint}</p>}
     </div>
   );
   
-  const inputClass = "w-full px-3.5 py-2.5 text-body border border-zinc-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-zinc-100 focus:border-zinc-400 transition-colors";
-  const selectClass = "w-full px-3.5 py-2.5 text-body border border-zinc-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-zinc-100 focus:border-zinc-400 transition-colors appearance-none";
+  const inputClass = "w-full px-3.5 py-2.5 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-zinc-100 focus:border-zinc-400 transition-colors";
+  const selectClass = "w-full px-3.5 py-2.5 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-zinc-100 focus:border-zinc-400 transition-colors appearance-none";
 
   const renderEditPanel = () => {
     if (!editPanel) return null;
     const data = editPanel.data;
     const isPieceDetail = editPanel.type === 'piece-detail';
-    const panelWidth = isPieceDetail ? 'w-[900px]' : (showPreview ? 'w-[1000px]' : 'w-[480px]');
-    
+
     return (
-      <div className="fixed inset-0 bg-black/50 flex justify-end z-50" onClick={() => { setEditPanel(null); setShowPreview(false); }}>
-        <div 
-          className={`bg-white h-full shadow-2xl flex flex-col transition-all duration-300 ${panelWidth}`}
-          onClick={(e) => e.stopPropagation()}
+      <>
+        {/* Draggable resize handle */}
+        <div
+          className="w-[6px] flex-shrink-0 cursor-col-resize group relative border-l border-r border-[#e7e5e3]"
+          style={{ backgroundColor: '#F8F7F5' }}
+          onMouseDown={handleChatResizeStart}
         >
-          {/* Header - Clean */}
-          <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-white">
-            <div className="flex items-center gap-3">
-              {isPieceDetail && <span className="px-2.5 py-1 bg-zinc-800 text-white text-caption-medium rounded">P{data.index}</span>}
-              <h3 className="text-heading-sm text-zinc-800">{isPieceDetail ? (data.intitule || data.nom) : (editPanel.title || 'Édition')}</h3>
+          <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-stone-300/30 transition-colors" />
+        </div>
+        <div className="flex-shrink-0 flex flex-col h-full bg-white" style={{ width: chatWidth }}>
+          {/* Header */}
+          <div className="px-4 h-12 border-b flex items-center justify-between flex-shrink-0" style={{ borderColor: '#e7e5e3' }}>
+            <div className="flex items-center gap-2 min-w-0">
+              {isPieceDetail && <span className="px-2 py-0.5 bg-zinc-800 text-white text-caption-medium rounded flex-shrink-0">P{data.index}</span>}
+              <h3 className="text-body-medium text-[#292524] truncate">{isPieceDetail ? (data.intitule || data.nom) : (editPanel.title || 'Édition')}</h3>
               {data?.status === 'ai-suggested' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-600 text-caption-medium rounded-full">
-                  <Sparkles className="w-3 h-3" />AI suggested
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-600 text-caption-medium rounded-full flex-shrink-0">
+                  <Sparkles className="w-3 h-3" />AI
                 </span>
               )}
             </div>
-            <button onClick={() => { setEditPanel(null); setShowPreview(false); }} className="p-2 hover:bg-zinc-100 rounded-lg transition-colors">
-              <X className="w-5 h-5 text-zinc-400" />
+            <button onClick={() => { setEditPanel(null); setShowPreview(false); }} className="p-1.5 hover:bg-[#eeece6] rounded-lg transition-colors flex-shrink-0">
+              <X className="w-4 h-4 text-[#a8a29e]" />
             </button>
           </div>
-          
+
           {/* Content */}
-          <div className="flex-1 flex overflow-hidden bg-zinc-50/30">
-            {/* Preview for DSA */}
-            {showPreview && data.fileName && !isPieceDetail && (
-              <div className="w-[500px] border-r bg-zinc-900 flex flex-col flex-shrink-0">
-                <div className="px-4 py-3 border-b border-zinc-700 flex items-center justify-between">
-                  <span className="text-body text-zinc-300 truncate">{data.fileName}</span>
-                  <button onClick={() => setShowPreview(false)} className="p-1 hover:bg-zinc-700 rounded text-zinc-400"><X className="w-4 h-4" /></button>
-                </div>
-                <div className="flex-1 p-6 flex items-center justify-center">
-                  <div className="bg-white rounded-lg shadow-xl w-full max-w-sm aspect-[210/297] p-6 flex flex-col">
-                    <div className="text-caption text-zinc-400 mb-4">DOCUMENT</div>
-                    <div className="h-3 bg-zinc-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-zinc-200 rounded w-1/2 mb-4"></div>
-                    <div className="flex-1 space-y-2">
-                      <div className="h-2 bg-zinc-100 rounded w-full"></div>
-                      <div className="h-2 bg-zinc-100 rounded w-5/6"></div>
-                      <div className="h-2 bg-zinc-100 rounded w-4/6"></div>
-                    </div>
-                    <div className="mt-auto pt-4 border-t flex justify-between text-body">
-                      <span className="text-zinc-500">Total</span>
-                      <span className="font-bold">{data.montant ? fmt(data.montant) : '—'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}}
-            
-            {/* Form */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto px-5 py-5">
                 {/* DSA Ligne - Panel systémique */}
                 {editPanel.type === 'dsa-ligne' && (() => {
                   // Helper pour le style des champs extraits par IA
@@ -2634,298 +2766,164 @@ export default function App() {
                     if (fieldValue == null || fieldValue === '') return 'border-amber-400 bg-amber-50/50';
                     return '';
                   };
-                  
+
                   return (
-                    <>
+                    <div className="space-y-5">
                       {/* Bandeau IA si extraction */}
                       {isIaExtracted && (
-                        <div className={`flex items-center gap-3 p-4 rounded-xl ${
+                        <div className={`flex items-center gap-3 p-3 rounded-lg ${
                           data.confidence >= 80 ? 'bg-emerald-50 border border-emerald-200' : 'bg-amber-50 border border-amber-200'
                         }`}>
-                          <Sparkles className={`w-5 h-5 ${data.confidence >= 80 ? 'text-emerald-600' : 'text-amber-600'}`} />
+                          <Sparkles className={`w-4 h-4 ${data.confidence >= 80 ? 'text-emerald-600' : 'text-amber-600'}`} />
                           <div className="flex-1">
-                            <span className={`text-body-medium ${data.confidence >= 80 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                            <span className={`text-caption-medium ${data.confidence >= 80 ? 'text-emerald-700' : 'text-amber-700'}`}>
                               Extraction IA • Confiance {data.confidence}%
                             </span>
                             {needsValidation && (
                               <p className="text-caption text-amber-600 mt-0.5">Vérifiez les champs surlignés</p>
                             )}
                           </div>
-                          {data.status === 'ai-suggested' && (
-                            <span className="text-caption px-2 py-1 bg-indigo-100 text-indigo-700 rounded">Suggestion IA</span>
-                          )}
                         </div>
                       )}
-                      
-                      {/* Section Pièces justificatives */}
+
+                      {/* Libellé dépense */}
                       <div>
-                        <h4 className="text-body font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
+                        <label className="text-caption text-[#78716c] mb-1.5 block">Libellé dépense</label>
+                        <input
+                          type="text"
+                          defaultValue={data.label || ''}
+                          id="edit-label"
+                          placeholder="Nom de la dépense"
+                          className={`w-full px-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e] ${iaFieldClass(data.label)}`}
+                        />
+                      </div>
+
+                      {/* Pièces justificatives */}
+                      <div>
+                        <label className="text-caption text-[#78716c] mb-1.5 block">Ajouter des pièces justificatives</label>
+                        {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
+                          <div className="relative mb-2">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />
+                            <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
+                              className="w-full pl-9 pr-7 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white placeholder:text-[#a8a29e] focus:outline-none focus:ring-1 focus:ring-[#a8a29e]" />
+                            {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2.5 top-1/2 -translate-y-1/2"><X className="w-3.5 h-3.5 text-[#a8a29e]" /></button>}
+                          </div>
+                        )}
+                        {searchPiecesPanel && (
+                          <div className="max-h-32 overflow-y-auto space-y-1 mb-2">
+                            {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
+                              <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-left text-body bg-white border border-[#e7e5e3] rounded-lg hover:bg-[#f5f5f4] transition-colors">
+                                <span className="w-6 h-6 bg-[#eeece6] text-[#44403c] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
+                                <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
+                                <span className="text-caption text-[#a8a29e]">{piece.type}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <div className="border border-dashed border-[#d6d3d1] rounded-lg p-3 flex items-center justify-center gap-2 text-body text-[#78716c] hover:bg-[#f5f5f4] cursor-pointer transition-colors"
+                          onClick={() => document.getElementById('panel-piece-upload').click()}>
+                          <Upload className="w-4 h-4" />
+                          <span>Déposez ou <span className="text-[#E8713A] font-medium">cliquez</span> pour ajouter un justificatif</span>
+                        </div>
+                        <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                          onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
                         {editingPieceIds.length > 0 && (
-                          <div className="space-y-2 mb-3">
+                          <div className="mt-2">
                             {editingPieceIds.map(pid => {
                               const piece = getPiece(pid);
                               return piece ? (
-                                <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
-                                  <span className="w-8 h-8 bg-blue-100 text-blue-700 text-caption-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-body-medium truncate">{piece.intitule || piece.nom}</p>
-                                    <p className="text-caption text-gray-500">{piece.type}</p>
+                                <div key={pid} className="flex items-center gap-3 px-3 h-12 group hover:bg-[#f5f5f4] transition-colors">
+                                  <span className="w-6 h-6 bg-[#eeece6] text-[#44403c] text-counter font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
+                                  <span className="text-body text-[#292524] truncate flex-1">{piece.intitule || piece.nom}</span>
+                                  <span className="text-caption text-[#a8a29e] flex-shrink-0">{piece.type}</span>
+                                  <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                    <button onClick={() => setShowPreview(!showPreview)} className="p-1 text-[#78716c] hover:text-[#292524]"><Eye className="w-4 h-4" /></button>
+                                    <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1 text-[#78716c] hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                                   </div>
-                                  <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"><Eye className="w-4 h-4" /></button>
-                                  <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
                                 </div>
                               ) : null;
                             })}
                           </div>
                         )}
-                        <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
-                          {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
-                            <div>
-                              <div className="relative mb-2">
-                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
-                                <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
-                                  className="w-full pl-8 pr-7 py-1.5 text-caption border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
-                                {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-zinc-400" /></button>}
-                              </div>
-                              <div className="max-h-32 overflow-y-auto space-y-1">
-                                {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
-                                  <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
-                                    className="w-full flex items-center gap-2 p-2 text-left text-body bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                                    <span className="w-6 h-6 bg-blue-100 text-blue-700 text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
-                                    <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
-                                    <span className="text-caption text-gray-400">{piece.type}</span>
-                                    <Plus className="w-4 h-4 text-blue-600" />
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-                            onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
-                          <button onClick={() => document.getElementById('panel-piece-upload').click()}
-                            className="w-full flex items-center justify-center gap-2 p-2 text-body text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
-                            <Upload className="w-4 h-4" />
-                            Ajouter un document
-                          </button>
-                        </div>
                       </div>
 
-                      {/* Section Informations */}
+                      {/* Date de la dépense */}
                       <div>
-                        <h4 className="text-body font-semibold text-gray-900 mb-3 pb-2 border-b">Informations</h4>
-                        
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-body-medium text-gray-700">Libellé</label>
-                            <input 
-                              type="text" 
-                              defaultValue={data.label || ''} 
-                              id="edit-label" 
-                              placeholder="Ex: Consultation Dr. Martin" 
-                              className={`mt-1 w-full px-3 py-2 border rounded-lg ${iaFieldClass(data.label)}`}
-                            />
-                          </div>
-                          
-                          <div>
-                            <label className="text-body-medium text-gray-700">Description de l'acte</label>
-                            <textarea 
-                              defaultValue={data.description || ''} 
-                              id="edit-description" 
-                              rows={2}
-                              placeholder="Description détaillée (optionnel)"
-                              className="mt-1 w-full px-3 py-2 border rounded-lg resize-none"
-                            />
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-3">
+                        <label id="dsa-ponctuelle-label" className="text-caption text-[#78716c] mb-1.5 block">
+                          {data.isPeriodique ? 'Date de début' : 'Date de la dépense'}
+                        </label>
+                        <div className="relative">
+                          <input type="text" defaultValue={data.date || ''} id="edit-date"
+                            placeholder="JJ/MM/AAAA" maxLength={10}
+                            onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
+                            className={`w-full px-3 py-2 pr-9 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e] ${iaFieldClass(data.date)}`}
+                          />
+                          <input type="date" id="edit-date-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'edit-date')} />
+                          <button type="button" onClick={() => openDatePicker('edit-date')} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-[#f5f5f4] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
+                        </div>
+                        {/* Champs période (masqués si ponctuelle) */}
+                        <div id="dsa-periode-fields" style={{ display: data.isPeriodique ? 'block' : 'none' }}>
+                          <div className="mt-3 space-y-3">
                             <div>
-                              <label className="text-body-medium text-gray-700">Type de dépense</label>
-                              <select 
-                                defaultValue={data.type || ''} 
-                                id="edit-type" 
-                                className={`mt-1 w-full px-3 py-2 border rounded-lg ${iaFieldClass(data.type)}`}
-                              >
-                                <option value="">Sélectionner...</option>
-                                <option>Hospitalisation</option>
-                                <option>Consultation</option>
-                                <option>Rééducation</option>
-                                <option>Pharmacie</option>
-                                <option>Imagerie</option>
-                                <option>Appareillage</option>
-                                <option>Transport</option>
-                                <option>Autre</option>
-                              </select>
+                              <label className="text-caption text-[#78716c] mb-1.5 block">Date de fin</label>
+                              <div className="relative">
+                                <input type="text" defaultValue={data.dateFin || ''} id="edit-date-fin"
+                                  placeholder="JJ/MM/AAAA" maxLength={10}
+                                  onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
+                                  className="w-full px-3 py-2 pr-9 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e]"
+                                />
+                                <input type="date" id="edit-date-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'edit-date-fin')} />
+                                <button type="button" onClick={() => openDatePicker('edit-date-fin')} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-[#f5f5f4] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
+                              </div>
                             </div>
-                            <div>
-                              <label className="text-body-medium text-gray-700">Tiers / Prestataire</label>
-                              <input 
-                                type="text" 
-                                defaultValue={data.tiers || ''} 
-                                id="edit-tiers" 
-                                placeholder="Ex: CHU Bordeaux" 
-                                className="mt-1 w-full px-3 py-2 border rounded-lg"
-                              />
+                            <div className="text-caption text-[#78716c] italic">
+                              Durée : {calcDaysBetween(data.date, data.dateFin) || '—'} jours
                             </div>
                           </div>
                         </div>
                       </div>
-                      
-                      {/* Section Dates */}
+
+                      {/* Montant dépense */}
                       <div>
-                        <h4 className="text-body font-semibold text-gray-900 mb-3 pb-2 border-b">Dates</h4>
-                        <div className="space-y-3">
-                          {/* Toggle Ponctuelle / Période */}
-                          <div>
-                            <label className="text-body-medium text-gray-700">Type de dépense</label>
-                            <select
-                              id="edit-date-type"
-                              defaultValue={data.isPeriodique ? 'periode' : 'ponctuelle'}
-                              className="mt-1 w-full px-3 py-2 border rounded-lg"
-                              onChange={(e) => {
-                                document.getElementById('dsa-periode-fields').style.display = e.target.value === 'periode' ? 'block' : 'none';
-                                document.getElementById('dsa-ponctuelle-label').textContent = e.target.value === 'periode' ? 'Date de début' : 'Date de la dépense';
-                              }}
-                            >
-                              <option value="ponctuelle">Ponctuelle</option>
-                              <option value="periode">Période</option>
-                            </select>
-                          </div>
-
-                          {/* Date principale (toujours visible) */}
-                          <div>
-                            <label id="dsa-ponctuelle-label" className="text-body-medium text-gray-700">
-                              {data.isPeriodique ? 'Date de début' : 'Date de la dépense'}
-                            </label>
-                            <div className="relative mt-1">
-                              <input type="text" defaultValue={data.date || ''} id="edit-date"
-                                placeholder="JJ/MM/AAAA" maxLength={10}
-                                onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
-                                className={`w-full px-3 py-2 pr-9 border rounded-lg ${iaFieldClass(data.date)}`}
-                              />
-                              <input type="date" id="edit-date-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'edit-date')} />
-                              <button type="button" onClick={() => openDatePicker('edit-date')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
-                            </div>
-                          </div>
-
-                          {/* Champs période (masqués si ponctuelle) */}
-                          <div id="dsa-periode-fields" style={{ display: data.isPeriodique ? 'block' : 'none' }}>
-                            <div className="space-y-3">
-                              <div>
-                                <label className="text-body-medium text-gray-700">Date de fin</label>
-                                <div className="relative mt-1">
-                                  <input type="text" defaultValue={data.dateFin || ''} id="edit-date-fin"
-                                    placeholder="JJ/MM/AAAA" maxLength={10}
-                                    onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
-                                    className="w-full px-3 py-2 pr-9 border rounded-lg"
-                                  />
-                                  <input type="date" id="edit-date-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'edit-date-fin')} />
-                                  <button type="button" onClick={() => openDatePicker('edit-date-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
-                                </div>
-                              </div>
-
-                              {/* Durée calculée (read-only, comme DFT) */}
-                              <div className="p-2.5 bg-blue-50 rounded-lg flex items-center justify-between">
-                                <span className="text-caption text-blue-700">Durée calculée</span>
-                                <span className="text-body-medium font-semibold text-blue-900">
-                                  {calcDaysBetween(data.date, data.dateFin) || '—'} jours
-                                </span>
-                              </div>
-
-                              {/* Périodicité */}
-                              <div>
-                                <label className="text-body-medium text-gray-700">Périodicité</label>
-                                <select defaultValue={data.periodicite || ''} id="edit-periodicite"
-                                  className="mt-1 w-full px-3 py-2 border rounded-lg">
-                                  <option value="">—</option>
-                                  <option>Quotidien</option>
-                                  <option>Hebdomadaire</option>
-                                  <option>Mensuel</option>
-                                  <option>Annuel</option>
-                                </select>
-                              </div>
-                            </div>
-                          </div>
+                        <label className="text-caption text-[#78716c] mb-1.5 block">Montant dépense</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            defaultValue={data.montant ?? ''}
+                            id="edit-montant"
+                            placeholder="0"
+                            className={`w-full pl-8 pr-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e] ${iaFieldClass(data.montant)}`}
+                          />
                         </div>
                       </div>
-                      
-                      {/* Section Montants */}
+
+                      {/* Reste à charge */}
                       <div>
-                        <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Montants</h4>
-                        
-                        <div className="space-y-3">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input 
-                              type="checkbox" 
-                              defaultChecked={data.aRevalo || false}
-                              id="edit-revalo"
-                              className="rounded text-blue-600"
-                            />
-                            <span className="text-body">À revaloriser</span>
-                          </label>
-                          
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-body-medium text-gray-700">Montant unitaire</label>
-                              <div className="mt-1 relative">
-                                <input 
-                                  type="number" 
-                                  step="0.01" 
-                                  defaultValue={data.montantUnitaire ?? ''} 
-                                  id="edit-montant-unitaire" 
-                                  placeholder="0.00" 
-                                  className="w-full px-3 py-2 pr-8 border rounded-lg"
-                                />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-body">€</span>
-                              </div>
-                            </div>
-                            <div>
-                              <label className="text-body-medium text-gray-700">Montant total</label>
-                              <div className="mt-1 relative">
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  defaultValue={data.montant ?? ''}
-                                  id="edit-montant"
-                                  readOnly
-                                  className="w-full px-3 py-2 pr-8 border rounded-lg bg-zinc-50 text-zinc-500 cursor-default"
-                                />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-body">€</span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-body-medium text-gray-700">Déjà remboursé</label>
-                              <div className="mt-1 relative">
-                                <input 
-                                  type="number" 
-                                  step="0.01" 
-                                  defaultValue={data.dejaRembourse || 0} 
-                                  id="edit-rembourse" 
-                                  className="w-full px-3 py-2 pr-8 border rounded-lg"
-                                />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-body">€</span>
-                              </div>
-                            </div>
-                            <div>
-                              <label className="text-body-medium text-gray-700">Reste à charge retenu</label>
-                              <div className="mt-1 relative">
-                                <input 
-                                  type="number" 
-                                  step="0.01" 
-                                  defaultValue={data.resteAChargeRetenu ?? ((data.montant || 0) - (data.dejaRembourse || 0))} 
-                                  id="edit-reste-charge" 
-                                  className="w-full px-3 py-2 pr-8 border rounded-lg bg-gray-50 font-medium"
-                                />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-body">€</span>
-                              </div>
-                              <p className="mt-1 text-caption text-gray-500">Revalorisé s'il y a lieu</p>
-                            </div>
-                          </div>
+                        <label className="text-caption text-[#78716c] mb-1.5 block">Reste à charge</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            defaultValue={data.dejaRembourse || 0}
+                            id="edit-rembourse"
+                            placeholder="0"
+                            className="w-full pl-8 pr-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e]"
+                          />
                         </div>
                       </div>
-                    </>
+
+                      {/* Hidden fields to preserve data */}
+                      <input type="hidden" id="edit-type" value={data.type || 'Autre'} />
+                      <input type="hidden" id="edit-tiers" value={data.tiers || ''} />
+                      <input type="hidden" id="edit-date-type" value={data.isPeriodique ? 'periode' : 'ponctuelle'} />
+                      <input type="hidden" id="edit-montant-unitaire" value={data.montantUnitaire ?? ''} />
+                      <input type="hidden" id="edit-reste-charge" value={data.resteAChargeRetenu ?? ((data.montant || 0) - (data.dejaRembourse || 0))} />
+                      <input type="hidden" id="edit-revalo" value={data.aRevalo ? 'true' : 'false'} />
+                    </div>
                   );
                 })()}
                 
@@ -2935,17 +2933,17 @@ export default function App() {
                     {/* Left: Preview */}
                     <div className="w-1/2 bg-gray-900 rounded-lg flex items-center justify-center p-6">
                       <div className="bg-white rounded-lg shadow-xl w-full max-w-[280px] aspect-[3/4] p-6 flex flex-col">
-                        <div className="text-caption text-gray-400 mb-3 uppercase tracking-wide">{data.type}</div>
+                        <div className="text-caption text-[#a8a29e] mb-3 uppercase tracking-wide">{data.type}</div>
                         <div className="h-3 bg-gray-200 rounded w-3/4 mb-2"></div>
                         <div className="h-3 bg-gray-200 rounded w-1/2 mb-6"></div>
                         <div className="flex-1 space-y-2">
-                          <div className="h-2 bg-gray-100 rounded w-full"></div>
-                          <div className="h-2 bg-gray-100 rounded w-5/6"></div>
-                          <div className="h-2 bg-gray-100 rounded w-4/6"></div>
-                          <div className="h-2 bg-gray-100 rounded w-full"></div>
-                          <div className="h-2 bg-gray-100 rounded w-3/4"></div>
+                          <div className="h-2 bg-[#F8F7F5] rounded w-full"></div>
+                          <div className="h-2 bg-[#F8F7F5] rounded w-5/6"></div>
+                          <div className="h-2 bg-[#F8F7F5] rounded w-4/6"></div>
+                          <div className="h-2 bg-[#F8F7F5] rounded w-full"></div>
+                          <div className="h-2 bg-[#F8F7F5] rounded w-3/4"></div>
                         </div>
-                        <div className="mt-4 pt-4 border-t text-caption text-gray-400">
+                        <div className="mt-4 pt-4 border-t text-caption text-[#a8a29e]">
                           {data.date}
                         </div>
                       </div>
@@ -2966,7 +2964,7 @@ export default function App() {
 
                       <div>
                         <label className="text-body-medium text-gray-700">Nom du fichier original</label>
-                        <div className="mt-1 px-3 py-2 bg-gray-50 rounded-lg text-body text-gray-600 truncate">
+                        <div className="mt-1 px-3 py-2 bg-[#F8F7F5] rounded-lg text-body text-[#78716c] truncate">
                           {data.nomOriginal || data.nom}
                         </div>
                       </div>
@@ -3020,7 +3018,7 @@ export default function App() {
                             )}
                           </div>
                         ) : (
-                          <div className="p-3 bg-gray-50 rounded-lg text-body text-gray-500 text-center">
+                          <div className="p-3 bg-[#F8F7F5] rounded-lg text-body text-[#78716c] text-center">
                             Cette pièce n'est utilisée dans aucun poste
                           </div>
                         )}
@@ -3055,7 +3053,7 @@ export default function App() {
                           <div className="relative">
                             <input type="text" id="victime-naissance" defaultValue={victimeData.dateNaissance} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                             <input type="date" id="victime-naissance-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'victime-naissance')} />
-                            <button type="button" onClick={() => openDatePicker('victime-naissance')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            <button type="button" onClick={() => openDatePicker('victime-naissance')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                           </div>
                         </FormField>
                       </div>
@@ -3066,7 +3064,7 @@ export default function App() {
                         <div className="relative">
                           <input type="text" id="victime-deces" defaultValue={victimeData.dateDeces || ''} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                           <input type="date" id="victime-deces-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'victime-deces')} />
-                          <button type="button" onClick={() => openDatePicker('victime-deces')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                          <button type="button" onClick={() => openDatePicker('victime-deces')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                         </div>
                       </FormField>
                     </FormSection>
@@ -3095,21 +3093,21 @@ export default function App() {
                           <div className="relative">
                             <input type="text" id="fait-date-accident" defaultValue={faitGenerateur.dateAccident} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                             <input type="date" id="fait-date-accident-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'fait-date-accident')} />
-                            <button type="button" onClick={() => openDatePicker('fait-date-accident')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            <button type="button" onClick={() => openDatePicker('fait-date-accident')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                           </div>
                         </FormField>
                         <FormField label="Date première constatation">
                           <div className="relative">
                             <input type="text" id="fait-date-constat" defaultValue={faitGenerateur.datePremiereConstatation} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                             <input type="date" id="fait-date-constat-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'fait-date-constat')} />
-                            <button type="button" onClick={() => openDatePicker('fait-date-constat')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            <button type="button" onClick={() => openDatePicker('fait-date-constat')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                           </div>
                         </FormField>
                         <FormField label="Date de consolidation">
                           <div className="relative">
                             <input type="text" id="fait-date-conso" defaultValue={faitGenerateur.dateConsolidation} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                             <input type="date" id="fait-date-conso-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'fait-date-conso')} />
-                            <button type="button" onClick={() => openDatePicker('fait-date-conso')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            <button type="button" onClick={() => openDatePicker('fait-date-conso')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                           </div>
                         </FormField>
                       </div>
@@ -3150,7 +3148,7 @@ export default function App() {
                 {editPanel.type === 'victime-indirecte' && (
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Identité</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Identité</h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="text-body-medium text-gray-700">Nom</label>
@@ -3164,7 +3162,7 @@ export default function App() {
                     </div>
                     
                     <div>
-                      <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">État civil</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">État civil</h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="text-body-medium text-gray-700">Sexe</label>
@@ -3178,14 +3176,14 @@ export default function App() {
                           <div className="relative mt-1">
                             <input type="text" id="vi-naissance" defaultValue={data?.dateNaissance || ''} className="w-full px-3 py-2 pr-9 border rounded-lg" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                             <input type="date" id="vi-naissance-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'vi-naissance')} />
-                            <button type="button" onClick={() => openDatePicker('vi-naissance')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            <button type="button" onClick={() => openDatePicker('vi-naissance')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                           </div>
                         </div>
                       </div>
                     </div>
                     
                     <div>
-                      <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Lien avec la victime</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Lien avec la victime</h4>
                       <div>
                         <label className="text-body-medium text-gray-700">Type de lien</label>
                         <select id="vi-lien" defaultValue={data?.lien || 'Conjoint'} className="mt-1 w-full px-3 py-2 border rounded-lg">
@@ -3236,7 +3234,7 @@ export default function App() {
                         <div className="relative">
                           <input type="text" id="dossier-date-ouverture" defaultValue={dossierDateOuverture} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                           <input type="date" id="dossier-date-ouverture-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'dossier-date-ouverture')} />
-                          <button type="button" onClick={() => openDatePicker('dossier-date-ouverture')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                          <button type="button" onClick={() => openDatePicker('dossier-date-ouverture')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                         </div>
                       </FormField>
                     </FormSection>
@@ -3265,41 +3263,41 @@ export default function App() {
                   <div className="space-y-6">
                     {/* Section Pièces justificatives */}
                     <div>
-                      <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Pièces justificatives</h4>
                       {editingPieceIds.length > 0 && (
                         <div className="space-y-2 mb-3">
                           {editingPieceIds.map(pid => {
                             const piece = getPiece(pid);
                             return piece ? (
-                              <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
-                                <span className="w-8 h-8 bg-blue-100 text-blue-700 text-caption-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
+                              <div key={pid} className="flex items-center gap-3 p-2.5 bg-[#F8F7F5] rounded-lg border group">
+                                <span className="w-8 h-8 bg-blue-100 text-[#1e3a8a] text-caption-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-body-medium truncate">{piece.intitule || piece.nom}</p>
-                                  <p className="text-caption text-gray-500">{piece.type}</p>
+                                  <p className="text-caption text-[#78716c]">{piece.type}</p>
                                 </div>
-                                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"><Eye className="w-4 h-4" /></button>
-                                <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
+                                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-[#a8a29e] hover:text-blue-600 hover:bg-[#eef3fa] rounded"><Eye className="w-4 h-4" /></button>
+                                <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-[#a8a29e] hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
                               </div>
                             ) : null;
                           })}
                         </div>
                       )}
-                      <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
+                      <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-[#F8F7F5]/50">
                         {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
                           <div>
                             <div className="relative mb-2">
-                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />
                               <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
-                                className="w-full pl-8 pr-7 py-1.5 text-caption border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
-                              {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-zinc-400" /></button>}
+                                className="w-full pl-8 pr-7 py-1.5 text-caption border border-[#e7e5e3] rounded-md bg-white placeholder:text-[#a8a29e] focus:outline-none focus:ring-1 focus:ring-zinc-300" />
+                              {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-[#a8a29e]" /></button>}
                             </div>
                             <div className="max-h-32 overflow-y-auto space-y-1">
                               {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
                                 <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
-                                  className="w-full flex items-center gap-2 p-2 text-left text-body bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                                  <span className="w-6 h-6 bg-blue-100 text-blue-700 text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
+                                  className="w-full flex items-center gap-2 p-2 text-left text-body bg-white border rounded hover:bg-[#eef3fa] hover:border-blue-300 transition-colors">
+                                  <span className="w-6 h-6 bg-blue-100 text-[#1e3a8a] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
                                   <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
-                                  <span className="text-caption text-gray-400">{piece.type}</span>
+                                  <span className="text-caption text-[#a8a29e]">{piece.type}</span>
                                   <Plus className="w-4 h-4 text-blue-600" />
                                 </button>
                               ))}
@@ -3309,7 +3307,7 @@ export default function App() {
                         <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
                           onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
                         <button onClick={() => document.getElementById('panel-piece-upload').click()}
-                          className="w-full flex items-center justify-center gap-2 p-2 text-body text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
+                          className="w-full flex items-center justify-center gap-2 p-2 text-body text-[#78716c] bg-white border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] hover:border-zinc-300 transition-colors">
                           <Upload className="w-4 h-4" />
                           Ajouter un document
                         </button>
@@ -3318,7 +3316,7 @@ export default function App() {
 
                     {/* Section Informations */}
                     <div>
-                      <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Informations</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Informations</h4>
                       <div className="space-y-4">
                         <div>
                           <label className="text-body-medium text-gray-700">Type</label>
@@ -3357,32 +3355,32 @@ export default function App() {
                     
                     {/* Section Montants */}
                     <div>
-                      <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Montants</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Montants</h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="text-body-medium text-gray-700">Revenu net payé</label>
                             <div className="mt-1 relative">
-                              <input id="pgpa-revenu-montant" type="number" step="0.01" defaultValue={data.montant || ''} readOnly className="w-full px-3 py-2 pr-8 border rounded-lg bg-zinc-50 text-zinc-500 cursor-default" />
-                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-body">€</span>
+                              <input id="pgpa-revenu-montant" type="number" step="0.01" defaultValue={data.montant || ''} readOnly className="w-full px-3 py-2 pr-8 border rounded-lg bg-[#F8F7F5] text-[#78716c] cursor-default" />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
                             </div>
                           </div>
                           <div>
                             <label className="text-body-medium text-gray-700">Montant revalorisé</label>
                             <div className="mt-1 relative">
-                              <input id="pgpa-revenu-revalorise" type="number" step="0.01" defaultValue={data.revalorise || ''} className="w-full px-3 py-2 pr-8 border rounded-lg bg-gray-50 font-medium" readOnly />
-                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-body">€</span>
+                              <input id="pgpa-revenu-revalorise" type="number" step="0.01" defaultValue={data.revalorise || ''} className="w-full px-3 py-2 pr-8 border rounded-lg bg-[#F8F7F5] font-medium" readOnly />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
                             </div>
-                            <p className="mt-1 text-caption text-gray-500">Calculé automatiquement selon le barème</p>
+                            <p className="mt-1 text-caption text-[#78716c]">Calculé automatiquement selon le barème</p>
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                        <div className="flex items-center justify-between p-3 bg-[#F8F7F5] rounded-lg border">
                           <div className="flex items-center gap-3">
                             <input type="checkbox" id="pgpa-revenu-revalo-checkbox" defaultChecked={data.aRevaloriser !== false} className="rounded text-blue-600" />
                             <label htmlFor="pgpa-revenu-revalo-checkbox" className="text-body-medium text-gray-700">Appliquer la revalorisation</label>
                           </div>
-                          <div className="text-body text-gray-500">
+                          <div className="text-body text-[#78716c]">
                             {pgpaData.revenuRef.revalorisation === 'ipc-annuel' ? 'IPC annuel' : pgpaData.revenuRef.revalorisation === 'smic-horaire' ? 'SMIC horaire' : 'Aucune'} · Quotient : <span className="font-medium">1.04</span>
                           </div>
                         </div>
@@ -3396,41 +3394,41 @@ export default function App() {
                   <div className="space-y-6">
                     {/* Section Pièces justificatives */}
                     <div>
-                      <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Pièces justificatives</h4>
                       {editingPieceIds.length > 0 && (
                         <div className="space-y-2 mb-3">
                           {editingPieceIds.map(pid => {
                             const piece = getPiece(pid);
                             return piece ? (
-                              <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
-                                <span className="w-8 h-8 bg-blue-100 text-blue-700 text-caption-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
+                              <div key={pid} className="flex items-center gap-3 p-2.5 bg-[#F8F7F5] rounded-lg border group">
+                                <span className="w-8 h-8 bg-blue-100 text-[#1e3a8a] text-caption-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-body-medium truncate">{piece.intitule || piece.nom}</p>
-                                  <p className="text-caption text-gray-500">{piece.type}</p>
+                                  <p className="text-caption text-[#78716c]">{piece.type}</p>
                                 </div>
-                                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"><Eye className="w-4 h-4" /></button>
-                                <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
+                                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-[#a8a29e] hover:text-blue-600 hover:bg-[#eef3fa] rounded"><Eye className="w-4 h-4" /></button>
+                                <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-[#a8a29e] hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
                               </div>
                             ) : null;
                           })}
                         </div>
                       )}
-                      <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
+                      <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-[#F8F7F5]/50">
                         {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
                           <div>
                             <div className="relative mb-2">
-                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />
                               <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
-                                className="w-full pl-8 pr-7 py-1.5 text-caption border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
-                              {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-zinc-400" /></button>}
+                                className="w-full pl-8 pr-7 py-1.5 text-caption border border-[#e7e5e3] rounded-md bg-white placeholder:text-[#a8a29e] focus:outline-none focus:ring-1 focus:ring-zinc-300" />
+                              {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-[#a8a29e]" /></button>}
                             </div>
                             <div className="max-h-32 overflow-y-auto space-y-1">
                               {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
                                 <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
-                                  className="w-full flex items-center gap-2 p-2 text-left text-body bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                                  <span className="w-6 h-6 bg-blue-100 text-blue-700 text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
+                                  className="w-full flex items-center gap-2 p-2 text-left text-body bg-white border rounded hover:bg-[#eef3fa] hover:border-blue-300 transition-colors">
+                                  <span className="w-6 h-6 bg-blue-100 text-[#1e3a8a] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
                                   <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
-                                  <span className="text-caption text-gray-400">{piece.type}</span>
+                                  <span className="text-caption text-[#a8a29e]">{piece.type}</span>
                                   <Plus className="w-4 h-4 text-blue-600" />
                                 </button>
                               ))}
@@ -3440,7 +3438,7 @@ export default function App() {
                         <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
                           onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
                         <button onClick={() => document.getElementById('panel-piece-upload').click()}
-                          className="w-full flex items-center justify-center gap-2 p-2 text-body text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
+                          className="w-full flex items-center justify-center gap-2 p-2 text-body text-[#78716c] bg-white border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] hover:border-zinc-300 transition-colors">
                           <Upload className="w-4 h-4" />
                           Ajouter un document
                         </button>
@@ -3449,7 +3447,7 @@ export default function App() {
 
                     {/* Section Informations */}
                     <div>
-                      <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Informations</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Informations</h4>
                       <div className="space-y-4">
                         <div>
                           <label className="text-body-medium text-gray-700">Intitulé</label>
@@ -3470,7 +3468,7 @@ export default function App() {
                     
                     {/* Section Période */}
                     <div>
-                      <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Période</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Période</h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
@@ -3478,7 +3476,7 @@ export default function App() {
                             <div className="relative mt-1">
                               <input id="pgpa-percu-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
                               <input type="date" id="pgpa-percu-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-percu-debut')} />
-                              <button type="button" onClick={() => openDatePicker('pgpa-percu-debut')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                              <button type="button" onClick={() => openDatePicker('pgpa-percu-debut')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                             </div>
                           </div>
                           <div>
@@ -3486,13 +3484,13 @@ export default function App() {
                             <div className="relative mt-1">
                               <input id="pgpa-percu-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
                               <input type="date" id="pgpa-percu-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-percu-fin')} />
-                              <button type="button" onClick={() => openDatePicker('pgpa-percu-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                              <button type="button" onClick={() => openDatePicker('pgpa-percu-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                             </div>
                           </div>
                         </div>
 
                         <div className="p-3 bg-blue-50 rounded-lg flex items-center justify-between">
-                          <span className="text-body text-blue-700">Durée calculée</span>
+                          <span className="text-body text-[#1e3a8a]">Durée calculée</span>
                           <span className="font-semibold text-blue-900">{data.dureeJours || '—'} jours</span>
                         </div>
                       </div>
@@ -3500,14 +3498,14 @@ export default function App() {
                     
                     {/* Section Montants */}
                     <div>
-                      <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Montants</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Montants</h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="text-body-medium text-gray-700">Revenu perçu net</label>
                             <div className="mt-1 relative">
-                              <input id="pgpa-percu-montant" type="number" step="0.01" defaultValue={data.montant || ''} readOnly className="w-full px-3 py-2 pr-8 border rounded-lg bg-zinc-50 text-zinc-500 cursor-default" />
-                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-body">€</span>
+                              <input id="pgpa-percu-montant" type="number" step="0.01" defaultValue={data.montant || ''} readOnly className="w-full px-3 py-2 pr-8 border rounded-lg bg-[#F8F7F5] text-[#78716c] cursor-default" />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
                             </div>
                           </div>
                           <div>
@@ -3520,7 +3518,7 @@ export default function App() {
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                        <div className="flex items-center justify-between p-3 bg-[#F8F7F5] rounded-lg border">
                           <div className="flex items-center gap-3">
                             <input type="checkbox" id="pgpa-percu-no-revalo" defaultChecked={data.noRevalo || false} className="rounded text-blue-600" />
                             <label htmlFor="pgpa-percu-no-revalo" className="text-body-medium text-gray-700">Montant à ne pas revaloriser</label>
@@ -3544,41 +3542,41 @@ export default function App() {
                   <div className="space-y-6">
                     {/* Section Pièces justificatives */}
                     <div>
-                      <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Pièces justificatives</h4>
                       {editingPieceIds.length > 0 && (
                         <div className="space-y-2 mb-3">
                           {editingPieceIds.map(pid => {
                             const piece = getPiece(pid);
                             return piece ? (
-                              <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
-                                <span className="w-8 h-8 bg-blue-100 text-blue-700 text-caption-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
+                              <div key={pid} className="flex items-center gap-3 p-2.5 bg-[#F8F7F5] rounded-lg border group">
+                                <span className="w-8 h-8 bg-blue-100 text-[#1e3a8a] text-caption-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-body-medium truncate">{piece.intitule || piece.nom}</p>
-                                  <p className="text-caption text-gray-500">{piece.type}</p>
+                                  <p className="text-caption text-[#78716c]">{piece.type}</p>
                                 </div>
-                                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"><Eye className="w-4 h-4" /></button>
-                                <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
+                                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-[#a8a29e] hover:text-blue-600 hover:bg-[#eef3fa] rounded"><Eye className="w-4 h-4" /></button>
+                                <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-[#a8a29e] hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
                               </div>
                             ) : null;
                           })}
                         </div>
                       )}
-                      <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
+                      <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-[#F8F7F5]/50">
                         {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
                           <div>
                             <div className="relative mb-2">
-                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />
                               <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
-                                className="w-full pl-8 pr-7 py-1.5 text-caption border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
-                              {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-zinc-400" /></button>}
+                                className="w-full pl-8 pr-7 py-1.5 text-caption border border-[#e7e5e3] rounded-md bg-white placeholder:text-[#a8a29e] focus:outline-none focus:ring-1 focus:ring-zinc-300" />
+                              {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-[#a8a29e]" /></button>}
                             </div>
                             <div className="max-h-32 overflow-y-auto space-y-1">
                               {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
                                 <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
-                                  className="w-full flex items-center gap-2 p-2 text-left text-body bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                                  <span className="w-6 h-6 bg-blue-100 text-blue-700 text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
+                                  className="w-full flex items-center gap-2 p-2 text-left text-body bg-white border rounded hover:bg-[#eef3fa] hover:border-blue-300 transition-colors">
+                                  <span className="w-6 h-6 bg-blue-100 text-[#1e3a8a] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
                                   <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
-                                  <span className="text-caption text-gray-400">{piece.type}</span>
+                                  <span className="text-caption text-[#a8a29e]">{piece.type}</span>
                                   <Plus className="w-4 h-4 text-blue-600" />
                                 </button>
                               ))}
@@ -3588,7 +3586,7 @@ export default function App() {
                         <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
                           onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
                         <button onClick={() => document.getElementById('panel-piece-upload').click()}
-                          className="w-full flex items-center justify-center gap-2 p-2 text-body text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
+                          className="w-full flex items-center justify-center gap-2 p-2 text-body text-[#78716c] bg-white border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] hover:border-zinc-300 transition-colors">
                           <Upload className="w-4 h-4" />
                           Ajouter un document
                         </button>
@@ -3597,7 +3595,7 @@ export default function App() {
 
                     {/* Section Tiers payeur */}
                     <div>
-                      <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Tiers payeur</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Tiers payeur</h4>
                       <div className="space-y-4">
                         <div>
                           <label className="text-body-medium text-gray-700">Organisme</label>
@@ -3624,7 +3622,7 @@ export default function App() {
                     
                     {/* Section Période d'arrêt */}
                     <div>
-                      <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Période d'arrêt de travail</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Période d'arrêt de travail</h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
@@ -3632,7 +3630,7 @@ export default function App() {
                             <div className="relative mt-1">
                               <input id="pgpa-ij-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
                               <input type="date" id="pgpa-ij-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-ij-debut')} />
-                              <button type="button" onClick={() => openDatePicker('pgpa-ij-debut')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                              <button type="button" onClick={() => openDatePicker('pgpa-ij-debut')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                             </div>
                           </div>
                           <div>
@@ -3640,13 +3638,13 @@ export default function App() {
                             <div className="relative mt-1">
                               <input id="pgpa-ij-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
                               <input type="date" id="pgpa-ij-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-ij-fin')} />
-                              <button type="button" onClick={() => openDatePicker('pgpa-ij-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                              <button type="button" onClick={() => openDatePicker('pgpa-ij-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                             </div>
                           </div>
                         </div>
 
                         <div className="p-3 bg-blue-50 rounded-lg flex items-center justify-between">
-                          <span className="text-body text-blue-700">Durée calculée</span>
+                          <span className="text-body text-[#1e3a8a]">Durée calculée</span>
                           <span className="font-semibold text-blue-900">{data.jours || '—'} jours</span>
                         </div>
                       </div>
@@ -3654,21 +3652,21 @@ export default function App() {
                     
                     {/* Section Montants */}
                     <div>
-                      <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Montants</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Montants</h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="text-body-medium text-gray-700">Indemnité brute perçue</label>
                             <div className="mt-1 relative">
                               <input id="pgpa-ij-brut" type="number" step="0.01" defaultValue={data.montantBrut || ''} placeholder="0.00" className="w-full px-3 py-2 pr-8 border rounded-lg" />
-                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-body">€</span>
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
                             </div>
                           </div>
                           <div>
                             <label className="text-body-medium text-gray-700">CSG-CRDS</label>
                             <div className="mt-1 relative">
                               <input id="pgpa-ij-csg" type="number" step="0.01" defaultValue={data.csgCrds || ''} placeholder="0.00" className="w-full px-3 py-2 pr-8 border rounded-lg" />
-                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-body">€</span>
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
                             </div>
                           </div>
                         </div>
@@ -3695,158 +3693,194 @@ export default function App() {
 
                 {/* Panel DFT */}
                 {editPanel.type === 'dft-ligne' && (
-                  <>
+                  <div className="space-y-5">
                     {data?.status === 'ai-suggested' && data?.confidence && (
-                      <div className="flex items-center gap-3 p-4 rounded-xl bg-indigo-50 border border-indigo-200 mb-4">
-                        <Sparkles className="w-5 h-5 text-indigo-600" />
-                        <span className="text-body-medium text-indigo-700">Suggestion IA · Confiance {data.confidence}%</span>
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-indigo-50 border border-indigo-200">
+                        <Sparkles className="w-4 h-4 text-indigo-600" />
+                        <span className="text-caption-medium text-indigo-700">Suggestion IA · Confiance {data.confidence}%</span>
                       </div>
                     )}
-                    <div className="space-y-6">
-                      <div>
-                        <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
 
-                        {editingPieceIds.length > 0 && (
-                          <div className="space-y-2 mb-3">
-                            {editingPieceIds.map(pid => {
-                              const piece = getPiece(pid);
-                              return piece ? (
-                                <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
-                                  <span className="w-8 h-8 bg-blue-100 text-blue-700 text-caption-medium rounded flex items-center justify-center flex-shrink-0">
-                                    {getPieceLabel(pid)}
-                                  </span>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-body-medium truncate">Rapport d'expertise</p>
-                                    <p className="text-caption text-gray-500">{piece.type}</p>
-                                  </div>
-                                  <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded">
-                                    <Eye className="w-4 h-4" />
-                                  </button>
-                                  <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100">
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
+                    {/* Libellé dépense */}
+                    <div>
+                      <label className="text-caption text-[#78716c] mb-1.5 block">Libellé dépense</label>
+                      <input type="text" id="dft-label" defaultValue={data.label || ''} placeholder="Nom de la période"
+                        className="w-full px-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e]" />
+                    </div>
+
+                    {/* Pièces justificatives */}
+                    <div>
+                      <label className="text-caption text-[#78716c] mb-1.5 block">Ajouter des pièces justificatives</label>
+                      {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
+                        <div className="relative mb-2">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />
+                          <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
+                            className="w-full pl-9 pr-7 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white placeholder:text-[#a8a29e] focus:outline-none focus:ring-1 focus:ring-[#a8a29e]" />
+                          {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2.5 top-1/2 -translate-y-1/2"><X className="w-3.5 h-3.5 text-[#a8a29e]" /></button>}
+                        </div>
+                      )}
+                      {searchPiecesPanel && (
+                        <div className="max-h-32 overflow-y-auto space-y-1 mb-2">
+                          {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
+                            <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-left text-body bg-white border border-[#e7e5e3] rounded-lg hover:bg-[#f5f5f4] transition-colors">
+                              <span className="w-6 h-6 bg-[#eeece6] text-[#44403c] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
+                              <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
+                              <span className="text-caption text-[#a8a29e]">{piece.type}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div className="border border-dashed border-[#d6d3d1] rounded-lg p-3 flex items-center justify-center gap-2 text-body text-[#78716c] hover:bg-[#f5f5f4] cursor-pointer transition-colors"
+                        onClick={() => document.getElementById('panel-piece-upload').click()}>
+                        <Upload className="w-4 h-4" />
+                        <span>Déposez ou <span className="text-[#E8713A] font-medium">cliquez</span> pour ajouter un justificatif</span>
+                      </div>
+                      <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                        onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
+                      {editingPieceIds.length > 0 && (
+                        <div className="mt-2">
+                          {editingPieceIds.map(pid => {
+                            const piece = getPiece(pid);
+                            return piece ? (
+                              <div key={pid} className="flex items-center gap-3 px-3 h-12 group hover:bg-[#f5f5f4] transition-colors">
+                                <span className="w-6 h-6 bg-[#eeece6] text-[#44403c] text-counter font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
+                                <span className="text-body text-[#292524] truncate flex-1">{piece.intitule || piece.nom}</span>
+                                <span className="text-caption text-[#a8a29e] flex-shrink-0">{piece.type}</span>
+                                <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                  <button onClick={() => setShowPreview(!showPreview)} className="p-1 text-[#78716c] hover:text-[#292524]"><Eye className="w-4 h-4" /></button>
+                                  <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1 text-[#78716c] hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                                 </div>
-                              ) : null;
-                            })}
-                          </div>
-                        )}
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                      )}
+                    </div>
 
-                        <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
-                          {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
-                            <div>
-                              <div className="relative mb-2">
-                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
-                                <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
-                                  className="w-full pl-8 pr-7 py-1.5 text-caption border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
-                                {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-zinc-400" /></button>}
-                              </div>
-                              <div className="max-h-32 overflow-y-auto space-y-1">
-                                {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
-                                  <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
-                                    className="w-full flex items-center gap-2 p-2 text-left text-body bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                                    <span className="w-6 h-6 bg-blue-100 text-blue-700 text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
-                                    <span className="truncate flex-1">Rapport d'expertise</span>
-                                    <span className="text-caption text-gray-400">{piece.type}</span>
-                                    <Plus className="w-4 h-4 text-blue-600" />
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-                            onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
-                          <button onClick={() => document.getElementById('panel-piece-upload').click()}
-                            className="w-full flex items-center justify-center gap-2 p-2 text-body text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
-                            <Upload className="w-4 h-4" />
-                            Ajouter un document
-                          </button>
+                    {/* Dates side by side */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-caption text-[#78716c] mb-1.5 block">Date de début</label>
+                        <div className="relative">
+                          <input type="text" id="dft-debut" defaultValue={data.debut} className="w-full px-3 py-2 pr-9 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e]" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                          <input type="date" id="dft-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'dft-debut')} />
+                          <button type="button" onClick={() => openDatePicker('dft-debut')} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-[#f5f5f4] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                         </div>
                       </div>
                       <div>
-                        <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Période</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div><label className="block text-caption text-gray-500 mb-1">Date début</label><div className="relative"><input type="text" id="dft-debut" defaultValue={data.debut} className="w-full px-3 py-2 pr-9 border rounded-lg text-body" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} /><input type="date" id="dft-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'dft-debut')} /><button type="button" onClick={() => openDatePicker('dft-debut')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button></div></div>
-                          <div><label className="block text-caption text-gray-500 mb-1">Date fin</label><div className="relative"><input type="text" id="dft-fin" defaultValue={data.fin} className="w-full px-3 py-2 pr-9 border rounded-lg text-body" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} /><input type="date" id="dft-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'dft-fin')} /><button type="button" onClick={() => openDatePicker('dft-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button></div></div>
+                        <label className="text-caption text-[#78716c] mb-1.5 block">Date de fin</label>
+                        <div className="relative">
+                          <input type="text" id="dft-fin" defaultValue={data.fin} className="w-full px-3 py-2 pr-9 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e]" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                          <input type="date" id="dft-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'dft-fin')} />
+                          <button type="button" onClick={() => openDatePicker('dft-fin')} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-[#f5f5f4] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                         </div>
-                        <div className="mt-3 p-2.5 bg-blue-50 rounded-lg flex items-center justify-between">
-                          <span className="text-caption text-blue-700">Durée calculée</span>
-                          <span className="text-body-medium font-semibold text-blue-900">{data.jours || '—'} jours</span>
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Paramètres</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div><label className="block text-caption text-gray-500 mb-1">Taux DFT</label><div className="relative"><input type="number" id="dft-taux" defaultValue={data.taux || 100} min={0} max={100} className="w-full px-3 py-2 pr-8 border rounded-lg text-body" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-caption text-gray-400">%</span></div></div>
-                          <div><label className="block text-caption text-gray-500 mb-1">Base journalière</label><div className="relative"><input type="number" id="dft-base" defaultValue={chiffrageParams.baseJournaliereDFT || 33} className="w-full px-3 py-2 pr-10 border rounded-lg text-body" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-caption text-gray-400">€/j</span></div></div>
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="text-body-medium font-semibold text-gray-900 mb-3 pb-2 border-b">Contenu</h4>
-                        <div><label className="block text-caption text-gray-500 mb-1">Libellé</label><input type="text" id="dft-label" defaultValue={data.label || ''} className="w-full px-3 py-2 border rounded-lg text-body" /></div>
-                        <div className="mt-3"><label className="block text-caption text-gray-500 mb-1">Commentaire</label><textarea id="dft-commentaire" defaultValue={data.commentaire || ''} rows={3} className="w-full px-3 py-2 border rounded-lg text-body resize-none" /></div>
                       </div>
                     </div>
-                  </>
+                    <div className="text-caption text-[#78716c] italic -mt-3">
+                      Durée : {data.jours || '—'} jours
+                    </div>
+
+                    {/* Base journalière + % DFT side by side */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-caption text-[#78716c] mb-1.5 block">Base journalière</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
+                          <input type="number" id="dft-base" defaultValue={chiffrageParams.baseJournaliereDFT || 33}
+                            className="w-full pl-8 pr-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e]" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-caption text-[#78716c] mb-1.5 block">% de DFT</label>
+                        <div className="relative">
+                          <input type="number" id="dft-taux" defaultValue={data.taux || 100} min={0} max={100}
+                            className="w-full px-3 py-2 pr-8 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e]" />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Commentaire hidden */}
+                    <input type="hidden" id="dft-commentaire" value={data.commentaire || ''} />
+                  </div>
                 )}
 
               </div>
 
-              {/* Bandeau Montant calculé — sticky entre scroll et action bar */}
+              {/* Charge Details — Figma style */}
               {editPanel.type === 'dsa-ligne' && (
-                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
-                  <div>
-                    <span className="text-body-medium text-zinc-600">Montant calculé</span>
-                    <p className="text-caption text-zinc-400">Calculé automatiquement à partir des champs ci-dessus</p>
+                <div className="border-t border-[#e7e5e3] bg-[#fafaf9]">
+                  <div className="px-5 py-4 space-y-1.5">
+                    <div className="flex justify-between text-body">
+                      <span className="text-[#44403c]">Montant dépense</span>
+                      <span className="tabular-nums text-[#292524] font-medium">{fmt(data.montant || 0)}</span>
+                    </div>
+                    <div className="flex justify-between text-body">
+                      <span className="text-[#44403c]">Reste à charge</span>
+                      <span className="tabular-nums text-[#292524] font-medium">{fmt((data.montant || 0) - (data.dejaRembourse || 0))}</span>
+                    </div>
+                    {data.aRevalo && (
+                      <div className="flex justify-between text-body">
+                        <div className="flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5 text-[#E8713A]" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                          <span className="text-[#44403c]">Revalorisation</span>
+                          <span className="text-caption text-[#a8a29e]">IPC Annuel · 1,08</span>
+                        </div>
+                        <span className="tabular-nums text-[#292524] font-medium">{fmt(((data.montant || 0) - (data.dejaRembourse || 0)) * 0.08)}</span>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
+                  <div className="mx-5 border-t border-[#e7e5e3]" />
+                  <div className="px-5 py-3 flex justify-between items-center">
+                    <span className="text-body-medium text-[#292524]">Total indemnisable</span>
+                    <span className="text-lg font-bold text-[#292524] tabular-nums">{fmt(data.montant || 0)}</span>
+                  </div>
                 </div>
               )}
               {editPanel.type === 'pgpa-revenu' && (
-                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
-                  <div>
-                    <span className="text-body-medium text-zinc-600">Montant calculé</span>
-                    <p className="text-caption text-zinc-400">Calculé automatiquement à partir des champs ci-dessus</p>
+                <div className="border-t border-[#e7e5e3] bg-[#fafaf9]">
+                  <div className="px-5 py-3 flex justify-between items-center">
+                    <span className="text-body-medium text-[#292524]">Revenu de référence</span>
+                    <span className="text-lg font-bold text-[#292524] tabular-nums">{fmt(data.montant || 0)}</span>
                   </div>
-                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
                 </div>
               )}
               {editPanel.type === 'pgpa-revenu-percu' && (
-                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
-                  <div>
-                    <span className="text-body-medium text-zinc-600">Montant calculé</span>
-                    <p className="text-caption text-zinc-400">Calculé automatiquement à partir des champs ci-dessus</p>
+                <div className="border-t border-[#e7e5e3] bg-[#fafaf9]">
+                  <div className="px-5 py-3 flex justify-between items-center">
+                    <span className="text-body-medium text-[#292524]">Revenu net perçu</span>
+                    <span className="text-lg font-bold text-[#292524] tabular-nums">{fmt(data.montant || 0)}</span>
                   </div>
-                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
                 </div>
               )}
               {editPanel.type === 'pgpa-ij' && (
-                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
-                  <div>
-                    <span className="text-body-medium text-zinc-600">Montant calculé</span>
-                    <p className="text-caption text-zinc-400">Indemnité nette (brut − CSG-CRDS)</p>
+                <div className="border-t border-[#e7e5e3] bg-[#fafaf9]">
+                  <div className="px-5 py-3 flex justify-between items-center">
+                    <span className="text-body-medium text-[#292524]">Total IJ net</span>
+                    <span className="text-lg font-bold text-[#292524] tabular-nums">{fmt(data.montant || 0)}</span>
                   </div>
-                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
                 </div>
               )}
               {editPanel.type === 'dft-ligne' && (
-                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
-                  <div>
-                    <span className="text-body-medium text-zinc-600">Montant calculé</span>
-                    <p className="text-caption text-zinc-400">{data.jours || 0}j × {data.taux || 100}% × {chiffrageParams.baseJournaliereDFT || 33} €/j</p>
+                <div className="border-t border-[#e7e5e3] bg-[#fafaf9]">
+                  <div className="px-5 py-3 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="text-body-medium text-[#292524]">Total indemnisable</span>
+                      <span className="text-caption px-1.5 py-0.5 bg-[#eeece6] text-[#78716c] rounded">{data.jours || 0}j</span>
+                    </div>
+                    <span className="text-lg font-bold text-[#292524] tabular-nums">{fmt(data.montant || 0)}</span>
                   </div>
-                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
                 </div>
               )}
 
-              {/* Footer */}
+              {/* Footer actions */}
               {editPanel.type === 'dsa-ligne' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
-                  <button onClick={() => { handleRejectLigne(data.id); setEditPanel(null); }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
-                    <Trash2 className="w-4 h-4" />Supprimer
+                <div className="px-5 py-4 flex justify-between">
+                  <button onClick={() => { handleRejectLigne(data.id); setEditPanel(null); }} className="px-4 py-2 text-[#dc2626] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                    Supprimer
                   </button>
-                  <div className="flex gap-2">
-                    <button onClick={() => { setEditPanel(null); setShowPreview(false); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
-                    <button onClick={() => {
+                  <button onClick={() => {
                       const isPeriode = document.getElementById('edit-date-type')?.value === 'periode';
                       const dateVal = document.getElementById('edit-date')?.value || '';
                       const dateFinVal = isPeriode ? (document.getElementById('edit-date-fin')?.value || '') : '';
@@ -3863,26 +3897,12 @@ export default function App() {
                         tiers: document.getElementById('edit-tiers')?.value || '',
                         dejaRembourse: parseFloat(document.getElementById('edit-rembourse')?.value) || 0
                       });
-                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
-                  </div>
+                    }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                 </div>
               )}
               {editPanel.type === 'piece-detail' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex flex-col gap-3">
-                  <div className="flex justify-end gap-2">
-                    <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
-                    <button onClick={() => {
-                      const updatedPiece = {
-                        ...data,
-                        intitule: document.getElementById('piece-intitule')?.value || data.intitule,
-                        type: document.getElementById('piece-type')?.value || data.type,
-                        date: document.getElementById('piece-date')?.value || data.date
-                      };
-                      setPieces(prev => prev.map(p => p.id === data.id ? updatedPiece : p));
-                      setEditPanel(null);
-                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
-                  </div>
-                  <div className="border-t border-gray-200 pt-3">
+                <div className="px-5 py-4 flex flex-col gap-3">
+                  <div className="flex justify-between">
                     <button onClick={() => {
                       setPieces(prev => prev.filter(p => p.id !== data.id));
                       setDsaLignes(prev => prev.map(l => ({
@@ -3908,15 +3928,25 @@ export default function App() {
                         }))
                       }));
                       setEditPanel(null);
-                    }} className="w-full px-4 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg flex items-center justify-center gap-2 font-medium text-sm transition-colors">
-                      <Trash2 className="w-4 h-4" />Supprimer le document
+                    }} className="px-4 py-2 text-[#dc2626] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                      Supprimer
                     </button>
+                    <button onClick={() => {
+                      const updatedPiece = {
+                        ...data,
+                        intitule: document.getElementById('piece-intitule')?.value || data.intitule,
+                        type: document.getElementById('piece-type')?.value || data.type,
+                        date: document.getElementById('piece-date')?.value || data.date
+                      };
+                      setPieces(prev => prev.map(p => p.id === data.id ? updatedPiece : p));
+                      setEditPanel(null);
+                    }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                   </div>
                 </div>
               )}
               {(editPanel.type === 'victime' || editPanel.type === 'fait-generateur') && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-end gap-2">
-                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                <div className="px-5 py-4 flex justify-end gap-2">
+                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                   <button onClick={() => {
                     if (editPanel.type === 'victime') {
                       setVictimeData({
@@ -3936,20 +3966,20 @@ export default function App() {
                       });
                     }
                     setEditPanel(null);
-                  }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                  }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                 </div>
               )}
               {editPanel.type === 'dossier-expertise' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-end gap-2">
-                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                <div className="px-5 py-4 flex justify-end gap-2">
+                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                   <button onClick={() => {
                     setCommentaireExpertise(document.getElementById('proc-commentaire')?.value || '');
                     setEditPanel(null);
-                  }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                  }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                 </div>
               )}
               {editPanel.type === 'victime-indirecte' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
+                <div className="px-5 py-4 flex justify-between">
                   {data && (
                     <button onClick={() => {
                       setVictimesIndirectes(prev => prev.filter(vi => vi.id !== data.id));
@@ -3960,7 +3990,7 @@ export default function App() {
                   )}
                   {!data && <div />}
                   <div className="flex gap-2">
-                    <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                    <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                     <button onClick={() => {
                       const newVi = {
                         id: data?.id || `vi-${Date.now()}`,
@@ -3976,14 +4006,14 @@ export default function App() {
                         setVictimesIndirectes(prev => [...prev, newVi]);
                       }
                       setEditPanel(null);
-                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                    }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                   </div>
                 </div>
               )}
               {/* Panel nouvelle-procedure supprimé */}
               {editPanel.type === 'dossier-edit' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-end gap-2">
-                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                <div className="px-5 py-4 flex justify-end gap-2">
+                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                   <button onClick={() => {
                     setDossierRef(document.getElementById('dossier-ref')?.value || dossierRef);
                     setDossierIntitule(document.getElementById('dossier-intitule')?.value || dossierIntitule);
@@ -3992,14 +4022,14 @@ export default function App() {
                     setDossierAvocat(document.getElementById('dossier-avocat')?.value || dossierAvocat);
                     setDossierNotes(document.getElementById('dossier-notes')?.value || '');
                     setEditPanel(null);
-                  }} className="px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700">Enregistrer</button>
+                  }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                 </div>
               )}
               {/* ========== PANELS PGPA ========== */}
 
               {/* Panel PGPA Revenu de référence */}
               {editPanel.type === 'pgpa-revenu' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
+                <div className="px-5 py-4 flex justify-between">
                   <button onClick={() => {
                     setPgpaData(prev => ({
                       ...prev,
@@ -4010,11 +4040,11 @@ export default function App() {
                     }));
                     setEditPanel(null);
                     setEditingPieceIds([]);
-                  }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
-                    <Trash2 className="w-4 h-4" />Supprimer
+                  }} className="px-4 py-2 text-[#dc2626] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                    Supprimer
                   </button>
                   <div className="flex gap-2">
-                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                     <button onClick={() => {
                       const updatedLigne = {
                         ...data,
@@ -4037,14 +4067,14 @@ export default function App() {
                       }));
                       setEditPanel(null);
                       setEditingPieceIds([]);
-                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                    }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                   </div>
                 </div>
               )}
 
               {/* Panel PGPA Revenu perçu période */}
               {editPanel.type === 'pgpa-revenu-percu' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
+                <div className="px-5 py-4 flex justify-between">
                   <button onClick={() => {
                     setPgpaData(prev => ({
                       ...prev,
@@ -4052,11 +4082,11 @@ export default function App() {
                     }));
                     setEditPanel(null);
                     setEditingPieceIds([]);
-                  }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
-                    <Trash2 className="w-4 h-4" />Supprimer
+                  }} className="px-4 py-2 text-[#dc2626] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                    Supprimer
                   </button>
                   <div className="flex gap-2">
-                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                     <button onClick={() => {
                       const debutVal = document.getElementById('pgpa-percu-debut')?.value || data.periodeDebut;
                       const finVal = document.getElementById('pgpa-percu-fin')?.value || data.periodeFin;
@@ -4080,14 +4110,14 @@ export default function App() {
                       }));
                       setEditPanel(null);
                       setEditingPieceIds([]);
-                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                    }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                   </div>
                 </div>
               )}
 
               {/* Panel PGPA Indemnités journalières */}
               {editPanel.type === 'pgpa-ij' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
+                <div className="px-5 py-4 flex justify-between">
                   <button onClick={() => {
                     setPgpaData(prev => ({
                       ...prev,
@@ -4095,11 +4125,11 @@ export default function App() {
                     }));
                     setEditPanel(null);
                     setEditingPieceIds([]);
-                  }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
-                    <Trash2 className="w-4 h-4" />Supprimer
+                  }} className="px-4 py-2 text-[#dc2626] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                    Supprimer
                   </button>
                   <div className="flex gap-2">
-                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                     <button onClick={() => {
                       const montantBrut = parseFloat(document.getElementById('pgpa-ij-brut')?.value) || 0;
                       const csgCrds = parseFloat(document.getElementById('pgpa-ij-csg')?.value) || 0;
@@ -4125,22 +4155,22 @@ export default function App() {
                       }));
                       setEditPanel(null);
                       setEditingPieceIds([]);
-                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                    }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                   </div>
                 </div>
               )}
 
               {/* Panel DFT Footer */}
               {editPanel.type === 'dft-ligne' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
+                <div className="px-5 py-4 flex justify-between">
                   <button onClick={() => {
                     setDftLignes(prev => prev.filter(l => l.id !== data.id));
                     setEditPanel(null); setEditingPieceIds([]);
-                  }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
-                    <Trash2 className="w-4 h-4" />Supprimer
+                  }} className="px-4 py-2 text-[#dc2626] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                    Supprimer
                   </button>
                   <div className="flex gap-2">
-                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                     <button onClick={() => {
                       const debutVal = document.getElementById('dft-debut')?.value || data.debut;
                       const finVal = document.getElementById('dft-fin')?.value || data.fin;
@@ -4160,14 +4190,13 @@ export default function App() {
                       };
                       setDftLignes(prev => prev.map(l => l.id === data.id ? updatedLigne : l));
                       setEditPanel(null); setEditingPieceIds([]);
-                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                    }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                   </div>
                 </div>
               )}
-            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   };
 
@@ -4230,15 +4259,15 @@ export default function App() {
               </span>
             )}
           </span>
-          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
-            <div className="text-counter text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
+          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-[#e7e5e3] rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
+            <div className="text-counter text-[#a8a29e] uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
             <div className="space-y-1">
               {ligne.pieceIds?.map(pid => {
                 const piece = getPiece(pid);
                 return (
                   <div key={pid} className="flex items-center gap-2 text-caption">
-                    <span className="w-5 h-5 bg-blue-100 text-blue-700 text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
-                    <span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span>
+                    <span className="w-5 h-5 bg-blue-100 text-[#1e3a8a] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
+                    <span className="truncate text-[#44403c]">{piece?.intitule || piece?.nom || 'Document'}</span>
                   </div>
                 );
               })}
@@ -4249,24 +4278,24 @@ export default function App() {
     };
 
     return (
-      <div key={ligne.id} className="relative flex items-center p-3 hover:bg-zinc-50 group transition-colors">
+      <div key={ligne.id} className="relative flex items-center p-3 hover:bg-[#fafaf9] group transition-colors">
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <StatusIcon />
           <PieceIndicator />
           <div className="min-w-0">
-            <div className="text-body-medium text-zinc-800 truncate">{ligne.label || 'Sans libellé'}</div>
-            <div className="text-caption text-zinc-400">{ligne.date || '—'} • {ligne.type || '—'}</div>
+            <div className="text-body-medium text-[#292524] truncate">{ligne.label || 'Sans libellé'}</div>
+            <div className="text-caption text-[#a8a29e]">{ligne.date || '—'} • {ligne.type || '—'}</div>
           </div>
         </div>
 
         {/* Montant - PRIORITAIRE */}
-        <span className="text-body-medium font-semibold text-zinc-900 tabular-nums min-w-[90px] text-right flex-shrink-0">
+        <span className="text-body-medium font-semibold text-[#292524] tabular-nums min-w-[90px] text-right flex-shrink-0">
           {ligne.montant != null ? fmt(ligne.montant) : '— €'}
         </span>
 
         {/* Actions en overlay au hover - minimaliste */}
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => handleRejectLigne(ligne.id)} className="p-1.5 text-zinc-400 hover:text-zinc-600 transition-colors" title="Supprimer">
+          <button onClick={() => handleRejectLigne(ligne.id)} className="p-1.5 text-[#a8a29e] hover:text-[#78716c] transition-colors" title="Supprimer">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -4298,15 +4327,15 @@ export default function App() {
               </span>
             )}
           </span>
-          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
-            <div className="text-counter text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
+          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-[#e7e5e3] rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
+            <div className="text-counter text-[#a8a29e] uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
             <div className="space-y-1">
               {ligne.pieceIds?.map(pid => {
                 const piece = getPiece(pid);
                 return (
                   <div key={pid} className="flex items-center gap-2 text-caption">
-                    <span className="w-5 h-5 bg-blue-100 text-blue-700 text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
-                    <span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span>
+                    <span className="w-5 h-5 bg-blue-100 text-[#1e3a8a] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
+                    <span className="truncate text-[#44403c]">{piece?.intitule || piece?.nom || 'Document'}</span>
                   </div>
                 );
               })}
@@ -4326,25 +4355,25 @@ export default function App() {
     };
 
     return (
-      <div key={ligne.id} className="relative flex items-center p-3 hover:bg-zinc-50 group transition-colors">
+      <div key={ligne.id} className="relative flex items-center p-3 hover:bg-[#fafaf9] group transition-colors">
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <StatusIcon />
           <PieceIndicator />
           <div className="min-w-0">
-            <div className="text-body-medium text-zinc-800 truncate">{ligne.label || 'Sans libellé'}</div>
-            <div className="text-caption text-zinc-400">{getSecondaryText() || '—'}</div>
+            <div className="text-body-medium text-[#292524] truncate">{ligne.label || 'Sans libellé'}</div>
+            <div className="text-caption text-[#a8a29e]">{getSecondaryText() || '—'}</div>
           </div>
         </div>
 
         {/* Montant - PRIORITAIRE */}
-        <span className="text-body-medium font-semibold text-zinc-900 tabular-nums min-w-[90px] text-right flex-shrink-0">
+        <span className="text-body-medium font-semibold text-[#292524] tabular-nums min-w-[90px] text-right flex-shrink-0">
           {fmt(ligne.montant || ligne.revalorise || 0)}
         </span>
 
         {/* Actions en overlay au hover - minimaliste */}
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {onDelete && (
-            <button onClick={() => onDelete(ligne)} className="p-1.5 text-zinc-400 hover:text-zinc-600 transition-colors" title="Supprimer">
+            <button onClick={() => onDelete(ligne)} className="p-1.5 text-[#a8a29e] hover:text-[#78716c] transition-colors" title="Supprimer">
               <X className="w-4 h-4" />
             </button>
           )}
@@ -4360,7 +4389,7 @@ export default function App() {
   const renderContent = () => {
     // DOSSIER
     if (currentLevel.type === 'dossier') {
-      if (currentLevel.activeTab === 'info dossier') {
+      if (currentLevel.activeTab === 'dossier') {
         // Drop-First Info Dossier (new layout with streaming)
         if (dropFirstPieces.length > 0) {
           const streaming = infoDossierStreaming;
@@ -4393,7 +4422,7 @@ export default function App() {
                       <Sparkles className="w-2.5 h-2.5 text-purple-500 cursor-help" fill="currentColor" />
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20 pointer-events-none">
                         <div className="bg-zinc-800 text-white rounded-lg px-3 py-2 shadow-lg w-[220px]">
-                          <p className="text-caption text-zinc-400 mb-1">Extrait depuis</p>
+                          <p className="text-caption text-[#a8a29e] mb-1">Extrait depuis</p>
                           <div className="flex items-center gap-2">
                             <FileText className="w-3.5 h-3.5 text-purple-300 flex-shrink-0" />
                             <span className="text-caption-medium text-white truncate">{rapportName}</span>
@@ -4404,7 +4433,7 @@ export default function App() {
                     </span>
                   )}
                 </div>
-                <div className={`text-body ${hasValue || isActive ? 'text-[#292524]' : 'text-zinc-300'} ${isLongText ? 'leading-relaxed' : ''}`}>
+                <div className={`text-body ${hasValue || isActive ? 'text-[#292524]' : 'text-[#d6d3d1]'} ${isLongText ? 'leading-relaxed' : ''}`}>
                   {isActive ? (
                     <span>{streamingText}<span className="inline-block w-0.5 h-4 bg-purple-500 animate-pulse ml-0.5 align-middle"></span></span>
                   ) : hasValue ? (
@@ -4468,7 +4497,7 @@ export default function App() {
               <div className="bg-white rounded-[5px] border border-[#e7e5e3] shadow-sm overflow-hidden">
                 <div className="flex items-center gap-2.5 px-3 py-3.5 border-b border-[#e7e5e3] bg-white">
                   <User className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
-                  <span className="text-[11px] font-medium text-[#78716c] uppercase tracking-wider" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>Victime</span>
+                  <span className="text-[11px] font-medium text-[#78716c] uppercase tracking-wider" style={colHeaderStyle}>Victime</span>
                 </div>
                 <div className="flex border-b border-[#e7e5e3]">
                   <div className="flex-1 px-5 py-4 space-y-1">
@@ -4491,7 +4520,7 @@ export default function App() {
                             <Sparkles className="w-2.5 h-2.5 text-purple-500 cursor-help" fill="currentColor" />
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20 pointer-events-none">
                               <div className="bg-zinc-800 text-white rounded-lg px-3 py-2 shadow-lg w-[220px]">
-                                <p className="text-caption text-zinc-400 mb-1">Extrait depuis</p>
+                                <p className="text-caption text-[#a8a29e] mb-1">Extrait depuis</p>
                                 <div className="flex items-center gap-2">
                                   <FileText className="w-3.5 h-3.5 text-purple-300 flex-shrink-0" />
                                   <span className="text-caption-medium text-white truncate">{rapportName}</span>
@@ -4503,7 +4532,7 @@ export default function App() {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-body ${isRevealed('dateNaissance') && victimeData.dateNaissance ? 'text-[#292524]' : 'text-zinc-300 italic'}`}>
+                        <span className={`text-body ${isRevealed('dateNaissance') && victimeData.dateNaissance ? 'text-[#292524]' : 'text-[#d6d3d1] italic'}`}>
                           {isCurrentlyStreaming('dateNaissance') ? (
                             <span>{streamingText}<span className="inline-block w-0.5 h-4 bg-purple-500 animate-pulse ml-0.5 align-middle"></span></span>
                           ) : isRevealed('dateNaissance') && victimeData.dateNaissance ? victimeData.dateNaissance : 'Non renseigné'}
@@ -4524,7 +4553,7 @@ export default function App() {
               <div className="bg-white rounded-[5px] border border-[#e7e5e3] shadow-sm overflow-hidden">
                 <div className="flex items-center gap-2.5 px-3 py-3.5 border-b border-[#e7e5e3] bg-white">
                   <AlertTriangle className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
-                  <span className="text-[11px] font-medium text-[#78716c] uppercase tracking-wider" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>Fait générateur</span>
+                  <span className="text-[11px] font-medium text-[#78716c] uppercase tracking-wider" style={colHeaderStyle}>Fait générateur</span>
                 </div>
                 <div className="flex border-b border-[#e7e5e3]">
                   <div className="flex-1 px-5 py-4 space-y-1">
@@ -4551,7 +4580,7 @@ export default function App() {
               <div className="bg-white rounded-[5px] border border-[#e7e5e3] shadow-sm overflow-hidden">
                 <div className="flex items-center gap-2.5 px-3 py-3.5 border-b border-[#e7e5e3] bg-white">
                   <Activity className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
-                  <span className="text-[11px] font-medium text-[#78716c] uppercase tracking-wider" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>Faits et procédure</span>
+                  <span className="text-[11px] font-medium text-[#78716c] uppercase tracking-wider" style={colHeaderStyle}>Faits et procédure</span>
                 </div>
                 <div className="px-5 py-4 min-h-[92px]">
                   {renderField('commentaire', 'Commentaire d\'expertise', commentaireExpertise, true)}
@@ -4568,38 +4597,38 @@ export default function App() {
             {/* Colonne gauche */}
             <div className="col-span-2 space-y-4">
               {/* Infos Victime */}
-              <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
+              <div className="bg-white rounded-lg border border-[#e7e5e3]/60 shadow-sm">
                 <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-zinc-400">
+                  <div className="flex items-center gap-2 text-[#a8a29e]">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                     </svg>
                     <span className="text-body-medium">Informations victime</span>
                   </div>
-                  <button onClick={() => setEditPanel({ type: 'victime', title: 'Informations victime' })} className="p-1 text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
+                  <button onClick={() => setEditPanel({ type: 'victime', title: 'Informations victime' })} className="p-1 text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#eeece6] rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
                 </div>
                 <div className="p-4">
                   <div className="grid grid-cols-2 gap-x-8 gap-y-3">
                     <div>
-                      <div className="text-caption text-zinc-400 mb-0.5">Nom</div>
-                      <div className="text-body text-zinc-700">{victimeData.nom}</div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Nom</div>
+                      <div className="text-body text-[#44403c]">{victimeData.nom}</div>
                     </div>
                     <div>
-                      <div className="text-caption text-zinc-400 mb-0.5">Prénom</div>
-                      <div className="text-body text-zinc-700">{victimeData.prenom}</div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Prénom</div>
+                      <div className="text-body text-[#44403c]">{victimeData.prenom}</div>
                     </div>
                     <div>
-                      <div className="text-caption text-zinc-400 mb-0.5">Sexe</div>
-                      <div className="text-body text-zinc-700">{victimeData.sexe}</div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Sexe</div>
+                      <div className="text-body text-[#44403c]">{victimeData.sexe}</div>
                     </div>
                     <div>
-                      <div className="text-caption text-zinc-400 mb-0.5">Date de naissance</div>
-                      <div className="text-body text-zinc-700">{victimeData.dateNaissance} <span className="text-zinc-400">({calcAge(victimeData.dateNaissance)} ans)</span></div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Date de naissance</div>
+                      <div className="text-body text-[#44403c]">{victimeData.dateNaissance} <span className="text-[#a8a29e]">({calcAge(victimeData.dateNaissance)} ans)</span></div>
                     </div>
                     {victimeData.dateDeces && (
                       <div>
-                        <div className="text-caption text-zinc-400 mb-0.5">Date de décès</div>
-                        <div className="text-body text-zinc-700">{victimeData.dateDeces} <span className="text-zinc-400">({calcAge(victimeData.dateNaissance, victimeData.dateDeces)} ans)</span></div>
+                        <div className="text-caption text-[#a8a29e] mb-0.5">Date de décès</div>
+                        <div className="text-body text-[#44403c]">{victimeData.dateDeces} <span className="text-[#a8a29e]">({calcAge(victimeData.dateNaissance, victimeData.dateDeces)} ans)</span></div>
                       </div>
                     )}
                   </div>
@@ -4607,38 +4636,38 @@ export default function App() {
               </div>
 
               {/* Infos Accident */}
-              <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
+              <div className="bg-white rounded-lg border border-[#e7e5e3]/60 shadow-sm">
                 <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-zinc-400">
+                  <div className="flex items-center gap-2 text-[#a8a29e]">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                     </svg>
                     <span className="text-body-medium">Fait générateur</span>
                   </div>
-                  <button onClick={() => setEditPanel({ type: 'fait-generateur', title: 'Fait générateur' })} className="p-1 text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
+                  <button onClick={() => setEditPanel({ type: 'fait-generateur', title: 'Fait générateur' })} className="p-1 text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#eeece6] rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
                 </div>
                 <div className="p-4">
                   <div className="grid grid-cols-2 gap-x-8 gap-y-3 mb-4">
                     <div>
-                      <div className="text-caption text-zinc-400 mb-0.5">Type</div>
-                      <div className="text-body text-zinc-700">{faitGenerateur.type}</div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Type</div>
+                      <div className="text-body text-[#44403c]">{faitGenerateur.type}</div>
                     </div>
                     <div>
-                      <div className="text-caption text-zinc-400 mb-0.5">Date de l'accident</div>
-                      <div className="text-body text-zinc-700">{faitGenerateur.dateAccident}</div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Date de l'accident</div>
+                      <div className="text-body text-[#44403c]">{faitGenerateur.dateAccident}</div>
                     </div>
                     <div>
-                      <div className="text-caption text-zinc-400 mb-0.5">Première constatation</div>
-                      <div className="text-body text-zinc-700">{faitGenerateur.datePremiereConstatation}</div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Première constatation</div>
+                      <div className="text-body text-[#44403c]">{faitGenerateur.datePremiereConstatation}</div>
                     </div>
                     <div>
-                      <div className="text-caption text-zinc-400 mb-0.5">Consolidation</div>
-                      <div className="text-body text-zinc-700">{faitGenerateur.dateConsolidation}</div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Consolidation</div>
+                      <div className="text-body text-[#44403c]">{faitGenerateur.dateConsolidation}</div>
                     </div>
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <div className="text-caption text-zinc-400">Résumé des faits</div>
+                      <div className="text-caption text-[#a8a29e]">Résumé des faits</div>
                       {!faitGenerateur.resume && (
                         <button
                           onClick={handleGenerateResume}
@@ -4653,27 +4682,27 @@ export default function App() {
                         </button>
                       )}
                     </div>
-                    <div className="text-body text-zinc-600 leading-relaxed">
-                      {faitGenerateur.resume || <span className="text-zinc-300 italic">Aucun résumé renseigné.</span>}
+                    <div className="text-body text-[#78716c] leading-relaxed">
+                      {faitGenerateur.resume || <span className="text-[#d6d3d1] italic">Aucun résumé renseigné.</span>}
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Commentaire d'expertise */}
-              <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
+              <div className="bg-white rounded-lg border border-[#e7e5e3]/60 shadow-sm">
                 <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-zinc-400">
+                  <div className="flex items-center gap-2 text-[#a8a29e]">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
                     </svg>
                     <span className="text-body-medium">Commentaire d'expertise</span>
                   </div>
-                  <button onClick={() => setEditPanel({ type: 'dossier-expertise', title: "Commentaire d'expertise" })} className="p-1 text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
+                  <button onClick={() => setEditPanel({ type: 'dossier-expertise', title: "Commentaire d'expertise" })} className="p-1 text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#eeece6] rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
                 </div>
                 <div className="p-4">
-                  <div className="text-body text-zinc-600 leading-relaxed">
-                    {commentaireExpertise || <span className="text-zinc-300 italic">Aucun commentaire d'expertise renseigné.</span>}
+                  <div className="text-body text-[#78716c] leading-relaxed">
+                    {commentaireExpertise || <span className="text-[#d6d3d1] italic">Aucun commentaire d'expertise renseigné.</span>}
                   </div>
                   {!commentaireExpertise && (
                     <button
@@ -4692,9 +4721,9 @@ export default function App() {
               </div>
 
               {/* Victimes indirectes */}
-              <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
+              <div className="bg-white rounded-lg border border-[#e7e5e3]/60 shadow-sm">
                 <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-zinc-400">
+                  <div className="flex items-center gap-2 text-[#a8a29e]">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
                     </svg>
@@ -4702,27 +4731,27 @@ export default function App() {
                   </div>
                   <button
                     onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Nouvelle victime indirecte', data: null })}
-                    className="flex items-center gap-1 px-2 py-1 text-caption text-zinc-500 hover:bg-zinc-100 rounded transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 text-caption text-[#78716c] hover:bg-[#eeece6] rounded transition-colors"
                   >
                     <Plus className="w-3 h-3" strokeWidth={1.5} />Ajouter
                   </button>
                 </div>
                 {victimesIndirectes.length > 0 ? (
-                  <div className="divide-y divide-zinc-100">
+                  <div className="divide-y divide-[#e7e5e3]">
                     {victimesIndirectes.map(vi => (
-                      <div key={vi.id} className="flex items-center justify-between p-3 hover:bg-zinc-50 group transition-colors">
+                      <div key={vi.id} className="flex items-center justify-between p-3 hover:bg-[#fafaf9] group transition-colors">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-caption text-zinc-500 font-medium">
+                          <div className="w-8 h-8 rounded-full bg-[#eeece6] flex items-center justify-center text-caption text-[#78716c] font-medium">
                             {vi.prenom[0]}{vi.nom[0]}
                           </div>
                           <div>
-                            <div className="text-body text-zinc-700">{vi.prenom} {vi.nom}</div>
-                            <div className="text-caption text-zinc-400">{vi.lien} • {calcAge(vi.dateNaissance)} ans</div>
+                            <div className="text-body text-[#44403c]">{vi.prenom} {vi.nom}</div>
+                            <div className="text-caption text-[#a8a29e]">{vi.lien} • {calcAge(vi.dateNaissance)} ans</div>
                           </div>
                         </div>
                         <button
                           onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Modifier victime indirecte', data: vi })}
-                          className="p-1 text-zinc-300 hover:text-zinc-500 rounded opacity-0 group-hover:opacity-100 transition-all"
+                          className="p-1 text-[#d6d3d1] hover:text-[#78716c] rounded opacity-0 group-hover:opacity-100 transition-all"
                         >
                           <Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} />
                         </button>
@@ -4731,7 +4760,7 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="p-4 text-center">
-                    <div className="text-body text-zinc-400">Aucune victime indirecte</div>
+                    <div className="text-body text-[#a8a29e]">Aucune victime indirecte</div>
                   </div>
                 )}
               </div>
@@ -4739,15 +4768,15 @@ export default function App() {
 
             {/* Colonne droite — Encart Chiffrage (sticky) */}
             <div className="col-span-1 sticky top-0">
-              <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
+              <div className="bg-white rounded-lg border border-[#e7e5e3]/60 shadow-sm">
                 <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-zinc-400">
+                  <div className="flex items-center gap-2 text-[#a8a29e]">
                     <Calculator className="w-4 h-4" strokeWidth={1.5} />
                     <span className="text-body-medium">Chiffrage</span>
                   </div>
                   <button
                     onClick={() => setActiveTab('Chiffrage')}
-                    className="flex items-center gap-1 text-caption text-zinc-400 hover:text-zinc-600 transition-colors"
+                    className="flex items-center gap-1 text-caption text-[#a8a29e] hover:text-[#78716c] transition-colors"
                   >
                     Voir le détail
                     <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
@@ -4755,8 +4784,8 @@ export default function App() {
                 </div>
                 <div className="p-5">
                   <div className="text-center">
-                    <div className="text-[36px] font-semibold text-zinc-800 tabular-nums leading-none">{fmt(totalChiffrage)}</div>
-                    <div className="text-body text-zinc-400 mt-1.5">{allPostes.filter(p => !p.disabled).length} postes de préjudice chiffrés</div>
+                    <div className="text-[36px] font-semibold text-[#292524] tabular-nums leading-none">{fmt(totalChiffrage)}</div>
+                    <div className="text-body text-[#a8a29e] mt-1.5">{allPostes.filter(p => !p.disabled).length} postes de préjudice chiffrés</div>
                     <button
                       onClick={() => setActiveTab('Chiffrage')}
                       className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-800 text-white text-body-medium rounded-lg hover:bg-zinc-700 transition-colors"
@@ -4813,13 +4842,13 @@ export default function App() {
                   style={{ background: 'conic-gradient(from 0deg, #71717a, #a1a1aa, #71717a, transparent 70%)' }}
                 />
                 <div className="absolute inset-[3px] rounded-full bg-white flex items-center justify-center">
-                  <Sparkles className="w-8 h-8 text-zinc-600 animate-pulse" />
+                  <Sparkles className="w-8 h-8 text-[#78716c] animate-pulse" />
                 </div>
               </div>
-              <h2 className="text-heading-md text-zinc-800 mb-1 tracking-tight">
+              <h2 className="text-heading-md text-[#292524] mb-1 tracking-tight">
                 {extractionPhases[currentPhaseIndex]?.label || 'Analyse'} en cours...
               </h2>
-              <p className="text-body text-zinc-500 mb-8">L'IA analyse vos documents</p>
+              <p className="text-body text-[#78716c] mb-8">L'IA analyse vos documents</p>
               <div className="flex items-center gap-1 mb-8">
                 {extractionPhases.map((phase, i) => {
                   const Icon = phase.icon;
@@ -4827,18 +4856,18 @@ export default function App() {
                   const isDone = i < currentPhaseIndex;
                   return (
                     <div key={phase.key} className="flex items-center">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-500 ${isDone ? 'bg-zinc-200' : isActive ? 'bg-zinc-200 scale-110' : 'bg-zinc-100'}`}>
-                        {isDone ? <Check className="w-4 h-4 text-zinc-600 animate-bounce-in" /> : <Icon className={`w-4 h-4 transition-colors duration-300 ${isActive ? 'text-zinc-700' : 'text-zinc-400'}`} />}
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-500 ${isDone ? 'bg-zinc-200' : isActive ? 'bg-zinc-200 scale-110' : 'bg-[#eeece6]'}`}>
+                        {isDone ? <Check className="w-4 h-4 text-[#78716c] animate-bounce-in" /> : <Icon className={`w-4 h-4 transition-colors duration-300 ${isActive ? 'text-[#44403c]' : 'text-[#a8a29e]'}`} />}
                       </div>
                       {i < extractionPhases.length - 1 && <div className={`w-3 h-0.5 mx-0.5 transition-colors duration-500 ${isDone ? 'bg-zinc-400' : 'bg-zinc-200'}`} />}
                     </div>
                   );
                 })}
               </div>
-              <div className="w-56 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                <div className="h-full bg-zinc-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${extractionState.progress}%` }} />
+              <div className="w-56 h-1.5 bg-[#eeece6] rounded-full overflow-hidden">
+                <div className="h-full bg-[#F8F7F5]0 rounded-full transition-all duration-700 ease-out" style={{ width: `${extractionState.progress}%` }} />
               </div>
-              <p className="text-caption text-zinc-400 mt-3">{extractionState.progress}%</p>
+              <p className="text-caption text-[#a8a29e] mt-3">{extractionState.progress}%</p>
             </div>
           );
         }
@@ -4848,11 +4877,11 @@ export default function App() {
           return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 animate-fade-up">
               <div className="text-center max-w-sm">
-                <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-zinc-100 flex items-center justify-center">
-                  <ClipboardList className="w-6 h-6 text-zinc-400" />
+                <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-[#eeece6] flex items-center justify-center">
+                  <ClipboardList className="w-6 h-6 text-[#a8a29e]" />
                 </div>
-                <h2 className="text-lg font-semibold text-zinc-800 mb-2">Aucun poste de préjudice</h2>
-                <p className="text-body text-zinc-500 mb-6">Sélectionnez un poste dans le menu latéral pour commencer le chiffrage.</p>
+                <h2 className="text-lg font-semibold text-[#292524] mb-2">Aucun poste de préjudice</h2>
+                <p className="text-body text-[#78716c] mb-6">Sélectionnez un poste dans le menu latéral pour commencer le chiffrage.</p>
               </div>
             </div>
           );
@@ -4872,114 +4901,175 @@ export default function App() {
           dftLignes.filter(l => l.status === 'ai-suggested').length +
           pgpaAiCount;
 
+        // Compute summary totals
+        const totalDepenses = allPostes.reduce((s, p) => s + (p.montant || 0), 0);
+        const totalTiers = 0; // placeholder
+        const totalIndem = totalDepenses - totalTiers;
+
         return (
-          <>
-            {/* Liste des postes */}
-            <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm overflow-hidden">
-              {categories.filter(cat => cat.postes.length > 0).map((cat, catIndex) => (
-                <div key={cat.id}>
-                  <div className={`px-4 py-2 bg-zinc-50/50 border-b border-zinc-100 ${catIndex > 0 ? 'border-t' : ''}`}>
-                    <span className="text-caption text-zinc-400">{cat.title}</span>
+          <div className="space-y-6">
+            {/* Summary pills row */}
+            <div className="flex items-center gap-3 px-px">
+              <div className="h-9 px-3 flex items-center gap-2.5 border border-[#d6d3d1] rounded-lg whitespace-nowrap">
+                <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c', letterSpacing: 0.12, lineHeight: '16px' }}>Dépenses</span>
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#44403c', lineHeight: '20px' }}>{fmt(totalDepenses)}</span>
+              </div>
+              <div className="h-9 px-3 flex items-center gap-2.5 border border-[#d6d3d1] rounded-lg whitespace-nowrap">
+                <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c', letterSpacing: 0.12, lineHeight: '16px' }}>Tiers payeurs</span>
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#44403c', lineHeight: '20px' }}>{fmt(totalTiers)}</span>
+              </div>
+              <div className="h-9 px-3 flex items-center gap-2 border border-[#e7e5e3] rounded-lg whitespace-nowrap" style={{ backgroundColor: '#eeece6' }}>
+                <span style={{ fontSize: 12, fontWeight: 400, color: '#292524', letterSpacing: 0.12, lineHeight: '16px' }}>Indem. totale</span>
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(totalIndem)}</span>
+              </div>
+            </div>
+
+            {/* Category table sections */}
+            <div className="space-y-6">
+              {categories.filter(cat => cat.postes.length > 0).map((cat) => (
+                <div key={cat.id} className="border border-[#e7e5e3] rounded-xl overflow-hidden" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                  {/* Category header */}
+                  <div className="h-10 px-4 flex items-center border-b border-[#e7e5e3]" style={{ backgroundColor: '#f8f7f5' }}>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{cat.title}</span>
                   </div>
-                  <div className="divide-y divide-zinc-100">
-                    {cat.postes.map(p => {
-                      const status = getPosteStatus(p.id);
-                      const aiReasoning = getPosteAiReasoning(p.id) || {
-                        dsa: "Identifié à partir des factures et frais médicaux détectés dans vos documents",
-                        pgpa: "Calculé sur la base de l'arrêt de travail et des revenus identifiés",
-                        dft: "Périodes d'incapacité temporaire identifiées dans le rapport d'expertise",
-                        pet: "Préjudice esthétique temporaire identifié dans le rapport d'expertise médicale (cicatrices, appareillage)",
-                        atpt: "Besoin d'assistance tierce personne identifié pendant la période de convalescence",
-                        se: "Souffrances endurées évaluées à 4/7 par l'expert dans le rapport d'expertise"
-                      }[p.id];
-                      const _isAiPoste = status === 'suggested' || status === 'in_progress'; // eslint-disable-line no-unused-vars
-                      const PosteStatusIcon = () => {
-                        if (status === 'suggested') return <span className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Poste suggéré par l'IA"><Sparkles className="w-3 h-3 text-indigo-500" /></span>;
-                        if (status === 'in_progress') return <span className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center" title="En cours de validation"><Loader2 className="w-3 h-3 text-amber-500" /></span>;
-                        return <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center" title="Validé"><Check className="w-3 h-3 text-emerald-500" /></span>;
-                      };
-                      if (p.disabled) {
-                        return (
-                          <div key={p.id} className="relative group">
-                            <div className="w-full flex items-center justify-between px-4 py-3 opacity-50 cursor-default">
-                              <div className="flex items-center gap-3">
-                                <span className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Poste suggéré par l'IA"><Sparkles className="w-3 h-3 text-indigo-500" /></span>
-                                <span className="text-body-medium w-12 text-zinc-400">{p.title}</span>
-                                <span className="text-body text-zinc-700">{p.fullTitle}</span>
-                                {aiReasoning && (
-                                  <span className="relative cursor-help">
-                                    <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                                    <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 w-64 p-2.5 bg-zinc-900 text-white text-caption rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30 pointer-events-none">
-                                      <span className="flex items-start gap-2">
-                                        <Sparkles className="w-3 h-3 text-indigo-400 flex-shrink-0 mt-0.5" />
-                                        <span className="text-zinc-300 leading-relaxed">{aiReasoning}</span>
-                                      </span>
-                                      <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-zinc-900" />
-                                    </span>
-                                  </span>
-                                )}
-                                <span className="text-counter text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-full">Bientôt</span>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <span className="text-body-medium font-semibold text-zinc-900 tabular-nums">{fmt(p.montant)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-                      return (
-                        <div key={p.id} className="relative group">
-                          <button onClick={() => navigateTo(p)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-zinc-50 transition-colors">
-                            <div className="flex items-center gap-3">
-                              <PosteStatusIcon />
-                              <span className="text-body-medium w-12 text-zinc-400">{p.title}</span>
-                              <span className="text-body text-zinc-700">{p.fullTitle}</span>
-                              {status !== 'validated' && aiReasoning && (
-                                <span className="relative cursor-help">
-                                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                                  <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 w-64 p-2.5 bg-zinc-900 text-white text-caption rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30 pointer-events-none">
-                                    <span className="flex items-start gap-2">
-                                      <Sparkles className="w-3 h-3 text-indigo-400 flex-shrink-0 mt-0.5" />
-                                      <span className="text-zinc-300 leading-relaxed">{aiReasoning}</span>
-                                    </span>
-                                    <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-zinc-900" />
-                                  </span>
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="text-body-medium font-semibold text-zinc-900 tabular-nums">{fmt(p.montant)}</span>
-                              <ChevronRight className="w-4 h-4 text-zinc-300" strokeWidth={1.5} />
-                            </div>
-                          </button>
+                  {/* Column headers */}
+                  <div className="flex items-center h-10 bg-white border-b border-[#e7e5e3]">
+                    <div className="flex-1 px-4">
+                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Nom du poste</span>
+                    </div>
+                    <div className="w-[140px] px-3 text-right">
+                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Total</span>
+                    </div>
+                    <div className="w-[140px] px-3 text-right">
+                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Tiers</span>
+                    </div>
+                    <div className="w-[160px] px-3 text-right">
+                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Indemnisation victime</span>
+                    </div>
+                    <div className="w-11" />
+                  </div>
+                  {/* Data rows */}
+                  {cat.postes.map((p, pIdx) => {
+                    const isLast = pIdx === cat.postes.length - 1;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => navigateTo(p)}
+                        className={`w-full flex items-center h-14 bg-white hover:bg-[#fafaf9] transition-colors ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}
+                      >
+                        {/* Green check badge */}
+                        <div className="pl-4 pr-3 flex items-center justify-center">
+                          <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: '#cce6d9' }}>
+                            <Check className="w-3 h-3 text-[#16a34a]" strokeWidth={2.5} />
+                          </span>
                         </div>
-                      );
-                    })}
-                  </div>
+                        {/* Acronym */}
+                        <div className="w-[42px] px-1 flex items-center">
+                          <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{p.title}</span>
+                        </div>
+                        {/* Full name */}
+                        <div className="flex-1 px-3 flex items-center min-w-0">
+                          <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{p.fullTitle}</span>
+                        </div>
+                        {/* Total column */}
+                        <div className="w-[140px] px-3 flex items-center justify-end">
+                          {p.montant > 0 ? (
+                            <span style={{ fontSize: 14, fontWeight: 400, color: '#78716c', lineHeight: '20px' }}>{fmt(p.montant)}</span>
+                          ) : (
+                            <span style={{ fontSize: 14, fontWeight: 400, color: '#78716c', lineHeight: '20px' }}>&mdash;</span>
+                          )}
+                        </div>
+                        {/* Tiers column */}
+                        <div className="w-[140px] px-3 flex items-center justify-end">
+                          <span style={{ fontSize: 14, fontWeight: 400, color: '#78716c', lineHeight: '20px' }}>&mdash;</span>
+                        </div>
+                        {/* Indemnisation victime column */}
+                        <div className="w-[160px] px-3 flex flex-col items-end justify-center">
+                          <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(p.montant)}</span>
+                        </div>
+                        {/* Chevron + ellipsis */}
+                        <div className="w-11 pr-4 pl-3 flex items-center justify-end">
+                          <MoreVertical className="w-4 h-4 text-[#a8a29e] opacity-0 group-hover:opacity-100" />
+                          <ChevronRight className="w-4 h-4 text-[#d6d3d1]" strokeWidth={1.5} />
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               ))}
             </div>
 
-            {/* Spacer pour le bandeau sticky */}
-            <div className="h-28" />
-
-            {/* Bandeau sticky full width */}
-            <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-zinc-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-30">
-              <div className="flex items-center justify-between px-8 py-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center">
-                    <Calculator className="w-5 h-5 text-zinc-500" strokeWidth={1.5} />
+            {/* Poste Search Command Palette */}
+            {posteSearchOpen && (
+              <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]" onClick={() => setPosteSearchOpen(false)}>
+                <div className="absolute inset-0 bg-black/30" />
+                <div className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+                  {/* Search input */}
+                  <div className="flex items-center gap-3 px-4 py-3 border-b border-stone-100">
+                    <Search className="w-4 h-4 text-stone-400 flex-shrink-0" strokeWidth={1.5} />
+                    <input
+                      type="text"
+                      value={posteSearchQuery}
+                      onChange={(e) => setPosteSearchQuery(e.target.value)}
+                      placeholder="Rechercher un poste de préjudice..."
+                      className="flex-1 text-body text-stone-700 placeholder:text-stone-400 outline-none bg-transparent"
+                      autoFocus
+                    />
+                    {posteSearchQuery && (
+                      <button onClick={() => setPosteSearchQuery('')} className="p-0.5 hover:bg-stone-100 rounded">
+                        <X className="w-3.5 h-3.5 text-stone-400" />
+                      </button>
+                    )}
                   </div>
-                  <div>
-                    <div className="text-body-medium text-zinc-700">Total du chiffrage</div>
-                    <div className="text-caption text-zinc-400">{allPostes.filter(p => !p.disabled).length} postes · {categories.filter(c => c.postes.length > 0).length} catégories</div>
+                  {/* Results */}
+                  <div className="max-h-[50vh] overflow-y-auto py-2">
+                    {(() => {
+                      const q = posteSearchQuery.trim().toLowerCase();
+                      const allTaxoPostes = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes.map(p => ({ ...p, categoryTitle: c.title }))));
+                      const filtered = q
+                        ? allTaxoPostes.filter(p => p.label.toLowerCase().includes(q) || (p.acronym && p.acronym.toLowerCase().includes(q)))
+                        : allTaxoPostes;
+                      const alreadyEnabled = allPostes.map(p => p.id);
+                      if (filtered.length === 0) return <p className="px-4 py-6 text-center text-body text-stone-400">Aucun poste trouvé</p>;
+                      let lastCat = '';
+                      return filtered.map(p => {
+                        const isEnabled = alreadyEnabled.includes(p.id);
+                        const showCat = p.categoryTitle !== lastCat;
+                        lastCat = p.categoryTitle;
+                        return (
+                          <div key={p.id}>
+                            {showCat && <div className="px-4 pt-3 pb-1" style={colHeaderStyle}>{p.categoryTitle}</div>}
+                            <button
+                              onClick={() => {
+                                if (!isEnabled) {
+                                  if (!dossierPostes.includes(p.id)) {
+                                    setDossierPostes(prev => [...prev, p.id]);
+                                  }
+                                  navigateTo({ id: p.id, title: p.acronym || p.id.toUpperCase(), fullTitle: p.label, type: 'poste', montant: 0 });
+                                } else {
+                                  const existing = allPostes.find(ep => ep.id === p.id);
+                                  if (existing) navigateTo(existing);
+                                }
+                                setPosteSearchOpen(false);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-stone-50 transition-colors text-left"
+                            >
+                              {p.acronym && (
+                                <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-counter font-semibold bg-stone-100 text-stone-600 rounded min-w-[36px] text-center">
+                                  {p.acronym}
+                                </span>
+                              )}
+                              <span className="flex-1 text-body text-stone-700">{p.label}</span>
+                              {isEnabled && <span className="text-counter text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded-full">Actif</span>}
+                            </button>
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[40px] font-bold text-zinc-900 tabular-nums tracking-tight leading-none">{fmt(totalChiffrage)}</div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Panel Paramètres Chiffrage */}
             {showChiffrageParams && (
@@ -4988,50 +5078,76 @@ export default function App() {
                 <div className="relative w-full max-w-md bg-white shadow-xl flex flex-col">
                   <div className="flex items-center justify-between px-5 py-3 border-b">
                     <h2 className="text-body-medium font-semibold">Paramètres du chiffrage</h2>
-                    <button onClick={() => setShowChiffrageParams(false)} className="p-1 hover:bg-gray-100 rounded"><X className="w-4 h-4" /></button>
+                    <button onClick={() => setShowChiffrageParams(false)} className="p-1 hover:bg-[#F8F7F5] rounded"><X className="w-4 h-4" /></button>
                   </div>
                   <div className="flex-1 overflow-y-auto p-6 space-y-8">
                     <div>
                       <div className="flex items-center gap-2 mb-4">
-                        <h3 className="font-semibold text-gray-900">Fraction indemnisable des préjudices</h3>
-                        <button className="text-gray-400 hover:text-gray-600"><HelpCircle className="w-4 h-4" /></button>
+                        <h3 className="font-semibold text-[#292524]">Fraction indemnisable des préjudices</h3>
+                        <button className="text-[#a8a29e] hover:text-[#78716c]"><HelpCircle className="w-4 h-4" /></button>
                       </div>
                       <div className="space-y-3">
                         <input type="range" min="0" max="100" value={chiffrageParams.fractionIndemnisable}
                           onChange={(e) => setChiffrageParams(prev => ({ ...prev, fractionIndemnisable: parseInt(e.target.value) }))} className="w-full" />
-                        <div className="flex items-center justify-between text-caption text-gray-500">
+                        <div className="flex items-center justify-between text-caption text-[#78716c]">
                           <span>0</span><span>1/4</span><span>1/3</span><span>1/2</span><span>2/3</span><span>3/4</span><span>1</span>
                         </div>
                         <div className="flex justify-end"><div className="px-3 py-1.5 border rounded-lg text-body-medium">{chiffrageParams.fractionIndemnisable} %</div></div>
                       </div>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-4">Tiers payeurs</h3>
+                      <h3 className="font-semibold text-[#292524] mb-4">Tiers payeurs</h3>
                       <div className="space-y-2">
                         {chiffrageParams.tiersPayeurs.map((tiers, idx) => (
                           <div key={idx} className="flex items-center gap-2">
-                            <label className="text-caption text-gray-500 w-12">Nom *</label>
+                            <label className="text-caption text-[#78716c] w-12">Nom *</label>
                             <input type="text" value={tiers} onChange={(e) => { const newTiers = [...chiffrageParams.tiersPayeurs]; newTiers[idx] = e.target.value; setChiffrageParams(prev => ({ ...prev, tiersPayeurs: newTiers })); }} className="flex-1 px-3 py-2 border rounded-lg text-body" />
-                            <button onClick={() => { const newTiers = chiffrageParams.tiersPayeurs.filter((_, i) => i !== idx); setChiffrageParams(prev => ({ ...prev, tiersPayeurs: newTiers })); }} className="p-2 text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                            <button onClick={() => { const newTiers = chiffrageParams.tiersPayeurs.filter((_, i) => i !== idx); setChiffrageParams(prev => ({ ...prev, tiersPayeurs: newTiers })); }} className="p-2 text-[#a8a29e] hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         ))}
-                        <button onClick={() => setChiffrageParams(prev => ({ ...prev, tiersPayeurs: [...prev.tiersPayeurs, ''] }))} className="text-body text-blue-600 hover:text-blue-700 font-medium">+ Ajouter un tiers payeur</button>
+                        <button onClick={() => setChiffrageParams(prev => ({ ...prev, tiersPayeurs: [...prev.tiersPayeurs, ''] }))} className="text-body text-blue-600 hover:text-[#1e3a8a] font-medium">+ Ajouter un tiers payeur</button>
                       </div>
                     </div>
                   </div>
                   <div className="px-5 py-3 border-t flex justify-end gap-2">
-                    <button onClick={() => setShowChiffrageParams(false)} className="px-4 py-2 text-body text-gray-600 hover:bg-gray-100 rounded-lg">Fermer</button>
+                    <button onClick={() => setShowChiffrageParams(false)} className="px-4 py-2 text-body text-[#78716c] hover:bg-[#F8F7F5] rounded-lg">Fermer</button>
                     <button onClick={() => setShowChiffrageParams(false)} className="px-4 py-2 text-body-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Enregistrer</button>
                   </div>
                 </div>
               </div>
             )}
-          </>
+          </div>
         );
       }
       if (currentLevel.activeTab === 'pièces') {
         if (dropFirstPieces.length > 0) return renderDropFirstPiecesTab();
         return renderPiecesList(pieces, true);
+      }
+
+      // Actes tab placeholder
+      if (currentLevel.activeTab === 'actes') {
+        return (
+          <div className="flex-1 flex items-center justify-center py-20">
+            <div className="text-center">
+              <ClipboardList className="w-10 h-10 text-stone-300 mx-auto mb-3" strokeWidth={1.5} />
+              <p className="text-body-medium text-stone-500">Actes de procédure</p>
+              <p className="text-caption text-stone-400 mt-1">Bientôt disponible</p>
+            </div>
+          </div>
+        );
+      }
+
+      // JP tab placeholder
+      if (currentLevel.activeTab === 'jp') {
+        return (
+          <div className="flex-1 flex items-center justify-center py-20">
+            <div className="text-center">
+              <Landmark className="w-10 h-10 text-stone-300 mx-auto mb-3" strokeWidth={1.5} />
+              <p className="text-body-medium text-stone-500">Jurisprudences</p>
+              <p className="text-caption text-stone-400 mt-1">Bientôt disponible</p>
+            </div>
+          </div>
+        );
       }
     }
 
@@ -5050,7 +5166,47 @@ export default function App() {
       const indemniteVictime = totalResteACharge;
       
       return (
-        <div className={`space-y-4 pb-32 ${dsaLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dsa') ? 'h-full flex flex-col' : ''}`}>
+        <div className={`${dsaLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dsa') ? 'h-full flex flex-col' : ''}`}>
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+
+          {/* Param chips block */}
+          <div className={cardBlockClass}>
+            <div className="flex items-center gap-3 px-4 h-[52px]">
+              <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                <Settings className="w-3.5 h-3.5 text-[#78716c]" />
+              </div>
+              <button
+                onClick={() => setActiveParamChip(activeParamChip === 'revaloriser' ? null : 'revaloriser')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                  activeParamChip === 'revaloriser'
+                    ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
+                    : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
+                }`}
+              >
+                Revaloriser IPC Annuel
+              </button>
+            </div>
+            {activeParamChip === 'revaloriser' && (
+              <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+                <div className="flex items-center gap-3">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" defaultChecked className="sr-only peer" />
+                    <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                  </label>
+                  <div className="w-px h-4 bg-[#e7e5e3]" />
+                  <span className="text-xs font-medium text-[#78716c]">Indice</span>
+                  <select className="text-xs font-medium text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-2.5 py-1.5">
+                    <option>IPC Annuel</option>
+                    <option>IPC Mensuel</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Empty state DSA */}
           {dsaLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dsa') && renderInlineDocPicker('dsa', {
             icon: Receipt,
@@ -5059,9 +5215,22 @@ export default function App() {
             expectedDocs: ['Factures médicales', 'Ordonnances', 'Justificatifs de pharmacie', 'Facture hospitalisation']
           })}
 
-          {/* Table des dépenses avec zone d'ajout intégrée */}
+          {/* Card Block: Dépenses de santé */}
           {(dsaLignes.length > 0 || processing.length > 0 || (posteExtracting && posteExtracting.posteType === 'dsa')) && (
-          <div className="bg-white rounded-xl border border-[#e7e5e3] overflow-hidden shadow-[0_1px_2px_0_rgba(26,26,26,0.05)]">
+          <div className={cardBlockClass}>
+            {/* Title Row */}
+            <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                  <Receipt className="w-3.5 h-3.5 text-[#78716c]" />
+                </div>
+                <span className="text-[14px] font-medium text-[#292524]">Dépenses de santé actuelles</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span style={serifAmountStyle} className="text-[#292524]">{fmt(totalMontant)}</span>
+                <ChevronDown className="w-4 h-4 text-[#78716c]" />
+              </div>
+            </div>
             {/* Header — dashed drop zone + buttons */}
             <div
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -5112,11 +5281,11 @@ export default function App() {
               <>
                 <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
                   <div className="w-12 flex-shrink-0"></div>
-                  <div className="w-[52px] text-center text-caption-medium text-[#78716c] flex-shrink-0">Doc</div>
-                  <div className="flex-1 min-w-0 px-3 text-caption-medium text-[#78716c]">Libellé</div>
-                  <div className="flex-1 min-w-0 px-3 text-caption-medium text-[#78716c] text-right">Date</div>
-                  <div className="w-[254px] px-3 text-caption-medium text-[#78716c] text-right flex-shrink-0">Montant</div>
-                  <div className="flex-1 min-w-0 px-2 text-caption-medium text-[#78716c] text-right">Reste à charge</div>
+                  <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+                  <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
+                  <div className="flex-1 min-w-0 px-3 text-right" style={colHeaderStyle}>Date</div>
+                  <div className="w-[254px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant</div>
+                  <div className="flex-1 min-w-0 px-2 text-right" style={colHeaderStyle}>Reste à charge</div>
                   <div className="w-11 flex-shrink-0"></div>
                 </div>
 
@@ -5130,7 +5299,7 @@ export default function App() {
                     <div
                       key={l.id}
                       onClick={() => openDsaEditPanel(l)}
-                      className="relative flex items-center h-14 border-b border-[#e7e5e3] bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                      className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
                     >
                       {/* Left inset border */}
                       {isSuggested && <div className="absolute inset-0 pointer-events-none rounded-[inherit]" style={{ boxShadow: isIncomplete ? 'inset 2px 0 0 0 #eeb97e' : 'inset 2px 0 0 0 #9333ea' }} />}
@@ -5154,7 +5323,7 @@ export default function App() {
                       <div className="w-[52px] flex items-center justify-center flex-shrink-0">
                         {pieceCount > 0 ? (
                           <div className="relative group/piece">
-                            <span className="inline-flex items-center justify-center w-7 h-7 bg-[#dbeafe] rounded-md relative">
+                            <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
                               <FileText className="w-4 h-4 text-[#2563eb]" />
                               <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#2563eb] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceCount}</span>
                             </span>
@@ -5163,13 +5332,13 @@ export default function App() {
                               <div className="space-y-1">
                                 {l.pieceIds?.map(pid => {
                                   const piece = getPiece(pid);
-                                  return <div key={pid} className="flex items-center gap-2 text-caption"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-[#292524]">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
+                                  return <div key={pid} className="flex items-center gap-2 text-caption"><span className="w-5 h-5 bg-blue-100 text-[#1e3a8a] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-[#292524]">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
                                 })}
                               </div>
                             </div>
                           </div>
                         ) : (
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded-md border border-dashed border-zinc-200">
+                          <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]">
                             <FileText className="w-3.5 h-3.5" />
                           </span>
                         )}
@@ -5221,46 +5390,68 @@ export default function App() {
                 })}
               </>
             )}
-            
+
           </div>
           )}
 
-          {/* Bandeau sticky totaux - Pattern ticket de caisse */}
-          <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
-            <div className="flex items-start justify-between px-6 py-5">
-              {/* Repère visuel gauche */}
-              <div className="flex items-center gap-2 text-gray-400 pt-1">
-                <Calculator className="w-5 h-5" />
-                <span className="text-body-medium">Récapitulatif</span>
+          {/* Total Block */}
+          {dsaLignes.length > 0 && (
+          <div className={totalBlockClass}>
+            <button onClick={() => setTotalExpanded(prev => ({...prev, dsa: !prev.dsa}))} className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                  <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                </div>
+                <span className="text-[14px] font-medium text-[#292524]">Total</span>
               </div>
-              
-              {/* Ticket aligné à droite */}
-              <div className="text-right min-w-[240px]">
-                {/* Lignes intermédiaires - discrètes, espacées */}
+              <div className="flex items-center gap-3">
+                <span style={serifAmountStyle} className="text-[#292524]">{fmt(indemniteVictime)}</span>
+                <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded.dsa ? 'rotate-90' : ''}`} />
+              </div>
+            </button>
+            {totalExpanded.dsa && (
+              <>
+                <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-body text-gray-500">
-                    <span>Total des dépenses</span>
-                    <span className="tabular-nums font-medium ml-8">{fmt(totalMontant)}</span>
-                  </div>
-                  {totalRembourse > 0 && (
-                    <div className="flex items-center justify-between text-body text-gray-500">
-                      <span>Remboursé par tiers</span>
-                      <span className="tabular-nums font-medium ml-8">− {fmt(totalRembourse)}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Total dépenses</span><span className="text-[14px] text-[#292524]">{fmt(totalMontant)}</span></div>
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Total remboursé</span><span className="text-[14px] text-[#292524]">− {fmt(totalRembourse)}</span></div>
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Reste à charge</span><span className="text-[14px] text-[#292524]">{fmt(totalResteACharge)}</span></div>
                 </div>
-                
-                {/* Séparateur */}
-                <div className="border-t border-zinc-200 my-3" />
-                
-                {/* Résultat final - highlight subtil */}
-                <div className="flex items-center justify-between py-2 px-3 -mx-3 rounded" style={{ backgroundColor: '#F5F5F0' }}>
-                  <span className="font-semibold text-zinc-700">Indemnité victime</span>
-                  <span className="text-xl font-bold text-zinc-900 tabular-nums">{fmt(indemniteVictime)}</span>
-                </div>
+              </>
+            )}
+          </div>
+          )}
+
+              </div>{/* end space-y-4 */}
+            </div>{/* end p-4 */}
+          </div>{/* end CALCUL section */}
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
               </div>
+              <textarea
+                value={posteNotes.dsa || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, dsa: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
             </div>
           </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
+            </div>
+          </div>
+
         </div>
       );
     }
@@ -5274,585 +5465,308 @@ export default function App() {
       const ijPercuesTotal = pgpaIjTotal;
       const perteDeGains = Math.round(revenuRefMensuel * pgpaData.periode.mois) - revenusPercusTotal;
       const indemniteVictimePGPA = perteDeGains - ijPercuesTotal;
-      
-      // Si on est dans une sous-section
-      if (currentLevel.subSection) {
-        const subSection = currentLevel.subSection;
-        
-        // ===== REVENUS DE RÉFÉRENCE =====
-        if (subSection === 'revenus-ref') {
-          const revenus = pgpaData.revenuRef.lignes.filter(l => l.type === 'revenu');
-          const gains = pgpaData.revenuRef.lignes.filter(l => l.type === 'gain');
-          const totalRevenus = revenus.reduce((s, l) => s + l.revalorise, 0);
-          const totalRevenusAvant = revenus.reduce((s, l) => s + (l.montant || 0), 0);
-          const totalGains = gains.reduce((s, l) => s + l.revalorise, 0);
-          const totalGainsAvant = gains.reduce((s, l) => s + (l.montant || 0), 0);
-          const moyenneAnnuelle = totalRevenus + totalGains;
-          
-          return (
-            <div className="space-y-4 pb-32">
-              {/* Empty state revenus de référence */}
-              {pgpaData.revenuRef.lignes.length === 0 && renderInlineDocPicker('pgpa-revenu-ref', {
-                icon: FileSpreadsheet,
-                title: 'Aucun revenu de référence',
-                description: 'Ajoutez les justificatifs de revenus ou créez une ligne manuellement.',
-                expectedDocs: ['Bulletins de salaire', 'Attestations employeur', "Avis d'imposition", 'Bilans comptables']
-              })}
 
-              {/* Table avec zone d'ajout */}
-              {pgpaData.revenuRef.lignes.length > 0 && (
-              <div className="bg-white rounded-lg border overflow-hidden">
-                {/* Zone d'ajout */}
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-ref'); }}
-                  className={`flex items-center gap-3 px-4 py-3 border-b transition-colors ${isDragging ? 'bg-[#f5f5f4] border-[#d6d3d1]' : 'bg-gray-50'}`}
-                >
-                  {isDragging ? (
-                    <div className="flex items-center gap-3 flex-1 justify-center py-1">
-                      <ArrowDown className="w-5 h-5 text-[#78716c]" />
-                      <span className="text-body-medium text-[#44403c]">Déposez vos documents ici</span>
-                    </div>
-                  ) : (
-                    <>
-                      <button onClick={() => setPickerOpen('pgpa-revenu-ref')} className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white text-body-medium rounded-lg hover:bg-zinc-800 transition-colors">
-                        <Plus className="w-4 h-4" /> Ajouter des documents
-                      </button>
-                      <button onClick={() => handleAddManual('pgpa-revenu-ref')} className="text-body text-blue-700 hover:text-blue-800 hover:bg-blue-50 px-3 py-2 rounded-lg whitespace-nowrap">
-                        Ajouter un revenu
-                      </button>
-                    </>
-                  )}
-                </div>
-
-                {/* Section REVENUS */}
-                <div className="px-4 py-2 bg-gray-100 border-b">
-                  <span className="text-caption-medium font-semibold text-gray-600 uppercase tracking-wide">Revenus professionnels</span>
-                </div>
-                
-                <div className="flex items-center px-4 py-2 border-b text-caption-medium text-gray-500 uppercase tracking-wide">
-                  <div className="w-10 flex-shrink-0">Statut</div>
-                  <div className="w-12 flex-shrink-0">Pièce</div>
-                  <div className="flex-1">Intitulé</div>
-                  <div className="w-20 text-right">Année</div>
-                  <div className="w-24 text-right">Montant</div>
-                  <div className="w-28 text-right">Revalorisé</div>
-                </div>
-
-                <div className="divide-y">
-                  {revenus.map(l => {
-                    const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                    const pieceCount = l.pieceIds?.length || 0;
-
-                    const StatusIcon = () => {
-                      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-                      return null;
-                    };
-
-                    const PieceIndicator = () => {
-                      if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
-                      return (
-                        <div className="relative group/piece">
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
-                            <FileText className="w-3.5 h-3.5" />
-                            {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-counter font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
-                          </span>
-                          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
-                            <div className="text-counter text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
-                            <div className="space-y-1">
-                              {l.pieceIds?.map(pid => {
-                                const piece = getPiece(pid);
-                                return <div key={pid} className="flex items-center gap-2 text-caption"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
-                              })}
-                            </div>
-                            <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
-                          </div>
-                        </div>
-                      );
-                    };
-
-                    return (
-                      <div
-                        key={l.id}
-                        onClick={() => openPgpaEditPanel('pgpa-revenu', l)}
-                        className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}
-                      >
-                        <div className="w-10 flex-shrink-0"><StatusIcon /></div>
-                        <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
-                        <div className="flex-1 min-w-0 pr-4 text-body-medium truncate text-zinc-800">{l.label || 'Sans libellé'}</div>
-                        <div className="w-20 text-right text-body text-zinc-500 flex-shrink-0">{l.annee}</div>
-                        <div className="w-24 text-right text-body tabular-nums text-zinc-500 flex-shrink-0">{fmt(l.montant)}</div>
-                        <div className="w-28 text-right flex-shrink-0">
-                          <span className="font-semibold tabular-nums text-zinc-900">{fmt(l.revalorise)}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {revenus.length === 0 && (
-                    <div className="px-4 py-6 text-center text-gray-500 text-body">Aucun revenu enregistré</div>
-                  )}
-                </div>
-
-                {/* Sous-total revenus */}
-                <div className="px-4 py-2 border-t bg-gray-50 flex justify-between items-center">
-                  {pgpaData.revenuRef.revalorisation !== 'aucune' && <span className="text-caption text-zinc-400">Avant revalorisation : {fmt(totalRevenusAvant)}</span>}
-                  <span className="text-body text-gray-600 ml-auto">Moyenne annuelle{pgpaData.revenuRef.revalorisation !== 'aucune' ? ' (revalorisée)' : ''} : <span className="font-semibold tabular-nums">{fmt(totalRevenus)}</span></span>
-                </div>
-
-                {/* Section GAINS */}
-                <div className="px-4 py-2 bg-gray-100 border-t border-b">
-                  <span className="text-caption-medium font-semibold text-gray-600 uppercase tracking-wide">Gains supplémentaires (primes, indemnités, etc.)</span>
-                </div>
-
-                <div className="divide-y">
-                  {gains.map(l => {
-                    const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                    const pieceCount = l.pieceIds?.length || 0;
-
-                    const StatusIcon = () => {
-                      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-                      return null;
-                    };
-
-                    const PieceIndicator = () => {
-                      if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
-                      return (
-                        <div className="relative group/piece">
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
-                            <FileText className="w-3.5 h-3.5" />
-                            {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-counter font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
-                          </span>
-                          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
-                            <div className="text-counter text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
-                            <div className="space-y-1">
-                              {l.pieceIds?.map(pid => {
-                                const piece = getPiece(pid);
-                                return <div key={pid} className="flex items-center gap-2 text-caption"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
-                              })}
-                            </div>
-                            <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
-                          </div>
-                        </div>
-                      );
-                    };
-
-                    return (
-                      <div
-                        key={l.id}
-                        onClick={() => openPgpaEditPanel('pgpa-revenu', l)}
-                        className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}
-                      >
-                        <div className="w-10 flex-shrink-0"><StatusIcon /></div>
-                        <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
-                        <div className="flex-1 min-w-0 pr-4 text-body-medium truncate text-zinc-800">{l.label || 'Sans libellé'}</div>
-                        <div className="w-20 text-right text-body text-zinc-500 flex-shrink-0">{l.annee}</div>
-                        <div className="w-24 text-right text-body tabular-nums text-zinc-500 flex-shrink-0">{fmt(l.montant)}</div>
-                        <div className="w-28 text-right flex-shrink-0">
-                          <span className="font-semibold tabular-nums text-zinc-900">{fmt(l.revalorise)}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {gains.length === 0 && (
-                    <div className="px-4 py-6 text-center text-gray-500 text-body">Aucun gain enregistré</div>
-                  )}
-                </div>
-                
-                {/* Sous-total gains */}
-                <div className="px-4 py-2 border-t bg-gray-50 flex justify-between items-center">
-                  {pgpaData.revenuRef.revalorisation !== 'aucune' && <span className="text-caption text-zinc-400">Avant revalorisation : {fmt(totalGainsAvant)}</span>}
-                  <span className="text-body text-gray-600 ml-auto">Indemnité annuelle moyenne{pgpaData.revenuRef.revalorisation !== 'aucune' ? ' (revalorisée)' : ''} : <span className="font-semibold tabular-nums">{fmt(totalGains)}</span></span>
-                </div>
-              </div>
-              )}
-
-              {/* Bandeau ticket */}
-              <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
-                <div className="flex items-start justify-between px-6 py-5">
-                  <div className="flex items-center gap-2 text-gray-400 pt-1">
-                    <Calculator className="w-5 h-5" />
-                    <span className="text-body-medium">Récapitulatif</span>
-                  </div>
-                  <div className="text-right min-w-[280px]">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-body text-gray-500">
-                        <span>Revenus professionnels</span>
-                        <span className="tabular-nums font-medium ml-8">{fmt(totalRevenus)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-body text-gray-500">
-                        <span>Gains supplémentaires</span>
-                        <span className="tabular-nums font-medium ml-8">{fmt(totalGains)}</span>
-                      </div>
-                    </div>
-                    <div className="border-t border-gray-200 my-4" />
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-gray-900">Revenu de référence</span>
-                      <span className="text-2xl font-bold text-gray-900 tabular-nums ml-8">{fmt(moyenneAnnuelle)}/an</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        }
-        
-        // ===== REVENUS PERÇUS =====
-        if (subSection === 'revenus-percus') {
-          return (
-            <div className="space-y-4 pb-32">
-              {/* Empty state revenus perçus */}
-              {pgpaData.revenusPercus.length === 0 && renderInlineDocPicker('pgpa-revenu-percu', {
-                icon: FileSpreadsheet,
-                title: 'Aucun revenu perçu sur la période',
-                description: 'Ajoutez les justificatifs de revenus perçus pendant l\'arrêt.',
-                expectedDocs: ['Bulletins de salaire (période accident)', 'Relevés de revenus', 'Attestations employeur']
-              })}
-
-              {/* Table avec zone d'ajout */}
-              {pgpaData.revenusPercus.length > 0 && (
-              <div className="bg-white rounded-lg border overflow-hidden">
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-percu'); }}
-                  className={`flex items-center gap-3 px-4 py-3 border-b transition-colors ${isDragging ? 'bg-[#f5f5f4] border-[#d6d3d1]' : 'bg-gray-50'}`}
-                >
-                  {isDragging ? (
-                    <div className="flex items-center gap-3 flex-1 justify-center py-1">
-                      <ArrowDown className="w-5 h-5 text-[#78716c]" />
-                      <span className="text-body-medium text-[#44403c]">Déposez vos documents ici</span>
-                    </div>
-                  ) : (
-                    <>
-                      <button onClick={() => setPickerOpen('pgpa-revenu-percu')} className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white text-body-medium rounded-lg hover:bg-zinc-800 transition-colors">
-                        <Plus className="w-4 h-4" /> Ajouter des documents
-                      </button>
-                      <button onClick={() => handleAddManual('pgpa-revenu-percu')} className="text-body text-blue-700 hover:text-blue-800 hover:bg-blue-50 px-3 py-2 rounded-lg whitespace-nowrap">
-                        Ajouter un revenu
-                      </button>
-                    </>
-                  )}
-                </div>
-
-                <div className="flex items-center px-4 py-2 border-b text-caption-medium text-gray-500 uppercase tracking-wide">
-                  <div className="w-10 flex-shrink-0">Statut</div>
-                  <div className="w-12 flex-shrink-0">Pièce</div>
-                  <div className="flex-1">Intitulé</div>
-                  <div className="w-28">Période</div>
-                  <div className="w-16 text-right">Durée</div>
-                  <div className="w-28 text-right">Montant</div>
-                </div>
-
-                <div className="divide-y">
-                  {pgpaData.revenusPercus.map(l => {
-                    const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                    const pieceCount = l.pieceIds?.length || 0;
-
-                    const StatusIcon = () => {
-                      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-                      return null;
-                    };
-
-                    const PieceIndicator = () => {
-                      if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
-                      return (
-                        <div className="relative group/piece">
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
-                            <FileText className="w-3.5 h-3.5" />
-                            {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-counter font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
-                          </span>
-                          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
-                            <div className="text-counter text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
-                            <div className="space-y-1">
-                              {l.pieceIds?.map(pid => {
-                                const piece = getPiece(pid);
-                                return <div key={pid} className="flex items-center gap-2 text-caption"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
-                              })}
-                            </div>
-                            <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
-                          </div>
-                        </div>
-                      );
-                    };
-
-                    return (
-                      <div
-                        key={l.id}
-                        onClick={() => openPgpaEditPanel('pgpa-revenu-percu', l)}
-                        className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}
-                      >
-                        <div className="w-10 flex-shrink-0"><StatusIcon /></div>
-                        <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
-                        <div className="flex-1 min-w-0 pr-4">
-                          <div className="text-body-medium text-zinc-800 truncate">{l.label || 'Sans libellé'}</div>
-                          <div className="text-caption text-zinc-500">{l.tiers}</div>
-                        </div>
-                        <div className="w-28 text-body text-zinc-500 flex-shrink-0">{l.periode}</div>
-                        <div className="w-16 text-right text-body text-zinc-500 tabular-nums flex-shrink-0">{l.dureeJours} j</div>
-                        <div className="w-28 text-right flex-shrink-0">
-                          <span className="font-semibold tabular-nums text-zinc-900">{fmt(l.montant)}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              )}
-              
-              {/* Bandeau ticket */}
-              <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
-                <div className="flex items-start justify-between px-6 py-5">
-                  <div className="flex items-center gap-2 text-gray-400 pt-1">
-                    <Calculator className="w-5 h-5" />
-                    <span className="text-body-medium">Récapitulatif</span>
-                  </div>
-                  <div className="text-right min-w-[240px]">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-gray-900">Revenus perçus</span>
-                      <span className="text-2xl font-bold text-gray-900 tabular-nums ml-8">{fmt(revenusPercusTotal)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        }
-        
-        // ===== INDEMNITÉS JOURNALIÈRES =====
-        if (subSection === 'ij') {
-          return (
-            <div className="space-y-4 pb-32">
-              {/* Empty state indemnités journalières */}
-              {pgpaData.ijPercues.length === 0 && renderInlineDocPicker('pgpa-ij', {
-                icon: Landmark,
-                title: 'Aucune indemnité journalière',
-                description: 'Ajoutez les décomptes de tiers payeurs ou créez une ligne manuellement.',
-                expectedDocs: ['Décomptes IJ Sécurité sociale', 'Décomptes prévoyance', 'Attestations tiers payeur']
-              })}
-
-              {/* Table avec zone d'ajout */}
-              {pgpaData.ijPercues.length > 0 && (
-              <div className="bg-white rounded-lg border overflow-hidden">
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-ij'); }}
-                  className={`flex items-center gap-3 px-4 py-3 border-b transition-colors ${isDragging ? 'bg-[#f5f5f4] border-[#d6d3d1]' : 'bg-gray-50'}`}
-                >
-                  {isDragging ? (
-                    <div className="flex items-center gap-3 flex-1 justify-center py-1">
-                      <ArrowDown className="w-5 h-5 text-[#78716c]" />
-                      <span className="text-body-medium text-[#44403c]">Déposez vos documents ici</span>
-                    </div>
-                  ) : (
-                    <>
-                      <button onClick={() => setPickerOpen('pgpa-ij')} className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white text-body-medium rounded-lg hover:bg-zinc-800 transition-colors">
-                        <Plus className="w-4 h-4" /> Ajouter des documents
-                      </button>
-                      <button onClick={() => handleAddManual('pgpa-ij')} className="text-body text-blue-700 hover:text-blue-800 hover:bg-blue-50 px-3 py-2 rounded-lg whitespace-nowrap">
-                        Ajouter des IJ
-                      </button>
-                    </>
-                  )}
-                </div>
-
-                <div className="flex items-center px-4 py-2 border-b text-caption-medium text-gray-500 uppercase tracking-wide">
-                  <div className="w-10 flex-shrink-0">Statut</div>
-                  <div className="w-12 flex-shrink-0">Pièce</div>
-                  <div className="flex-1">Tiers payeur</div>
-                  <div className="w-28">Période</div>
-                  <div className="w-14 text-right">Jours</div>
-                  <div className="w-24 text-right">Brut</div>
-                  <div className="w-28 text-right">Net versé</div>
-                </div>
-
-                <div className="divide-y">
-                  {pgpaData.ijPercues.map(l => {
-                    const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                    const pieceCount = l.pieceIds?.length || 0;
-
-                    const StatusIcon = () => {
-                      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-                      return null;
-                    };
-
-                    const PieceIndicator = () => {
-                      if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
-                      return (
-                        <div className="relative group/piece">
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
-                            <FileText className="w-3.5 h-3.5" />
-                            {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-counter font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
-                          </span>
-                          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
-                            <div className="text-counter text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
-                            <div className="space-y-1">
-                              {l.pieceIds?.map(pid => {
-                                const piece = getPiece(pid);
-                                return <div key={pid} className="flex items-center gap-2 text-caption"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
-                              })}
-                            </div>
-                            <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
-                          </div>
-                        </div>
-                      );
-                    };
-
-                    return (
-                      <div
-                        key={l.id}
-                        onClick={() => openPgpaEditPanel('pgpa-ij', l)}
-                        className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}
-                      >
-                        <div className="w-10 flex-shrink-0"><StatusIcon /></div>
-                        <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
-                        <div className="flex-1 min-w-0 pr-4">
-                          <div className="text-body-medium text-zinc-800 truncate">{l.tiers || 'Sans tiers'}</div>
-                          <div className="text-caption text-zinc-500">{l.label}</div>
-                        </div>
-                        <div className="w-28 text-body text-zinc-500 flex-shrink-0">{l.periode}</div>
-                        <div className="w-14 text-right text-body text-zinc-500 tabular-nums flex-shrink-0">{l.jours}</div>
-                        <div className="w-24 text-right text-body text-zinc-500 tabular-nums flex-shrink-0">{fmt(l.montantBrut)}</div>
-                        <div className="w-28 text-right flex-shrink-0">
-                          <span className="font-semibold tabular-nums text-zinc-900">{fmt(l.montant)}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              )}
-              
-              {/* Bandeau ticket */}
-              <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
-                <div className="flex items-start justify-between px-6 py-5">
-                  <div className="flex items-center gap-2 text-gray-400 pt-1">
-                    <Calculator className="w-5 h-5" />
-                    <span className="text-body-medium">Récapitulatif</span>
-                  </div>
-                  <div className="text-right min-w-[240px]">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-body text-gray-500">
-                        <span>Total brut</span>
-                        <span className="tabular-nums font-medium ml-8">{fmt(pgpaData.ijPercues.reduce((s, l) => s + l.montantBrut, 0))}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-body text-gray-500">
-                        <span>CSG-CRDS</span>
-                        <span className="tabular-nums font-medium ml-8">− {fmt(pgpaData.ijPercues.reduce((s, l) => s + l.csgCrds, 0))}</span>
-                      </div>
-                    </div>
-                    <div className="border-t border-gray-200 my-4" />
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-gray-900">Total IJ net (tiers payeur)</span>
-                      <span className="text-2xl font-bold text-gray-900 tabular-nums ml-8">{fmt(ijPercuesTotal)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        }
+      // Empty state — before any data
+      if (pgpaData.revenuRef.lignes.length === 0 && pgpaData.revenusPercus.length === 0 && pgpaData.ijPercues.length === 0) {
+        return renderInlineDocPicker('pgpa-revenu-ref', {
+          icon: Calculator,
+          title: 'Aucune donnée PGPA',
+          description: 'Ajoutez les justificatifs de revenus pour calculer les pertes de gains professionnels actuels.',
+          expectedDocs: ['Bulletins de salaire', 'Attestations employeur', "Avis d'imposition", 'Bilans comptables']
+        });
       }
-      
-      // ===== VUE SOMMAIRE PGPA =====
+
+      // FLAT PGPA — all cards on one page (per Figma)
+      const revenus = pgpaData.revenuRef.lignes.filter(l => l.type === 'revenu');
+      const gains = pgpaData.revenuRef.lignes.filter(l => l.type === 'gain');
+      const allRevenuRefLignes = [...revenus, ...gains];
+
       return (
-        <div className="space-y-4 pb-32">
-          {/* Liste des sous-sections */}
-          <div className="bg-white rounded-lg border border-zinc-200/60 divide-y divide-zinc-100">
-            <button
-              onClick={() => {
-                setNavStack(prev => {
-                  const newStack = [...prev];
-                  newStack[newStack.length - 1] = { ...newStack[newStack.length - 1], subSection: 'revenus-ref' };
-                  return newStack;
-                });
-              }}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-            >
-              <span className="font-medium text-gray-900">Revenus de référence</span>
-              <div className="flex items-center gap-3">
-                {revenuRefAnnuel > 0 ? (
-                  <span className="font-semibold tabular-nums">{fmt(revenuRefAnnuel)}/an</span>
-                ) : (
-                  <span className="font-semibold tabular-nums text-gray-400">—</span>
-                )}
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+        <div>
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+
+          {/* Param chips card block */}
+          <div className={cardBlockClass}>
+            <div className="flex items-center gap-3 px-4 h-[52px]">
+              <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                <Settings className="w-3.5 h-3.5 text-[#78716c]" />
               </div>
-            </button>
-            
-            <button
-              onClick={() => {
-                setNavStack(prev => {
-                  const newStack = [...prev];
-                  newStack[newStack.length - 1] = { ...newStack[newStack.length - 1], subSection: 'revenus-percus' };
-                  return newStack;
-                });
-              }}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-            >
-              <span className="font-medium text-gray-900">Revenus perçus sur la période</span>
-              <div className="flex items-center gap-3">
-                {revenusPercusTotal > 0 ? (
-                  <span className="font-semibold tabular-nums">{fmt(revenusPercusTotal)}</span>
-                ) : (
-                  <span className="font-semibold tabular-nums text-gray-400">—</span>
-                )}
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+              <button
+                onClick={() => setActiveParamChip(activeParamChip === 'revaloriser-pgpa' ? null : 'revaloriser-pgpa')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                  activeParamChip === 'revaloriser-pgpa'
+                    ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
+                    : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
+                }`}
+              >
+                Revaloriser {pgpaData.revenuRef.revalorisation === 'ipc-annuel' ? 'IPC Annuel' : pgpaData.revenuRef.revalorisation === 'smic-horaire' ? 'SMIC Horaire' : 'Aucune'}
+              </button>
+            </div>
+            {activeParamChip === 'revaloriser-pgpa' && (
+              <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+                <div className="flex items-center gap-3">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" defaultChecked className="sr-only peer" />
+                    <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                  </label>
+                  <div className="w-px h-4 bg-[#e7e5e3]" />
+                  <span className="text-xs font-medium text-[#78716c]">Indice</span>
+                  <select className="text-xs font-medium text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-2.5 py-1.5">
+                    <option>IPC Annuel</option>
+                    <option>IPC Mensuel</option>
+                    <option>SMIC Horaire</option>
+                  </select>
+                </div>
               </div>
-            </button>
-            
-            <button
-              onClick={() => {
-                setNavStack(prev => {
-                  const newStack = [...prev];
-                  newStack[newStack.length - 1] = { ...newStack[newStack.length - 1], subSection: 'ij' };
-                  return newStack;
-                });
-              }}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-            >
-              <span className="font-medium text-gray-900">Indemnités journalières (tiers payeur)</span>
-              <div className="flex items-center gap-3">
-                {ijPercuesTotal > 0 ? (
-                  <span className="font-semibold tabular-nums">{fmt(ijPercuesTotal)}</span>
-                ) : (
-                  <span className="font-semibold tabular-nums text-gray-400">—</span>
-                )}
-                <ChevronRight className="w-5 h-5 text-gray-400" />
-              </div>
-            </button>
+            )}
           </div>
-          
-          {/* Bandeau sticky totaux */}
-          <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
-            <div className="flex items-start justify-between px-6 py-5">
-              <div className="flex items-center gap-2 text-gray-400 pt-1">
-                <Calculator className="w-5 h-5" />
-                <span className="text-body-medium">Récapitulatif</span>
+
+          {/* Card: Revenu de référence */}
+          <div className={cardBlockClass}>
+            <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                  <Calculator className="w-3.5 h-3.5 text-[#78716c]" />
+                </div>
+                <span className="text-[14px] font-medium text-[#292524]">Revenu de référence</span>
               </div>
-              
-              <div className="text-right min-w-[280px]">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-body text-gray-500">
-                    <span>Perte de gains ({pgpaData.periode.mois} mois)</span>
-                    <span className="tabular-nums font-medium ml-8">{fmt(perteDeGains)}</span>
+              <div className="flex items-center gap-2">
+                {revenuRefMensuel > 0 ? (
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(Math.round(revenuRefMensuel))}<span className="text-[14px] text-[#78716c] ml-1">/ mois</span></span>
+                ) : (
+                  <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
+                )}
+                <ChevronDown className="w-4 h-4 text-[#78716c]" />
+              </div>
+            </div>
+            {/* Drop zone */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-ref'); }}
+              className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white"
+            >
+              <div className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg transition-colors ${isDragging ? 'border-[#a8a29e] bg-[#f5f5f4]' : 'border-[#d6d3d1]'}`}>
+                <Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" />
+                <span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer" onClick={() => document.getElementById('pgpa-ref-upload')?.click()}>cliquez</span> pour ajouter un justificatif</span>
+                <input type="file" id="pgpa-ref-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-ref'); e.target.value = ''; } }} />
+              </div>
+              <button onClick={() => handleAddManual('pgpa-revenu-ref')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a] flex-shrink-0 whitespace-nowrap">
+                <Plus className="w-4 h-4" /> Ajouter une dépense
+              </button>
+            </div>
+            {/* Column headers */}
+            {allRevenuRefLignes.length > 0 && (
+              <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
+                <div className="w-12 flex-shrink-0"></div>
+                <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+                <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période</div>
+                <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
+                <div className="w-11 flex-shrink-0"></div>
+              </div>
+            )}
+            {/* Data rows */}
+            {allRevenuRefLignes.map(l => {
+              const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
+              const pieceCount = l.pieceIds?.length || 0;
+              return (
+                <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'pgpa-revenu', title: 'Éditer le revenu', data: l }); }}
+                  className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
+                  {isSuggested && <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: 'inset 2px 0 0 0 #9333ea' }} />}
+                  <div className="w-12 flex items-center justify-center flex-shrink-0">
+                    {isSuggested && <div className="w-5 h-5 rounded-full bg-[#f3e8ff] flex items-center justify-center"><Sparkles className="w-3 h-3 text-[#9333ea]" /></div>}
+                    {l.status === 'validated' && <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center"><Check className="w-3 h-3 text-emerald-500" /></div>}
                   </div>
-                  {ijPercuesTotal > 0 && (
-                    <div className="flex items-center justify-between text-caption text-zinc-500">
-                      <span>IJ perçues (tiers payeur)</span>
-                      <span className="tabular-nums font-medium ml-8" style={{ color: '#991b1b' }}>− {fmt(ijPercuesTotal)}</span>
-                    </div>
-                  )}
+                  <div className="w-[52px] flex items-center justify-center flex-shrink-0">
+                    {pieceCount > 0 ? (
+                      <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
+                        <FileText className="w-4 h-4 text-[#2563eb]" />
+                        {pieceCount > 1 && <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#2563eb] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceCount}</span>}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]"><FileText className="w-3.5 h-3.5" /></span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 px-3">
+                    <span className="text-body-medium text-[#292524] block">{l.label || l.annee || 'Sans libellé'}</span>
+                  </div>
+                  <div className="w-[200px] px-3 text-right flex-shrink-0">
+                    <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.revalorise || l.montant || 0)}</span>
+                  </div>
+                  <div className="w-11 flex items-center justify-center flex-shrink-0">
+                    <button onClick={(e) => { e.stopPropagation(); }} className="p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></button>
+                  </div>
                 </div>
-                
-                <div className="border-t border-zinc-200 my-3" />
-                
-                <div className="flex items-center justify-between py-2 px-3 -mx-3 rounded" style={{ backgroundColor: '#F5F5F0' }}>
-                  <span className="font-semibold text-zinc-700">Indemnité victime</span>
-                  <span className="text-xl font-bold text-zinc-900 tabular-nums">{fmt(indemniteVictimePGPA)}</span>
+              );
+            })}
+          </div>
+
+          {/* Card: Revenus perçus */}
+          <div className={cardBlockClass}>
+            <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                  <Receipt className="w-3.5 h-3.5 text-[#78716c]" />
                 </div>
+                <span className="text-[14px] font-medium text-[#292524]">Revenus perçus</span>
               </div>
+              <div className="flex items-center gap-2">
+                {revenusPercusTotal > 0 ? (
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(revenusPercusTotal)}</span>
+                ) : (
+                  <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
+                )}
+                <ChevronDown className="w-4 h-4 text-[#78716c]" />
+              </div>
+            </div>
+            {/* Drop zone */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-percu'); }}
+              className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white"
+            >
+              <div className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg transition-colors ${isDragging ? 'border-[#a8a29e] bg-[#f5f5f4]' : 'border-[#d6d3d1]'}`}>
+                <Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" />
+                <span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer" onClick={() => document.getElementById('pgpa-percu-upload')?.click()}>cliquez</span> pour ajouter un justificatif</span>
+                <input type="file" id="pgpa-percu-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-percu'); e.target.value = ''; } }} />
+              </div>
+              <button onClick={() => handleAddManual('pgpa-revenu-percu')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a] flex-shrink-0 whitespace-nowrap">
+                <Plus className="w-4 h-4" /> Ajouter une dépense
+              </button>
+            </div>
+            {/* Column headers */}
+            {pgpaData.revenusPercus.length > 0 && (
+              <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
+                <div className="w-12 flex-shrink-0"></div>
+                <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+                <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période</div>
+                <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
+                <div className="w-11 flex-shrink-0"></div>
+              </div>
+            )}
+            {/* Data rows */}
+            {pgpaData.revenusPercus.map(l => {
+              const pieceCount = l.pieceIds?.length || 0;
+              return (
+                <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'pgpa-revenu-percu', title: 'Éditer le revenu perçu', data: l }); }}
+                  className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
+                  <div className="w-12 flex items-center justify-center flex-shrink-0">
+                    <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center"><Check className="w-3 h-3 text-emerald-500" /></div>
+                  </div>
+                  <div className="w-[52px] flex items-center justify-center flex-shrink-0">
+                    {pieceCount > 0 ? (
+                      <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
+                        <FileText className="w-4 h-4 text-[#2563eb]" />
+                        {pieceCount > 1 && <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#2563eb] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceCount}</span>}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]"><FileText className="w-3.5 h-3.5" /></span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 px-3">
+                    <span className="text-body-medium text-[#292524] block">{l.label || 'Sans libellé'}</span>
+                    <span className="text-caption text-[#78716c]">{l.periodeDebut} → {l.periodeFin}</span>
+                  </div>
+                  <div className="w-[200px] px-3 text-right flex-shrink-0">
+                    <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.montant)}</span>
+                  </div>
+                  <div className="w-11 flex items-center justify-center flex-shrink-0">
+                    <button onClick={(e) => { e.stopPropagation(); }} className="p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Card: Perte de chance */}
+          <div className={cardBlockClass}>
+            <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                  <Activity className="w-3.5 h-3.5 text-[#78716c]" />
+                </div>
+                <span className="text-[14px] font-medium text-[#292524]">Perte de chance</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span style={serifAmountStyle} className="text-[#292524]">{fmt(0)}</span>
+                <ChevronDown className="w-4 h-4 text-[#78716c]" />
+              </div>
+            </div>
+            {/* Column headers */}
+            <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
+              <div className="w-12 flex-shrink-0"></div>
+              <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+              <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
+              <div className="w-28 px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant espéré</div>
+              <div className="w-24 px-3 text-center flex-shrink-0" style={colHeaderStyle}>Coefficient</div>
+              <div className="w-28 px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant proraté</div>
+              <div className="w-11 flex-shrink-0"></div>
+            </div>
+            {/* Add row */}
+            <div className="flex items-center justify-center h-[45px] bg-white">
+              <button className="flex items-center gap-2 text-body-medium text-[#1e3a8a]">
+                <Plus className="w-4 h-4" /> Ajouter une perte de chance
+              </button>
+            </div>
+          </div>
+
+          {/* Total Block */}
+          <div className={totalBlockClass}>
+            <button onClick={() => setTotalExpanded(prev => ({...prev, pgpa: !prev.pgpa}))} className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                  <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                </div>
+                <span className="text-[14px] font-medium text-[#292524]">Total perte PGPA</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span style={serifAmountStyle} className="text-[#292524]">{fmt(indemniteVictimePGPA)}</span>
+                <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded.pgpa ? 'rotate-90' : ''}`} />
+              </div>
+            </button>
+            {totalExpanded.pgpa && (
+              <>
+                <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
+                <div className="space-y-2">
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Revenus attendus sur la période ({pgpaData.periode.mois} mois)</span><span className="text-[14px] text-[#292524]">{fmt(Math.round(revenuRefMensuel * pgpaData.periode.mois))}</span></div>
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Revenus perçus sur la période</span><span className="text-[14px] text-[#292524]">− {fmt(revenusPercusTotal)}</span></div>
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Indemnités journalières</span><span className="text-[14px] text-[#292524]">− {fmt(ijPercuesTotal)}</span></div>
+                </div>
+              </>
+            )}
+          </div>
+
+              </div>
+            </div>
+          </div>
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
+              </div>
+              <textarea
+                value={posteNotes.pgpa || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, pgpa: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
+            </div>
+          </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
             </div>
           </div>
         </div>
@@ -5861,144 +5775,249 @@ export default function App() {
 
     // ========== PGPF ==========
     if (currentLevel.id === 'pgpf') {
+      // Empty state
+      if (!pgpfData.periodes['pgpf-cl'] && !pgpfData.periodes['pgpf-al']) {
+        return renderInlineDocPicker('pgpf', {
+          icon: Calculator,
+          title: 'Aucune donnée PGPF',
+          description: 'Ajoutez les justificatifs de revenus pour calculer les pertes de gains futurs.',
+          expectedDocs: ['Bulletins de salaire', "Avis d'imposition", "Rapport d'expertise"]
+        });
+      }
       const periodeCL = pgpfData.periodes['pgpf-cl'];
       const periodeAL = pgpfData.periodes['pgpf-al'];
-      const tiersTotal = periodeAL.tiersPayeurs.reduce((s, t) => s + t.montantCapitalise, 0);
-      
+      const tiersTotal = periodeAL ? periodeAL.tiersPayeurs.reduce((s, t) => s + t.montantCapitalise, 0) : 0;
+
       return (
         <div>
-          <div className="text-2xl font-bold mb-4">{fmt(pgpfTotal)}</div>
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
 
-          {/* Section 1: Conso → Liqui */}
-          <div className="bg-white rounded-lg border mb-4 overflow-hidden">
-            <button onClick={() => toggleSection('pgpf-cl')} className="w-full flex items-center justify-between p-4 hover:bg-gray-50">
-              <div className="flex items-center gap-3">
-                {expandedSections.includes('pgpf-cl') ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-                <Calendar className="w-5 h-5 text-blue-500" />
-                <div className="text-left">
-                  <div className="font-semibold">{periodeCL.label}</div>
-                  <div className="text-body text-gray-500">{periodeCL.periode.debut} → {periodeCL.periode.fin} ({periodeCL.periode.mois} mois)</div>
-                </div>
-                <span className="text-caption px-2 py-1 rounded bg-blue-100 text-blue-700">Échu</span>
+          {/* Param chips card block */}
+          <div className={cardBlockClass}>
+            <div className="flex items-center gap-3 px-4 h-[52px]">
+              <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                <Settings className="w-3.5 h-3.5 text-[#78716c]" />
               </div>
-              <span className="text-lg font-bold">{fmt(pgpfClTotal)}</span>
-            </button>
-            
-            {expandedSections.includes('pgpf-cl') && (
-              <div className="border-t">
-                {/* Revenu ref */}
-                <div className="border-b">
-                  <div className="px-4 py-3 bg-amber-50 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-amber-900">Revenu d'activité de référence</span>
-                      <span className="text-caption px-2 py-0.5 rounded bg-amber-200 text-amber-800">= {fmt(periodeCL.revenuRef.total)}/an</span>
-                    </div>
-                    <button className="p-1.5 text-amber-700 hover:bg-amber-100 rounded"><Edit3 className="w-4 h-4" /></button>
-                  </div>
-                </div>
-                
-                {/* Revenus perçus */}
-                <div className="border-b">
-                  <div className="px-4 py-2 bg-gray-50 flex items-center justify-between">
-                    <span className="text-body-medium">Revenus perçus sur la période</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-body text-red-600">- {fmt(periodeCL.revenusPercus.reduce((s, l) => s + l.montant, 0))}</span>
-                      <button className="text-caption text-blue-600 hover:text-blue-700 flex items-center gap-1"><Plus className="w-3 h-3" /></button>
-                    </div>
-                  </div>
-                  <div className="divide-y">
-                    {periodeCL.revenusPercus.map(l => renderPGLigne(l, { onEdit: () => {} }))}
-                  </div>
-                </div>
-                
-                {/* IJ perçues */}
-                <div>
-                  <div className="px-4 py-2 bg-gray-50 flex items-center justify-between">
-                    <span className="text-body-medium">Indemnités journalières perçues</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-body text-red-600">- {fmt(periodeCL.ijPercues.reduce((s, l) => s + l.montant, 0))}</span>
-                      <button className="text-caption text-blue-600 hover:text-blue-700 flex items-center gap-1"><Plus className="w-3 h-3" /></button>
-                    </div>
-                  </div>
-                  <div className="divide-y">
-                    {periodeCL.ijPercues.map(l => renderPGLigne(l, { onEdit: () => {} }))}
-                  </div>
-                </div>
-              </div>
-            )}
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border bg-transparent border-[#d6d3d1] text-[#78716c]">
+                Capitaliser
+              </span>
+            </div>
           </div>
 
-          {/* Section 2: Après Liqui */}
-          <div className="bg-white rounded-lg border overflow-hidden">
-            <button onClick={() => toggleSection('pgpf-al')} className="w-full flex items-center justify-between p-4 hover:bg-gray-50">
-              <div className="flex items-center gap-3">
-                {expandedSections.includes('pgpf-al') ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-                <Landmark className="w-5 h-5 text-purple-500" />
-                <div className="text-left">
-                  <div className="font-semibold">{periodeAL.label}</div>
-                  <div className="text-body text-gray-500">{periodeAL.periode.debut} → {periodeAL.periode.fin}</div>
+          {/* Section Label: PRÉ-LIQUIDATION */}
+          {periodeCL && (
+            <>
+            <div style={sectionHeaderStyle} className="mt-2">NOM DE PÉRIODE</div>
+
+            {/* Card: Revenu de référence — synced from PGPA */}
+            <div className={cardBlockClass}>
+              <div className="flex items-center justify-between h-12 px-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                    <Calculator className="w-3.5 h-3.5 text-[#78716c]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[#292524]">Revenu de référence</span>
+                  <span className="text-xs px-2 py-0.5 rounded bg-[#eef3fa] text-[#1e3a8a] border border-[#aabcd5]">⊕ Sync. PGPA</span>
                 </div>
-                <span className="text-caption px-2 py-1 rounded bg-purple-100 text-purple-700">Capitalisation</span>
+                <div className="flex items-center gap-2">
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(Math.round(periodeCL.revenuRef.total / 12))}<span className="text-[14px] text-[#78716c] ml-1">/ mois</span></span>
+                </div>
               </div>
-              <span className="text-lg font-bold">{fmt(pgpfAlTotal)}</span>
-            </button>
-            
-            {expandedSections.includes('pgpf-al') && (
-              <div className="border-t">
-                {/* Paramètres */}
-                <div className="p-4 border-b">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-semibold text-purple-900">Paramètres de capitalisation</span>
-                    <button className="p-1.5 text-purple-700 hover:bg-purple-100 rounded"><Edit3 className="w-4 h-4" /></button>
+            </div>
+
+            {/* Card: Revenus perçus */}
+            <div className={cardBlockClass}>
+              <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                    <Receipt className="w-3.5 h-3.5 text-[#78716c]" />
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-body">
-                    <div><span className="text-gray-500">Âge</span><p className="font-medium">{periodeAL.params.age} ans</p></div>
-                    <div><span className="text-gray-500">Perte annuelle</span><p className="font-medium">{fmt(periodeAL.params.perteGainAnnuelle)}</p></div>
-                    <div><span className="text-gray-500">Barème</span><p className="text-caption-medium">{periodeAL.params.bareme}</p></div>
-                    <div><span className="text-gray-500">Âge dernier arrérage</span><p className="font-medium">{periodeAL.params.ageDernierArreage} ans</p></div>
-                    <div><span className="text-gray-500">Coefficient</span><p className="font-medium">{periodeAL.params.coefficient}</p></div>
-                    <div><span className="text-gray-500">Montant capitalisé</span><p className="font-bold text-purple-700">{fmt(periodeAL.params.montantCapitalise)}</p></div>
-                  </div>
+                  <span className="text-[14px] font-medium text-[#292524]">Revenus perçus</span>
                 </div>
-                
-                {/* Tiers payeurs */}
-                <div className="border-b">
-                  <div className="px-4 py-2 bg-gray-50">
-                    <span className="text-body-medium">Tiers payeurs</span>
-                  </div>
-                  <div className="divide-y">
-                    {periodeAL.tiersPayeurs.map(tp => (
-                      <div key={tp.id} className="flex items-center justify-between p-3 hover:bg-gray-50 group">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{tp.label}</span>
-                          {tp.modified && <RefreshCw className="w-3 h-3 text-amber-500" />}
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-body text-gray-500">Rente: {fmt(tp.renteAnnuelle)}/an</span>
-                          <span className="font-semibold">{fmt(tp.montantCapitalise)}</span>
-                          <button className="p-1.5 text-gray-400 hover:text-blue-600 rounded opacity-0 group-hover:opacity-100"><Edit3 className="w-4 h-4" /></button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="flex items-center gap-2">
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(periodeCL.revenusPercus.reduce((s, l) => s + l.montant, 0))}</span>
+                  <ChevronDown className="w-4 h-4 text-[#78716c]" />
                 </div>
-                
-                {/* Résultat */}
-                <div className={`p-4 ${pgpfAlTotal - tiersTotal < 0 ? 'bg-red-50' : 'bg-green-50'}`}>
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">Différence (victime)</span>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xl font-bold ${pgpfAlTotal - tiersTotal < 0 ? 'text-red-700' : 'text-green-700'}`}>{fmt(pgpfAlTotal - tiersTotal)}</span>
-                      {pgpfAlTotal - tiersTotal < 0 && (
-                        <span className="text-caption px-2 py-1 bg-red-100 text-red-700 rounded flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" />Trop perçu
+              </div>
+              {/* Drop zone */}
+              <div className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white">
+                <div className="flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg border-[#d6d3d1]">
+                  <Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" />
+                  <span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer">cliquez</span> pour ajouter un justificatif</span>
+                </div>
+                <button className="flex items-center gap-2 text-body-medium text-[#1e3a8a] flex-shrink-0 whitespace-nowrap">
+                  <Plus className="w-4 h-4" /> Ajouter une dépense
+                </button>
+              </div>
+              {/* Column headers */}
+              {periodeCL.revenusPercus.length > 0 && (
+                <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
+                  <div className="w-12 flex-shrink-0"></div>
+                  <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+                  <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période</div>
+                  <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
+                  <div className="w-11 flex-shrink-0"></div>
+                </div>
+              )}
+              {/* Data rows */}
+              {periodeCL.revenusPercus.map(l => {
+                const pieceCount = l.pieceIds?.length || 0;
+                return (
+                  <div key={l.id} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
+                    <div className="w-12 flex items-center justify-center flex-shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center"><Check className="w-3 h-3 text-emerald-500" /></div>
+                    </div>
+                    <div className="w-[52px] flex items-center justify-center flex-shrink-0">
+                      {pieceCount > 0 ? (
+                        <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
+                          <FileText className="w-4 h-4 text-[#2563eb]" />
+                          {pieceCount > 1 && <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#2563eb] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceCount}</span>}
                         </span>
+                      ) : (
+                        <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]"><FileText className="w-3.5 h-3.5" /></span>
                       )}
                     </div>
+                    <div className="flex-1 min-w-0 px-3">
+                      <span className="text-body-medium text-[#292524] block">{l.label || 'Sans libellé'}</span>
+                      <span className="text-caption text-[#78716c]">{l.periode}</span>
+                    </div>
+                    <div className="w-[200px] px-3 text-right flex-shrink-0">
+                      <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.montant)}</span>
+                    </div>
+                    <div className="w-11 flex items-center justify-center flex-shrink-0">
+                      <button onClick={(e) => { e.stopPropagation(); }} className="p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></button>
+                    </div>
                   </div>
+                );
+              })}
+            </div>
+
+            {/* Card: Perte de chance */}
+            <div className={cardBlockClass}>
+              <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                    <Activity className="w-3.5 h-3.5 text-[#78716c]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[#292524]">Perte de chance</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(0)}</span>
+                  <ChevronDown className="w-4 h-4 text-[#78716c]" />
                 </div>
               </div>
-            )}
+              <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
+                <div className="w-12 flex-shrink-0"></div>
+                <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+                <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
+                <div className="w-28 px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant espéré</div>
+                <div className="w-24 px-3 text-center flex-shrink-0" style={colHeaderStyle}>Coefficient</div>
+                <div className="w-28 px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant proraté</div>
+                <div className="w-11 flex-shrink-0"></div>
+              </div>
+              <div className="flex items-center justify-center h-[45px] bg-white">
+                <button className="flex items-center gap-2 text-body-medium text-[#1e3a8a]">
+                  <Plus className="w-4 h-4" /> Ajouter une perte de chance
+                </button>
+              </div>
+            </div>
+
+            {/* Total Block: PGPF échu */}
+            <div className={totalBlockClass}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                    <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[#292524]">PGPF échu</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(pgpfClTotal)}</span>
+                  <ChevronRight className="w-4 h-4 text-[#78716c]" />
+                </div>
+              </div>
+            </div>
+            </>
+          )}
+
+          {/* Section Label: POST-LIQUIDATION */}
+          {periodeAL && (
+            <>
+            <div style={sectionHeaderStyle} className="mt-2">NOM DE PÉRIODE</div>
+
+            {/* Card: Arrérage à échoir */}
+            <div className={cardBlockClass}>
+              <div className="flex items-center justify-between h-12 px-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                    <Landmark className="w-3.5 h-3.5 text-[#78716c]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[#292524]">Arrérage à échoir</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(periodeAL.params.perteGainAnnuelle)}<span className="text-[14px] text-[#78716c] ml-1">/ an</span></span>
+                  <ChevronDown className="w-4 h-4 text-[#78716c]" />
+                </div>
+              </div>
+            </div>
+
+            {/* Total Block: PGPF à échoir */}
+            <div className={totalBlockClass}>
+              <button onClick={() => setTotalExpanded(prev => ({...prev, pgpfAl: !prev.pgpfAl}))} className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                    <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[#292524]">PGPF à échoir</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(periodeAL.params.perteGainAnnuelle)}<span className="text-[14px] text-[#78716c] ml-1">/ an</span></span>
+                  <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded.pgpfAl ? 'rotate-90' : ''}`} />
+                </div>
+              </button>
+              {totalExpanded.pgpfAl && (
+                <>
+                  <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
+                  <div className="space-y-2">
+                    <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Versement</span><span className="text-[14px] text-[#292524]">En rente, sans capitalisation</span></div>
+                  </div>
+                </>
+              )}
+            </div>
+            </>
+          )}
+
+              </div>
+            </div>
+          </div>
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
+              </div>
+              <textarea
+                value={posteNotes.pgpf || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, pgpf: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
+            </div>
+          </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
+            </div>
           </div>
         </div>
       );
@@ -6008,6 +6027,23 @@ export default function App() {
     if (currentLevel.id === 'dft') {
       return (
         <div className={dftLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dft') ? 'h-full flex flex-col' : ''}>
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+
+          {/* Param chips card block */}
+          <div className={cardBlockClass}>
+            <div className="flex items-center gap-3 px-4 h-[52px]">
+              <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                <Settings className="w-3.5 h-3.5 text-[#78716c]" />
+              </div>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border bg-transparent border-[#d6d3d1] text-[#78716c]">
+                Base {chiffrageParams.baseJournaliereDFT} €/j
+              </span>
+            </div>
+          </div>
+
           {/* Empty state */}
           {dftLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dft') && renderInlineDocPicker('dft', {
             icon: Calendar,
@@ -6016,9 +6052,22 @@ export default function App() {
             expectedDocs: ["Rapport d'expertise médicale", "Certificat médical", "Compte-rendu hospitalisation"]
           })}
 
-          {/* Table with header + extraction + rows */}
+          {/* Card Block: DFT */}
           {(dftLignes.length > 0 || processing.length > 0 || (posteExtracting && posteExtracting.posteType === 'dft')) && (
-            <div className="bg-white rounded-xl border border-[#e7e5e3] overflow-hidden shadow-[0_1px_2px_0_rgba(26,26,26,0.05)]">
+            <div className={cardBlockClass}>
+              {/* Title Row */}
+              <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                    <Calendar className="w-3.5 h-3.5 text-[#78716c]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[#292524]">Déficit fonctionnel temporaire</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(dftTotal)}</span>
+                  <ChevronDown className="w-4 h-4 text-[#78716c]" />
+                </div>
+              </div>
               {/* Header — dashed drop zone + buttons */}
               <div
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -6068,10 +6117,10 @@ export default function App() {
               {dftLignes.length > 0 && (
                 <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
                   <div className="w-12 flex-shrink-0"></div>
-                  <div className="w-[52px] text-center text-caption-medium text-[#78716c] flex-shrink-0">Doc</div>
-                  <div className="flex-1 min-w-0 px-3 text-caption-medium text-[#78716c]">Période & jours</div>
-                  <div className="w-20 px-3 text-caption-medium text-[#78716c] text-center flex-shrink-0">Taux</div>
-                  <div className="w-[200px] px-3 text-caption-medium text-[#78716c] text-right flex-shrink-0">Montant</div>
+                  <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+                  <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période & jours</div>
+                  <div className="w-20 px-3 text-center flex-shrink-0" style={colHeaderStyle}>Taux</div>
+                  <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant</div>
                   <div className="w-11 flex-shrink-0"></div>
                 </div>
               )}
@@ -6083,8 +6132,8 @@ export default function App() {
                 const pieceCount = l.pieceIds?.length || 0;
 
                 return (
-                  <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'dft-ligne', data: l }); }}
-                    className="relative flex items-center h-14 border-b border-[#e7e5e3] bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
+                  <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'dft-ligne', title: 'Éditer la dépense', data: l }); }}
+                    className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
                     {/* Left inset border */}
                     {isSuggested && <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: isIncomplete ? 'inset 2px 0 0 0 #eeb97e' : 'inset 2px 0 0 0 #9333ea' }} />}
 
@@ -6107,19 +6156,19 @@ export default function App() {
                     <div className="w-[52px] flex items-center justify-center flex-shrink-0">
                       {pieceCount > 0 ? (
                         <div className="relative group/piece">
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-[#dbeafe] rounded-md relative">
+                          <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
                             <FileText className="w-4 h-4 text-[#2563eb]" />
                             <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#2563eb] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceCount}</span>
                           </span>
                           <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-[#e7e5e3] rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
                             <div className="text-counter text-[#78716c] uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''}</div>
                             <div className="space-y-1">
-                              {l.pieceIds?.map(pid => <div key={pid} className="flex items-center gap-2 text-caption"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-[#292524]">Rapport d'expertise</span></div>)}
+                              {l.pieceIds?.map(pid => <div key={pid} className="flex items-center gap-2 text-caption"><span className="w-5 h-5 bg-blue-100 text-[#1e3a8a] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-[#292524]">Rapport d'expertise</span></div>)}
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded-md border border-dashed border-zinc-200">
+                        <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]">
                           <FileText className="w-3.5 h-3.5" />
                         </span>
                       )}
@@ -6133,7 +6182,7 @@ export default function App() {
 
                     {/* Taux */}
                     <div className="w-20 px-3 text-center flex-shrink-0">
-                      <span className={`text-caption-medium px-2 py-0.5 rounded-full ${l.taux === 100 ? 'bg-zinc-100 text-zinc-700' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>{l.taux || 100}%</span>
+                      <span className={`text-caption-medium px-2 py-0.5 rounded-full ${l.taux === 100 ? 'bg-[#eeece6] text-[#44403c]' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>{l.taux || 100}%</span>
                     </div>
 
                     {/* Montant */}
@@ -6159,33 +6208,561 @@ export default function App() {
             </div>
           )}
 
-          {/* Sticky recap footer */}
+          {/* Total Block */}
           {dftLignes.length > 0 && (
-            <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
-              <div className="flex items-start justify-between px-6 py-5">
-                <div className="flex items-center gap-2 text-gray-400 pt-1">
-                  <Calculator className="w-5 h-5" />
-                  <span className="text-body-medium">Récapitulatif</span>
+          <div className={totalBlockClass}>
+            <button onClick={() => setTotalExpanded(prev => ({...prev, dft: !prev.dft}))} className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                  <FileText className="w-3.5 h-3.5 text-[#78716c]" />
                 </div>
-                <div className="text-right min-w-[240px]">
-                  <div className="flex items-center justify-between py-2 px-3 -mx-3 rounded" style={{ backgroundColor: '#F5F5F0' }}>
-                    <span className="font-semibold text-zinc-700">Total DFT</span>
-                    <span className="text-xl font-bold text-zinc-900 tabular-nums">{fmt(dftTotal)}</span>
-                  </div>
-                </div>
+                <span className="text-[14px] font-medium text-[#292524]">Total DFT</span>
               </div>
-            </div>
+              <div className="flex items-center gap-3">
+                <span style={serifAmountStyle} className="text-[#292524]">{fmt(dftTotal)}</span>
+                <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded.dft ? 'rotate-90' : ''}`} />
+              </div>
+            </button>
+            {totalExpanded.dft && (
+              <>
+                <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
+                <div className="space-y-2">
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Nombre de périodes</span><span className="text-[14px] text-[#292524]">{dftLignes.length}</span></div>
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Total jours</span><span className="text-[14px] text-[#292524]">{dftLignes.reduce((s, l) => s + (l.jours || 0), 0)}j</span></div>
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Base journalière</span><span className="text-[14px] text-[#292524]">{chiffrageParams.baseJournaliereDFT} €/j</span></div>
+                </div>
+              </>
+            )}
+          </div>
           )}
+
+              </div>{/* end space-y-4 */}
+            </div>{/* end p-4 */}
+          </div>{/* end CALCUL section */}
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
+              </div>
+              <textarea
+                value={posteNotes.dft || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, dft: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
+            </div>
+          </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
+            </div>
+          </div>
+
         </div>
       );
     }
 
 
-    return null;
+    // ========== SE — Souffrances Endurées ==========
+    if (currentLevel.id === 'se') {
+      const seData = formPosteData.se || { referentiel: 'cours-appel-2024', cotation: 0, montant: 0 };
+      const cotations = [1, 2, 3, 4, 5, 6, 7];
+      return (
+        <div>
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+                {/* Param chips card block */}
+                <div className={cardBlockClass}>
+                  <div className="flex items-center gap-3 px-4 h-[52px]">
+                    <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                      <Settings className="w-3.5 h-3.5 text-[#78716c]" />
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border bg-transparent border-[#d6d3d1] text-[#78716c]">
+                      Revaloriser
+                    </span>
+                  </div>
+                </div>
+                {/* Form Block */}
+                <div className={cardBlockClass}>
+                  <div className="p-5">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-[14px] font-medium text-[#78716c] mb-2">Référentiel</label>
+                        <select
+                          value={seData.referentiel}
+                          onChange={(e) => setFormPosteData(prev => ({ ...prev, se: { ...prev.se, referentiel: e.target.value } }))}
+                          className="w-full h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                        >
+                          <option value="cours-appel-2024">Cour d'appel 2024</option>
+                          <option value="cours-appel-2023">Cour d'appel 2023</option>
+                          <option value="mornet-2024">Référentiel Mornet 2024</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[14px] font-medium text-[#78716c] mb-2">Cotation</label>
+                        <div className="flex gap-1">
+                          {cotations.map(c => (
+                            <button
+                              key={c}
+                              onClick={() => setFormPosteData(prev => ({ ...prev, se: { ...prev.se, cotation: c } }))}
+                              className={`flex-1 h-10 text-[14px] font-medium rounded-lg border transition-colors ${
+                                seData.cotation === c
+                                  ? 'bg-[#292524] text-white border-[#292524]'
+                                  : 'bg-white text-[#292524] border-[#e7e5e3] hover:bg-[#fafaf9]'
+                              }`}
+                            >
+                              {c}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pièces justificatives */}
+                <div style={sectionHeaderStyle} className="mt-2">PIÈCES JUSTIFICATIVES</div>
+                <div className={cardBlockClass}>
+                  <div
+                    className="flex items-center justify-center h-[72px] border border-dashed border-[#d6d3d1] m-4 rounded-lg cursor-pointer hover:border-[#a8a29e] transition-colors"
+                    onClick={() => document.getElementById('se-upload')?.click()}
+                  >
+                    <span className="text-[14px] text-[#78716c]">Déposez ou <span className="text-[#1e3a8a] font-medium">cliquez</span> pour ajouter un justificatif</span>
+                    <input type="file" id="se-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" />
+                  </div>
+                </div>
+
+                {/* Total Block */}
+                <div className={totalBlockClass}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                        <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                      </div>
+                      <span className="text-[14px] font-medium text-[#292524]">Total SE</span>
+                    </div>
+                    <span style={serifAmountStyle} className="text-[#292524]">{fmt(seData.montant)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
+              </div>
+              <textarea
+                value={posteNotes.se || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, se: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
+            </div>
+          </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== PEP — Préjudice Esthétique Permanent ==========
+    if (currentLevel.id === 'pep') {
+      const pepData = formPosteData.pep || { referentiel: 'cours-appel-2024', cotation: 0, montant: 0 };
+      const cotations = [1, 2, 3, 4, 5, 6, 7];
+      return (
+        <div>
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+                {/* Param chips card block */}
+                <div className={cardBlockClass}>
+                  <div className="flex items-center gap-3 px-4 h-[52px]">
+                    <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                      <Settings className="w-3.5 h-3.5 text-[#78716c]" />
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border bg-transparent border-[#d6d3d1] text-[#78716c]">
+                      Revaloriser
+                    </span>
+                  </div>
+                </div>
+                {/* Form Block */}
+                <div className={cardBlockClass}>
+                  <div className="p-5">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-[14px] font-medium text-[#78716c] mb-2">Référentiel</label>
+                        <select
+                          value={pepData.referentiel}
+                          onChange={(e) => setFormPosteData(prev => ({ ...prev, pep: { ...prev.pep, referentiel: e.target.value } }))}
+                          className="w-full h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                        >
+                          <option value="cours-appel-2024">Cour d'appel 2024</option>
+                          <option value="cours-appel-2023">Cour d'appel 2023</option>
+                          <option value="mornet-2024">Référentiel Mornet 2024</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[14px] font-medium text-[#78716c] mb-2">Cotation</label>
+                        <div className="flex gap-1">
+                          {cotations.map(c => (
+                            <button
+                              key={c}
+                              onClick={() => setFormPosteData(prev => ({ ...prev, pep: { ...prev.pep, cotation: c } }))}
+                              className={`flex-1 h-10 text-[14px] font-medium rounded-lg border transition-colors ${
+                                pepData.cotation === c
+                                  ? 'bg-[#292524] text-white border-[#292524]'
+                                  : 'bg-white text-[#292524] border-[#e7e5e3] hover:bg-[#fafaf9]'
+                              }`}
+                            >
+                              {c}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pièces justificatives */}
+                <div style={sectionHeaderStyle} className="mt-2">PIÈCES JUSTIFICATIVES</div>
+                <div className={cardBlockClass}>
+                  <div
+                    className="flex items-center justify-center h-[72px] border border-dashed border-[#d6d3d1] m-4 rounded-lg cursor-pointer hover:border-[#a8a29e] transition-colors"
+                    onClick={() => document.getElementById('pep-upload')?.click()}
+                  >
+                    <span className="text-[14px] text-[#78716c]">Déposez ou <span className="text-[#1e3a8a] font-medium">cliquez</span> pour ajouter un justificatif</span>
+                    <input type="file" id="pep-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" />
+                  </div>
+                </div>
+
+                {/* Total Block */}
+                <div className={totalBlockClass}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                        <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                      </div>
+                      <span className="text-[14px] font-medium text-[#292524]">Total PEP</span>
+                    </div>
+                    <span style={serifAmountStyle} className="text-[#292524]">{fmt(pepData.montant)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
+              </div>
+              <textarea
+                value={posteNotes.pep || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, pep: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
+            </div>
+          </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== DFP — Déficit Fonctionnel Permanent ==========
+    if (currentLevel.id === 'dfp') {
+      const dfpData = formPosteData.dfp || { referentiel: 'cours-appel-2024', age: 0, taux: 0, trancheAge: 'inferieure', trancheTaux: 'inferieure', pointBase: 0, montant: 0 };
+      return (
+        <div>
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+                {/* Param chips card block */}
+                <div className={cardBlockClass}>
+                  <div className="flex items-center gap-3 px-4 h-[52px]">
+                    <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                      <Settings className="w-3.5 h-3.5 text-[#78716c]" />
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border bg-transparent border-[#d6d3d1] text-[#78716c]">
+                      Revaloriser
+                    </span>
+                  </div>
+                </div>
+                {/* Form Block */}
+                <div className={cardBlockClass}>
+                  <div className="p-5 space-y-5">
+                    {/* Référentiel */}
+                    <div>
+                      <label className="block text-[14px] font-medium text-[#78716c] mb-2">Référentiel</label>
+                      <select
+                        value={dfpData.referentiel}
+                        onChange={(e) => setFormPosteData(prev => ({ ...prev, dfp: { ...prev.dfp, referentiel: e.target.value } }))}
+                        className="w-full h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                      >
+                        <option value="cours-appel-2024">Cour d'appel 2024</option>
+                        <option value="cours-appel-2023">Cour d'appel 2023</option>
+                        <option value="mornet-2024">Référentiel Mornet 2024</option>
+                      </select>
+                    </div>
+                    {/* Âge + Taux — 2 columns */}
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-[14px] font-medium text-[#78716c] mb-2">Âge à la consolidation</label>
+                        <input
+                          type="number"
+                          value={dfpData.age}
+                          onChange={(e) => setFormPosteData(prev => ({ ...prev, dfp: { ...prev.dfp, age: parseInt(e.target.value) || 0 } }))}
+                          className="w-full h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                          placeholder="Âge"
+                        />
+                        <div className="mt-2 space-y-1.5">
+                          {['inferieure', 'superieure'].map(t => (
+                            <label key={t} className="flex items-center gap-2 cursor-pointer">
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${dfpData.trancheAge === t ? 'border-[#292524]' : 'border-[#d6d3d1]'}`}>
+                                {dfpData.trancheAge === t && <div className="w-2 h-2 rounded-full bg-[#292524]" />}
+                              </div>
+                              <span className="text-xs text-[#292524]">Tranche {t === 'inferieure' ? 'inférieure' : 'supérieure'} {dfpData.age > 0 && (t === 'inferieure' ? `${Math.floor(dfpData.age / 10) * 10}-${Math.floor(dfpData.age / 10) * 10 + 9}` : `${Math.floor(dfpData.age / 10) * 10 + 1}-${Math.floor(dfpData.age / 10) * 10 + 10}`)}</span>
+                              <input type="radio" name="tranche-age" checked={dfpData.trancheAge === t} onChange={() => setFormPosteData(prev => ({ ...prev, dfp: { ...prev.dfp, trancheAge: t } }))} className="sr-only" />
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[14px] font-medium text-[#78716c] mb-2">Taux DFP</label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={dfpData.taux}
+                            onChange={(e) => setFormPosteData(prev => ({ ...prev, dfp: { ...prev.dfp, taux: parseFloat(e.target.value) || 0 } }))}
+                            className="w-full h-10 px-3 pr-8 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                            placeholder="Taux"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[14px] text-[#78716c]">%</span>
+                        </div>
+                        <div className="mt-2 space-y-1.5">
+                          {['inferieure', 'superieure'].map(t => (
+                            <label key={t} className="flex items-center gap-2 cursor-pointer">
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${dfpData.trancheTaux === t ? 'border-[#292524]' : 'border-[#d6d3d1]'}`}>
+                                {dfpData.trancheTaux === t && <div className="w-2 h-2 rounded-full bg-[#292524]" />}
+                              </div>
+                              <span className="text-xs text-[#292524]">Tranche {t === 'inferieure' ? 'inférieure' : 'supérieure'} {dfpData.taux > 0 && (t === 'inferieure' ? `${Math.floor(dfpData.taux / 5) * 5}-${Math.floor(dfpData.taux / 5) * 5 + 5}%` : `${Math.floor(dfpData.taux / 5) * 5 + 1}-${Math.floor(dfpData.taux / 5) * 5 + 5}%`)}</span>
+                              <input type="radio" name="tranche-taux" checked={dfpData.trancheTaux === t} onChange={() => setFormPosteData(prev => ({ ...prev, dfp: { ...prev.dfp, trancheTaux: t } }))} className="sr-only" />
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pièces justificatives */}
+                <div style={sectionHeaderStyle} className="mt-2">PIÈCES JUSTIFICATIVES</div>
+                <div className={cardBlockClass}>
+                  <div
+                    className="flex items-center justify-center h-[72px] border border-dashed border-[#d6d3d1] m-4 rounded-lg cursor-pointer hover:border-[#a8a29e] transition-colors"
+                    onClick={() => document.getElementById('dfp-upload')?.click()}
+                  >
+                    <span className="text-[14px] text-[#78716c]">Déposez ou <span className="text-[#1e3a8a] font-medium">cliquez</span> pour ajouter un justificatif</span>
+                    <input type="file" id="dfp-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" />
+                  </div>
+                </div>
+
+                {/* Total Block — expanded */}
+                <div className={totalBlockClass}>
+                  <button onClick={() => setTotalExpanded(prev => ({...prev, dfp: !prev.dfp}))} className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                        <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                      </div>
+                      <span className="text-[14px] font-medium text-[#292524]">Total DFP</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span style={serifAmountStyle} className="text-[#292524]">{fmt(dfpData.montant)}</span>
+                      <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded.dfp ? 'rotate-90' : ''}`} />
+                    </div>
+                  </button>
+                  {totalExpanded.dfp && (
+                    <>
+                      <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
+                      <div className="space-y-2">
+                        <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Prix du point</span><span className="text-[14px] text-[#292524]">{fmt(dfpData.pointBase)}</span></div>
+                        <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Taux DFP</span><span className="text-[14px] text-[#292524]">× {dfpData.taux}%</span></div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
+              </div>
+              <textarea
+                value={posteNotes.dfp || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, dfp: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
+            </div>
+          </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== GENERIC MINIMAL FORM — Fallthrough for all other postes ==========
+    {
+      const posteId = currentLevel.id;
+      const data = formPosteData[posteId] || { montant: 0, tiersPayeur: 0 };
+
+      return (
+        <div>
+
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+                {/* Form Block */}
+                <div className={cardBlockClass}>
+                  <div className="p-5 space-y-4">
+                    <div>
+                      <label className="block text-[14px] font-medium text-[#78716c] mb-2">Indemnisation</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={data.montant || ''}
+                          onChange={(e) => setFormPosteData(prev => ({ ...prev, [posteId]: { ...(prev[posteId] || {}), montant: parseFloat(e.target.value) || 0 } }))}
+                          className="w-full h-10 px-3 pr-8 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                          placeholder="Montant en €"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[14px] text-[#78716c]">€</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[14px] font-medium text-[#78716c] mb-2">Part tiers payeur</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={data.tiersPayeur || ''}
+                          onChange={(e) => setFormPosteData(prev => ({ ...prev, [posteId]: { ...(prev[posteId] || {}), tiersPayeur: parseFloat(e.target.value) || 0 } }))}
+                          className="w-full h-10 px-3 pr-8 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                          placeholder="Montant en €"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[14px] text-[#78716c]">€</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pièces justificatives */}
+                <div style={sectionHeaderStyle} className="mt-2">PIÈCES JUSTIFICATIVES</div>
+                <div className={cardBlockClass}>
+                  <div
+                    className="flex items-center justify-center h-[72px] border border-dashed border-[#d6d3d1] m-4 rounded-lg cursor-pointer hover:border-[#a8a29e] transition-colors"
+                    onClick={() => document.getElementById(`${posteId}-upload`)?.click()}
+                  >
+                    <span className="text-[14px] text-[#78716c]">Déposez ou <span className="text-[#1e3a8a] font-medium">cliquez</span> pour ajouter un justificatif</span>
+                    <input type="file" id={`${posteId}-upload`} multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" />
+                  </div>
+                </div>
+
+                {/* Total Block */}
+                <div className={totalBlockClass}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                        <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                      </div>
+                      <span className="text-[14px] font-medium text-[#292524]">Total {currentLevel.title || posteId.toUpperCase()}</span>
+                    </div>
+                    <span style={serifAmountStyle} className="text-[#292524]">{fmt(data.montant - (data.tiersPayeur || 0))}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
+              </div>
+              <textarea
+                value={posteNotes[posteId] || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, [posteId]: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
+            </div>
+          </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
   };
 
   // Descriptions des postes
-  const posteDescriptions = {
+  const posteDescriptions = { // eslint-disable-line no-unused-vars
     dsa: "Ensemble des frais médicaux, pharmaceutiques, paramédicaux et d'hospitalisation engagés entre la date du fait dommageable et la consolidation.",
     pgpa: "Pertes de revenus professionnels subies entre le fait dommageable et la consolidation, déduction faite des indemnités journalières perçues.",
     dft: "Indemnisation de la perte de qualité de vie pendant les périodes d'incapacité temporaire (hospitalisation, rééducation, gêne résiduelle).",
@@ -6197,7 +6774,7 @@ export default function App() {
     if (activeDossierId) saveDossierData(activeDossierId);
     loadDossierData(dossier.id);
     setActiveDossierId(dossier.id);
-    setNavStack([{ id: dossier.id, type: 'dossier', title: dossier.reference, activeTab: 'info dossier' }]);
+    setNavStack([{ id: dossier.id, type: 'dossier', title: dossier.reference, activeTab: 'dossier' }]);
     setCurrentPage('dossier');
   };
 
@@ -6247,29 +6824,29 @@ export default function App() {
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowExportModal(false)}>
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between px-6 py-4 border-b">
-            <h2 className="text-heading-sm text-zinc-800">{titre}</h2>
-            <button onClick={() => setShowExportModal(false)} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors">
-              <X className="w-4 h-4 text-zinc-400" />
+            <h2 className="text-heading-sm text-[#292524]">{titre}</h2>
+            <button onClick={() => setShowExportModal(false)} className="p-1.5 hover:bg-[#eeece6] rounded-lg transition-colors">
+              <X className="w-4 h-4 text-[#a8a29e]" />
             </button>
           </div>
           <div className="p-4 space-y-2">
             {options.map((opt, i) => (
-              <div key={i} className="group relative flex items-start gap-4 p-4 rounded-xl hover:bg-zinc-50 transition-colors cursor-default">
-                <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center flex-shrink-0 group-hover:bg-zinc-200 transition-colors">
-                  <opt.icon className="w-5 h-5 text-zinc-500" strokeWidth={1.5} />
+              <div key={i} className="group relative flex items-start gap-4 p-4 rounded-xl hover:bg-[#fafaf9] transition-colors cursor-default">
+                <div className="w-10 h-10 rounded-lg bg-[#eeece6] flex items-center justify-center flex-shrink-0 group-hover:bg-zinc-200 transition-colors">
+                  <opt.icon className="w-5 h-5 text-[#78716c]" strokeWidth={1.5} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-body-medium text-zinc-800">{opt.label}</p>
-                  <p className="text-caption text-zinc-500 mt-0.5 leading-relaxed">{opt.desc}</p>
+                  <p className="text-body-medium text-[#292524]">{opt.label}</p>
+                  <p className="text-caption text-[#78716c] mt-0.5 leading-relaxed">{opt.desc}</p>
                 </div>
-                <span className="absolute left-4 right-4 -bottom-1 translate-y-full p-2.5 bg-zinc-900 text-white text-caption rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30 pointer-events-none">
+                <span className="absolute left-4 right-4 -bottom-1 translate-y-full p-2.5 bg-[#292524] text-white text-caption rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30 pointer-events-none">
                   {opt.tooltip}
                 </span>
               </div>
             ))}
           </div>
-          <div className="px-6 py-4 border-t bg-zinc-50 rounded-b-xl">
-            <p className="text-caption text-zinc-400 text-center">Ces options sont présentées à titre informatif pour recueillir vos retours.</p>
+          <div className="px-6 py-4 border-t bg-[#F8F7F5] rounded-b-xl">
+            <p className="text-caption text-[#a8a29e] text-center">Ces options sont présentées à titre informatif pour recueillir vos retours.</p>
           </div>
         </div>
       </div>
@@ -6286,14 +6863,28 @@ export default function App() {
     if (activeDossierId) saveDossierData(activeDossierId);
 
     const newId = `dossier-${Date.now()}`;
-    const refName = hasRapport ? 'Martin Sophie' : 'Nouveau dossier';
+
+    // Try to extract a name from file names (e.g. "Martin_Sophie_rapport.pdf" or "dupont jean expertise.pdf")
+    const extractNameFromFiles = (fileList) => {
+      for (const f of fileList) {
+        const base = f.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+        // Match two consecutive capitalized words or words at start
+        const match = base.match(/\b([A-ZÀ-Ü][a-zà-ÿ]+)\s+([A-ZÀ-Ü][a-zà-ÿ]+)/);
+        if (match) return { nom: match[1], prenom: match[2] };
+      }
+      return null;
+    };
+    const extracted = extractNameFromFiles(files);
+    const refName = extracted ? `${extracted.nom} ${extracted.prenom}` : 'Nouveau dossier';
 
     setDossiers(prev => [{
       id: newId, reference: refName, typeFait: hasRapport ? 'Accident de la voie publique' : '',
       date: new Date().toLocaleDateString('fr-FR'), lastEditBy: 'Meghan R.', lastEditDate: new Date().toLocaleDateString('fr-FR')
     }, ...prev]);
 
-    setVictimeData({ nom: '', prenom: '', sexe: 'Homme', dateNaissance: '', dateDeces: null });
+    setVictimeData(extracted
+      ? { nom: extracted.nom, prenom: extracted.prenom, sexe: 'Homme', dateNaissance: '', dateDeces: null }
+      : { nom: '', prenom: '', sexe: 'Homme', dateNaissance: '', dateDeces: null });
     setFaitGenerateur({ type: '', dateAccident: '', datePremiereConstatation: '', dateConsolidation: '', resume: '' });
     setChiffrageParams(prev => ({ ...EMPTY_DOSSIER.chiffrageParams }));
     setDossierStatut('ouvert');
@@ -6621,7 +7212,7 @@ export default function App() {
     const isExternalFileDrag = (e) => !reorderDrag && e.dataTransfer.types.includes('Files');
     return (
       <div
-        className="flex h-full relative"
+        className="flex h-full relative -mx-4 -mt-4"
         onDragOver={e => { e.preventDefault(); if (isExternalFileDrag(e)) { clearTimeout(dragLeaveTimer); setPiecesTabDragOver(true); } }}
         onDragLeave={e => { e.preventDefault(); if (isExternalFileDrag(e)) { dragLeaveTimer = setTimeout(() => setPiecesTabDragOver(false), 50); } }}
         onDrop={e => { e.preventDefault(); if (piecesTabDragOver) { setPiecesTabDragOver(false); handleAddMorePieces(e.dataTransfer.files); } }}
@@ -6636,269 +7227,268 @@ export default function App() {
             <p className="text-body text-stone-500 mt-2">Les documents seront analysés automatiquement</p>
           </div>
         )}
-        {/* Hidden file input for "Ajouter des pièces" button */}
+        {/* Hidden file input */}
         <input id="add-pieces-input" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" className="hidden" onChange={e => { handleAddMorePieces(e.target.files); e.target.value = ''; }} />
-        {/* Main table area */}
+
+        {/* Main content */}
         <div className="flex-1 flex flex-col min-w-0">
-
-          {/* Table */}
-          <div className="bg-white rounded-lg border border-zinc-200/60 overflow-hidden flex-1">
-            {/* Toolbar */}
-            <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-stone-200">
-              <div className="flex items-center gap-3">
-                <span className="text-body text-stone-500">{totalItems} pièce{totalItems > 1 ? 's' : ''}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <select
-                    value={piecesFilter.type || ''}
-                    onChange={e => setPiecesFilter(prev => ({ ...prev, type: e.target.value || null }))}
-                    className="appearance-none h-[36px] pl-8 pr-8 text-body border border-stone-200 rounded-lg bg-white text-stone-600 focus:outline-none focus:ring-1 focus:ring-blue-200 shadow-sm"
-                  >
-                    <option value="">Tous les types</option>
-                    {PIECE_TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                  <Filter className="w-4 h-4 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Rechercher..."
-                    value={piecesFilter.search}
-                    onChange={e => setPiecesFilter(prev => ({ ...prev, search: e.target.value }))}
-                    className="w-[180px] h-[36px] pl-8 pr-3 text-body border border-stone-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-blue-200 shadow-sm"
-                  />
-                  <Search className="w-4 h-4 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-                {isFiltered && (
-                  <button onClick={() => setPiecesFilter({ type: null, search: '' })} className="text-body text-stone-400 hover:text-stone-600 flex items-center gap-1 transition-colors">
-                    <X className="w-3.5 h-3.5" /> Réinitialiser
-                  </button>
-                )}
-                <div className="w-px h-5 bg-stone-200"></div>
-                <button
-                  onClick={handleCopyBordereau}
-                  className="h-[36px] px-4 text-body-medium text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors flex items-center gap-2"
+          {/* Sub-header bar — edge-to-edge */}
+          <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[#e7e5e3]">
+            <span className="flex-1 text-sm font-medium text-[#292524]">{totalItems} pièce{totalItems > 1 ? 's' : ''}</span>
+            <div className="flex items-center gap-2.5">
+              <div className="relative">
+                <select
+                  value={piecesFilter.type || ''}
+                  onChange={e => setPiecesFilter(prev => ({ ...prev, type: e.target.value || null }))}
+                  className="appearance-none h-9 pl-8 pr-8 text-sm border border-[#e7e5e3] rounded-lg bg-white text-[#78716c] focus:outline-none focus:ring-1 focus:ring-stone-300 shadow-sm cursor-pointer"
                 >
-                  <Clipboard className="w-4 h-4" /> Bordereau
-                </button>
+                  <option value="">Filtrer par type</option>
+                  {PIECE_TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <ListFilter className="w-4 h-4 text-[#78716c] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
+                <ChevronDown className="w-4 h-4 text-[#78716c] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
               </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Rechercher..."
+                  value={piecesFilter.search}
+                  onChange={e => setPiecesFilter(prev => ({ ...prev, search: e.target.value }))}
+                  className="h-9 pl-8 pr-3 text-sm border border-[#e7e5e3] rounded-lg bg-white text-[#292524] placeholder-[#78716c] placeholder-opacity-70 focus:outline-none focus:ring-1 focus:ring-stone-300 shadow-sm"
+                />
+                <Search className="w-4 h-4 text-[#78716c] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
+              </div>
+              {isFiltered && (
+                <button onClick={() => setPiecesFilter({ type: null, search: '' })} className="text-sm text-[#78716c] hover:text-[#44403c] flex items-center gap-1 transition-colors">
+                  <X className="w-3.5 h-3.5" /> Réinitialiser
+                </button>
+              )}
+              <button
+                onClick={handleCopyBordereau}
+                className="h-8 px-3 text-sm font-medium text-[#44403c] bg-[#eeece6] rounded-md hover:bg-[#e7e5e3] transition-colors"
+              >
+                Bordereau
+              </button>
             </div>
-            {/* Drop zone — inline-tables context */}
-            <div
-              className="dropzone-inline mx-3 my-3 h-[36px] border border-dashed rounded-lg transition-all cursor-pointer flex items-center gap-2 px-2.5"
-              style={{ borderColor: '#d6d3d1' }}
-              onClick={() => document.getElementById('add-pieces-input')?.click()}
-              onDragOver={e => { e.preventDefault(); e.stopPropagation(); e.currentTarget.classList.add('dropzone-drop'); }}
-              onDragLeave={e => { e.preventDefault(); e.currentTarget.classList.remove('dropzone-drop'); }}
-              onDrop={e => { e.preventDefault(); e.stopPropagation(); e.currentTarget.classList.remove('dropzone-drop'); handleAddMorePieces(e.dataTransfer.files); }}
-            >
-              <Upload className="w-4 h-4 text-stone-400 dropzone-icon-default" />
-              <ArrowDown className="w-4 h-4 text-stone-600 dropzone-icon-drop hidden" />
-              <span className="text-body dropzone-text-default"><span className="text-stone-500">Déposez ou </span><span className="font-medium text-[#1e3a8a]">cliquez</span><span className="text-stone-500"> pour ajouter des pièces</span></span>
-              <span className="text-body-medium text-[#292524] dropzone-text-drop hidden">Déposez vos fichiers ici</span>
-            </div>
-            <table className="w-full">
-              <thead>
-                <tr className="h-[40px] bg-white border-y" style={{ borderColor: '#e7e5e3' }}>
-                  <th className="w-[24px] px-1"></th>
-                  <th className="w-[48px] px-3 text-left text-caption-medium" style={{ color: '#78716c' }}>N°</th>
-                  <th className="px-3 text-left text-caption-medium" style={{ color: '#78716c' }}>Nom</th>
-                  <th className="w-[140px] px-3 text-left text-caption-medium" style={{ color: '#78716c' }}>Type</th>
-                  <th className="w-[100px] px-3 text-left text-caption-medium" style={{ color: '#78716c' }}>Date</th>
-                  <th className="px-3 text-left text-caption-medium" style={{ color: '#78716c' }}>Postes liés</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((piece, idx) => {
-                  const isProcessing = piece.status !== 'done';
-                  const pieceNum = piece.status === 'done' ? getPieceNumber(piece) : null;
-                  const isSelected = pieceOverviewPanel === piece.id;
-                  const isDragging = reorderDrag?.pieceId === piece.id;
-                  const canDrag = !isProcessing && !isFiltered;
+          </div>
 
-                  return (
-                    <React.Fragment key={piece.id}>
-                      {/* Drop indicator line */}
-                      {reorderDropIdx === idx && reorderDrag?.pieceId !== piece.id && (
-                        <tr><td colSpan={6} className="p-0"><div className="h-0.5 bg-blue-500 rounded-full mx-2" /></td></tr>
-                      )}
-                      <tr
-                        className={`border-b border-zinc-50 transition-all duration-300 ${
-                          isDragging ? 'opacity-20 bg-zinc-100' :
-                          isProcessing ? 'opacity-60' : 'hover:bg-zinc-50 cursor-pointer'
-                        } ${piece.justCompleted ? 'bg-teal-50' : ''} ${isSelected && !isDragging ? 'bg-teal-50/50' : ''}`}
-                        onClick={() => !isProcessing && !reorderDrag && setPieceOverviewPanel(piece.id)}
-                        style={{ height: '52px' }}
-                        draggable={canDrag}
-                        onDragStart={e => {
-                          if (!canDrag) { e.preventDefault(); return; }
-                          // Create invisible drag image (we show custom ghost)
-                          const img = new window.Image();
-                          img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                          e.dataTransfer.setDragImage(img, 0, 0);
-                          e.dataTransfer.effectAllowed = 'move';
-                          setReorderDrag({ pieceId: piece.id, ghostX: e.clientX, ghostY: e.clientY, name: piece.cleanName, type: piece.type, num: pieceNum });
-                        }}
-                        onDrag={e => {
-                          if (e.clientX === 0 && e.clientY === 0) return; // browser sends 0,0 at end
-                          setReorderDrag(prev => prev ? { ...prev, ghostX: e.clientX, ghostY: e.clientY } : null);
-                        }}
-                        onDragOver={e => {
-                          e.preventDefault();
-                          e.dataTransfer.dropEffect = 'move';
-                          // Determine if drop should be above or below this row
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          const midY = rect.top + rect.height / 2;
-                          setReorderDropIdx(e.clientY < midY ? idx : idx + 1);
-                        }}
-                        onDragEnd={() => {
-                          if (reorderDrag && reorderDropIdx !== null) {
-                            const dragId = reorderDrag.pieceId;
-                            const currentFiltered = filtered;
-                            const draggedIdx = currentFiltered.findIndex(p => p.id === dragId);
-                            let targetIdx = reorderDropIdx;
-                            if (targetIdx > draggedIdx) targetIdx -= 1;
-                            if (draggedIdx !== targetIdx && draggedIdx >= 0) {
-                              setDropFirstPieces(prev => {
-                                // Reorder using the filtered (displayed) order as base
-                                const doneIds = currentFiltered.filter(p => p.status === 'done').map(p => p.id);
-                                const pending = prev.filter(p => p.status !== 'done');
-                                const doneMap = {};
-                                prev.forEach(p => { if (p.status === 'done') doneMap[p.id] = p; });
-                                const ordered = doneIds.map(id => doneMap[id]);
-                                // Move the dragged item
-                                const fromIdx = ordered.findIndex(p => p.id === dragId);
-                                if (fromIdx < 0) return prev;
-                                const [moved] = ordered.splice(fromIdx, 1);
-                                let toIdx = targetIdx;
-                                if (toIdx > ordered.length) toIdx = ordered.length;
-                                ordered.splice(toIdx, 0, moved);
-                                return [...ordered, ...pending];
-                              });
-                              setManualReorder(true);
+          {/* Content with padding */}
+          <div className="p-4 flex-1 overflow-y-auto">
+            {/* Drop zone */}
+            <div
+              className="mb-4 flex items-center justify-center gap-4 h-16 border border-dashed border-[#d6d3d1] rounded-lg cursor-pointer transition-colors hover:border-[#a8a29e]"
+              style={{ background: 'linear-gradient(to top, rgba(238,236,230,0) 50%, #f8f7f5 100%)' }}
+              onClick={() => document.getElementById('add-pieces-input')?.click()}
+              onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+              onDrop={e => { e.preventDefault(); e.stopPropagation(); handleAddMorePieces(e.dataTransfer.files); }}
+            >
+              <Upload className="w-5 h-5 text-[#78716c]" strokeWidth={1.5} />
+              <span className="text-sm">
+                <span className="text-[#78716c]">Déposez ou </span>
+                <span className="font-medium text-[#1e3a8a]">cliquez</span>
+                <span className="text-[#78716c]"> pour ajouter de nouvelles pièces</span>
+              </span>
+            </div>
+
+            {/* Table */}
+            <div className="border border-[#e7e5e3] rounded-md overflow-hidden bg-white">
+              <table className="w-full">
+                <thead>
+                  <tr className="h-10 bg-white border-b border-[#e7e5e3]">
+                    <th className="w-[38px]"></th>
+                    <th className="w-[50px] px-3 text-center" style={colHeaderStyle}>N°</th>
+                    <th className="px-3 text-left" style={colHeaderStyle}>Nom du document</th>
+                    <th className="w-[174px] px-3 text-left" style={colHeaderStyle}>Type</th>
+                    <th className="w-[120px] px-3 text-left" style={colHeaderStyle}>Date</th>
+                    <th className="w-[224px] px-3 text-left" style={colHeaderStyle}>Postes liés</th>
+                    <th className="w-[44px]"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((piece, idx) => {
+                    const isProcessing = piece.status !== 'done';
+                    const pieceNum = piece.status === 'done' ? getPieceNumber(piece) : null;
+                    const isSelected = pieceOverviewPanel === piece.id;
+                    const isDragItem = reorderDrag?.pieceId === piece.id;
+                    const canDrag = !isProcessing && !isFiltered;
+
+                    return (
+                      <React.Fragment key={piece.id}>
+                        {/* Drop indicator line */}
+                        {reorderDropIdx === idx && reorderDrag?.pieceId !== piece.id && (
+                          <tr><td colSpan={7} className="p-0"><div className="h-0.5 bg-blue-500 rounded-full mx-2" /></td></tr>
+                        )}
+                        <tr
+                          className={`border-b border-[#e7e5e3] transition-all duration-300 group bg-white ${
+                            isDragItem ? 'opacity-20 !bg-[#f4f4f5]' :
+                            isProcessing ? '' : 'hover:bg-[#fafaf9] cursor-pointer'
+                          } ${piece.justCompleted ? '!bg-teal-50' : ''} ${isSelected && !isDragItem ? '!bg-[#f8f7f5]' : ''}`}
+                          onClick={() => !isProcessing && !reorderDrag && setPieceOverviewPanel(piece.id)}
+                          style={{ height: '56px' }}
+                          draggable={canDrag}
+                          onDragStart={e => {
+                            if (!canDrag) { e.preventDefault(); return; }
+                            const img = new window.Image();
+                            img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                            e.dataTransfer.setDragImage(img, 0, 0);
+                            e.dataTransfer.effectAllowed = 'move';
+                            setReorderDrag({ pieceId: piece.id, ghostX: e.clientX, ghostY: e.clientY, name: piece.cleanName, type: piece.type, num: pieceNum });
+                          }}
+                          onDrag={e => {
+                            if (e.clientX === 0 && e.clientY === 0) return;
+                            setReorderDrag(prev => prev ? { ...prev, ghostX: e.clientX, ghostY: e.clientY } : null);
+                          }}
+                          onDragOver={e => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = 'move';
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const midY = rect.top + rect.height / 2;
+                            setReorderDropIdx(e.clientY < midY ? idx : idx + 1);
+                          }}
+                          onDragEnd={() => {
+                            if (reorderDrag && reorderDropIdx !== null) {
+                              const dragId = reorderDrag.pieceId;
+                              const currentFiltered = filtered;
+                              const draggedIdx = currentFiltered.findIndex(p => p.id === dragId);
+                              let targetIdx = reorderDropIdx;
+                              if (targetIdx > draggedIdx) targetIdx -= 1;
+                              if (draggedIdx !== targetIdx && draggedIdx >= 0) {
+                                setDropFirstPieces(prev => {
+                                  const doneIds = currentFiltered.filter(p => p.status === 'done').map(p => p.id);
+                                  const pending = prev.filter(p => p.status !== 'done');
+                                  const doneMap = {};
+                                  prev.forEach(p => { if (p.status === 'done') doneMap[p.id] = p; });
+                                  const ordered = doneIds.map(id => doneMap[id]);
+                                  const fromIdx = ordered.findIndex(p => p.id === dragId);
+                                  if (fromIdx < 0) return prev;
+                                  const [moved] = ordered.splice(fromIdx, 1);
+                                  let toIdx = targetIdx;
+                                  if (toIdx > ordered.length) toIdx = ordered.length;
+                                  ordered.splice(toIdx, 0, moved);
+                                  return [...ordered, ...pending];
+                                });
+                                setManualReorder(true);
+                              }
                             }
-                          }
-                          setReorderDrag(null);
-                          setReorderDropIdx(null);
-                        }}
-                      >
-                      {/* Drag handle */}
-                      <td className="px-1 text-center">
-                        {canDrag && (
-                          <GripVertical className="w-3.5 h-3.5 text-zinc-300 cursor-grab hover:text-zinc-500" />
-                        )}
-                      </td>
-                      {/* N° / loader */}
-                      <td className="px-2 py-2 text-center">
-                        {isProcessing ? (
-                          <Loader2 className="w-4 h-4 text-teal-500 animate-spin mx-auto" />
-                        ) : (
-                          <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[6px] bg-[#dfe8f5] text-caption-medium text-[#292524]">{pieceNum || '—'}</span>
-                        )}
-                      </td>
-                      {/* Nom */}
-                      <td className="px-3 py-2">
-                        {isProcessing ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-body text-zinc-400 italic">{piece.originalName}</span>
-                            <div className="h-3 w-24 bg-zinc-100 rounded animate-pulse"></div>
-                          </div>
-                        ) : (
-                          <span className="text-body-medium text-zinc-700">
-                            {piece.cleanName}
-                          </span>
-                        )}
-                      </td>
-                      {/* Type */}
-                      <td className="px-3 py-2">
-                        {isProcessing ? (
-                          <div className="h-5 w-16 bg-zinc-100 rounded animate-pulse"></div>
-                        ) : (
-                          <div className="relative">
-                            <button
-                              className={`badge badge-sm cursor-pointer hover:opacity-80 transition-opacity ${PIECE_TYPE_COLORS[piece.type] || 'badge-secondary'}`}
-                              onClick={e => { e.stopPropagation(); setEditingPieceField(editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'type' ? null : { pieceId: piece.id, field: 'type' }); }}
-                            >
-                              {piece.type}
-                              <ChevronDown className="w-3 h-3 opacity-50" />
-                            </button>
-                            {editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'type' && (
-                              <div className="absolute left-0 top-full mt-1 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 z-10 min-w-[160px]">
-                                {PIECE_TYPE_OPTIONS.map(t => (
-                                  <button
-                                    key={t}
-                                    className={`w-full text-left px-3 py-1.5 text-body hover:bg-zinc-50 transition-colors flex items-center gap-2 ${piece.type === t ? 'font-medium text-zinc-800' : 'text-zinc-600'}`}
-                                    onClick={e => {
-                                      e.stopPropagation();
-                                      setDropFirstPieces(prev => prev.map(p => p.id === piece.id ? { ...p, type: t } : p));
-                                      setEditingPieceField(null);
-                                    }}
-                                  >
-                                    <span className={`w-2 h-2 rounded-full ${piece.type === t ? 'bg-stone-800' : ''}`} />
-                                    {t}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      {/* Date */}
-                      <td className="px-3 py-2">
-                        {isProcessing ? (
-                          <span className="text-body text-zinc-300">—</span>
-                        ) : (
-                          <span
-                            className="text-body text-zinc-600"
-                            onClick={e => { e.stopPropagation(); setEditingPieceField({ pieceId: piece.id, field: 'date' }); }}
-                          >
-                            {piece.date ? new Date(piece.date).toLocaleDateString('fr-FR') : '—'}
-                          </span>
-                        )}
-                      </td>
-                      {/* Postes liés */}
-                      <td className="px-3 py-2">
-                        {isProcessing ? null : (
-                          <div className="flex flex-wrap gap-1">
-                            {(piece.postesLies || []).map(p => (
-                              <span key={p} className="badge badge-sm badge-secondary">{p}</span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                    </React.Fragment>
-                  );
-                })}
-                {/* Drop indicator at the very end */}
-                {reorderDropIdx === filtered.length && reorderDrag && (
-                  <tr><td colSpan={6} className="p-0"><div className="h-0.5 bg-blue-500 rounded-full mx-2" /></td></tr>
-                )}
-              </tbody>
-            </table>
+                            setReorderDrag(null);
+                            setReorderDropIdx(null);
+                          }}
+                        >
+                        {/* Grip handle */}
+                        <td className="w-[38px] text-center">
+                          {canDrag ? (
+                            <GripVertical className="w-3.5 h-3.5 text-[#d6d3d1] cursor-grab opacity-0 group-hover:opacity-100 transition-opacity inline-block" strokeWidth={1.5} />
+                          ) : null}
+                        </td>
+                        {/* N° / loader */}
+                        <td className="w-[50px] px-3 text-center">
+                          {isProcessing ? (
+                            <Loader2 className="w-5 h-5 text-[#78716c] animate-spin mx-auto" strokeWidth={1.5} />
+                          ) : (
+                            <span className="inline-flex items-center justify-center w-[22px] h-[22px] bg-[#eeece6] text-[#78716c] text-xs font-semibold rounded-md">{pieceNum || '—'}</span>
+                          )}
+                        </td>
+                        {/* Document name */}
+                        <td className="px-3">
+                          {isProcessing ? (
+                            <span className="text-sm text-[#292524] italic opacity-40">{piece.originalName}</span>
+                          ) : (
+                            <span className="text-sm font-medium text-black">{piece.cleanName}</span>
+                          )}
+                        </td>
+                        {/* Type */}
+                        <td className="w-[174px] px-3">
+                          {isProcessing ? (
+                            <div className="h-[18px] w-16 bg-[#f4f4f5] rounded" />
+                          ) : (
+                            <div className="relative">
+                              <button
+                                className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md cursor-pointer hover:opacity-80 transition-opacity ${PIECE_TYPE_COLORS[piece.type] || 'bg-[#eeece6] text-[#44403c]'}`}
+                                onClick={e => { e.stopPropagation(); setEditingPieceField(editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'type' ? null : { pieceId: piece.id, field: 'type' }); }}
+                              >
+                                {piece.type}
+                                <ChevronDown className="w-3 h-3" strokeWidth={1.5} />
+                              </button>
+                              {editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'type' && (
+                                <div className="absolute left-0 top-full mt-1 bg-white border border-[#e7e5e3] rounded-lg shadow-lg py-1 z-10 min-w-[160px]">
+                                  {PIECE_TYPE_OPTIONS.map(t => (
+                                    <button
+                                      key={t}
+                                      className={`w-full text-left px-3 py-1.5 text-sm hover:bg-[#fafaf9] transition-colors flex items-center gap-2 ${piece.type === t ? 'font-medium text-[#292524]' : 'text-[#78716c]'}`}
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        setDropFirstPieces(prev => prev.map(p => p.id === piece.id ? { ...p, type: t } : p));
+                                        setEditingPieceField(null);
+                                      }}
+                                    >
+                                      <span className={`w-2 h-2 rounded-full ${piece.type === t ? 'bg-[#292524]' : ''}`} />
+                                      {t}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        {/* Date */}
+                        <td className="w-[120px] px-3">
+                          {isProcessing ? (
+                            <div className="h-[18px] w-16 bg-[#f4f4f5] rounded" />
+                          ) : (
+                            <span className="text-sm text-[#292524]">
+                              {piece.date ? new Date(piece.date).toLocaleDateString('fr-FR') : '—'}
+                            </span>
+                          )}
+                        </td>
+                        {/* Postes liés */}
+                        <td className="w-[224px] px-3">
+                          {isProcessing ? (
+                            <div className="h-[18px] w-16 bg-[#f4f4f5] rounded" />
+                          ) : (
+                            <div className="flex flex-wrap gap-1 overflow-hidden">
+                              {(piece.postesLies || []).map(p => (
+                                <span key={p} className="px-2 py-0.5 text-xs font-medium text-[#44403c] bg-[#eeece6] rounded-md">{p}</span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        {/* Options */}
+                        <td className="w-[44px] text-right pr-4">
+                          {!isProcessing && (
+                            <MoreVertical className="w-4 h-4 text-[#78716c] opacity-0 group-hover:opacity-100 transition-opacity inline-block" strokeWidth={1.5} />
+                          )}
+                        </td>
+                      </tr>
+                      </React.Fragment>
+                    );
+                  })}
+                  {/* Drop indicator at the very end */}
+                  {reorderDropIdx === filtered.length && reorderDrag && (
+                    <tr><td colSpan={7} className="p-0"><div className="h-0.5 bg-blue-500 rounded-full mx-2" /></td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Custom drag ghost card */}
           {reorderDrag && (
             <div
-              className="fixed z-50 pointer-events-none bg-white border border-stone-200 rounded-lg shadow-lg px-3 py-2 flex items-center gap-2"
+              className="fixed z-50 pointer-events-none bg-white border border-[#e7e5e3] rounded-lg shadow-lg px-3 py-2 flex items-center gap-2"
               style={{ left: reorderDrag.ghostX + 12, top: reorderDrag.ghostY - 16, minWidth: 200 }}
             >
-              <GripVertical className="w-3 h-3 text-stone-300" />
-              <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[6px] bg-[#dfe8f5] text-caption-medium text-[#292524]">{reorderDrag.num || '?'}</span>
-              <span className="text-body-medium text-stone-700 truncate max-w-[250px]">{reorderDrag.name}</span>
+              <GripVertical className="w-3 h-3 text-[#d6d3d1]" strokeWidth={1.5} />
+              <span className="inline-flex items-center justify-center w-[22px] h-[22px] bg-[#eeece6] text-[#78716c] text-xs font-semibold rounded-md">{reorderDrag.num || '?'}</span>
+              <span className="text-sm font-medium text-[#292524] truncate max-w-[250px]">{reorderDrag.name}</span>
               {reorderDrag.type && (
-                <span className={`badge badge-sm ${PIECE_TYPE_COLORS[reorderDrag.type] || 'badge-secondary'}`}>
-                  {reorderDrag.type}
-                </span>
+                <span className={`px-2 py-0.5 text-xs font-medium rounded-md ${PIECE_TYPE_COLORS[reorderDrag.type] || 'bg-[#eeece6] text-[#44403c]'}`}>{reorderDrag.type}</span>
               )}
             </div>
           )}
 
           {/* Track B hint — no rapport */}
           {allDone && !dropFirstHasRapport && !rapportBannerDismissed && (
-            <div className="mt-3 px-4 py-3 text-body text-zinc-400 flex items-center gap-2">
+            <div className="mt-3 px-4 py-3 text-sm text-[#78716c] flex items-center gap-2">
               <span>💡</span>
               <span>Astuce : ajoutez un rapport d'expertise pour remplir automatiquement les informations du dossier.</span>
             </div>
@@ -6914,7 +7504,7 @@ export default function App() {
   const renderPieceOverviewPanel = (piece) => {
     const pieceNum = getPieceNumber(piece);
     const hasSplitInfo = !!piece.sourceFile;
-    const typeColorLight = piece.type === 'Expertise' ? 'bg-teal-50 border-teal-200' : piece.type === 'Décision' ? 'bg-purple-50 border-purple-200' : piece.type === 'Revenus' ? 'bg-green-50 border-green-200' : piece.type === 'Factures' ? 'bg-orange-50 border-orange-200' : piece.type === 'Médical' ? 'bg-blue-50 border-blue-200' : piece.type === 'Administratif' ? 'bg-slate-50 border-slate-200' : 'bg-zinc-50 border-zinc-200';
+    const typeColorLight = piece.type === 'Expertise' ? 'bg-teal-50 border-teal-200' : piece.type === 'Décision' ? 'bg-purple-50 border-purple-200' : piece.type === 'Revenus' ? 'bg-green-50 border-green-200' : piece.type === 'Factures' ? 'bg-orange-50 border-orange-200' : piece.type === 'Médical' ? 'bg-blue-50 border-blue-200' : piece.type === 'Administratif' ? 'bg-slate-50 border-slate-200' : 'bg-[#F8F7F5] border-[#e7e5e3]';
 
     // Navigation: get ordered list of done pieces
     const donePieces = getFilteredPieces().filter(p => p.status === 'done');
@@ -6925,34 +7515,34 @@ export default function App() {
     const editingPanelType = editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'panelType';
 
     return (
-      <div className="fixed right-0 top-0 h-screen bg-white border-l border-zinc-200 shadow-xl z-30 flex flex-col" style={{ width: '860px', animation: 'slideInRight 0.2s ease-out' }}>
+      <div className="fixed right-0 top-0 h-screen bg-white border-l border-[#e7e5e3] shadow-xl z-30 flex flex-col" style={{ width: '860px', animation: 'slideInRight 0.2s ease-out' }}>
         {/* Common header: navigation + close — spans full width */}
-        <div className="px-5 py-3 border-b border-zinc-200 flex items-center justify-between flex-shrink-0 bg-white">
+        <div className="px-5 py-3 border-b border-[#e7e5e3] flex items-center justify-between flex-shrink-0 bg-white">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[6px] bg-[#dfe8f5] text-caption-medium text-[#292524]">{pieceNum || '—'}</span>
-              <span className="text-body-medium text-zinc-700 truncate max-w-[300px]">{piece.cleanName}</span>
+              <span className="text-body-medium text-[#44403c] truncate max-w-[300px]">{piece.cleanName}</span>
             </div>
             <span className="text-zinc-200 mx-1">|</span>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => prevPiece && setPieceOverviewPanel(prevPiece.id)}
                 disabled={!prevPiece}
-                className={`p-1.5 rounded-md transition-colors ${prevPiece ? 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100' : 'text-zinc-200 cursor-not-allowed'}`}
+                className={`p-1.5 rounded-md transition-colors ${prevPiece ? 'text-[#78716c] hover:text-[#292524] hover:bg-[#eeece6]' : 'text-zinc-200 cursor-not-allowed'}`}
               >
                 <ChevronRight className="w-4 h-4 rotate-180" />
               </button>
-              <span className="text-caption text-zinc-400 min-w-[40px] text-center">{currentIdx + 1} / {donePieces.length}</span>
+              <span className="text-caption text-[#a8a29e] min-w-[40px] text-center">{currentIdx + 1} / {donePieces.length}</span>
               <button
                 onClick={() => nextPiece && setPieceOverviewPanel(nextPiece.id)}
                 disabled={!nextPiece}
-                className={`p-1.5 rounded-md transition-colors ${nextPiece ? 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100' : 'text-zinc-200 cursor-not-allowed'}`}
+                className={`p-1.5 rounded-md transition-colors ${nextPiece ? 'text-[#78716c] hover:text-[#292524] hover:bg-[#eeece6]' : 'text-zinc-200 cursor-not-allowed'}`}
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
-          <button onClick={() => setPieceOverviewPanel(null)} className="p-1.5 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-md transition-colors">
+          <button onClick={() => setPieceOverviewPanel(null)} className="p-1.5 text-[#a8a29e] hover:text-[#78716c] hover:bg-[#eeece6] rounded-md transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -6960,27 +7550,27 @@ export default function App() {
         {/* Two-column body */}
         <div className="flex flex-1 min-h-0">
         {/* Left: Document Preview */}
-        <div className="w-[420px] flex flex-col border-r border-zinc-100 bg-zinc-50">
+        <div className="w-[420px] flex flex-col border-r border-zinc-100 bg-[#F8F7F5]">
           {/* Source file card — on top */}
           <div className="px-4 pt-4 pb-2 flex-shrink-0">
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50/60 overflow-hidden">
+            <div className="rounded-lg border border-[#e7e5e3] bg-[#F8F7F5]/60 overflow-hidden">
               <div className="flex items-center gap-1.5 px-3 py-2 border-b border-zinc-100">
                 {hasSplitInfo ? (
                   <>
-                    <Scissors className="w-3 h-3 text-zinc-400" />
-                    <span className="text-caption-medium text-zinc-400">Document découpé · partie {piece.splitIndex + 1}/{piece.siblings.length}</span>
+                    <Scissors className="w-3 h-3 text-[#a8a29e]" />
+                    <span className="text-caption-medium text-[#a8a29e]">Document découpé · partie {piece.splitIndex + 1}/{piece.siblings.length}</span>
                   </>
                 ) : (
-                  <span className="text-caption-medium text-zinc-400">Document original</span>
+                  <span className="text-caption-medium text-[#a8a29e]">Document original</span>
                 )}
               </div>
               <div className="flex items-center gap-2.5 px-3 py-2.5">
-                <div className="flex items-center justify-center w-7 h-7 rounded-md bg-white border border-zinc-200 flex-shrink-0">
-                  <FileText className="w-3.5 h-3.5 text-zinc-400" />
+                <div className="flex items-center justify-center w-7 h-7 rounded-md bg-white border border-[#e7e5e3] flex-shrink-0">
+                  <FileText className="w-3.5 h-3.5 text-[#a8a29e]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-body-medium text-zinc-600 truncate">{piece.originalName || piece.sourceFile || '—'}</p>
-                  <p className="text-caption text-zinc-400">{piece.pages || '?'} page{(piece.pages || 0) > 1 ? 's' : ''}</p>
+                  <p className="text-body-medium text-[#78716c] truncate">{piece.originalName || piece.sourceFile || '—'}</p>
+                  <p className="text-caption text-[#a8a29e]">{piece.pages || '?'} page{(piece.pages || 0) > 1 ? 's' : ''}</p>
                 </div>
               </div>
             </div>
@@ -6988,25 +7578,25 @@ export default function App() {
           {/* Preview content — placeholder */}
           <div className="flex-1 p-4 overflow-y-auto">
             <div className={`w-full h-full min-h-[500px] rounded-lg border ${typeColorLight} flex flex-col items-center justify-center`}>
-              <FileText className="w-12 h-12 text-zinc-300 mb-3" />
-              <p className="text-body-medium text-zinc-400 mb-1">Aperçu du document</p>
-              <p className="text-caption text-zinc-300 text-center px-8">
+              <FileText className="w-12 h-12 text-[#d6d3d1] mb-3" />
+              <p className="text-body-medium text-[#a8a29e] mb-1">Aperçu du document</p>
+              <p className="text-caption text-[#d6d3d1] text-center px-8">
                 {piece.cleanName}
               </p>
-              <div className="mt-4 flex items-center gap-2 text-caption text-zinc-300">
+              <div className="mt-4 flex items-center gap-2 text-caption text-[#d6d3d1]">
                 <span>{piece.pages || '?'} page{(piece.pages || 0) > 1 ? 's' : ''}</span>
                 {hasSplitInfo && <span>· p. {piece.pageRange}</span>}
               </div>
               {/* Fake page thumbnails */}
               <div className="mt-6 flex flex-wrap gap-2 justify-center px-6">
                 {Array.from({ length: Math.min(piece.pages || 1, 6) }).map((_, i) => (
-                  <div key={i} className="w-[60px] h-[80px] bg-white rounded border border-zinc-200 shadow-sm flex items-center justify-center">
-                    <span className="text-counter text-zinc-300">{i + 1}</span>
+                  <div key={i} className="w-[60px] h-[80px] bg-white rounded border border-[#e7e5e3] shadow-sm flex items-center justify-center">
+                    <span className="text-counter text-[#d6d3d1]">{i + 1}</span>
                   </div>
                 ))}
                 {(piece.pages || 0) > 6 && (
-                  <div className="w-[60px] h-[80px] bg-white rounded border border-zinc-200 shadow-sm flex items-center justify-center">
-                    <span className="text-counter text-zinc-300">+{piece.pages - 6}</span>
+                  <div className="w-[60px] h-[80px] bg-white rounded border border-[#e7e5e3] shadow-sm flex items-center justify-center">
+                    <span className="text-counter text-[#d6d3d1]">+{piece.pages - 6}</span>
                   </div>
                 )}
               </div>
@@ -7020,9 +7610,9 @@ export default function App() {
           <div className="flex-1 overflow-y-auto px-5 py-5">
             {/* 1. Name — always-editable input */}
             <div className="mb-2">
-              <label className="text-caption text-zinc-400 mb-1 block">Nom du document</label>
+              <label className="text-caption text-[#a8a29e] mb-1 block">Nom du document</label>
               <input
-                className="text-body-medium text-zinc-800 bg-white border border-zinc-200 rounded-lg px-3 py-2 w-full hover:border-zinc-300 focus:border-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-200 transition-colors"
+                className="text-body-medium text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-2 w-full hover:border-zinc-300 focus:border-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-200 transition-colors"
                 value={piece.cleanName}
                 onChange={e => setDropFirstPieces(prev => prev.map(p => p.id === piece.id ? { ...p, cleanName: e.target.value } : p))}
               />
@@ -7031,15 +7621,15 @@ export default function App() {
             {/* Description — extracted summary */}
             {piece.summary && (
               <div className="mb-4">
-                <p className="text-caption text-zinc-500 leading-relaxed">{piece.summary}</p>
+                <p className="text-caption text-[#78716c] leading-relaxed">{piece.summary}</p>
               </div>
             )}
 
             {/* Data rows — label / value, separated by border */}
-            <div className="divide-y divide-zinc-100">
+            <div className="divide-y divide-[#e7e5e3]">
               {/* Type */}
               <div className="flex items-center justify-between py-3">
-                <span className="text-caption text-zinc-400">Type</span>
+                <span className="text-caption text-[#a8a29e]">Type</span>
                 <div className="relative">
                   <button
                     className={`badge badge-md cursor-pointer hover:opacity-80 transition-opacity ${PIECE_TYPE_COLORS[piece.type] || 'badge-secondary'}`}
@@ -7049,11 +7639,11 @@ export default function App() {
                     <ChevronDown className="w-3 h-3 opacity-50" />
                   </button>
                   {editingPanelType && (
-                    <div className="absolute right-0 top-full mt-1 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 z-10 min-w-[160px]">
+                    <div className="absolute right-0 top-full mt-1 bg-white border border-[#e7e5e3] rounded-lg shadow-lg py-1 z-10 min-w-[160px]">
                       {PIECE_TYPE_OPTIONS.map(t => (
                         <button
                           key={t}
-                          className={`w-full text-left px-3 py-1.5 text-body hover:bg-zinc-50 transition-colors flex items-center gap-2 ${piece.type === t ? 'font-medium text-zinc-800' : 'text-zinc-600'}`}
+                          className={`w-full text-left px-3 py-1.5 text-body hover:bg-[#fafaf9] transition-colors flex items-center gap-2 ${piece.type === t ? 'font-medium text-[#292524]' : 'text-[#78716c]'}`}
                           onClick={() => {
                             setDropFirstPieces(prev => prev.map(p => p.id === piece.id ? { ...p, type: t } : p));
                             setEditingPieceField(null);
@@ -7070,18 +7660,18 @@ export default function App() {
 
               {/* Date */}
               <div className="flex items-center justify-between py-3">
-                <span className="text-caption text-zinc-400">Date</span>
-                <span className="text-body text-zinc-700">{piece.date ? new Date(piece.date).toLocaleDateString('fr-FR') : '—'}</span>
+                <span className="text-caption text-[#a8a29e]">Date</span>
+                <span className="text-body text-[#44403c]">{piece.date ? new Date(piece.date).toLocaleDateString('fr-FR') : '—'}</span>
               </div>
 
               {/* Postes liés */}
               <div className="flex items-start justify-between py-3">
-                <span className="text-caption text-zinc-400 pt-0.5">Postes liés</span>
+                <span className="text-caption text-[#a8a29e] pt-0.5">Postes liés</span>
                 <div className="flex flex-wrap gap-1 justify-end max-w-[65%]">
                   {piece.postesLies && piece.postesLies.length > 0 ? piece.postesLies.map(p => (
                     <span key={p} className="badge badge-sm badge-secondary">{p}</span>
                   )) : (
-                    <span className="text-caption text-zinc-300">—</span>
+                    <span className="text-caption text-[#d6d3d1]">—</span>
                   )}
                 </div>
               </div>
@@ -7090,7 +7680,7 @@ export default function App() {
 
           </div>
           {/* Footer — fixed at bottom of right column */}
-          <div className="px-5 py-4 border-t border-zinc-200 bg-white flex-shrink-0">
+          <div className="px-5 py-4 border-t border-[#e7e5e3] bg-white flex-shrink-0">
             <button
               className="w-full px-4 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg flex items-center justify-center gap-2 font-medium text-sm transition-colors"
               onClick={() => {
@@ -7239,8 +7829,8 @@ export default function App() {
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[700px] max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
           {/* Header */}
           <div className="flex items-center justify-between px-6 pt-6 pb-4">
-            <h2 className="text-display-sm text-zinc-800" style={{ fontFamily: 'Georgia, serif' }}>Nouveau dossier</h2>
-            <button onClick={() => setDropModal(null)} className="p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors">
+            <h2 className="text-display-sm text-[#292524]" style={{ fontFamily: 'Georgia, serif' }}>Nouveau dossier</h2>
+            <button onClick={() => setDropModal(null)} className="p-1 text-[#a8a29e] hover:text-[#78716c] hover:bg-[#eeece6] rounded-lg transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -7311,7 +7901,7 @@ export default function App() {
             {/* File list */}
             {hasFiles && (
               <div className="mt-4">
-                <p className="text-body-medium text-zinc-500 mb-2">{files.length} document{files.length > 1 ? 's' : ''} ajouté{files.length > 1 ? 's' : ''}</p>
+                <p className="text-body-medium text-[#78716c] mb-2">{files.length} document{files.length > 1 ? 's' : ''} ajouté{files.length > 1 ? 's' : ''}</p>
                 <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto">
                   {files.map((f, idx) => {
                     const isUploading = f.status === 'uploading';
@@ -7394,7 +7984,7 @@ export default function App() {
                 setDropModal(null);
                 setCreationWizard({ step: 'infos', formData: { nom: '', prenom: '', sexe: 'Homme', dateNaissance: '', dateDeces: '', reference: '', typeFait: 'Accident de la route', dateAccident: '', dateConsolidation: '', dateLiquidation: '' } });
               }}
-              className="text-body text-zinc-400 hover:text-zinc-600 transition-colors"
+              className="text-body text-[#a8a29e] hover:text-[#78716c] transition-colors"
             >
               Créer manuellement
             </button>
@@ -7435,48 +8025,48 @@ export default function App() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden">
             {/* Header */}
             <div className="px-6 py-5 border-b border-zinc-100">
-              <h2 className="text-lg font-semibold text-zinc-800">Nouveau dossier</h2>
+              <h2 className="text-lg font-semibold text-[#292524]">Nouveau dossier</h2>
             </div>
 
             {/* Body */}
             <div className="px-6 py-5 space-y-6">
               {/* Section Identité */}
               <div>
-                <h3 className="text-body-medium font-semibold text-zinc-700 mb-3">Identité de la victime</h3>
+                <h3 className="text-body-medium font-semibold text-[#44403c] mb-3">Identité de la victime</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-caption-medium text-zinc-500 mb-1.5">Nom *</label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Nom *</label>
                     <input
                       type="text"
                       value={formData.nom}
                       onChange={(e) => updateFormData('nom', e.target.value)}
                       placeholder="Nom de famille"
-                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-body text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                      className="w-full px-3 py-2.5 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="block text-caption-medium text-zinc-500 mb-1.5">Prénom *</label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Prénom *</label>
                     <input
                       type="text"
                       value={formData.prenom}
                       onChange={(e) => updateFormData('prenom', e.target.value)}
                       placeholder="Prénom"
-                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-body text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                      className="w-full px-3 py-2.5 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="block text-caption-medium text-zinc-500 mb-1.5">Sexe</label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Sexe</label>
                     <select
                       value={formData.sexe}
                       onChange={(e) => updateFormData('sexe', e.target.value)}
-                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-body text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                      className="w-full px-3 py-2.5 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                     >
                       <option value="Homme">Homme</option>
                       <option value="Femme">Femme</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-caption-medium text-zinc-500 mb-1.5">Date de naissance *</label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Date de naissance *</label>
                     <div className="relative">
                       <input
                         type="text"
@@ -7484,15 +8074,15 @@ export default function App() {
                         value={formData.dateNaissance}
                         onChange={(e) => updateFormData('dateNaissance', formatDateInput(e.target.value))}
                         maxLength={10}
-                        className="w-full px-3 py-2.5 pr-9 border border-zinc-200 rounded-lg text-body text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                        className="w-full px-3 py-2.5 pr-9 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                       />
                       <input type="date" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => { if (e.target.value) updateFormData('dateNaissance', formatDateFR(e.target.value)); }} />
-                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                     </div>
-                    {computedAge !== null && <div className="text-caption text-zinc-400 mt-1">{computedAge} ans</div>}
+                    {computedAge !== null && <div className="text-caption text-[#a8a29e] mt-1">{computedAge} ans</div>}
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-caption-medium text-zinc-500 mb-1.5">Date de décès</label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Date de décès</label>
                     <div className="relative">
                       <input
                         type="text"
@@ -7500,10 +8090,10 @@ export default function App() {
                         value={formData.dateDeces}
                         onChange={(e) => updateFormData('dateDeces', formatDateInput(e.target.value))}
                         maxLength={10}
-                        className="w-full px-3 py-2.5 pr-9 border border-zinc-200 rounded-lg text-body text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                        className="w-full px-3 py-2.5 pr-9 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                       />
                       <input type="date" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => { if (e.target.value) updateFormData('dateDeces', formatDateFR(e.target.value)); }} />
-                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                     </div>
                   </div>
                 </div>
@@ -7511,14 +8101,14 @@ export default function App() {
 
               {/* Section Contexte */}
               <div>
-                <h3 className="text-body-medium font-semibold text-zinc-700 mb-3">Contexte</h3>
+                <h3 className="text-body-medium font-semibold text-[#44403c] mb-3">Contexte</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-caption-medium text-zinc-500 mb-1.5">Type de fait générateur</label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Type de fait générateur</label>
                     <select
                       value={formData.typeFait}
                       onChange={(e) => updateFormData('typeFait', e.target.value)}
-                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-body text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                      className="w-full px-3 py-2.5 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                     >
                       {typesFaitGenerateur.map(t => (
                         <option key={t} value={t}>{t}</option>
@@ -7526,7 +8116,7 @@ export default function App() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-caption-medium text-zinc-500 mb-1.5">Date de l'accident *</label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Date de l'accident *</label>
                     <div className="relative">
                       <input
                         type="text"
@@ -7534,14 +8124,14 @@ export default function App() {
                         value={formData.dateAccident}
                         onChange={(e) => updateFormData('dateAccident', formatDateInput(e.target.value))}
                         maxLength={10}
-                        className="w-full px-3 py-2.5 pr-9 border border-zinc-200 rounded-lg text-body text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                        className="w-full px-3 py-2.5 pr-9 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                       />
                       <input type="date" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => { if (e.target.value) updateFormData('dateAccident', formatDateFR(e.target.value)); }} />
-                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-caption-medium text-zinc-500 mb-1.5">Date de consolidation <span className="text-zinc-300 font-normal">(facultatif)</span></label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Date de consolidation <span className="text-[#d6d3d1] font-normal">(facultatif)</span></label>
                     <div className="relative">
                       <input
                         type="text"
@@ -7549,14 +8139,14 @@ export default function App() {
                         value={formData.dateConsolidation}
                         onChange={(e) => updateFormData('dateConsolidation', formatDateInput(e.target.value))}
                         maxLength={10}
-                        className="w-full px-3 py-2.5 pr-9 border border-zinc-200 rounded-lg text-body text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                        className="w-full px-3 py-2.5 pr-9 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                       />
                       <input type="date" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => { if (e.target.value) updateFormData('dateConsolidation', formatDateFR(e.target.value)); }} />
-                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-caption-medium text-zinc-500 mb-1.5">Date de liquidation <span className="text-zinc-300 font-normal">(facultatif)</span></label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Date de liquidation <span className="text-[#d6d3d1] font-normal">(facultatif)</span></label>
                     <div className="relative">
                       <input
                         type="text"
@@ -7564,10 +8154,10 @@ export default function App() {
                         value={formData.dateLiquidation}
                         onChange={(e) => updateFormData('dateLiquidation', formatDateInput(e.target.value))}
                         maxLength={10}
-                        className="w-full px-3 py-2.5 pr-9 border border-zinc-200 rounded-lg text-body text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                        className="w-full px-3 py-2.5 pr-9 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                       />
                       <input type="date" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => { if (e.target.value) updateFormData('dateLiquidation', formatDateFR(e.target.value)); }} />
-                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                     </div>
                   </div>
                 </div>
@@ -7578,14 +8168,14 @@ export default function App() {
             <div className="px-6 py-4 border-t border-zinc-100 flex justify-end gap-3">
               <button
                 onClick={() => setCreationWizard(null)}
-                className="px-4 py-2.5 text-body text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
+                className="px-4 py-2.5 text-body text-[#78716c] hover:text-[#44403c] hover:bg-[#eeece6] rounded-lg transition-colors"
               >
                 Annuler
               </button>
               <button
                 onClick={() => setCreationWizard(prev => ({ ...prev, step: 'mode-chiffrage' }))}
                 disabled={!canSubmitInfos}
-                className="px-5 py-2.5 bg-zinc-900 text-white text-body-medium rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-5 py-2.5 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Créer le dossier
               </button>
@@ -7601,7 +8191,7 @@ export default function App() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden">
             {/* Header */}
             <div className="px-6 py-5 border-b border-zinc-100">
-              <h2 className="text-lg font-semibold text-zinc-800">Comment souhaitez-vous créer votre chiffrage ?</h2>
+              <h2 className="text-lg font-semibold text-[#292524]">Comment souhaitez-vous créer votre chiffrage ?</h2>
             </div>
 
             {/* Body */}
@@ -7611,13 +8201,13 @@ export default function App() {
                 {/* Option 1: Importer le rapport */}
                 <div
                   onClick={() => document.getElementById('wizard-file-input').click()}
-                  className="flex-1 p-6 border-2 border-zinc-200 rounded-xl hover:border-zinc-400 hover:bg-zinc-50 cursor-pointer transition-all group"
+                  className="flex-1 p-6 border-2 border-[#e7e5e3] rounded-xl hover:border-zinc-400 hover:bg-[#fafaf9] cursor-pointer transition-all group"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-zinc-100 flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
-                    <Upload className="w-6 h-6 text-zinc-600" />
+                  <div className="w-12 h-12 rounded-xl bg-[#eeece6] flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
+                    <Upload className="w-6 h-6 text-[#78716c]" />
                   </div>
-                  <h3 className="text-heading-sm text-zinc-800 mb-2">Importer mon rapport d'expertise</h3>
-                  <p className="text-body text-zinc-500 leading-relaxed">Extraction automatique des données. Pré-remplissage des postes et calculs.</p>
+                  <h3 className="text-heading-sm text-[#292524] mb-2">Importer mon rapport d'expertise</h3>
+                  <p className="text-body text-[#78716c] leading-relaxed">Extraction automatique des données. Pré-remplissage des postes et calculs.</p>
                   <input
                     id="wizard-file-input"
                     type="file"
@@ -7637,27 +8227,27 @@ export default function App() {
                 {/* Option 2: Saisie manuelle */}
                 <div
                   onClick={() => handleCreateDossier(formData, 'chiffrage')}
-                  className="flex-1 p-6 border-2 border-zinc-200 rounded-xl hover:border-zinc-400 hover:bg-zinc-50 cursor-pointer transition-all group"
+                  className="flex-1 p-6 border-2 border-[#e7e5e3] rounded-xl hover:border-zinc-400 hover:bg-[#fafaf9] cursor-pointer transition-all group"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-zinc-100 flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
-                    <Edit3 className="w-6 h-6 text-zinc-600" />
+                  <div className="w-12 h-12 rounded-xl bg-[#eeece6] flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
+                    <Edit3 className="w-6 h-6 text-[#78716c]" />
                   </div>
-                  <h3 className="text-heading-sm text-zinc-800 mb-2">Saisir les données manuellement</h3>
-                  <p className="text-body text-zinc-500 leading-relaxed">Le rapport est sous vos yeux. Renseignez les informations à la main.</p>
+                  <h3 className="text-heading-sm text-[#292524] mb-2">Saisir les données manuellement</h3>
+                  <p className="text-body text-[#78716c] leading-relaxed">Le rapport est sous vos yeux. Renseignez les informations à la main.</p>
                 </div>
               </div>
 
               {/* Option 3: Pas encore de rapport (secondaire) */}
               <div
-                onClick={() => handleCreateDossier(formData, 'info dossier')}
-                className="mt-4 px-4 py-3 border border-zinc-200 rounded-lg hover:bg-zinc-50 cursor-pointer transition-all flex items-center gap-3 group"
+                onClick={() => handleCreateDossier(formData, 'dossier')}
+                className="mt-4 px-4 py-3 border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] cursor-pointer transition-all flex items-center gap-3 group"
               >
-                <div className="w-8 h-8 rounded-lg bg-zinc-50 flex items-center justify-center flex-shrink-0 group-hover:bg-zinc-100 transition-colors">
-                  <FileText className="w-4 h-4 text-zinc-400" />
+                <div className="w-8 h-8 rounded-lg bg-[#F8F7F5] flex items-center justify-center flex-shrink-0 group-hover:bg-[#eeece6] transition-colors">
+                  <FileText className="w-4 h-4 text-[#a8a29e]" />
                 </div>
                 <div>
-                  <h3 className="text-body-medium text-zinc-500 group-hover:text-zinc-700 transition-colors">Je n'ai pas encore le rapport d'expertise</h3>
-                  <p className="text-caption text-zinc-400 leading-relaxed">Créer le dossier maintenant, le chiffrage pourra démarrer après.</p>
+                  <h3 className="text-body-medium text-[#78716c] group-hover:text-[#44403c] transition-colors">Je n'ai pas encore le rapport d'expertise</h3>
+                  <p className="text-caption text-[#a8a29e] leading-relaxed">Créer le dossier maintenant, le chiffrage pourra démarrer après.</p>
                 </div>
               </div>
             </div>
@@ -7666,13 +8256,13 @@ export default function App() {
             <div className="px-6 py-4 border-t border-zinc-100 flex justify-end gap-3">
               <button
                 onClick={() => setCreationWizard(prev => ({ ...prev, step: 'infos' }))}
-                className="px-4 py-2.5 text-body text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
+                className="px-4 py-2.5 text-body text-[#78716c] hover:text-[#44403c] hover:bg-[#eeece6] rounded-lg transition-colors"
               >
                 Retour
               </button>
               <button
                 onClick={() => setCreationWizard(null)}
-                className="px-4 py-2.5 text-body text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
+                className="px-4 py-2.5 text-body text-[#78716c] hover:text-[#44403c] hover:bg-[#eeece6] rounded-lg transition-colors"
               >
                 Annuler
               </button>
@@ -7689,10 +8279,10 @@ export default function App() {
   const renderDossierListPage = () => (
     <div className="h-screen flex relative" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: '#27272a' }}>
       {/* Sidebar Rail - anthracite */}
-      <div className="w-14 bg-zinc-900 flex flex-col items-center py-4 flex-shrink-0">
+      <div className="w-14 bg-[#292524] flex flex-col items-center py-4 flex-shrink-0">
         {/* Logo Norma */}
         <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center mb-6">
-          <span className="text-zinc-900 font-bold text-heading-sm">N</span>
+          <span className="text-[#292524] font-bold text-heading-sm">N</span>
         </div>
 
         {/* Spacer */}
@@ -7700,7 +8290,7 @@ export default function App() {
 
         {/* Bottom: Settings + User */}
         <div className="flex flex-col items-center gap-3">
-          <button className="w-9 h-9 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors">
+          <button className="w-9 h-9 rounded-lg flex items-center justify-center text-[#78716c] hover:text-[#d6d3d1] hover:bg-[#44403c] transition-colors">
             <Settings className="w-[18px] h-[18px]" />
           </button>
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-caption-medium cursor-pointer">
@@ -7719,7 +8309,7 @@ export default function App() {
             </h1>
             <button
               onClick={() => setDropModal({ files: [], rapportFileId: null, rapportDismissed: false })}
-              className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-body-medium rounded-lg hover:bg-zinc-800 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors"
             >
               <Plus className="w-4 h-4" />
               Nouveau dossier
@@ -7729,46 +8319,46 @@ export default function App() {
 
         {/* Table */}
         <div className="flex-1 overflow-y-auto px-8 pb-8">
-          <div className="bg-white rounded-lg border border-zinc-200/60 overflow-hidden">
+          <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-100">
-                  <th className="px-5 py-3 text-left text-caption-medium text-zinc-400 uppercase tracking-wider">Référence</th>
-                  <th className="px-5 py-3 text-left text-caption-medium text-zinc-400 uppercase tracking-wider">Type de fait</th>
-                  <th className="px-5 py-3 text-left text-caption-medium text-zinc-400 uppercase tracking-wider">Date</th>
-                  <th className="px-5 py-3 text-left text-caption-medium text-zinc-400 uppercase tracking-wider">Dernier édit</th>
+                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Référence</th>
+                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Type de fait</th>
+                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Date</th>
+                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Dernier édit</th>
                   <th className="px-5 py-3 w-10"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-[#e7e5e3]">
                 {dossiers.map(dossier => (
                   <tr
                     key={dossier.id}
                     onClick={() => openDossier(dossier)}
-                    className="hover:bg-zinc-50 cursor-pointer transition-colors group"
+                    className="bg-white hover:bg-[#fafaf9] cursor-pointer transition-colors group"
                   >
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center flex-shrink-0">
-                          <Folder className="w-4 h-4 text-zinc-400" />
+                        <div className="w-8 h-8 rounded-lg bg-[#eeece6] flex items-center justify-center flex-shrink-0">
+                          <Folder className="w-4 h-4 text-[#a8a29e]" />
                         </div>
-                        <span className="text-body-medium text-zinc-800">{dossier.reference}</span>
+                        <span className="text-body-medium text-[#292524]">{dossier.reference}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-body text-zinc-500">{dossier.typeFait}</td>
-                    <td className="px-5 py-4 text-body text-zinc-500 tabular-nums">{dossier.date}</td>
+                    <td className="px-5 py-4 text-body text-[#78716c]">{dossier.typeFait}</td>
+                    <td className="px-5 py-4 text-body text-[#78716c] tabular-nums">{dossier.date}</td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
                           <span className="text-counter text-white">{dossier.lastEditBy.split(' ').map(n => n[0]).join('')}</span>
                         </div>
-                        <span className="text-body text-zinc-500">{dossier.lastEditDate}</span>
+                        <span className="text-body text-[#78716c]">{dossier.lastEditDate}</span>
                       </div>
                     </td>
                     <td className="px-5 py-4">
                       <button
                         onClick={(e) => { e.stopPropagation(); }}
-                        className="p-1.5 rounded-lg text-zinc-300 hover:text-zinc-600 hover:bg-zinc-100 opacity-0 group-hover:opacity-100 transition-all"
+                        className="p-1.5 rounded-lg text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#eeece6] opacity-0 group-hover:opacity-100 transition-all"
                       >
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
@@ -7788,6 +8378,7 @@ export default function App() {
   // ========== MAIN ==========
   // Obtenir le parent pour le bouton back
   const getParentInfo = () => {
+    if (!currentLevel) return null;
     // Si on est dans une sous-section PGPA
     if (currentLevel.subSection) {
       return { hasBack: true, action: () => {
@@ -7803,7 +8394,7 @@ export default function App() {
     return { hasBack: true, action: () => navigateToStackLevel(navStack.length - 2) };
   };
   
-  const parentInfo = getParentInfo();
+  const parentInfo = getParentInfo(); // eslint-disable-line no-unused-vars
 
   // ========== ROUTING ==========
   if (currentPage === 'list') {
@@ -7812,7 +8403,7 @@ export default function App() {
 
   return (
     <div
-      className="h-screen flex"
+      className="h-screen flex flex-col"
       style={{
         backgroundColor: '#F8F7F5',
         fontFamily: "'Inter', system-ui, sans-serif",
@@ -7820,129 +8411,23 @@ export default function App() {
         color: '#27272a'
       }}
     >
-      {/* Sidebar */}
-      {renderSidebar()}
-      
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
-        {/* Header - fond beige, imposant */}
-        <div className="px-8 pt-6 pb-4">
-          {/* Bouton Back */}
-          {parentInfo && (
-            <button 
-              onClick={parentInfo.action}
-              className="flex items-center gap-1.5 text-body text-zinc-400 hover:text-zinc-600 mb-3 -ml-1 transition-colors"
-            >
-              <ChevronRight className="w-4 h-4 rotate-180" strokeWidth={1.5} />
-              <span>Retour</span>
-            </button>
-          )}
-          
-          <div className="flex items-start justify-between">
-            <div>
-              {/* Titre + Badge statut */}
-              <div className="flex items-center gap-3">
-                <h1 style={{ 
-                  fontFamily: "Georgia, 'Times New Roman', serif",
-                  fontSize: '32px',
-                  fontWeight: 400,
-                  color: '#18181b',
-                  lineHeight: 1.1,
-                  letterSpacing: '-0.01em'
-                }}>
-                  {currentLevel.subSection === 'revenus-ref' && 'Revenus de référence'}
-                  {currentLevel.subSection === 'revenus-percus' && 'Revenus perçus sur la période'}
-                  {currentLevel.subSection === 'ij' && 'Indemnités journalières'}
-                  {!currentLevel.subSection && (currentLevel.fullTitle || currentLevel.title)}
-                </h1>
-                
-                {/* Badge statut dossier */}
-                {currentLevel.type === 'dossier' && (
-                  <span className={`px-2.5 py-1 text-caption-medium rounded-full ${
-                    dossierStatut === 'ouvert' 
-                      ? 'bg-emerald-100 text-emerald-700' 
-                      : 'bg-zinc-100 text-zinc-500'
-                  }`}>
-                    {dossierStatut === 'ouvert' ? 'Ouvert' : 'Fermé'}
-                  </span>
-                )}
-                
-                {/* Bouton édition dossier */}
-                {currentLevel.type === 'dossier' && (
-                  <button
-                    onClick={() => setEditPanel({ type: 'dossier-edit', title: 'Modifier le dossier' })}
-                    className="ml-2 p-1.5 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
-                  >
-                    <Edit3 className="w-4 h-4" strokeWidth={1.5} />
-                  </button>
-                )}
-              </div>
-              
-              {/* Description du poste */}
-              {currentLevel.type === 'poste' && !currentLevel.subSection && posteDescriptions[currentLevel.id] && (
-                <p className="text-body text-zinc-400 mt-3">{posteDescriptions[currentLevel.id]}</p>
-              )}
-            </div>
-            
-            {/* CTAs pour Chiffrage */}
-            {currentLevel.type === 'dossier' && currentLevel.activeTab === 'chiffrage' && (
-              <div className="flex items-center gap-2">
-                <button onClick={() => setShowExportModal(true)} className="flex items-center gap-2 px-4 py-2 text-body-medium text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 shadow-sm transition-colors">
-                  <Download className="w-4 h-4" strokeWidth={1.5} />
-                  Exporter
-                </button>
-                <button
-                  onClick={() => setShowChiffrageParams(true)}
-                  className="flex items-center gap-2 px-4 py-2 text-body-medium text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 shadow-sm transition-colors"
-                >
-                  <Settings className="w-4 h-4" strokeWidth={1.5} />
-                  Paramètres
-                </button>
-              </div>
-            )}
-            {currentLevel.type === 'poste' && !currentLevel.subSection && (
-              <div className="flex items-center gap-2">
-                <button onClick={() => setShowExportModal(true)} className="flex items-center gap-2 px-4 py-2 text-body-medium text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 shadow-sm transition-colors">
-                  <Download className="w-4 h-4" strokeWidth={1.5} />
-                  Exporter
-                </button>
-              </div>
-            )}
+      {/* Horizontal split: left content column + right chat sidebar */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left: Top Bar + Content */}
+        <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
+          {renderTopBar()}
+          {renderContentSubHeader()}
+          <div className="flex-1 overflow-y-auto">
+            <div className={`min-h-full flex flex-col ${currentLevel.type === 'dossier' ? 'px-8 pt-6 pb-8' : ''}`}>{renderContent()}</div>
           </div>
-          
-          {/* Tabs */}
-          {currentTabs.length > 0 && !currentLevel.subSection && (
-            <div className="flex gap-1 mt-6 border-b border-zinc-200/60">
-              {currentTabs.map(tab => {
-                const isActive = currentLevel.activeTab === tab.toLowerCase();
-                const hasExtracted = tab === 'Info dossier' && infoDossierStreaming?.fieldsRevealed?.length > 0;
-                const showDot = hasExtracted && !isActive;
-                return (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-3 text-body-medium relative transition-colors ${isActive ? 'text-zinc-800' : 'text-zinc-400 hover:text-zinc-600'}`}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      {tab}
-                      {showDot && <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse-scale" />}
-                    </span>
-                    {isActive && <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-zinc-800 rounded-full" />}
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
-        
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-8 pb-8">
-          <div className="min-h-full flex flex-col">{renderContent()}</div>
-        </div>
+
+        {/* Right: Edit Panel or Chat Sidebar (full viewport height) */}
+        {editPanel ? renderEditPanel() : (chatSidebarOpen && renderChatSidebar())}
       </div>
+
       {renderAddModal()}
       {renderExportModal()}
-      {renderEditPanel()}
       {renderSmartProcedureWizard()}
 
       {/* Toast notification */}
