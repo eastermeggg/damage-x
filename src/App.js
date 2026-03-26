@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp } from 'lucide-react';
 
 const POSTES_TAXONOMY = [
   {
@@ -5839,6 +5839,7 @@ export default function App() {
                     : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
                 }`}
               >
+                <CircleArrowUp className="w-3.5 h-3.5" />
                 Revaloriser IPC Annuel
               </button>
             </div>
@@ -6155,6 +6156,7 @@ export default function App() {
                     : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
                 }`}
               >
+                <CircleArrowUp className="w-3.5 h-3.5" />
                 Revaloriser {pgpaData.revenuRef.revalorisation === 'ipc-annuel' ? 'IPC Annuel' : pgpaData.revenuRef.revalorisation === 'smic-horaire' ? 'SMIC Horaire' : 'Aucune'}
               </button>
             </div>
@@ -6460,10 +6462,43 @@ export default function App() {
               <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
                 <Settings className="w-3.5 h-3.5 text-[#78716c]" />
               </div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border bg-transparent border-[#d6d3d1] text-[#78716c]">
+              <button
+                onClick={() => setActiveParamChip(activeParamChip === 'capitaliser-pgpf' ? null : 'capitaliser-pgpf')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                  activeParamChip === 'capitaliser-pgpf'
+                    ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
+                    : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
+                }`}
+              >
+                <CircleArrowUp className="w-3.5 h-3.5" />
                 Capitaliser
-              </span>
+              </button>
             </div>
+            {activeParamChip === 'capitaliser-pgpf' && (
+              <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" defaultChecked className="sr-only peer" />
+                    <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                  </label>
+                  <div className="w-px h-4 bg-[#d6d3d1]" />
+                  <span className="text-sm font-medium text-[#78716c]">Barême</span>
+                  <select className="text-sm text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                    <option>IPC Annuel</option>
+                    <option>IPC Mensuel</option>
+                  </select>
+                  <div className="w-px h-4 bg-[#d6d3d1]" />
+                  <span className="text-sm font-medium text-[#78716c]">Fin arrérage</span>
+                  <select className="text-sm text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                    <option>IPC Annuel</option>
+                    <option>IPC Mensuel</option>
+                  </select>
+                  <div className="w-px h-4 bg-[#d6d3d1]" />
+                  <span className="text-sm font-medium text-[#78716c]">Départ retraite</span>
+                  <input type="text" defaultValue="XX ans" className="text-sm text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5 w-[70px]" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }} />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Section Label: PRÉ-LIQUIDATION */}
@@ -6701,10 +6736,29 @@ export default function App() {
               <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
                 <Settings className="w-3.5 h-3.5 text-[#78716c]" />
               </div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border bg-transparent border-[#d6d3d1] text-[#78716c]">
+              <button
+                onClick={() => setActiveParamChip(activeParamChip === 'base-journaliere-dft' ? null : 'base-journaliere-dft')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                  activeParamChip === 'base-journaliere-dft'
+                    ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
+                    : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
+                }`}
+              >
+                <CircleArrowUp className="w-3.5 h-3.5" />
                 Base {chiffrageParams.baseJournaliereDFT} €/j
-              </span>
+              </button>
             </div>
+            {activeParamChip === 'base-journaliere-dft' && (
+              <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+                <input
+                  type="number"
+                  defaultValue={chiffrageParams.baseJournaliereDFT || 33}
+                  className="text-sm text-[#292524] text-right bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5 w-[69px]"
+                  style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}
+                  onChange={(e) => setChiffrageParams(prev => ({ ...prev, baseJournaliereDFT: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
+            )}
           </div>
 
           {/* Empty state */}
@@ -6950,10 +7004,34 @@ export default function App() {
                     <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
                       <Settings className="w-3.5 h-3.5 text-[#78716c]" />
                     </div>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border bg-transparent border-[#d6d3d1] text-[#78716c]">
+                    <button
+                      onClick={() => setActiveParamChip(activeParamChip === 'revaloriser-se' ? null : 'revaloriser-se')}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                        activeParamChip === 'revaloriser-se'
+                          ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
+                          : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
+                      }`}
+                    >
+                      <CircleArrowUp className="w-3.5 h-3.5" />
                       Revaloriser
-                    </span>
+                    </button>
                   </div>
+                  {activeParamChip === 'revaloriser-se' && (
+                    <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+                      <div className="flex items-center gap-3">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" defaultChecked className="sr-only peer" />
+                          <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                        </label>
+                        <div className="w-px h-4 bg-[#e7e5e3]" />
+                        <span className="text-sm font-medium text-[#78716c]">Indice</span>
+                        <select className="text-sm text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                          <option>IPC Annuel</option>
+                          <option>IPC Mensuel</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {/* Form Block */}
                 <div className={cardBlockClass}>
@@ -7066,10 +7144,34 @@ export default function App() {
                     <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
                       <Settings className="w-3.5 h-3.5 text-[#78716c]" />
                     </div>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border bg-transparent border-[#d6d3d1] text-[#78716c]">
+                    <button
+                      onClick={() => setActiveParamChip(activeParamChip === 'revaloriser-pep' ? null : 'revaloriser-pep')}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                        activeParamChip === 'revaloriser-pep'
+                          ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
+                          : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
+                      }`}
+                    >
+                      <CircleArrowUp className="w-3.5 h-3.5" />
                       Revaloriser
-                    </span>
+                    </button>
                   </div>
+                  {activeParamChip === 'revaloriser-pep' && (
+                    <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+                      <div className="flex items-center gap-3">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" defaultChecked className="sr-only peer" />
+                          <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                        </label>
+                        <div className="w-px h-4 bg-[#e7e5e3]" />
+                        <span className="text-sm font-medium text-[#78716c]">Indice</span>
+                        <select className="text-sm text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                          <option>IPC Annuel</option>
+                          <option>IPC Mensuel</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {/* Form Block */}
                 <div className={cardBlockClass}>
@@ -7181,10 +7283,34 @@ export default function App() {
                     <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
                       <Settings className="w-3.5 h-3.5 text-[#78716c]" />
                     </div>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border bg-transparent border-[#d6d3d1] text-[#78716c]">
+                    <button
+                      onClick={() => setActiveParamChip(activeParamChip === 'revaloriser-dfp' ? null : 'revaloriser-dfp')}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                        activeParamChip === 'revaloriser-dfp'
+                          ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
+                          : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
+                      }`}
+                    >
+                      <CircleArrowUp className="w-3.5 h-3.5" />
                       Revaloriser
-                    </span>
+                    </button>
                   </div>
+                  {activeParamChip === 'revaloriser-dfp' && (
+                    <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+                      <div className="flex items-center gap-3">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" defaultChecked className="sr-only peer" />
+                          <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                        </label>
+                        <div className="w-px h-4 bg-[#e7e5e3]" />
+                        <span className="text-sm font-medium text-[#78716c]">Indice</span>
+                        <select className="text-sm text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                          <option>IPC Annuel</option>
+                          <option>IPC Mensuel</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {/* Form Block */}
                 <div className={cardBlockClass}>
