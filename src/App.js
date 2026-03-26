@@ -501,6 +501,11 @@ export default function App() {
     ]
   });
 
+  // Collapsed sections state for PGPA/PGPF cards (collapsed by default)
+  const [expandedCards, setExpandedCards] = useState({});
+  const isCardExpanded = (key) => !!expandedCards[key];
+  const toggleCard = (key) => setExpandedCards(prev => ({ ...prev, [key]: !prev[key] }));
+
   // ========== PGPF ==========
   const [pgpfData, setPgpfData] = useState({
     periodes: {
@@ -655,6 +660,386 @@ export default function App() {
     lsSave(LS_GLOBAL, { dossiers, activeDossierId, currentPage, navStack });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dossiers, activeDossierId, currentPage, navStack]);
+
+  // ========== CHAT: proactive announcements after extraction ==========
+
+  // When file processing completes → chat announces docs extracted + thinking stepper
+  useEffect(() => {
+    if (dropFirstProcessingDone && !chatExtractionAnnounced.current && dropFirstPieces.length > 0) {
+      chatExtractionAnnounced.current = true;
+      const doneCount = dropFirstPieces.filter(p => p.status === 'done').length;
+      const types = [...new Set(dropFirstPieces.filter(p => p.type).map(p => p.type))];
+      setChatSidebarOpen(true);
+      setChatMessages(prev => [
+        ...prev,
+        {
+          type: 'ai-thinking',
+          label: 'Analyse des documents...',
+          steps: [
+            { tool: 'analyseDocuments', detail: `${doneCount} documents traités`, expandedText: `Types détectés : ${types.join(', ')}` },
+          ],
+          expanded: false,
+        },
+      ]);
+    }
+  }, [dropFirstProcessingDone, dropFirstPieces]);
+
+  // When info streaming finishes → announce dossier filled + suggest postes with artifact cards
+  useEffect(() => {
+    if (infoDossierStreaming && !infoDossierStreaming.active && !chatPostesAnnounced.current) {
+      chatPostesAnnounced.current = true;
+      const detectedPostes = DROP_FIRST_POSTES_DETECTES;
+      const posteIds = detectedPostes.map(acronym => {
+        const found = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes)).find(p => (p.acronym || '').toUpperCase() === acronym.toUpperCase() || p.id.toUpperCase() === acronym.toUpperCase());
+        return found?.id;
+      }).filter(Boolean);
+
+      // Add detected postes to dossier (at 0€ — not calculated yet)
+      setDossierPostes(prev => {
+        const newIds = posteIds.filter(id => !prev.includes(id));
+        return newIds.length > 0 ? [...prev, ...newIds] : prev;
+      });
+
+      // Update the thinking stepper with extraction + postes steps
+      setChatMessages(prev => {
+        const updated = prev.map(m => {
+          if (m.type === 'ai-thinking' && m.label === 'Analyse des documents...') {
+            return {
+              ...m,
+              label: 'Analyse terminée',
+              steps: [
+                ...(m.steps || []),
+                { tool: 'extractInfoDossier', detail: 'Informations du dossier remplies', expandedText: 'Nom, prénom, date, adresse et autres champs extraits' },
+                { tool: 'detectPostes', detail: `${detectedPostes.length} postes identifiés`, expandedText: detectedPostes.join(', ') },
+              ],
+            };
+          }
+          return m;
+        });
+
+        // Compute info dossier summary
+        const victimFields = ['nom', 'prenom', 'sexe', 'dateNaissance', 'profession'].filter(f => DROP_FIRST_VICTIM_DATA[f]);
+        const accidentFields = ['type', 'dateAccident', 'resume'].filter(f => DROP_FIRST_ACCIDENT_DATA[f]);
+        const medicalFields = ['premiereConstatation', 'dateConsolidation', 'aipp', 'commentaire'].filter(f => DROP_FIRST_MEDICAL_DATA[f]);
+        const totalInfoFields = victimFields.length + accidentFields.length + medicalFields.length;
+        const visiblePostes = detectedPostes.slice(0, 3);
+        const remainingPostes = detectedPostes.length - visiblePostes.length;
+
+        return [
+          ...updated,
+          {
+            type: 'artifact-cards',
+            cards: [
+              {
+                id: 'info-dossier',
+                icon: 'FileText',
+                title: 'Info dossier remplies',
+                subtitle: `${DROP_FIRST_VICTIM_DATA.nom}, ${DROP_FIRST_VICTIM_DATA.prenom}, ${DROP_FIRST_ACCIDENT_DATA.dateAccident}${totalInfoFields > 3 ? ` +${totalInfoFields - 3} infos` : ''}`,
+                action: 'Voir',
+                navigateTo: 'dossier',
+              },
+              {
+                id: 'postes-suggeres',
+                icon: 'Calculator',
+                title: `${detectedPostes.length} postes suggérés`,
+                subtitle: `${visiblePostes.join(', ')}${remainingPostes > 0 ? ` +${remainingPostes} postes` : ''}`,
+                action: 'Voir',
+                navigateTo: 'chiffrage',
+              },
+            ],
+          },
+          {
+            type: 'ai',
+            text: `J'ai analysé vos documents, rempli les informations du dossier et identifié ${detectedPostes.length} postes de préjudice à 0 €. Cliquez sur un poste pour lancer le calcul.`,
+          },
+        ];
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [infoDossierStreaming?.active]);
+
+  // ========== POSTE CALCULATION: triggered by user action ==========
+
+  // Poste-specific welcome messages
+  const posteWelcomeMap = {
+    dsa: { greeting: 'Bienvenue sur les Dépenses de Santé Actuelles !', analysis: 'Je vais regarder les factures et documents médicaux du dossier pour identifier les dépenses...', proposal: 'J\'ai trouvé 5 lignes de dépenses dans vos documents : hospitalisation, kinésithérapie, IRM, médicaments et consultation. Voulez-vous que je lance le calcul ?' },
+    dft: { greeting: 'Bienvenue sur le Déficit Fonctionnel Temporaire !', analysis: 'Je consulte le rapport d\'expertise pour identifier les périodes de déficit...', proposal: 'J\'ai identifié 7 périodes de DFT dans le rapport d\'expertise, allant de 100% (hospitalisation) à 15% (gêne résiduelle). Voulez-vous que je lance le calcul avec un forfait de 28 €/jour ?' },
+    pgpa: { greeting: 'Bienvenue sur les Pertes de Gains Professionnels Actuels !', analysis: 'Je vérifie les bulletins de salaire et attestations pour établir le revenu de référence...', proposal: 'J\'ai identifié un revenu de référence de ~37 800 €/an sur la base de 2 années de salaire + primes. Période d\'arrêt : 18 mois. Voulez-vous que je lance le calcul ?' },
+    pgpf: { greeting: 'Bienvenue sur les Pertes de Gains Professionnels Futurs !', analysis: 'Je consulte les données post-consolidation et les barèmes de capitalisation...', proposal: 'J\'ai identifié une période échue de 4 mois et une capitalisation viagère à calculer (barème Gazette du Palais 2025). Voulez-vous que je lance le calcul ?' },
+    se: { greeting: 'Bienvenue sur les Souffrances Endurées !', analysis: 'Je consulte le rapport d\'expertise pour la cotation...', proposal: 'L\'expert a retenu une cotation de 4/7. Selon le référentiel Cour d\'appel 2024, cela correspond à 12 000 - 18 000 €. Voulez-vous que je propose une évaluation ?' },
+    dfp: { greeting: 'Bienvenue sur le Déficit Fonctionnel Permanent !', analysis: 'Je consulte le rapport d\'expertise pour le taux et l\'âge à la consolidation...', proposal: 'Taux DFP retenu : 18%, âge à la consolidation : 42 ans. Selon le référentiel, le point est à 1 500 €. Voulez-vous que je lance le calcul ?' },
+    pep: { greeting: 'Bienvenue sur le Préjudice Esthétique Permanent !', analysis: 'Je consulte le rapport d\'expertise pour la cotation esthétique...', proposal: 'L\'expert a retenu une cotation de 3/7 (cicatrices + boiterie). Selon le référentiel Cour d\'appel 2024, fourchette de 3 000 - 6 000 €. Voulez-vous que je propose une évaluation ?' },
+  };
+
+  const posteDiscoveryToolMap = {
+    dsa: [
+      { tool: 'readDocument', detail: 'Factures et documents médicaux', expandedText: 'Lecture des factures de soins et justificatifs' },
+      { tool: 'extractMontants', detail: '5 dépenses identifiées', expandedText: 'Hospitalisation, kiné, IRM, médicaments, consultation' },
+    ],
+    dft: [
+      { tool: 'readExpertise', detail: 'Rapport d\'expertise', expandedText: 'Lecture du rapport d\'expertise médicale' },
+      { tool: 'extractPeriods', detail: '7 périodes identifiées', expandedText: 'Hospitalisation, chirurgie, convalescence, rééducation...' },
+    ],
+    pgpa: [
+      { tool: 'readBulletins', detail: 'Bulletins de salaire', expandedText: 'Lecture des bulletins et attestations employeur' },
+      { tool: 'extractRevenus', detail: 'Revenu de référence identifié', expandedText: '~37 800 €/an sur 2 années de salaire + primes' },
+    ],
+    pgpf: [
+      { tool: 'readExpertise', detail: 'Consolidation et séquelles', expandedText: 'Extraction des données post-consolidation' },
+      { tool: 'readBaremes', detail: 'Barème Gazette du Palais 2025', expandedText: 'Recherche du coefficient de capitalisation' },
+    ],
+    se: [
+      { tool: 'readExpertise', detail: 'Cotation expertise', expandedText: 'Lecture de la cotation des souffrances endurées' },
+    ],
+    dfp: [
+      { tool: 'readExpertise', detail: 'Taux DFP et âge', expandedText: 'Lecture du taux et de l\'âge à la consolidation' },
+    ],
+    pep: [
+      { tool: 'readExpertise', detail: 'Cotation esthétique', expandedText: 'Lecture de la cotation du préjudice esthétique' },
+    ],
+  };
+
+  // Handle the actual calculation (Phase 2: user clicked "Lancer le calcul")
+  const handlePosteCalculation = (posteId) => {
+    const taxo = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes)).find(p => p.id === posteId);
+    if (!taxo) return;
+    const posteName = taxo.acronym || posteId.toUpperCase();
+
+    // Clear any lingering timeouts
+    chatAnalysisTimeouts.current.forEach(t => clearTimeout(t));
+    chatAnalysisTimeouts.current = [];
+
+    // Push calculation thinking
+    setChatMessages(prev => [
+      ...prev,
+      { type: 'ai-thinking', label: `Calcul du ${posteName}...`, steps: [], expanded: false, _posteCalcId: posteId },
+    ]);
+
+    const calcToolMap = {
+      dsa: [{ tool: 'calculDSA', detail: 'Calcul des dépenses', expandedText: 'Somme des dépenses de santé actuelles' }],
+      dft: [{ tool: 'calculDFT', detail: 'Forfait 28 €/j appliqué', expandedText: 'Application des taux par période' }],
+      pgpa: [{ tool: 'calculPGPA', detail: 'Perte calculée sur 18 mois', expandedText: 'Revenu - revenus perçus - IJ' }],
+      pgpf: [{ tool: 'calculCapitalisation', detail: 'Capitalisation viagère', expandedText: 'Capitalisation de la perte future' }],
+      se: [{ tool: 'calculSE', detail: 'Évaluation souffrances', expandedText: 'Application du référentiel' }],
+      dfp: [{ tool: 'calculDFP', detail: 'Calcul point × taux', expandedText: 'Application du barème' }],
+      pep: [{ tool: 'calculPEP', detail: 'Évaluation esthétique', expandedText: 'Application du référentiel' }],
+    };
+
+    const calcTools = calcToolMap[posteId] || [{ tool: `calcul${posteName}`, detail: `Évaluation ${posteName}`, expandedText: 'Calcul en cours...' }];
+
+    calcTools.forEach((toolData, idx) => {
+      const t = setTimeout(() => {
+        setChatMessages(prev => prev.map(m => {
+          if (m.type === 'ai-thinking' && m._posteCalcId === posteId) {
+            return { ...m, steps: [...(m.steps || []), toolData] };
+          }
+          return m;
+        }));
+      }, 400 + idx * 500);
+      chatAnalysisTimeouts.current.push(t);
+    });
+
+    // Final: populate data + notes + summary
+    const finalT = setTimeout(() => {
+      // ---- Populate mock data for empty postes ----
+      if (posteId === 'dsa' && dsaLignes.length === 0) {
+        setDsaLignes([
+          { id: `dsa-ai-${Date.now()}-1`, status: 'ai-suggested', label: 'Hospitalisation CHU Bordeaux', type: 'Hospitalisation', date: '05/06/2022', montant: 4500, dejaRembourse: 4200, pieceIds: [], confidence: 95 },
+          { id: `dsa-ai-${Date.now()}-2`, status: 'ai-suggested', label: 'Kinésithérapie (24 séances)', type: 'Soins', date: '15/07/2022', montant: 1280, dejaRembourse: 960, pieceIds: [], confidence: 92 },
+          { id: `dsa-ai-${Date.now()}-3`, status: 'ai-suggested', label: 'IRM genou droit', type: 'Examen', date: '20/06/2022', montant: 320, dejaRembourse: 280, pieceIds: [], confidence: 94 },
+          { id: `dsa-ai-${Date.now()}-4`, status: 'ai-suggested', label: 'Médicaments (antalgiques, anti-inflammatoires)', type: 'Pharmacie', date: '05/06/2022', montant: 87.50, dejaRembourse: 65, pieceIds: [], confidence: 88 },
+          { id: `dsa-ai-${Date.now()}-5`, status: 'ai-suggested', label: 'Consultation orthopédique Dr. Martin', type: 'Consultation', date: '12/06/2022', montant: 55, dejaRembourse: 25, pieceIds: [], confidence: 90 },
+        ]);
+      }
+
+      if (posteId === 'dft' && dftLignes.length === 0) {
+        const baseJ = chiffrageParams.baseJournaliereDFT || 28;
+        setDftLignes([
+          { id: `dft-ai-${Date.now()}-1`, status: 'ai-suggested', label: 'Hospitalisation initiale', debut: '05/06/2022', fin: '12/06/2022', jours: 8, taux: 100, montant: Math.round(8 * baseJ), pieceIds: [], confidence: 96 },
+          { id: `dft-ai-${Date.now()}-2`, status: 'ai-suggested', label: 'Chirurgie + soins intensifs', debut: '13/06/2022', fin: '18/06/2022', jours: 6, taux: 100, montant: Math.round(6 * baseJ), pieceIds: [], confidence: 94 },
+          { id: `dft-ai-${Date.now()}-3`, status: 'ai-suggested', label: 'Alitement strict post-opératoire', debut: '19/06/2022', fin: '01/07/2022', jours: 13, taux: 100, montant: Math.round(13 * baseJ), pieceIds: [], confidence: 93 },
+          { id: `dft-ai-${Date.now()}-4`, status: 'ai-suggested', label: 'Convalescence post-opératoire', debut: '02/07/2022', fin: '15/09/2022', jours: 76, taux: 50, montant: Math.round(76 * baseJ * 0.5), pieceIds: [], confidence: 89 },
+          { id: `dft-ai-${Date.now()}-5`, status: 'ai-suggested', label: 'Rééducation active intensive', debut: '16/09/2022', fin: '16/12/2022', jours: 92, taux: 40, montant: Math.round(92 * baseJ * 0.4), pieceIds: [], confidence: 86 },
+          { id: `dft-ai-${Date.now()}-6`, status: 'ai-suggested', label: 'Rééducation d\'entretien', debut: '17/12/2022', fin: '19/03/2023', jours: 92, taux: 25, montant: Math.round(92 * baseJ * 0.25), pieceIds: [], confidence: 84 },
+          { id: `dft-ai-${Date.now()}-7`, status: 'ai-suggested', label: 'Gêne résiduelle pré-consolidation', debut: '20/03/2023', fin: '15/01/2024', jours: 301, taux: 15, montant: Math.round(301 * baseJ * 0.15), pieceIds: [], confidence: 80 },
+        ]);
+      }
+
+      if (posteId === 'pgpa' && pgpaData.revenuRef.lignes.length === 0) {
+        setPgpaData({
+          periode: { debut: '15/03/2023', fin: '12/09/2024', mois: 18 },
+          revenuRef: {
+            revalorisation: 'ipc-annuel',
+            coefficientPerteChance: 100,
+            lignes: [
+              { id: `pgpa-rev-${Date.now()}-1`, status: 'ai-suggested', type: 'revenu', label: 'Salaire net 2022', annee: '2022', montant: 32400, revalorise: 33696, pieceIds: [], confidence: 94 },
+              { id: `pgpa-rev-${Date.now()}-2`, status: 'ai-suggested', type: 'revenu', label: 'Salaire net 2021', annee: '2021', montant: 31200, revalorise: 33384, pieceIds: [], confidence: 92 },
+              { id: `pgpa-rev-${Date.now()}-3`, status: 'ai-suggested', type: 'gain', label: 'Prime annuelle 2022', annee: '2022', montant: 2400, revalorise: 2496, pieceIds: [], confidence: 88 },
+            ],
+            total: 37800,
+          },
+          revenusPercus: [
+            { id: `pgpa-rp-${Date.now()}-1`, status: 'ai-suggested', label: 'Maintien partiel salaire', tiers: 'Employeur', periode: 'Mars - Juin 2023', periodeDebut: '15/03/2023', periodeFin: '30/06/2023', jours: 108, montant: 8500, pieceIds: [], confidence: 90 },
+          ],
+          ijPercues: [
+            { id: `pgpa-ij-${Date.now()}-1`, status: 'ai-suggested', label: 'IJ Sécurité sociale', tiers: 'CPAM', periode: 'Mars 2023 - Sept 2024', periodeDebut: '15/03/2023', periodeFin: '12/09/2024', jours: 547, montantBrut: 12200, csgCrds: 550, montant: 11650, pieceIds: [], confidence: 91 },
+            { id: `pgpa-ij-${Date.now()}-2`, status: 'ai-suggested', label: 'IJ Prévoyance', tiers: 'AG2R', periode: 'Mars 2023 - Sept 2024', periodeDebut: '15/03/2023', periodeFin: '12/09/2024', jours: 547, montantBrut: 5100, csgCrds: 250, montant: 4850, pieceIds: [], confidence: 87 },
+          ],
+        });
+      }
+
+      if (posteId === 'pgpf' && !pgpfData.periodes['pgpf-cl']) {
+        setPgpfData({
+          periodes: {
+            'pgpf-cl': {
+              periode: { debut: '12/09/2024', fin: '15/01/2025', mois: 4 },
+              revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 37800, syncPGPA: true },
+              revenusPercus: [
+                { id: `pgpf-rp-${Date.now()}-1`, status: 'ai-suggested', label: 'Salaire reprise mi-temps', tiers: 'Employeur', periode: 'Sept 2024 - Jan 2025', periodeDebut: '12/09/2024', periodeFin: '15/01/2025', montant: 4800, pieceIds: [] },
+              ],
+              ijPercues: [
+                { id: `pgpf-ij-${Date.now()}-1`, status: 'ai-suggested', label: 'IJ CPAM (mi-temps thérapeutique)', tiers: 'CPAM', periode: 'Sept 2024 - Jan 2025', periodeDebut: '12/09/2024', periodeFin: '15/01/2025', montant: 3200, pieceIds: [] },
+              ],
+            },
+            'pgpf-al': {
+              params: {
+                perteGainAnnuelle: 9450,
+                ageConsolidation: 42,
+                baremeCapitalisation: 'gazette-palais-2025-0.5',
+                coefficient: 24.5,
+                montantCapitalise: 231525,
+              },
+              tiersPayeurs: [
+                { id: `pgpf-tp-${Date.now()}-1`, label: 'Rente CPAM', tiers: 'CPAM', renteAnnuelle: 3600, coefficient: 24.5, montantCapitalise: 88200 },
+                { id: `pgpf-tp-${Date.now()}-2`, label: 'Rente prévoyance', tiers: 'AG2R', renteAnnuelle: 1800, coefficient: 24.5, montantCapitalise: 44100 },
+              ],
+            },
+          },
+        });
+      }
+
+      if (posteId === 'se' && (!formPosteData.se || formPosteData.se.montant === 0)) {
+        setFormPosteData(prev => ({ ...prev, se: { referentiel: 'cours-appel-2024', cotation: 4, montant: 15000 } }));
+      }
+      if (posteId === 'dfp' && (!formPosteData.dfp || formPosteData.dfp.montant === 0)) {
+        setFormPosteData(prev => ({ ...prev, dfp: { referentiel: 'cours-appel-2024', age: 42, taux: 18, trancheAge: 'inferieure', trancheTaux: 'inferieure', pointBase: 1500, montant: 27000 } }));
+      }
+      if (posteId === 'pep' && (!formPosteData.pep || formPosteData.pep.montant === 0)) {
+        setFormPosteData(prev => ({ ...prev, pep: { referentiel: 'cours-appel-2024', cotation: 3, montant: 4500 } }));
+      }
+
+      // ---- Draft argumentation notes ----
+      const mockNotes = {
+        dsa: `Au titre des dépenses de santé actuelles, la victime justifie des frais médicaux engagés suite à l'accident du 05/06/2022, comprenant l'hospitalisation initiale au CHU de Bordeaux (4 500 €), les séances de kinésithérapie prescrites (1 280 €), l'IRM de contrôle (320 €), les traitements médicamenteux (87,50 €) et les consultations spécialisées (55 €).\n\nAprès déduction des remboursements de la sécurité sociale et de la mutuelle, le reste à charge s'établit à 712,50 €. Il est demandé la prise en charge intégrale de ce solde au titre de l'indemnisation.`,
+        dft: `Le déficit fonctionnel temporaire s'apprécie au regard du rapport d'expertise du Dr. Leroy en date du 15/01/2024.\n\nLa victime a subi un DFT total (100%) durant les phases d'hospitalisation et d'alitement strict (27 jours), puis un DFT partiel décroissant : 50% pendant la convalescence (76 jours), 40% pendant la rééducation active (92 jours), 25% pendant la rééducation d'entretien (92 jours), et 15% pour la gêne résiduelle jusqu'à consolidation (301 jours).\n\nSur la base d'un forfait journalier de 28 €/jour, conforme à la jurisprudence récente de la Cour d'appel de Bordeaux (CA Bordeaux, 5ème ch., 12 mars 2024), l'indemnité totale au titre du DFT s'élève à 5 385 €.`,
+        pgpa: `La victime occupait un poste de cadre commercial avec un revenu annuel de référence de 37 800 € net, établi sur la moyenne des revenus 2021-2022 revalorisés selon l'indice IPC.\n\nDurant la période d'arrêt de travail (18 mois, du 15/03/2023 au 12/09/2024), la victime a perçu un maintien partiel de salaire par son employeur (8 500 €) ainsi que des indemnités journalières CPAM (11 650 €) et de prévoyance AG2R (4 850 €).\n\nLa perte de gains professionnels actuels nette s'établit à 31 700 € (revenu attendu) - 8 500 € (maintien) - 11 650 € (IJ CPAM) - 4 850 € (IJ prévoyance) = 6 700 €.`,
+        pgpf: `Postérieurement à la consolidation fixée au 12/09/2024, la victime conserve une incapacité partielle affectant sa capacité de gain.\n\nPour la période échue (consolidation → liquidation, 4 mois) : la victime a repris à mi-temps thérapeutique avec un salaire réduit de 4 800 € et des IJ CPAM complémentaires de 3 200 €, générant une perte nette.\n\nPour la période à échoir : la perte de gain annuelle est estimée à 9 450 €, capitalisée selon le barème de la Gazette du Palais 2025 (taux 0,5%), coefficient 24,5 pour un homme de 42 ans, soit un capital de 231 525 €.`,
+        se: `Les souffrances endurées sont évaluées à 4/7 au regard du rapport d'expertise, tenant compte des interventions chirurgicales, de la durée de la rééducation et de l'intensité des douleurs rapportées.\n\nSelon le référentiel indicatif de la Cour d'appel 2024, une cotation de 4/7 correspond à une fourchette de 12 000 à 18 000 €. Il est sollicité la somme de 15 000 € au titre de ce poste.`,
+        dfp: `Le déficit fonctionnel permanent est fixé à 18% par l'expert, tenant compte des séquelles de raideur articulaire, des douleurs résiduelles et de la boiterie légère.\n\nPour un homme de 42 ans à la date de consolidation, le point d'indemnisation est fixé à 1 500 € selon le référentiel de la Cour d'appel 2024 (tranche d'âge inférieure, tranche de taux inférieure).\n\nL'indemnité au titre du DFP s'établit à : 18 × 1 500 = 27 000 €.`,
+        pep: `Le préjudice esthétique permanent est évalué à 3/7 par l'expert, en raison des cicatrices chirurgicales au niveau du membre inférieur droit et de la boiterie résiduelle.\n\nSelon le référentiel indicatif de la Cour d'appel 2024, une cotation de 3/7 correspond à une fourchette de 3 000 à 6 000 €. Il est sollicité la somme de 4 500 € au titre de ce poste.`,
+      };
+
+      if (mockNotes[posteId]) {
+        setPosteNotes(prev => ({ ...prev, [posteId]: prev[posteId] || mockNotes[posteId] }));
+      }
+
+      // ---- Chat summary ----
+      const resultTexts = {
+        dsa: `DSA calculé : 6 242,50 €. 5 lignes de dépenses pré-remplies et argumentation rédigée.`,
+        dft: `DFT calculé : 5 385 €. 7 périodes renseignées, forfait 28 €/jour. Argumentation rédigée.`,
+        pgpa: `PGPA calculé : 6 700 €. Revenu de référence : 37 800 €/an, 18 mois d'arrêt, déduction IJ et maintien. Argumentation rédigée.`,
+        pgpf: `PGPF calculé. Période échue et capitalisation viagère renseignées. Barème Gazette du Palais 2025 appliqué. Notes rédigées.`,
+        se: `SE évalué à 15 000 € (cotation 4/7, référentiel Cour d'appel 2024). Argumentation rédigée.`,
+        dfp: `DFP évalué : 27 000 € (18% × 1 500 €/point). Argumentation rédigée.`,
+        pep: `PEP évalué à 4 500 € (cotation 3/7, référentiel Cour d'appel 2024). Argumentation rédigée.`,
+      };
+
+      setChatMessages(prev => {
+        const withoutThinking = prev.filter(m => !(m.type === 'ai-thinking' && m._posteCalcId === posteId));
+        return [
+          ...withoutThinking,
+          {
+            type: 'ai',
+            thinkingLabel: `Calcul ${posteName} terminé`,
+            text: resultTexts[posteId] || `${posteName} calculé. Données et argumentation reportées.`,
+          },
+        ];
+      });
+    }, 400 + calcTools.length * 500 + 300);
+    chatAnalysisTimeouts.current.push(finalT);
+  };
+
+  // When user navigates to a poste → chat greets + analyzes docs → proposes (no calculation yet)
+  useEffect(() => {
+    const currentLevel = navStack[navStack.length - 1];
+    if (!currentLevel || currentLevel.type !== 'poste') return;
+    const posteId = currentLevel.id;
+    if (!posteId || chatAnalyzedPostes.current.has(posteId)) return;
+
+    // Only auto-analyze if postes have been announced (extraction flow completed)
+    if (!chatPostesAnnounced.current && chatMessages.length === 0) return;
+
+    chatAnalyzedPostes.current.add(posteId);
+
+    const tid = setTimeout(() => {
+      const taxo = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes)).find(p => p.id === posteId);
+      if (!taxo) return;
+      const posteName = taxo.acronym || posteId.toUpperCase();
+      const welcome = posteWelcomeMap[posteId] || { greeting: `Bienvenue sur le ${posteName} !`, analysis: 'Je consulte les documents du dossier...', proposal: `J'ai trouvé des éléments à calculer. Voulez-vous que je lance le calcul du ${posteName} ?` };
+      const discoveryTools = posteDiscoveryToolMap[posteId] || [{ tool: 'readDocument', detail: 'Pièces du dossier', expandedText: 'Analyse des documents...' }];
+
+      setChatSidebarOpen(true);
+
+      // Clear any lingering timeouts
+      chatAnalysisTimeouts.current.forEach(t => clearTimeout(t));
+      chatAnalysisTimeouts.current = [];
+
+      // Phase 1: Welcome message
+      setChatMessages(prev => [
+        ...prev,
+        { type: 'ai', text: welcome.greeting },
+      ]);
+
+      // Phase 2: Thinking — reading docs
+      const t1 = setTimeout(() => {
+        setChatMessages(prev => [
+          ...prev,
+          { type: 'ai-thinking', label: welcome.analysis, steps: [], expanded: false, _posteDiscoveryId: posteId },
+        ]);
+      }, 500);
+      chatAnalysisTimeouts.current.push(t1);
+
+      // Phase 2b: Add discovery steps progressively
+      discoveryTools.forEach((toolData, idx) => {
+        const t = setTimeout(() => {
+          setChatMessages(prev => prev.map(m => {
+            if (m.type === 'ai-thinking' && m._posteDiscoveryId === posteId) {
+              return { ...m, steps: [...(m.steps || []), toolData] };
+            }
+            return m;
+          }));
+        }, 800 + idx * 600);
+        chatAnalysisTimeouts.current.push(t);
+      });
+
+      // Phase 3: Proposal with action button
+      const proposalT = setTimeout(() => {
+        setChatMessages(prev => [
+          ...prev,
+          {
+            type: 'ai-proposal',
+            text: welcome.proposal,
+            posteId: posteId,
+            posteName: posteName,
+          },
+        ]);
+      }, 800 + discoveryTools.length * 600 + 400);
+      chatAnalysisTimeouts.current.push(proposalT);
+    }, 400);
+
+    return () => clearTimeout(tid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navStack]);
 
   // ========== CALCULS ==========
   const dsaTotal = dsaLignes.filter(l => l.status === 'validated').reduce((s, l) => s + (l.montant || 0), 0);
@@ -1460,6 +1845,12 @@ export default function App() {
     setPgpaData({ periode: { debut: '', fin: '', mois: 0 }, revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 0 }, revenusPercus: [], ijPercues: [] });
     setPgpfData({ periodes: {} });
 
+    // Reset chat state for new dossier
+    setChatMessages([]);
+    chatExtractionAnnounced.current = false;
+    chatPostesAnnounced.current = false;
+    chatAnalyzedPostes.current = new Set();
+
     setNavStack([{ id: newId, type: 'dossier', title: `${formData.nom} ${formData.prenom}`, activeTab }]);
     setActiveDossierId(newId);
     setCurrentPage('dossier');
@@ -1698,6 +2089,54 @@ export default function App() {
         }, ...prev]);
       }
       setProcessing(prev => prev.filter(p => p.id !== procId));
+    }
+  };
+
+  // ========== SMART ADD POSTE — shared handler for badge click + chat ==========
+  const handleSmartAddPoste = (posteId) => {
+    const taxo = allTaxoPostes.find(p => p.id === posteId);
+    if (!taxo) return;
+
+    // Add poste to dossier if not present
+    if (!dossierPostes.includes(posteId)) {
+      setDossierPostes(prev => [...prev, posteId]);
+    }
+
+    // Navigate to poste detail — the navStack useEffect will auto-trigger chat analysis
+    navigateTo({ id: posteId, title: taxo.acronym || posteId.toUpperCase(), fullTitle: taxo.label, type: 'poste', montant: 0 });
+    setChatSidebarOpen(true);
+  };
+
+  // ========== CHAT SEND — handles user messages + intent detection ==========
+  const handleChatSend = () => {
+    const text = chatInputValue.trim();
+    if (!text && stagedDocs.length === 0) return;
+
+    // Push user message
+    const userMsg = { type: 'user', text: text || 'Documents ajoutés', attachments: stagedDocs.length > 0 ? [...stagedDocs] : undefined };
+    setChatMessages(prev => [...prev, userMsg]);
+    setChatInputValue('');
+    setStagedDocs([]);
+
+    // Intent detection: look for poste acronyms in message
+    const upperText = text.toUpperCase();
+    const matched = allTaxoPostes.find(p => {
+      if (p.acronym && upperText.includes(p.acronym)) return true;
+      if (upperText.includes(p.id.toUpperCase())) return true;
+      return false;
+    });
+
+    if (matched) {
+      // Delay slightly so user message renders first
+      setTimeout(() => handleSmartAddPoste(matched.id), 300);
+    } else {
+      // Generic response
+      setTimeout(() => {
+        setChatMessages(prev => [...prev, {
+          type: 'ai',
+          text: "Je suis prêt à vous aider. Vous pouvez me demander de calculer un poste spécifique (ex: \"Calcule le DFT\") ou ajouter un poste depuis l'onglet Chiffrage.",
+        }]);
+      }, 500);
     }
   };
 
@@ -2010,19 +2449,7 @@ export default function App() {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2 justify-end">
-          {/* Chiffrage CTAs */}
-          {currentLevel?.activeTab === 'chiffrage' && currentLevel?.type === 'dossier' && (
-            <>
-              <button onClick={() => setShowExportModal(true)} className="h-8 flex items-center gap-2 px-4 text-[14px] font-medium text-[#292524] bg-white border border-[#e7e5e3] rounded-lg hover:bg-stone-50 transition-colors" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
-                <Download className="w-4 h-4" strokeWidth={1.5} />
-                Exporter
-              </button>
-              <button onClick={() => setPosteSearchOpen(true)} className="h-8 flex items-center gap-2 px-4 text-[14px] font-medium text-white bg-[#292524] rounded-lg hover:bg-[#44403c] transition-colors" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
-                <Plus className="w-4 h-4" strokeWidth={2} />
-                Ajouter un poste
-              </button>
-            </>
-          )}
+          {/* Chiffrage CTAs removed from header — now in content page */}
           <div className="w-px h-5 bg-[#e7e5e3]" />
           {chatSidebarOpen ? (
             <button
@@ -2101,28 +2528,18 @@ export default function App() {
     </div>
   );
 
-  // Chat state for example UI
+  // Chat state
   const [chatInputValue, setChatInputValue] = useState('');
   const [chatInputFocused, setChatInputFocused] = useState(false);
-
-  // Example chat messages data
-  const exampleChatMessages = [
-    { type: 'user', text: "Quelles sont les étapes à suivre pour constituer un dossier solide en cas de blessures corporelles suite à un accident de voiture impliquant un conducteur en état d'ébriété?" },
-    {
-      type: 'ai',
-      thinkingLabel: 'Done this and that and that ...',
-      steps: [
-        { icon: 'search', text: 'Calling tool blabla..' },
-        { icon: 'file', text: 'Reading documents to extract...' },
-        { icon: 'math', text: 'Doing mathematic...' },
-      ],
-      text: "L'évaluation des dommages corporels prend en compte la douleur, la perte de revenus, les frais médicaux présents et futurs. Pour les non-résidents, des accords internationaux et des lois spécifiques peuvent s'appliquer, influençant le calcul final.",
-    },
-    { type: 'ai-thinking', label: 'Crafting interactive legal calculation...' },
-  ];
+  const [chatMessages, setChatMessages] = useState([]);
+  const [stagedDocs, setStagedDocs] = useState([]);
+  const chatAnalysisTimeouts = useRef([]);
+  const chatExtractionAnnounced = useRef(false);
+  const chatPostesAnnounced = useRef(false);
+  const chatAnalyzedPostes = useRef(new Set()); // track which postes chat has already analyzed
 
   const renderChatSidebar = () => {
-    const hasContent = chatInputValue.trim().length > 0;
+    const hasContent = chatInputValue.trim().length > 0 || stagedDocs.length > 0;
 
     return (
       <>
@@ -2144,8 +2561,22 @@ export default function App() {
           </div>
 
           {/* Chat messages area */}
-          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-2.5" style={{ backgroundColor: '#F8F7F5' }}>
-            {exampleChatMessages.map((msg, i) => {
+          <div
+            className="flex-1 overflow-y-auto p-5 flex flex-col gap-2.5"
+            style={{ backgroundColor: '#F8F7F5' }}
+            ref={el => {
+              if (el) el.scrollTop = el.scrollHeight;
+            }}
+          >
+            {chatMessages.length === 0 && (
+              <div className="flex flex-col items-center justify-center flex-1 py-12 px-6">
+                <PlatoIcon />
+                <p style={{ fontSize: 13, color: '#a8a29e', textAlign: 'center', marginTop: 12, lineHeight: '18px' }}>
+                  Ajoutez un poste depuis l'onglet Chiffrage ou demandez-moi directement de calculer un préjudice.
+                </p>
+              </div>
+            )}
+            {chatMessages.map((msg, i) => {
               // User message bubble
               if (msg.type === 'user') {
                 return (
@@ -2162,21 +2593,187 @@ export default function App() {
                       }}
                     >
                       <p style={{ fontSize: 14, lineHeight: '20px', color: 'white', margin: 0 }}>{msg.text}</p>
-                      {/* Inner glow */}
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {msg.attachments.map((doc, di) => (
+                            <span key={di} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-white/10 text-white/80">
+                              <FileText className="w-3 h-3" />{doc.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', boxShadow: 'inset 0px -5px 8px 0px rgba(255,255,255,0.12)', pointerEvents: 'none' }} />
                     </div>
                   </div>
                 );
               }
 
-              // AI thinking status (in progress)
+              // AI thinking status — collapsible stepper with animations
               if (msg.type === 'ai-thinking') {
+                const isExpanded = msg.expanded;
+                const steps = msg.steps || [];
+                const currentStep = steps.length > 0 ? steps[steps.length - 1] : null;
+                const stepIconMap = {
+                  readDocument: Search, readExpertise: Search, readBulletins: Search, readBaremes: Search,
+                  extractMontants: FileMinus, extractPeriods: FileMinus, extractRevenus: FileMinus,
+                  extractInfoDossier: FileText, detectPostes: ListChecks, analyseDocuments: FileSearch,
+                  calculDSA: Radical, calculDFT: Radical, calculPGPA: Radical, calculCapitalisation: Radical, calculPGPF: Radical,
+                  calculSE: Radical, calculDFP: Radical, calculPEP: Radical,
+                };
+                const stepStatusColor = (si) => si < steps.length - 1 ? '#16a34a' : '#ea7949';
                 return (
-                  <div key={i} className="flex flex-col gap-2.5 items-start" style={{ paddingRight: 20 }}>
-                    <div className="flex items-center gap-3">
-                      <PlatoDotGrid />
-                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{msg.label}</span>
+                  <div key={i} className="flex flex-col items-start" style={{ paddingRight: 20 }}>
+                    {/* Header — always visible */}
+                    <div
+                      className="flex items-center gap-2.5 cursor-pointer select-none py-1.5 w-full"
+                      onClick={() => setChatMessages(prev => prev.map((m, mi) => mi === i ? { ...m, expanded: !m.expanded } : m))}
+                    >
+                      <div className="animate-dot-grid-pulse"><PlatoDotGrid /></div>
+                      <span className="flex-1 min-w-0 truncate" style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>
+                        {currentStep ? currentStep.detail || currentStep.tool : msg.label}
+                      </span>
+                      {/* Animated dots for active state */}
+                      {steps.length > 0 && (
+                        <span className="flex items-center gap-0.5 flex-shrink-0 mr-1">
+                          <span className="w-1 h-1 rounded-full bg-[#ea7949] animate-thinking-dot-1" />
+                          <span className="w-1 h-1 rounded-full bg-[#ea7949] animate-thinking-dot-2" />
+                          <span className="w-1 h-1 rounded-full bg-[#ea7949] animate-thinking-dot-3" />
+                        </span>
+                      )}
+                      {isExpanded ? <ChevronDown className="w-3 h-3 text-[#a8a29e] flex-shrink-0" /> : <ChevronRight className="w-3 h-3 text-[#a8a29e] flex-shrink-0" />}
                     </div>
+                    {/* Expanded timeline */}
+                    {isExpanded && steps.length > 0 && (
+                      <div className="flex flex-col mt-0.5 ml-[7px] mb-1">
+                        {steps.map((step, si) => {
+                          const StepIcon = stepIconMap[step.tool] || Search;
+                          const isLast = si === steps.length - 1;
+                          const isDone = si < steps.length - 1;
+                          const dotColor = stepStatusColor(si);
+                          return (
+                            <div key={si} className="flex gap-3 items-start animate-step-slide-in" style={{ animationDelay: `${si * 50}ms` }}>
+                              <div className="flex flex-col items-center flex-shrink-0" style={{ width: 16 }}>
+                                {isDone ? (
+                                  <div className="w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#dcfce7' }}>
+                                    <Check className="w-2.5 h-2.5 text-[#16a34a]" strokeWidth={2.5} />
+                                  </div>
+                                ) : (
+                                  <div className="w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#fff7ed', border: '1.5px solid #ea7949' }}>
+                                    <StepIcon className="flex-shrink-0" style={{ width: 8, height: 8, color: '#ea7949' }} />
+                                  </div>
+                                )}
+                                {!isLast && <div className="animate-line-grow" style={{ width: 1.5, flex: 1, minHeight: 16, backgroundColor: isDone ? '#86efac' : '#e7e5e3', borderRadius: 1 }} />}
+                              </div>
+                              <div style={{ paddingBottom: isLast ? 0 : 10, paddingTop: 1 }}>
+                                <span style={{ fontSize: 12, fontWeight: isDone ? 400 : 500, color: isDone ? '#a8a29e' : '#44403c', lineHeight: '16px', letterSpacing: 0.12 }}>
+                                  {step.expandedText || step.detail || step.tool}
+                                </span>
+                                {isDone && <span style={{ fontSize: 11, color: '#16a34a', marginLeft: 6 }}>✓</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {/* Active indicator at bottom */}
+                        <div className="flex items-center gap-2 mt-1 ml-1">
+                          <span className="flex items-center gap-0.5">
+                            <span className="w-1 h-1 rounded-full bg-[#ea7949] animate-thinking-dot-1" />
+                            <span className="w-1 h-1 rounded-full bg-[#ea7949] animate-thinking-dot-2" />
+                            <span className="w-1 h-1 rounded-full bg-[#ea7949] animate-thinking-dot-3" />
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              // Tool call chip (collapsed)
+              if (msg.type === 'tool-call') {
+                return (
+                  <div key={i} className="flex items-center gap-2 py-0.5" style={{ paddingRight: 20 }}>
+                    <div
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer hover:bg-emerald-100/80 transition-colors"
+                      style={{ backgroundColor: '#ecfdf5', border: '1px solid #d1fae5' }}
+                      onClick={() => {
+                        setChatMessages(prev => prev.map((m, mi) => mi === i ? { ...m, expanded: !m.expanded } : m));
+                      }}
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <span style={{ fontSize: 11, fontWeight: 500, color: '#065f46', fontFamily: "'IBM Plex Mono', monospace" }}>{msg.tool}</span>
+                      {msg.detail && <span style={{ fontSize: 11, color: '#047857' }}>— {msg.detail}</span>}
+                    </div>
+                    {msg.expanded && msg.expandedText && (
+                      <span style={{ fontSize: 12, color: '#78716c' }}>{msg.expandedText}</span>
+                    )}
+                  </div>
+                );
+              }
+
+              // Upload CTA (agent asks for documents)
+              if (msg.type === 'upload-cta') {
+                return (
+                  <div key={i} className="flex flex-col gap-2 items-start pb-3" style={{ paddingRight: 20 }}>
+                    <p style={{ fontSize: 14, lineHeight: '20px', color: '#292524', margin: 0 }}>{msg.text}</p>
+                    <button
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-stone-100"
+                      style={{ backgroundColor: '#f5f5f4', color: '#44403c', border: '1px solid #e7e5e3' }}
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      Ajouter des pièces
+                    </button>
+                  </div>
+                );
+              }
+
+              // Artifact cards (info dossier, postes suggérés)
+              if (msg.type === 'artifact-cards') {
+                const iconMap = { FileText: FileText, Calculator: Calculator };
+                return (
+                  <div key={i} className="flex flex-col gap-2 pb-3 w-full" style={{ paddingRight: 20 }}>
+                    {msg.cards.map(card => {
+                      const CardIcon = iconMap[card.icon] || FileText;
+                      return (
+                        <div
+                          key={card.id}
+                          className="flex items-center gap-3 p-3 rounded-lg border border-[#e7e5e3] bg-white hover:bg-[#fafaf9] transition-colors cursor-pointer group"
+                          style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}
+                          onClick={() => {
+                            setNavStack(prev => prev.map((n, ni) => ni === prev.length - 1 ? { ...n, activeTab: card.navigateTo } : n));
+                          }}
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-[#eeece6] flex items-center justify-center flex-shrink-0">
+                            <CardIcon className="w-4 h-4 text-[#78716c]" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div style={{ fontSize: 13, fontWeight: 500, color: '#292524', lineHeight: '18px' }}>{card.title}</div>
+                            <div className="truncate" style={{ fontSize: 12, color: '#78716c', lineHeight: '16px' }}>{card.subtitle}</div>
+                          </div>
+                          <span className="text-xs font-medium text-[#1e3a8a] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">{card.action} →</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              }
+
+              // AI proposal — agent proposes, user validates
+              if (msg.type === 'ai-proposal') {
+                return (
+                  <div key={i} className="flex flex-col gap-3 items-start pb-4" style={{ paddingRight: 20 }}>
+                    <p style={{ fontSize: 14, lineHeight: '20px', color: '#292524', margin: 0 }}>{msg.text}</p>
+                    <button
+                      onClick={() => {
+                        // Replace proposal with confirmed message
+                        setChatMessages(prev => prev.map((m, mi) => mi === i ? { type: 'ai', text: msg.text } : m));
+                        // Trigger calculation
+                        handlePosteCalculation(msg.posteId);
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
+                      style={{ backgroundColor: '#292524', color: 'white', boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Lancer le calcul {msg.posteName}
+                    </button>
                   </div>
                 );
               }
@@ -2185,19 +2782,18 @@ export default function App() {
               if (msg.type === 'ai') {
                 return (
                   <div key={i} className="flex flex-col gap-3 items-start pb-4" style={{ paddingRight: 20 }}>
-                    {/* Collapsible thinking steps header */}
                     {msg.thinkingLabel && (
                       <div className="flex flex-col gap-1.5 w-full">
-                        {/* Collapsed header */}
                         <div className="flex items-center gap-3" style={{ paddingRight: 20 }}>
                           <p style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'pre', margin: 0 }}>
                             {msg.thinkingLabel}{'  >'}
                           </p>
                         </div>
-
-                        {/* Response text */}
-                        <p style={{ fontSize: 14, lineHeight: '20px', color: '#292524', margin: 0 }}>{msg.text}</p>
+                        {msg.text && <p style={{ fontSize: 14, lineHeight: '20px', color: '#292524', margin: 0 }}>{msg.text}</p>}
                       </div>
+                    )}
+                    {!msg.thinkingLabel && msg.text && (
+                      <p style={{ fontSize: 14, lineHeight: '20px', color: '#292524', margin: 0 }}>{msg.text}</p>
                     )}
 
                     {/* Action icons */}
@@ -2223,7 +2819,19 @@ export default function App() {
           </div>
 
           {/* Bottom input — Chat Input component */}
-          <div className="px-3 pb-3 flex-shrink-0" style={{ backgroundColor: '#F8F7F5' }}>
+          <div
+            className="px-3 pb-3 flex-shrink-0"
+            style={{ backgroundColor: '#F8F7F5' }}
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const files = Array.from(e.dataTransfer.files);
+              if (files.length > 0) {
+                setStagedDocs(prev => [...prev, ...files.map(f => ({ name: f.name, size: f.size }))]);
+              }
+            }}
+          >
             <div
               style={{
                 backgroundColor: '#ffffff',
@@ -2237,6 +2845,20 @@ export default function App() {
                 flexDirection: 'column',
               }}
             >
+              {/* Staged document chips */}
+              {stagedDocs.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 px-3 pt-2.5">
+                  {stagedDocs.map((doc, di) => (
+                    <span key={di} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium" style={{ backgroundColor: '#f5f5f4', color: '#44403c', border: '1px solid #e7e5e3' }}>
+                      <FileText className="w-3 h-3 text-[#78716c]" />
+                      {doc.name}
+                      <button onClick={() => setStagedDocs(prev => prev.filter((_, i) => i !== di))} className="ml-0.5 hover:text-red-500 transition-colors">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
               {/* Text area */}
               <div style={{ padding: '12px 12px 32px 12px' }}>
                 <textarea
@@ -2245,6 +2867,7 @@ export default function App() {
                   placeholder="Demander à Plato Master de calculer, rechercher des JP, rédiger des actes..."
                   value={chatInputValue}
                   onChange={(e) => setChatInputValue(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSend(); } }}
                   onFocus={() => setChatInputFocused(true)}
                   onBlur={() => setChatInputFocused(false)}
                   rows={1}
@@ -2274,6 +2897,7 @@ export default function App() {
                     opacity: hasContent ? 1 : 0.5,
                     cursor: hasContent ? 'pointer' : 'default',
                   }}
+                  onClick={hasContent ? handleChatSend : undefined}
                 >
                   <ArrowUp className="w-4 h-4" style={{ color: hasContent ? 'white' : '#78716c' }} />
                 </button>
@@ -4908,7 +5532,7 @@ export default function App() {
 
         return (
           <div className="space-y-6">
-            {/* Summary pills row */}
+            {/* Summary pills + actions row */}
             <div className="flex items-center gap-3 px-px">
               <div className="h-9 px-3 flex items-center gap-2.5 border border-[#d6d3d1] rounded-lg whitespace-nowrap">
                 <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c', letterSpacing: 0.12, lineHeight: '16px' }}>Dépenses</span>
@@ -4922,6 +5546,22 @@ export default function App() {
                 <span style={{ fontSize: 12, fontWeight: 400, color: '#292524', letterSpacing: 0.12, lineHeight: '16px' }}>Indem. totale</span>
                 <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(totalIndem)}</span>
               </div>
+              <div className="flex-1" />
+              <button
+                className="h-9 px-3 flex items-center gap-2 border border-[#d6d3d1] rounded-lg whitespace-nowrap hover:bg-stone-50 transition-colors"
+                style={{ fontSize: 13, fontWeight: 500, color: '#44403c' }}
+              >
+                <Download className="w-3.5 h-3.5 text-[#78716c]" />
+                Exporter
+              </button>
+              <button
+                className="h-9 px-3 flex items-center gap-2 rounded-lg whitespace-nowrap hover:opacity-90 transition-opacity"
+                style={{ fontSize: 13, fontWeight: 500, color: 'white', backgroundColor: '#292524' }}
+                onClick={() => setPosteSearchOpen(true)}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Ajouter un poste
+              </button>
             </div>
 
             {/* Category table sections */}
@@ -5042,10 +5682,7 @@ export default function App() {
                             <button
                               onClick={() => {
                                 if (!isEnabled) {
-                                  if (!dossierPostes.includes(p.id)) {
-                                    setDossierPostes(prev => [...prev, p.id]);
-                                  }
-                                  navigateTo({ id: p.id, title: p.acronym || p.id.toUpperCase(), fullTitle: p.label, type: 'poste', montant: 0 });
+                                  handleSmartAddPoste(p.id);
                                 } else {
                                   const existing = allPostes.find(ep => ep.id === p.id);
                                   if (existing) navigateTo(existing);
@@ -5166,7 +5803,7 @@ export default function App() {
       const indemniteVictime = totalResteACharge;
       
       return (
-        <div className={`${dsaLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dsa') ? 'h-full flex flex-col' : ''}`}>
+        <div className={`${dsaLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dsa') && !chatAnalyzedPostes.current.has('dsa') ? 'h-full flex flex-col' : ''}`}>
           {/* CALCUL Section */}
           <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
             <div className="p-4">
@@ -5208,7 +5845,7 @@ export default function App() {
           </div>
 
           {/* Empty state DSA */}
-          {dsaLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dsa') && renderInlineDocPicker('dsa', {
+          {dsaLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dsa') && !chatAnalyzedPostes.current.has('dsa') && renderInlineDocPicker('dsa', {
             icon: Receipt,
             title: 'Ajoutez vos justificatifs pour créer vos lignes de dépenses',
             description: 'Déposez un ou plusieurs documents. Plato lit, extrait et structure les informations pour chaque ligne.',
@@ -5216,7 +5853,7 @@ export default function App() {
           })}
 
           {/* Card Block: Dépenses de santé */}
-          {(dsaLignes.length > 0 || processing.length > 0 || (posteExtracting && posteExtracting.posteType === 'dsa')) && (
+          {(dsaLignes.length > 0 || processing.length > 0 || (posteExtracting && posteExtracting.posteType === 'dsa') || chatAnalyzedPostes.current.has('dsa')) && (
           <div className={cardBlockClass}>
             {/* Title Row */}
             <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
@@ -5466,8 +6103,8 @@ export default function App() {
       const perteDeGains = Math.round(revenuRefMensuel * pgpaData.periode.mois) - revenusPercusTotal;
       const indemniteVictimePGPA = perteDeGains - ijPercuesTotal;
 
-      // Empty state — before any data
-      if (pgpaData.revenuRef.lignes.length === 0 && pgpaData.revenusPercus.length === 0 && pgpaData.ijPercues.length === 0) {
+      // Empty state — before any data (skip if chat has analyzed)
+      if (pgpaData.revenuRef.lignes.length === 0 && pgpaData.revenusPercus.length === 0 && pgpaData.ijPercues.length === 0 && !chatAnalyzedPostes.current.has('pgpa')) {
         return renderInlineDocPicker('pgpa-revenu-ref', {
           icon: Calculator,
           title: 'Aucune donnée PGPA',
@@ -5526,7 +6163,7 @@ export default function App() {
 
           {/* Card: Revenu de référence */}
           <div className={cardBlockClass}>
-            <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
+            <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard('pgpa-revenu-ref')}>
               <div className="flex items-center gap-3">
                 <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
                   <Calculator className="w-3.5 h-3.5 text-[#78716c]" />
@@ -5539,9 +6176,10 @@ export default function App() {
                 ) : (
                   <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
                 )}
-                <ChevronDown className="w-4 h-4 text-[#78716c]" />
+                {isCardExpanded('pgpa-revenu-ref') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
               </div>
             </div>
+            {isCardExpanded('pgpa-revenu-ref') && <>
             {/* Drop zone */}
             <div
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -5602,11 +6240,12 @@ export default function App() {
                 </div>
               );
             })}
+          </>}
           </div>
 
           {/* Card: Revenus perçus */}
           <div className={cardBlockClass}>
-            <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
+            <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard('pgpa-revenus-percus')}>
               <div className="flex items-center gap-3">
                 <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
                   <Receipt className="w-3.5 h-3.5 text-[#78716c]" />
@@ -5619,9 +6258,10 @@ export default function App() {
                 ) : (
                   <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
                 )}
-                <ChevronDown className="w-4 h-4 text-[#78716c]" />
+                {isCardExpanded('pgpa-revenus-percus') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
               </div>
             </div>
+            {isCardExpanded('pgpa-revenus-percus') && <>
             {/* Drop zone */}
             <div
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -5680,11 +6320,12 @@ export default function App() {
                 </div>
               );
             })}
+          </>}
           </div>
 
           {/* Card: Perte de chance */}
           <div className={cardBlockClass}>
-            <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
+            <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard('pgpa-perte-chance')}>
               <div className="flex items-center gap-3">
                 <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
                   <Activity className="w-3.5 h-3.5 text-[#78716c]" />
@@ -5693,9 +6334,10 @@ export default function App() {
               </div>
               <div className="flex items-center gap-2">
                 <span style={serifAmountStyle} className="text-[#292524]">{fmt(0)}</span>
-                <ChevronDown className="w-4 h-4 text-[#78716c]" />
+                {isCardExpanded('pgpa-perte-chance') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
               </div>
             </div>
+            {isCardExpanded('pgpa-perte-chance') && <>
             {/* Column headers */}
             <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
               <div className="w-12 flex-shrink-0"></div>
@@ -5712,6 +6354,7 @@ export default function App() {
                 <Plus className="w-4 h-4" /> Ajouter une perte de chance
               </button>
             </div>
+          </>}
           </div>
 
           {/* Total Block */}
@@ -5776,7 +6419,7 @@ export default function App() {
     // ========== PGPF ==========
     if (currentLevel.id === 'pgpf') {
       // Empty state
-      if (!pgpfData.periodes['pgpf-cl'] && !pgpfData.periodes['pgpf-al']) {
+      if (!pgpfData.periodes['pgpf-cl'] && !pgpfData.periodes['pgpf-al'] && !chatAnalyzedPostes.current.has('pgpf')) {
         return renderInlineDocPicker('pgpf', {
           icon: Calculator,
           title: 'Aucune donnée PGPF',
@@ -5830,7 +6473,7 @@ export default function App() {
 
             {/* Card: Revenus perçus */}
             <div className={cardBlockClass}>
-              <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
+              <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard('pgpf-revenus-percus')}>
                 <div className="flex items-center gap-3">
                   <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
                     <Receipt className="w-3.5 h-3.5 text-[#78716c]" />
@@ -5839,9 +6482,10 @@ export default function App() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span style={serifAmountStyle} className="text-[#292524]">{fmt(periodeCL.revenusPercus.reduce((s, l) => s + l.montant, 0))}</span>
-                  <ChevronDown className="w-4 h-4 text-[#78716c]" />
+                  {isCardExpanded('pgpf-revenus-percus') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
                 </div>
               </div>
+              {isCardExpanded('pgpf-revenus-percus') && <>
               {/* Drop zone */}
               <div className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white">
                 <div className="flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg border-[#d6d3d1]">
@@ -5893,11 +6537,12 @@ export default function App() {
                   </div>
                 );
               })}
+            </>}
             </div>
 
             {/* Card: Perte de chance */}
             <div className={cardBlockClass}>
-              <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
+              <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard('pgpf-perte-chance')}>
                 <div className="flex items-center gap-3">
                   <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
                     <Activity className="w-3.5 h-3.5 text-[#78716c]" />
@@ -5906,9 +6551,10 @@ export default function App() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span style={serifAmountStyle} className="text-[#292524]">{fmt(0)}</span>
-                  <ChevronDown className="w-4 h-4 text-[#78716c]" />
+                  {isCardExpanded('pgpf-perte-chance') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
                 </div>
               </div>
+              {isCardExpanded('pgpf-perte-chance') && <>
               <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
                 <div className="w-12 flex-shrink-0"></div>
                 <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
@@ -5923,6 +6569,7 @@ export default function App() {
                   <Plus className="w-4 h-4" /> Ajouter une perte de chance
                 </button>
               </div>
+              </>}
             </div>
 
             {/* Total Block: PGPF échu */}
@@ -6026,7 +6673,7 @@ export default function App() {
     // ========== DFT ==========
     if (currentLevel.id === 'dft') {
       return (
-        <div className={dftLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dft') ? 'h-full flex flex-col' : ''}>
+        <div className={dftLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dft') && !chatAnalyzedPostes.current.has('dft') ? 'h-full flex flex-col' : ''}>
           {/* CALCUL Section */}
           <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
             <div className="p-4">
@@ -6045,7 +6692,7 @@ export default function App() {
           </div>
 
           {/* Empty state */}
-          {dftLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dft') && renderInlineDocPicker('dft', {
+          {dftLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dft') && !chatAnalyzedPostes.current.has('dft') && renderInlineDocPicker('dft', {
             icon: Calendar,
             title: 'Ajoutez vos justificatifs pour créer vos lignes de périodes',
             description: 'Déposez un ou plusieurs documents. Plato lit, extrait et structure les informations pour chaque ligne.',
@@ -6053,7 +6700,7 @@ export default function App() {
           })}
 
           {/* Card Block: DFT */}
-          {(dftLignes.length > 0 || processing.length > 0 || (posteExtracting && posteExtracting.posteType === 'dft')) && (
+          {(dftLignes.length > 0 || processing.length > 0 || (posteExtracting && posteExtracting.posteType === 'dft') || chatAnalyzedPostes.current.has('dft')) && (
             <div className={cardBlockClass}>
               {/* Title Row */}
               <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
@@ -6932,6 +7579,13 @@ export default function App() {
     setPiecesFilter({ type: null, search: '' });
     setRapportBannerDismissed(false);
     setInfoDossierStreaming(null);
+
+    // Reset chat state for new dossier
+    setChatMessages([]);
+    chatExtractionAnnounced.current = false;
+    chatPostesAnnounced.current = false;
+    chatAnalyzedPostes.current = new Set();
+    setDossierPostes([]);
 
     setNavStack([{ id: newId, type: 'dossier', title: refName, activeTab: 'pièces' }]);
     setActiveDossierId(newId);
