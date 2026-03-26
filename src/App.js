@@ -2735,20 +2735,36 @@ export default function App() {
                       return (
                         <div
                           key={card.id}
-                          className="flex items-center gap-3 p-3 rounded-lg border border-[#e7e5e3] bg-white hover:bg-[#fafaf9] transition-colors cursor-pointer group"
-                          style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}
+                          className="flex items-center gap-3 rounded-xl border border-[#e7e5e3] cursor-pointer group transition-all duration-200 hover:border-[#d6d3d1] hover:translate-y-[-1px]"
+                          style={{
+                            padding: '12px 14px',
+                            background: 'linear-gradient(135deg, #ffffff 0%, #fafaf9 60%, #f5f5f4 100%)',
+                            boxShadow: '0px 1px 3px 0px rgba(26,26,26,0.06), 0px 1px 2px -1px rgba(26,26,26,0.06), inset 0px -2px 4px 0px rgba(0,0,0,0.03)',
+                          }}
                           onClick={() => {
                             setNavStack(prev => prev.map((n, ni) => ni === prev.length - 1 ? { ...n, activeTab: card.navigateTo } : n));
                           }}
                         >
-                          <div className="w-8 h-8 rounded-lg bg-[#eeece6] flex items-center justify-center flex-shrink-0">
-                            <CardIcon className="w-4 h-4 text-[#78716c]" />
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{
+                              background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+                              boxShadow: 'inset 0px -1px 2px 0px rgba(234,121,73,0.12)',
+                              border: '1px solid rgba(234,121,73,0.15)',
+                            }}
+                          >
+                            <CardIcon className="w-4 h-4" style={{ color: '#ea7949' }} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div style={{ fontSize: 13, fontWeight: 500, color: '#292524', lineHeight: '18px' }}>{card.title}</div>
-                            <div className="truncate" style={{ fontSize: 12, color: '#78716c', lineHeight: '16px' }}>{card.subtitle}</div>
+                            <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', lineHeight: '16px' }}>{card.subtitle}</div>
                           </div>
-                          <span className="text-xs font-medium text-[#1e3a8a] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">{card.action} →</span>
+                          <div
+                            className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 px-2 py-1 rounded-md"
+                            style={{ fontSize: 12, fontWeight: 500, color: '#ea7949', background: 'rgba(234,121,73,0.06)' }}
+                          >
+                            {card.action} <ChevronRight className="w-3 h-3" />
+                          </div>
                         </div>
                       );
                     })}
