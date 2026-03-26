@@ -2735,7 +2735,7 @@ export default function App() {
                       return (
                         <div
                           key={card.id}
-                          className="flex items-center gap-3 rounded-xl border border-[#e7e5e3] cursor-pointer group transition-all duration-200 hover:border-[#d6d3d1] hover:translate-y-[-1px]"
+                          className="flex items-center gap-3 rounded-lg border border-[#e7e5e3] cursor-pointer group transition-all duration-200 hover:border-[#d6d3d1] hover:translate-y-[-1px]"
                           style={{
                             padding: '12px 14px',
                             background: 'linear-gradient(135deg, #ffffff 0%, #fafaf9 60%, #f5f5f4 100%)',
@@ -2746,7 +2746,7 @@ export default function App() {
                           }}
                         >
                           <div
-                            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                            className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
                             style={{
                               background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
                               boxShadow: 'inset 0px -1px 2px 0px rgba(234,121,73,0.12)',
@@ -2760,7 +2760,7 @@ export default function App() {
                             <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', lineHeight: '16px' }}>{card.subtitle}</div>
                           </div>
                           <div
-                            className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 px-2 py-1 rounded-md"
+                            className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 px-2 py-1 rounded"
                             style={{ fontSize: 12, fontWeight: 500, color: '#ea7949', background: 'rgba(234,121,73,0.06)' }}
                           >
                             {card.action} <ChevronRight className="w-3 h-3" />
