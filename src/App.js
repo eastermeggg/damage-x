@@ -310,6 +310,7 @@ export default function App() {
   const [posteExtracting, setPosteExtracting] = useState(null); // null | { posteType, totalDocs, extractedCount, docIds: [] }
   const processingTimeouts = useRef([]);
   const [activeParamChip, setActiveParamChip] = useState(null); // which param chip config is expanded
+  const [enabledParams, setEnabledParams] = useState({ 'revaloriser': true, 'revaloriser-pgpa': true, 'capitaliser-pgpf': true, 'base-journaliere-dft': true, 'revaloriser-se': true, 'revaloriser-pep': true, 'revaloriser-dfp': true }); // toggle on/off per param
   const [totalExpanded, setTotalExpanded] = useState({}); // { [posteId]: boolean }
   const [dossierPostes, setDossierPostes] = useState(['dsa', 'pgpa', 'dft', 'pgpf', 'se', 'dfp', 'pep']); // IDs of postes added to this dossier
   const [formPosteData, setFormPosteData] = useState({
@@ -2936,7 +2937,7 @@ export default function App() {
     if (currentLevel.type === 'poste' && !currentLevel.subSection) {
       const posteAmounts = { dsa: dsaTotal, pgpa: pgpaTotal, dft: dftTotal };
       const posteAmount = posteAmounts[currentLevel.id] || 0;
-      const isRevalActive = activeParamChip === 'revaloriser';
+      const isRevalActive = enabledParams['revaloriser'];
       return (
         <div className="border-b border-[#e7e5e3] bg-white flex-shrink-0">
           <div className="h-[52px] px-4 flex items-center justify-between">
@@ -5837,7 +5838,7 @@ export default function App() {
               <button
                 onClick={() => setActiveParamChip(activeParamChip === 'revaloriser' ? null : 'revaloriser')}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                  activeParamChip === 'revaloriser'
+                  enabledParams['revaloriser']
                     ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
                     : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
                 }`}
@@ -5850,7 +5851,7 @@ export default function App() {
               <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
                 <div className="flex items-center gap-3">
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" defaultChecked className="sr-only peer" />
+                    <input type="checkbox" checked={enabledParams['revaloriser']} onChange={() => setEnabledParams(p => ({ ...p, 'revaloriser': !p['revaloriser'] }))} className="sr-only peer" />
                     <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
                   </label>
                   <div className="w-px h-4 bg-[#e7e5e3]" />
@@ -6154,7 +6155,7 @@ export default function App() {
               <button
                 onClick={() => setActiveParamChip(activeParamChip === 'revaloriser-pgpa' ? null : 'revaloriser-pgpa')}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                  activeParamChip === 'revaloriser-pgpa'
+                  enabledParams['revaloriser-pgpa']
                     ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
                     : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
                 }`}
@@ -6167,7 +6168,7 @@ export default function App() {
               <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
                 <div className="flex items-center gap-3">
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" defaultChecked className="sr-only peer" />
+                    <input type="checkbox" checked={enabledParams['revaloriser-pgpa']} onChange={() => setEnabledParams(p => ({ ...p, 'revaloriser-pgpa': !p['revaloriser-pgpa'] }))} className="sr-only peer" />
                     <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
                   </label>
                   <div className="w-px h-4 bg-[#e7e5e3]" />
@@ -6468,7 +6469,7 @@ export default function App() {
               <button
                 onClick={() => setActiveParamChip(activeParamChip === 'capitaliser-pgpf' ? null : 'capitaliser-pgpf')}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                  activeParamChip === 'capitaliser-pgpf'
+                  enabledParams['capitaliser-pgpf']
                     ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
                     : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
                 }`}
@@ -6481,7 +6482,7 @@ export default function App() {
               <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
                 <div className="flex items-center gap-3 flex-wrap">
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" defaultChecked className="sr-only peer" />
+                    <input type="checkbox" checked={enabledParams['capitaliser-pgpf']} onChange={() => setEnabledParams(p => ({ ...p, 'capitaliser-pgpf': !p['capitaliser-pgpf'] }))} className="sr-only peer" />
                     <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
                   </label>
                   <div className="w-px h-4 bg-[#d6d3d1]" />
@@ -6742,7 +6743,7 @@ export default function App() {
               <button
                 onClick={() => setActiveParamChip(activeParamChip === 'base-journaliere-dft' ? null : 'base-journaliere-dft')}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                  activeParamChip === 'base-journaliere-dft'
+                  enabledParams['base-journaliere-dft']
                     ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
                     : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
                 }`}
@@ -7010,7 +7011,7 @@ export default function App() {
                     <button
                       onClick={() => setActiveParamChip(activeParamChip === 'revaloriser-se' ? null : 'revaloriser-se')}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                        activeParamChip === 'revaloriser-se'
+                        enabledParams['revaloriser-se']
                           ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
                           : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
                       }`}
@@ -7023,7 +7024,7 @@ export default function App() {
                     <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
                       <div className="flex items-center gap-3">
                         <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" defaultChecked className="sr-only peer" />
+                          <input type="checkbox" checked={enabledParams['revaloriser-se']} onChange={() => setEnabledParams(p => ({ ...p, 'revaloriser-se': !p['revaloriser-se'] }))} className="sr-only peer" />
                           <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
                         </label>
                         <div className="w-px h-4 bg-[#e7e5e3]" />
@@ -7150,7 +7151,7 @@ export default function App() {
                     <button
                       onClick={() => setActiveParamChip(activeParamChip === 'revaloriser-pep' ? null : 'revaloriser-pep')}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                        activeParamChip === 'revaloriser-pep'
+                        enabledParams['revaloriser-pep']
                           ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
                           : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
                       }`}
@@ -7163,7 +7164,7 @@ export default function App() {
                     <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
                       <div className="flex items-center gap-3">
                         <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" defaultChecked className="sr-only peer" />
+                          <input type="checkbox" checked={enabledParams['revaloriser-pep']} onChange={() => setEnabledParams(p => ({ ...p, 'revaloriser-pep': !p['revaloriser-pep'] }))} className="sr-only peer" />
                           <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
                         </label>
                         <div className="w-px h-4 bg-[#e7e5e3]" />
@@ -7289,7 +7290,7 @@ export default function App() {
                     <button
                       onClick={() => setActiveParamChip(activeParamChip === 'revaloriser-dfp' ? null : 'revaloriser-dfp')}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                        activeParamChip === 'revaloriser-dfp'
+                        enabledParams['revaloriser-dfp']
                           ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
                           : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
                       }`}
@@ -7302,7 +7303,7 @@ export default function App() {
                     <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
                       <div className="flex items-center gap-3">
                         <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" defaultChecked className="sr-only peer" />
+                          <input type="checkbox" checked={enabledParams['revaloriser-dfp']} onChange={() => setEnabledParams(p => ({ ...p, 'revaloriser-dfp': !p['revaloriser-dfp'] }))} className="sr-only peer" />
                           <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
                         </label>
                         <div className="w-px h-4 bg-[#e7e5e3]" />
