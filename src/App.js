@@ -741,6 +741,16 @@ export default function App() {
                 subtitle: `${DROP_FIRST_VICTIM_DATA.nom}, ${DROP_FIRST_VICTIM_DATA.prenom}, ${DROP_FIRST_ACCIDENT_DATA.dateAccident}${totalInfoFields > 3 ? ` +${totalInfoFields - 3} infos` : ''}`,
                 action: 'Voir',
                 navigateTo: 'dossier',
+                changelog: [
+                  { label: 'Nom', value: DROP_FIRST_VICTIM_DATA.nom },
+                  { label: 'Prénom', value: DROP_FIRST_VICTIM_DATA.prenom },
+                  { label: 'Date naissance', value: DROP_FIRST_VICTIM_DATA.dateNaissance },
+                  { label: 'Profession', value: DROP_FIRST_VICTIM_DATA.profession },
+                  { label: 'Date accident', value: DROP_FIRST_ACCIDENT_DATA.dateAccident },
+                  { label: 'Type', value: DROP_FIRST_ACCIDENT_DATA.type },
+                  { label: 'Consolidation', value: DROP_FIRST_MEDICAL_DATA.dateConsolidation },
+                  { label: 'AIPP', value: DROP_FIRST_MEDICAL_DATA.aipp },
+                ],
               },
               {
                 id: 'postes-suggeres',
@@ -749,6 +759,7 @@ export default function App() {
                 subtitle: `${visiblePostes.join(', ')}${remainingPostes > 0 ? ` +${remainingPostes} postes` : ''}`,
                 action: 'Voir',
                 navigateTo: 'chiffrage',
+                changelog: detectedPostes.map(p => ({ label: p, value: '0 €' })),
               },
             ],
           },
@@ -2536,6 +2547,7 @@ export default function App() {
   const [chatInputValue, setChatInputValue] = useState('');
   const [chatInputFocused, setChatInputFocused] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
+  const [expandedArtifacts, setExpandedArtifacts] = useState({});
   const [stagedDocs, setStagedDocs] = useState([]);
   const chatAnalysisTimeouts = useRef([]);
   const chatExtractionAnnounced = useRef(false);
@@ -2736,39 +2748,72 @@ export default function App() {
                   <div key={i} className="flex flex-col gap-2 pb-3 w-full" style={{ paddingRight: 20 }}>
                     {msg.cards.map(card => {
                       const CardIcon = iconMap[card.icon] || FileText;
+                      const isExpanded = expandedArtifacts[card.id];
                       return (
                         <div
                           key={card.id}
-                          className="flex items-center gap-3 rounded-lg border border-[#e7e5e3] cursor-pointer group transition-all duration-200 hover:border-[#d6d3d1] hover:translate-y-[-1px]"
+                          className="rounded-lg border border-[#e7e5e3] cursor-pointer group transition-all duration-200 hover:border-[#d6d3d1] overflow-hidden"
                           style={{
-                            padding: '12px 14px',
                             background: 'linear-gradient(135deg, #ffffff 0%, #fafaf9 60%, #f5f5f4 100%)',
                             boxShadow: '0px 1px 3px 0px rgba(26,26,26,0.06), 0px 1px 2px -1px rgba(26,26,26,0.06), inset 0px -2px 4px 0px rgba(0,0,0,0.03)',
                           }}
-                          onClick={() => {
-                            setNavStack(prev => prev.map((n, ni) => ni === prev.length - 1 ? { ...n, activeTab: card.navigateTo } : n));
-                          }}
                         >
+                          {/* Header - click to expand/collapse */}
                           <div
-                            className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
-                            style={{
-                              background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
-                              boxShadow: 'inset 0px -1px 2px 0px rgba(234,121,73,0.12)',
-                              border: '1px solid rgba(234,121,73,0.15)',
+                            className="flex items-center gap-3"
+                            style={{ padding: '12px 14px' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedArtifacts(prev => ({ ...prev, [card.id]: !prev[card.id] }));
                             }}
                           >
-                            <CardIcon className="w-4 h-4" style={{ color: '#ea7949' }} />
+                            <div
+                              className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
+                              style={{
+                                background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+                                boxShadow: 'inset 0px -1px 2px 0px rgba(234,121,73,0.12)',
+                                border: '1px solid rgba(234,121,73,0.15)',
+                              }}
+                            >
+                              <CardIcon className="w-4 h-4" style={{ color: '#ea7949' }} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div style={{ fontSize: 13, fontWeight: 500, color: '#292524', lineHeight: '18px' }}>{card.title}</div>
+                              <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', lineHeight: '16px' }}>{card.subtitle}</div>
+                            </div>
+                            <div className="flex-shrink-0" style={{ color: '#a8a29e', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                              <ChevronDown className="w-4 h-4" />
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div style={{ fontSize: 13, fontWeight: 500, color: '#292524', lineHeight: '18px' }}>{card.title}</div>
-                            <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', lineHeight: '16px' }}>{card.subtitle}</div>
-                          </div>
-                          <div
-                            className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 px-2 py-1 rounded"
-                            style={{ fontSize: 12, fontWeight: 500, color: '#ea7949', background: 'rgba(234,121,73,0.06)' }}
-                          >
-                            {card.action} <ChevronRight className="w-3 h-3" />
-                          </div>
+
+                          {/* Expanded changelog */}
+                          {isExpanded && card.changelog && (
+                            <>
+                              <div style={{ height: 1, background: '#e7e5e3' }} />
+                              <div style={{ padding: '10px 14px', background: '#fafaf9' }} className="flex flex-col gap-1.5">
+                                {card.changelog.map((entry, ei) => (
+                                  <div key={ei} className="flex items-center gap-2" style={{ fontSize: 12, lineHeight: '16px' }}>
+                                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#ea7949' }} />
+                                    <span style={{ color: '#78716c' }}>{entry.label}</span>
+                                    <span style={{ color: '#292524', fontWeight: 500 }}>{entry.value}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div style={{ height: 1, background: '#e7e5e3' }} />
+                              <div className="flex justify-end" style={{ padding: '8px 14px' }}>
+                                <div
+                                  className="flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-[rgba(234,121,73,0.1)]"
+                                  style={{ fontSize: 12, fontWeight: 500, color: '#ea7949', background: 'rgba(234,121,73,0.06)' }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setNavStack(prev => prev.map((n, ni) => ni === prev.length - 1 ? { ...n, activeTab: card.navigateTo } : n));
+                                  }}
+                                >
+                                  Voir le détail <ChevronRight className="w-3 h-3" />
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </div>
                       );
                     })}
