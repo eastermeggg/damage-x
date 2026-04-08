@@ -231,6 +231,53 @@ const DROP_FIRST_MEDICAL_DATA = {
 };
 const DROP_FIRST_POSTES_DETECTES = ['DFT', 'DSA', 'PGPA', 'PGPF', 'SE', 'PE', 'AIPP'];
 
+// ========== MOCK DIFF STORE ==========
+// Pre-scripted diff events keyed by actionId. Structure matches future agent contract.
+const MOCK_DIFF_STORE = {
+  'extraction-info-dossier': [
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'nom', entityLabel: 'Nom', type: 'add', before: null, after: 'Martin', timestamp: 1 },
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'prenom', entityLabel: 'Prénom', type: 'add', before: null, after: 'Sophie', timestamp: 2 },
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'dateNaissance', entityLabel: 'Date de naissance', type: 'add', before: null, after: '14/03/1985', timestamp: 3 },
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'profession', entityLabel: 'Profession', type: 'add', before: null, after: 'Cadre commercial', timestamp: 4 },
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'dateAccident', entityLabel: 'Date accident', type: 'add', before: null, after: '05/06/2022', timestamp: 5 },
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'typeFait', entityLabel: 'Type', type: 'add', before: null, after: 'Accident de la voie publique', timestamp: 6 },
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'dateConsolidation', entityLabel: 'Date de consolidation', type: 'add', before: null, after: '15/01/2024', timestamp: 7 },
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'aipp', entityLabel: 'AIPP', type: 'add', before: null, after: '8%', timestamp: 8 },
+  ],
+  'extraction-postes': [
+    { actionId: 'extraction-postes', zone: 'postes', entityId: 'dft', entityLabel: 'DFT', type: 'add', before: null, after: '0 €', timestamp: 10 },
+    { actionId: 'extraction-postes', zone: 'postes', entityId: 'dsa', entityLabel: 'DSA', type: 'add', before: null, after: '0 €', timestamp: 11 },
+    { actionId: 'extraction-postes', zone: 'postes', entityId: 'pgpa', entityLabel: 'PGPA', type: 'add', before: null, after: '0 €', timestamp: 12 },
+    { actionId: 'extraction-postes', zone: 'postes', entityId: 'pgpf', entityLabel: 'PGPF', type: 'add', before: null, after: '0 €', timestamp: 13 },
+    { actionId: 'extraction-postes', zone: 'postes', entityId: 'se', entityLabel: 'SE', type: 'add', before: null, after: '0 €', timestamp: 14 },
+    { actionId: 'extraction-postes', zone: 'postes', entityId: 'pe', entityLabel: 'PE', type: 'add', before: null, after: '0 €', timestamp: 15 },
+    { actionId: 'extraction-postes', zone: 'postes', entityId: 'aipp', entityLabel: 'AIPP', type: 'add', before: null, after: '0 €', timestamp: 16 },
+  ],
+  'calc-dsa': [
+    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa', entityLabel: 'DSA — Dépenses de santé actuelles', type: 'edit', before: '0 €', after: '6 242,50 €', timestamp: 20 },
+  ],
+  'calc-dft': [
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft', entityLabel: 'DFT — Déficit fonctionnel temporaire', type: 'edit', before: '0 €', after: '5 385 €', timestamp: 21 },
+  ],
+  'calc-pgpa': [
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa', entityLabel: 'PGPA — Pertes de gains prof. actuels', type: 'edit', before: '0 €', after: '6 700 €', timestamp: 22 },
+  ],
+  'calc-pgpf': [
+    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf', entityLabel: 'PGPF — Pertes de gains prof. futurs', type: 'edit', before: '0 €', after: '231 525 €', timestamp: 23 },
+  ],
+  'calc-se': [
+    { actionId: 'calc-se', zone: 'postes', entityId: 'se', entityLabel: 'SE — Souffrances endurées', type: 'edit', before: '0 €', after: '15 000 €', timestamp: 24 },
+  ],
+  'calc-dfp': [
+    { actionId: 'calc-dfp', zone: 'postes', entityId: 'dfp', entityLabel: 'DFP — Déficit fonctionnel permanent', type: 'edit', before: '0 €', after: '27 000 €', timestamp: 25 },
+  ],
+  'calc-pep': [
+    { actionId: 'calc-pep', zone: 'postes', entityId: 'pep', entityLabel: 'PEP — Préjudice esthétique permanent', type: 'edit', before: '0 €', after: '4 500 €', timestamp: 26 },
+  ],
+};
+
+const ZONE_LABELS = { infos_dossier: 'Info dossier', postes: 'Postes', pieces: 'Pièces' };
+
 const PIECE_TYPE_COLORS = {
   'Expertise': 'bg-[#dfe8f5] text-[#1e3a8a]',
   'Décision': 'bg-[#ede9fe] text-[#5b21b6]',
@@ -304,6 +351,7 @@ export default function App() {
   const [posteSearchQuery, setPosteSearchQuery] = useState('');
   const [editingPieceField, setEditingPieceField] = useState(null); // null | { pieceId, field }
   const [toastMessage, setToastMessage] = useState(null); // null | string
+  const [activeDiffs, setActiveDiffs] = useState([]); // Array of diff events pushed by mock actions
   const [pickerOpen, setPickerOpen] = useState(null); // null | 'dft' | 'dsa' | 'pgpa-revenu-ref' | 'pgpa-revenu-percu' | 'pgpa-ij'
   const [pickerSelected, setPickerSelected] = useState([]); // array of piece IDs (multi-select)
   const [pickerSearch, setPickerSearch] = useState('');
@@ -721,13 +769,12 @@ export default function App() {
           return m;
         });
 
-        // Compute info dossier summary
-        const victimFields = ['nom', 'prenom', 'sexe', 'dateNaissance', 'profession'].filter(f => DROP_FIRST_VICTIM_DATA[f]);
-        const accidentFields = ['type', 'dateAccident', 'resume'].filter(f => DROP_FIRST_ACCIDENT_DATA[f]);
-        const medicalFields = ['premiereConstatation', 'dateConsolidation', 'aipp', 'commentaire'].filter(f => DROP_FIRST_MEDICAL_DATA[f]);
-        const totalInfoFields = victimFields.length + accidentFields.length + medicalFields.length;
-        const visiblePostes = detectedPostes.slice(0, 3);
-        const remainingPostes = detectedPostes.length - visiblePostes.length;
+        // Push diff events for extraction
+        setActiveDiffs(prev => [
+          ...prev,
+          ...MOCK_DIFF_STORE['extraction-info-dossier'],
+          ...MOCK_DIFF_STORE['extraction-postes'],
+        ]);
 
         return [
           ...updated,
@@ -737,29 +784,16 @@ export default function App() {
               {
                 id: 'info-dossier',
                 icon: 'FileText',
-                title: 'Info dossier remplies',
-                subtitle: `${DROP_FIRST_VICTIM_DATA.nom}, ${DROP_FIRST_VICTIM_DATA.prenom}, ${DROP_FIRST_ACCIDENT_DATA.dateAccident}${totalInfoFields > 3 ? ` +${totalInfoFields - 3} infos` : ''}`,
-                action: 'Voir',
+                zone: 'infos_dossier',
+                actionIds: ['extraction-info-dossier'],
                 navigateTo: 'dossier',
-                changelog: [
-                  { label: 'Nom', value: DROP_FIRST_VICTIM_DATA.nom },
-                  { label: 'Prénom', value: DROP_FIRST_VICTIM_DATA.prenom },
-                  { label: 'Date naissance', value: DROP_FIRST_VICTIM_DATA.dateNaissance },
-                  { label: 'Profession', value: DROP_FIRST_VICTIM_DATA.profession },
-                  { label: 'Date accident', value: DROP_FIRST_ACCIDENT_DATA.dateAccident },
-                  { label: 'Type', value: DROP_FIRST_ACCIDENT_DATA.type },
-                  { label: 'Consolidation', value: DROP_FIRST_MEDICAL_DATA.dateConsolidation },
-                  { label: 'AIPP', value: DROP_FIRST_MEDICAL_DATA.aipp },
-                ],
               },
               {
                 id: 'postes-suggeres',
                 icon: 'Calculator',
-                title: `${detectedPostes.length} postes suggérés`,
-                subtitle: `${visiblePostes.join(', ')}${remainingPostes > 0 ? ` +${remainingPostes} postes` : ''}`,
-                action: 'Voir',
+                zone: 'postes',
+                actionIds: ['extraction-postes'],
                 navigateTo: 'chiffrage',
-                changelog: detectedPostes.map(p => ({ label: p, value: '0 €' })),
               },
             ],
           },
@@ -969,6 +1003,12 @@ export default function App() {
         pep: `PEP évalué à 4 500 € (cotation 3/7, référentiel Cour d'appel 2024). Argumentation rédigée.`,
       };
 
+      // Push diff events for this calculation
+      const diffKey = `calc-${posteId}`;
+      if (MOCK_DIFF_STORE[diffKey]) {
+        setActiveDiffs(prev => [...prev, ...MOCK_DIFF_STORE[diffKey]]);
+      }
+
       setChatMessages(prev => {
         const withoutThinking = prev.filter(m => !(m.type === 'ai-thinking' && m._posteCalcId === posteId));
         return [
@@ -977,6 +1017,16 @@ export default function App() {
             type: 'ai',
             thinkingLabel: `Calcul ${posteName} terminé`,
             text: resultTexts[posteId] || `${posteName} calculé. Données et argumentation reportées.`,
+          },
+          {
+            type: 'artifact-cards',
+            cards: [{
+              id: `calc-${posteId}`,
+              icon: 'Calculator',
+              zone: 'postes',
+              actionIds: [diffKey],
+              navigateTo: 'chiffrage',
+            }],
           },
         ];
       });
@@ -1323,11 +1373,39 @@ export default function App() {
   };
   const setActiveTab = (tab) => {
     const newStack = [...navStack];
+    if (newStack.length === 0) return;
     newStack[newStack.length - 1].activeTab = tab.toLowerCase();
     setNavStack(newStack);
   };
   const _toggleCategory = (id) => setExpandedCategories(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]); // eslint-disable-line no-unused-vars
   const toggleSection = (id) => setExpandedSections(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+
+  // ========== NAVIGATION ANCHORS ==========
+  const handleNavigateToZone = (zone, tabName) => {
+    setNavStack(prev => prev.map((n, ni) => ni === prev.length - 1 ? { ...n, activeTab: tabName } : n));
+    setTimeout(() => {
+      const zoneEl = document.querySelector(`[data-zone-id="${zone}"]`);
+      if (zoneEl) {
+        zoneEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        zoneEl.classList.add('is-zone-highlighted');
+        setTimeout(() => zoneEl.classList.remove('is-zone-highlighted'), 3000);
+      }
+    }, 100);
+  };
+
+  const handleNavigateToEntity = (entityId, zone, tabName) => {
+    setNavStack(prev => prev.map((n, ni) => ni === prev.length - 1 ? { ...n, activeTab: tabName } : n));
+    setTimeout(() => {
+      const el = document.querySelector(`[data-entity-id="${entityId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('is-highlighted');
+        setTimeout(() => el.classList.remove('is-highlighted'), 3000);
+      } else {
+        showToast({ text: 'Cet élément a été supprimé', type: 'ai' });
+      }
+    }, 150);
+  };
 
   // ========== DOCUMENT DETECTION HELPERS ==========
   const detectDocumentType = (fileName) => {
@@ -2741,14 +2819,31 @@ export default function App() {
                 );
               }
 
-              // Artifact cards (info dossier, postes suggérés)
+              // Artifact cards (diff-aware, info dossier, postes, calculation results)
               if (msg.type === 'artifact-cards') {
                 const iconMap = { FileText: FileText, Calculator: Calculator };
+                const getDiffsForCard = (card) => card.actionIds ? activeDiffs.filter(d => card.actionIds.includes(d.actionId) && d.zone === card.zone) : [];
+                const getDiffSummary = (diffs) => ({
+                  adds: diffs.filter(d => d.type === 'add').length,
+                  edits: diffs.filter(d => d.type === 'edit').length,
+                  deletes: diffs.filter(d => d.type === 'delete').length,
+                });
                 return (
                   <div key={i} className="flex flex-col gap-2 pb-3 w-full" style={{ paddingRight: 20 }}>
                     {msg.cards.map(card => {
                       const CardIcon = iconMap[card.icon] || FileText;
                       const isExpanded = expandedArtifacts[card.id];
+                      const diffs = getDiffsForCard(card);
+                      const summary = getDiffSummary(diffs);
+                      const hasDiffs = diffs.length > 0;
+                      const zoneLabel = ZONE_LABELS[card.zone] || card.title || card.zone;
+                      // Build subtitle from diff counts
+                      const subtitleParts = [];
+                      if (summary.adds > 0) subtitleParts.push(`${summary.adds} addition${summary.adds > 1 ? 's' : ''}`);
+                      if (summary.edits > 0) subtitleParts.push(`${summary.edits} modification${summary.edits > 1 ? 's' : ''}`);
+                      if (summary.deletes > 0) subtitleParts.push(`${summary.deletes} suppression${summary.deletes > 1 ? 's' : ''}`);
+                      const subtitleText = subtitleParts.join(' · ') || card.subtitle || '';
+
                       return (
                         <div
                           key={card.id}
@@ -2778,16 +2873,66 @@ export default function App() {
                               <CardIcon className="w-4 h-4" style={{ color: '#ea7949' }} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div style={{ fontSize: 13, fontWeight: 500, color: '#292524', lineHeight: '18px' }}>{card.title}</div>
-                              <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', lineHeight: '16px' }}>{card.subtitle}</div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: '#292524', lineHeight: '18px' }}>{zoneLabel}</div>
+                              <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', lineHeight: '16px' }}>{subtitleText}</div>
                             </div>
                             <div className="flex-shrink-0" style={{ color: '#a8a29e', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                               <ChevronDown className="w-4 h-4" />
                             </div>
                           </div>
 
-                          {/* Expanded changelog */}
-                          {isExpanded && card.changelog && (
+                          {/* Expanded diff rows */}
+                          {isExpanded && hasDiffs && (
+                            <>
+                              <div style={{ height: 1, background: '#e7e5e3' }} />
+                              <div style={{ padding: '10px 14px', background: '#fafaf9' }} className="flex flex-col gap-2">
+                                {diffs.map((diff, di) => (
+                                  <div key={di} className="flex items-start gap-2" style={{ fontSize: 12, lineHeight: '18px' }}>
+                                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-2" style={{
+                                      background: diff.type === 'add' ? '#16a34a' : diff.type === 'delete' ? '#dc2626' : '#ea7949'
+                                    }} />
+                                    <div className="flex-1 min-w-0">
+                                      <div style={{ color: '#78716c', fontWeight: 500 }}>{diff.entityLabel}</div>
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        {diff.before && (
+                                          <span style={{ color: '#a8a29e', textDecoration: 'line-through' }}>{diff.before}</span>
+                                        )}
+                                        {diff.before && <span style={{ color: '#a8a29e' }}>→</span>}
+                                        <span style={{ color: '#292524', fontWeight: 500 }}>{diff.after}</span>
+                                      </div>
+                                    </div>
+                                    <button
+                                      className="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center hover:bg-[#eeece6] transition-colors mt-0.5"
+                                      style={{ color: '#78716c' }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleNavigateToEntity(diff.entityId, card.zone, card.navigateTo);
+                                      }}
+                                      title="Voir sur le canvas"
+                                    >
+                                      <ChevronRight className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                              <div style={{ height: 1, background: '#e7e5e3' }} />
+                              <div className="flex justify-end" style={{ padding: '8px 14px' }}>
+                                <div
+                                  className="flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-[rgba(234,121,73,0.1)]"
+                                  style={{ fontSize: 12, fontWeight: 500, color: '#ea7949', background: 'rgba(234,121,73,0.06)' }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleNavigateToZone(card.zone, card.navigateTo);
+                                  }}
+                                >
+                                  Voir le détail <ChevronRight className="w-3 h-3" />
+                                </div>
+                              </div>
+                            </>
+                          )}
+
+                          {/* Fallback: legacy changelog display */}
+                          {isExpanded && !hasDiffs && card.changelog && (
                             <>
                               <div style={{ height: 1, background: '#e7e5e3' }} />
                               <div style={{ padding: '10px 14px', background: '#fafaf9' }} className="flex flex-col gap-1.5">
@@ -5103,7 +5248,7 @@ export default function App() {
             const hasValue = isRevealed(key) && value;
             const isActive = isCurrentlyStreaming(key);
             return (
-              <div className={fieldClass(key)} key={key}>
+              <div className={fieldClass(key)} key={key} data-entity-id={key}>
                 <div className="text-caption-medium text-[#78716c] mb-1 flex items-center gap-1">
                   {label}
                   {isRevealed(key) && (
@@ -5160,7 +5305,7 @@ export default function App() {
           };
 
           return (
-            <div className="space-y-4">
+            <div className="space-y-4" data-zone-id="infos_dossier">
               {/* Track B: Add rapport CTA */}
               {showRapportCTA && (
                 <div className="banner banner-minimal banner-ai">
@@ -5596,7 +5741,7 @@ export default function App() {
         const totalIndem = totalDepenses - totalTiers;
 
         return (
-          <div className="space-y-6">
+          <div className="space-y-6" data-zone-id="postes">
             {/* Summary pills + actions row */}
             <div className="flex items-center gap-3 px-px">
               <div className="h-9 px-3 flex items-center gap-2.5 border border-[#d6d3d1] rounded-lg whitespace-nowrap">
@@ -5659,6 +5804,7 @@ export default function App() {
                     return (
                       <button
                         key={p.id}
+                        data-entity-id={p.id}
                         onClick={() => navigateTo(p)}
                         className={`w-full flex items-center h-14 bg-white hover:bg-[#fafaf9] transition-colors ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}
                       >

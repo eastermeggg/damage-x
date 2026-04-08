@@ -113,6 +113,21 @@ body {
   animation: fieldGlow 1.5s ease-in-out infinite;
 }
 
+/* ===== NAVIGATION HIGHLIGHT ===== */
+@keyframes highlightFade {
+  0% { background-color: rgba(234, 121, 73, 0.15); box-shadow: 0 0 0 2px rgba(234, 121, 73, 0.3); }
+  70% { background-color: rgba(234, 121, 73, 0.08); box-shadow: 0 0 0 2px rgba(234, 121, 73, 0.15); }
+  100% { background-color: transparent; box-shadow: none; }
+}
+.is-highlighted { animation: highlightFade 3s ease-out forwards; border-radius: 4px; }
+
+@keyframes zoneHighlightFade {
+  0% { box-shadow: 0 0 0 2px rgba(234, 121, 73, 0.4); }
+  70% { box-shadow: 0 0 0 2px rgba(234, 121, 73, 0.15); }
+  100% { box-shadow: none; }
+}
+.is-zone-highlighted { animation: zoneHighlightFade 3s ease-out forwards; border-radius: 5px; }
+
 /* ===== DROP ZONE STATES ===== */
 /* Hover — all contexts */
 .dropzone-container:hover,
