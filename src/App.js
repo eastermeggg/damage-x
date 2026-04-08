@@ -2852,9 +2852,23 @@ export default function App() {
                   edits: diffs.filter(d => d.type === 'edit').length,
                   deletes: diffs.filter(d => d.type === 'delete').length,
                 });
+                // Group cards by zone for dividers between subgroups
+                const zoneGroups = [];
+                let currentZone = null;
+                msg.cards.forEach(card => {
+                  if (card.zone !== currentZone) {
+                    zoneGroups.push([]);
+                    currentZone = card.zone;
+                  }
+                  zoneGroups[zoneGroups.length - 1].push(card);
+                });
+
                 return (
                   <div key={i} className="flex flex-col gap-2 pb-3 w-full" style={{ paddingRight: 20 }}>
-                    {msg.cards.map(card => {
+                    {zoneGroups.map((group, gi) => (
+                      <React.Fragment key={gi}>
+                        {gi > 0 && <div style={{ height: 1, background: '#e7e5e3', margin: '4px 0' }} />}
+                        {group.map(card => {
                       const CardIcon = iconMap[card.icon] || FileText;
                       const isExpanded = expandedArtifacts[card.id];
                       const diffs = getDiffsForCard(card);
@@ -2950,6 +2964,8 @@ export default function App() {
                         </div>
                       );
                     })}
+                      </React.Fragment>
+                    ))}
                   </div>
                 );
               }
