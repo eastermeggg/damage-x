@@ -244,14 +244,26 @@ const MOCK_DIFF_STORE = {
     { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'dateConsolidation', entityLabel: 'Date de consolidation', type: 'add', before: null, after: '15/01/2024', timestamp: 7 },
     { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'aipp', entityLabel: 'AIPP', type: 'add', before: null, after: '8%', timestamp: 8 },
   ],
-  'extraction-postes': [
-    { actionId: 'extraction-postes', zone: 'postes', entityId: 'dft', entityLabel: 'DFT', type: 'add', before: null, after: '0 €', timestamp: 10 },
-    { actionId: 'extraction-postes', zone: 'postes', entityId: 'dsa', entityLabel: 'DSA', type: 'add', before: null, after: '0 €', timestamp: 11 },
-    { actionId: 'extraction-postes', zone: 'postes', entityId: 'pgpa', entityLabel: 'PGPA', type: 'add', before: null, after: '0 €', timestamp: 12 },
-    { actionId: 'extraction-postes', zone: 'postes', entityId: 'pgpf', entityLabel: 'PGPF', type: 'add', before: null, after: '0 €', timestamp: 13 },
-    { actionId: 'extraction-postes', zone: 'postes', entityId: 'se', entityLabel: 'SE', type: 'add', before: null, after: '0 €', timestamp: 14 },
-    { actionId: 'extraction-postes', zone: 'postes', entityId: 'pe', entityLabel: 'PE', type: 'add', before: null, after: '0 €', timestamp: 15 },
-    { actionId: 'extraction-postes', zone: 'postes', entityId: 'aipp', entityLabel: 'AIPP', type: 'add', before: null, after: '0 €', timestamp: 16 },
+  'extraction-poste-dft': [
+    { actionId: 'extraction-poste-dft', zone: 'postes', entityId: 'dft', entityLabel: 'Déficit fonctionnel temporaire', type: 'add', before: null, after: '0 €', timestamp: 10 },
+  ],
+  'extraction-poste-dsa': [
+    { actionId: 'extraction-poste-dsa', zone: 'postes', entityId: 'dsa', entityLabel: 'Dépenses de santé actuelles', type: 'add', before: null, after: '0 €', timestamp: 11 },
+  ],
+  'extraction-poste-pgpa': [
+    { actionId: 'extraction-poste-pgpa', zone: 'postes', entityId: 'pgpa', entityLabel: 'Pertes de gains prof. actuels', type: 'add', before: null, after: '0 €', timestamp: 12 },
+  ],
+  'extraction-poste-pgpf': [
+    { actionId: 'extraction-poste-pgpf', zone: 'postes', entityId: 'pgpf', entityLabel: 'Pertes de gains prof. futurs', type: 'add', before: null, after: '0 €', timestamp: 13 },
+  ],
+  'extraction-poste-se': [
+    { actionId: 'extraction-poste-se', zone: 'postes', entityId: 'se', entityLabel: 'Souffrances endurées', type: 'add', before: null, after: '0 €', timestamp: 14 },
+  ],
+  'extraction-poste-pe': [
+    { actionId: 'extraction-poste-pe', zone: 'postes', entityId: 'pe', entityLabel: 'Préjudice esthétique', type: 'add', before: null, after: '0 €', timestamp: 15 },
+  ],
+  'extraction-poste-aipp': [
+    { actionId: 'extraction-poste-aipp', zone: 'postes', entityId: 'aipp', entityLabel: 'AIPP', type: 'add', before: null, after: '0 €', timestamp: 16 },
   ],
   'calc-dsa': [
     { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa', entityLabel: 'DSA — Dépenses de santé actuelles', type: 'edit', before: '0 €', after: '6 242,50 €', timestamp: 20 },
@@ -769,12 +781,27 @@ export default function App() {
           return m;
         });
 
-        // Push diff events for extraction
+        // Push diff events for extraction (per-poste)
+        const posteDiffKeys = detectedPostes.map(acronym => `extraction-poste-${acronym.toLowerCase()}`);
         setActiveDiffs(prev => [
           ...prev,
           ...MOCK_DIFF_STORE['extraction-info-dossier'],
-          ...MOCK_DIFF_STORE['extraction-postes'],
+          ...posteDiffKeys.flatMap(key => MOCK_DIFF_STORE[key] || []),
         ]);
+
+        // Build one artifact card per detected poste
+        const posteCards = detectedPostes.map(acronym => {
+          const posteId = acronym.toLowerCase();
+          const taxo = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes)).find(p => p.id === posteId);
+          return {
+            id: `poste-${posteId}`,
+            icon: 'Calculator',
+            zone: 'postes',
+            actionIds: [`extraction-poste-${posteId}`],
+            navigateTo: 'chiffrage',
+            posteLabel: taxo ? `${acronym} — ${taxo.label}` : acronym,
+          };
+        });
 
         return [
           ...updated,
@@ -788,14 +815,11 @@ export default function App() {
                 actionIds: ['extraction-info-dossier'],
                 navigateTo: 'dossier',
               },
-              {
-                id: 'postes-suggeres',
-                icon: 'Calculator',
-                zone: 'postes',
-                actionIds: ['extraction-postes'],
-                navigateTo: 'chiffrage',
-              },
             ],
+          },
+          {
+            type: 'artifact-cards',
+            cards: posteCards,
           },
           {
             type: 'ai',
@@ -2819,7 +2843,7 @@ export default function App() {
                 );
               }
 
-              // Artifact cards (diff-aware, info dossier, postes, calculation results)
+              // Artifact cards (diff-aware, one per poste, ghost expand/collapse)
               if (msg.type === 'artifact-cards') {
                 const iconMap = { FileText: FileText, Calculator: Calculator };
                 const getDiffsForCard = (card) => card.actionIds ? activeDiffs.filter(d => card.actionIds.includes(d.actionId) && d.zone === card.zone) : [];
@@ -2836,7 +2860,7 @@ export default function App() {
                       const diffs = getDiffsForCard(card);
                       const summary = getDiffSummary(diffs);
                       const hasDiffs = diffs.length > 0;
-                      const zoneLabel = ZONE_LABELS[card.zone] || card.title || card.zone;
+                      const cardTitle = card.posteLabel || ZONE_LABELS[card.zone] || card.title || card.zone;
                       // Build subtitle from diff counts
                       const subtitleParts = [];
                       if (summary.adds > 0) subtitleParts.push(`${summary.adds} addition${summary.adds > 1 ? 's' : ''}`);
@@ -2847,21 +2871,14 @@ export default function App() {
                       return (
                         <div
                           key={card.id}
-                          className="rounded-lg border border-[#e7e5e3] cursor-pointer group transition-all duration-200 hover:border-[#d6d3d1] overflow-hidden"
+                          className="rounded-lg border border-[#e7e5e3] transition-all duration-200 hover:border-[#d6d3d1] overflow-hidden"
                           style={{
                             background: 'linear-gradient(135deg, #ffffff 0%, #fafaf9 60%, #f5f5f4 100%)',
                             boxShadow: '0px 1px 3px 0px rgba(26,26,26,0.06), 0px 1px 2px -1px rgba(26,26,26,0.06), inset 0px -2px 4px 0px rgba(0,0,0,0.03)',
                           }}
                         >
-                          {/* Header - click to expand/collapse */}
-                          <div
-                            className="flex items-center gap-3"
-                            style={{ padding: '12px 14px' }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setExpandedArtifacts(prev => ({ ...prev, [card.id]: !prev[card.id] }));
-                            }}
-                          >
+                          {/* Header row */}
+                          <div className="flex items-center gap-3" style={{ padding: '12px 14px' }}>
                             <div
                               className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
                               style={{
@@ -2873,91 +2890,62 @@ export default function App() {
                               <CardIcon className="w-4 h-4" style={{ color: '#ea7949' }} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div style={{ fontSize: 13, fontWeight: 500, color: '#292524', lineHeight: '18px' }}>{zoneLabel}</div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: '#292524', lineHeight: '18px' }}>{cardTitle}</div>
                               <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', lineHeight: '16px' }}>{subtitleText}</div>
                             </div>
-                            <div className="flex-shrink-0" style={{ color: '#a8a29e', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                              <ChevronDown className="w-4 h-4" />
-                            </div>
+                            {/* Navigate to zone button */}
+                            <button
+                              className="flex-shrink-0 px-2 py-1 rounded flex items-center gap-1 transition-colors hover:bg-[rgba(234,121,73,0.1)]"
+                              style={{ fontSize: 12, fontWeight: 500, color: '#ea7949', background: 'rgba(234,121,73,0.06)' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleNavigateToZone(card.zone, card.navigateTo);
+                              }}
+                            >
+                              Voir <ChevronRight className="w-3 h-3" />
+                            </button>
                           </div>
 
                           {/* Expanded diff rows */}
                           {isExpanded && hasDiffs && (
-                            <>
-                              <div style={{ height: 1, background: '#e7e5e3' }} />
-                              <div style={{ padding: '10px 14px', background: '#fafaf9' }} className="flex flex-col gap-2">
-                                {diffs.map((diff, di) => (
-                                  <div key={di} className="flex items-start gap-2" style={{ fontSize: 12, lineHeight: '18px' }}>
-                                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-2" style={{
-                                      background: diff.type === 'add' ? '#16a34a' : diff.type === 'delete' ? '#dc2626' : '#ea7949'
-                                    }} />
-                                    <div className="flex-1 min-w-0">
-                                      <div style={{ color: '#78716c', fontWeight: 500 }}>{diff.entityLabel}</div>
-                                      <div className="flex items-center gap-1.5 flex-wrap">
-                                        {diff.before && (
-                                          <span style={{ color: '#a8a29e', textDecoration: 'line-through' }}>{diff.before}</span>
-                                        )}
-                                        {diff.before && <span style={{ color: '#a8a29e' }}>→</span>}
-                                        <span style={{ color: '#292524', fontWeight: 500 }}>{diff.after}</span>
-                                      </div>
-                                    </div>
-                                    <button
-                                      className="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center hover:bg-[#eeece6] transition-colors mt-0.5"
-                                      style={{ color: '#78716c' }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleNavigateToEntity(diff.entityId, card.zone, card.navigateTo);
-                                      }}
-                                      title="Voir sur le canvas"
-                                    >
-                                      <ChevronRight className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                              <div style={{ height: 1, background: '#e7e5e3' }} />
-                              <div className="flex justify-end" style={{ padding: '8px 14px' }}>
+                            <div style={{ background: '#fafaf9', borderTop: '1px solid #e7e5e3' }}>
+                              {diffs.map((diff, di) => (
                                 <div
-                                  className="flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-[rgba(234,121,73,0.1)]"
-                                  style={{ fontSize: 12, fontWeight: 500, color: '#ea7949', background: 'rgba(234,121,73,0.06)' }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleNavigateToZone(card.zone, card.navigateTo);
-                                  }}
+                                  key={di}
+                                  className="flex items-center gap-2 cursor-pointer transition-colors hover:bg-[#f0efed]"
+                                  style={{ padding: '8px 14px', fontSize: 12, lineHeight: '18px', borderBottom: di < diffs.length - 1 ? '1px solid #f0efed' : 'none' }}
+                                  onClick={() => handleNavigateToEntity(diff.entityId, card.zone, card.navigateTo)}
                                 >
-                                  Voir le détail <ChevronRight className="w-3 h-3" />
+                                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{
+                                    background: diff.type === 'add' ? '#16a34a' : diff.type === 'delete' ? '#dc2626' : '#ea7949'
+                                  }} />
+                                  <span style={{ color: '#78716c', fontWeight: 500, flexShrink: 0 }}>{diff.entityLabel}</span>
+                                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                    {diff.before && (
+                                      <span className="truncate" style={{ color: '#a8a29e', textDecoration: 'line-through' }}>{diff.before}</span>
+                                    )}
+                                    {diff.before && <span style={{ color: '#a8a29e' }}>→</span>}
+                                    <span className="truncate" style={{ color: '#292524', fontWeight: 500 }}>{diff.after}</span>
+                                  </div>
+                                  <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 diff-row-chevron" style={{ color: '#a8a29e' }} />
                                 </div>
-                              </div>
-                            </>
+                              ))}
+                            </div>
                           )}
 
-                          {/* Fallback: legacy changelog display */}
-                          {isExpanded && !hasDiffs && card.changelog && (
-                            <>
-                              <div style={{ height: 1, background: '#e7e5e3' }} />
-                              <div style={{ padding: '10px 14px', background: '#fafaf9' }} className="flex flex-col gap-1.5">
-                                {card.changelog.map((entry, ei) => (
-                                  <div key={ei} className="flex items-center gap-2" style={{ fontSize: 12, lineHeight: '16px' }}>
-                                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#ea7949' }} />
-                                    <span style={{ color: '#78716c' }}>{entry.label}</span>
-                                    <span style={{ color: '#292524', fontWeight: 500 }}>{entry.value}</span>
-                                  </div>
-                                ))}
-                              </div>
-                              <div style={{ height: 1, background: '#e7e5e3' }} />
-                              <div className="flex justify-end" style={{ padding: '8px 14px' }}>
-                                <div
-                                  className="flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-[rgba(234,121,73,0.1)]"
-                                  style={{ fontSize: 12, fontWeight: 500, color: '#ea7949', background: 'rgba(234,121,73,0.06)' }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setNavStack(prev => prev.map((n, ni) => ni === prev.length - 1 ? { ...n, activeTab: card.navigateTo } : n));
-                                  }}
-                                >
-                                  Voir le détail <ChevronRight className="w-3 h-3" />
-                                </div>
-                              </div>
-                            </>
+                          {/* Ghost expand/collapse button */}
+                          {hasDiffs && diffs.length > 0 && (
+                            <button
+                              className="w-full flex items-center justify-center gap-1.5 py-2 transition-colors hover:bg-[#f0efed]"
+                              style={{ fontSize: 12, fontWeight: 500, color: '#78716c', borderTop: '1px solid #e7e5e3' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedArtifacts(prev => ({ ...prev, [card.id]: !prev[card.id] }));
+                              }}
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" style={{ transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                              {isExpanded ? 'Masquer les détails' : `${diffs.length} changement${diffs.length > 1 ? 's' : ''}`}
+                            </button>
                           )}
                         </div>
                       );
