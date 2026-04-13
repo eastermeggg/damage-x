@@ -102,28 +102,20 @@ body {
   100% { background-color: transparent; }
 }
 
-/* Drop First — streaming field glow */
-@keyframes fieldGlow {
-  0%, 100% { border-left-color: rgba(147, 51, 234, 0.5); }
-  50% { border-left-color: rgba(147, 51, 234, 1); }
-}
-
-.animate-field-glow {
-  border-left: 3px solid rgba(147, 51, 234, 0.5);
-  animation: fieldGlow 1.5s ease-in-out infinite;
-}
+/* Drop First — streaming field glow (diamond indicator only, no border) */
+.animate-field-glow {}
 
 /* ===== NAVIGATION HIGHLIGHT ===== */
 @keyframes highlightFade {
-  0% { background-color: rgba(234, 121, 73, 0.15); box-shadow: 0 0 0 2px rgba(234, 121, 73, 0.3); }
-  70% { background-color: rgba(234, 121, 73, 0.08); box-shadow: 0 0 0 2px rgba(234, 121, 73, 0.15); }
+  0% { background-color: rgba(120, 113, 108, 0.10); box-shadow: 0 0 0 2px rgba(120, 113, 108, 0.25); }
+  70% { background-color: rgba(120, 113, 108, 0.05); box-shadow: 0 0 0 2px rgba(120, 113, 108, 0.10); }
   100% { background-color: transparent; box-shadow: none; }
 }
 .is-highlighted { animation: highlightFade 3s ease-out forwards; border-radius: 4px; }
 
 @keyframes zoneHighlightFade {
-  0% { box-shadow: 0 0 0 2px rgba(234, 121, 73, 0.4); }
-  70% { box-shadow: 0 0 0 2px rgba(234, 121, 73, 0.15); }
+  0% { box-shadow: 0 0 0 2px rgba(120, 113, 108, 0.30); }
+  70% { box-shadow: 0 0 0 2px rgba(120, 113, 108, 0.12); }
   100% { box-shadow: none; }
 }
 .is-zone-highlighted { animation: zoneHighlightFade 3s ease-out forwards; border-radius: 5px; }
@@ -302,6 +294,24 @@ body {
 .animate-dot-grid-pulse { animation: dot-grid-pulse 2s ease-in-out infinite; }
 .animate-step-slide-in { animation: step-slide-in 0.25s ease-out forwards; }
 .animate-line-grow { animation: line-grow 0.3s ease-out forwards; }
+
+/* Diff row — accepted flash then white */
+@keyframes diff-accepted {
+  0% { background-color: rgba(74, 145, 104, 0.1); }
+  100% { background-color: transparent; }
+}
+.diff-row-accepted {
+  animation: diff-accepted 0.6s ease-out forwards;
+}
+
+/* Diff row — rejected flash then white */
+@keyframes diff-rejected {
+  0% { background-color: rgba(196, 85, 85, 0.1); }
+  100% { background-color: transparent; }
+}
+.diff-row-rejected {
+  animation: diff-rejected 0.6s ease-out forwards;
+}
 
 /* ---- Variant: Neutral (stone) ---- */
 .banner-neutral {

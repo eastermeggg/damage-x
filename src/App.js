@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck } from 'lucide-react';
 
 const POSTES_TAXONOMY = [
   {
@@ -266,29 +266,377 @@ const MOCK_DIFF_STORE = {
     { actionId: 'extraction-poste-aipp', zone: 'postes', entityId: 'aipp', entityLabel: 'AIPP', type: 'add', before: null, after: '0 €', timestamp: 16 },
   ],
   'calc-dsa': [
-    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa', entityLabel: 'DSA — Dépenses de santé actuelles', type: 'edit', before: '0 €', after: '6 242,50 €', timestamp: 20 },
+    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa-line-1', entityLabel: 'Hospitalisation CHU Bordeaux', type: 'add', fields: [
+      { key: 'label', label: 'Libellé', after: 'Hospitalisation CHU Bordeaux' },
+      { key: 'type', label: 'Type', after: 'Hospitalisation' },
+      { key: 'date', label: 'Date', after: '05/06/2022' },
+      { key: 'montant', label: 'Montant', after: '4 500 €' },
+      { key: 'dejaRembourse', label: 'Déjà remboursé', after: '4 200 €' },
+    ], timestamp: 20 },
+    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa-line-2', entityLabel: 'Kinésithérapie (24 séances)', type: 'edit', fields: [
+      { key: 'montant', label: 'Montant', before: '960 €', after: '1 280 €' },
+      { key: 'dejaRembourse', label: 'Déjà remboursé', before: '720 €', after: '960 €' },
+      { key: 'date', label: 'Date', before: '10/07/2022', after: '15/07/2022' },
+    ], timestamp: 21 },
+    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa-line-3', entityLabel: 'IRM genou droit', type: 'add', fields: [
+      { key: 'label', label: 'Libellé', after: 'IRM genou droit' },
+      { key: 'type', label: 'Type', after: 'Examen' },
+      { key: 'date', label: 'Date', after: '20/06/2022' },
+      { key: 'montant', label: 'Montant', after: '320 €' },
+      { key: 'dejaRembourse', label: 'Déjà remboursé', after: '280 €' },
+    ], timestamp: 22 },
+    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa-line-4', entityLabel: 'Consultation Dr. Dupont (doublon)', type: 'delete', fields: [
+      { key: 'label', label: 'Libellé', before: 'Consultation Dr. Dupont' },
+      { key: 'date', label: 'Date', before: '12/06/2022' },
+      { key: 'montant', label: 'Montant', before: '55 €' },
+    ], timestamp: 23 },
+    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa-line-5', entityLabel: 'Médicaments', type: 'add', fields: [
+      { key: 'label', label: 'Libellé', after: 'Médicaments (antalgiques, anti-inflammatoires)' },
+      { key: 'type', label: 'Type', after: 'Pharmacie' },
+      { key: 'date', label: 'Date', after: '05/06/2022' },
+      { key: 'montant', label: 'Montant', after: '87,50 €' },
+      { key: 'dejaRembourse', label: 'Déjà remboursé', after: '65 €' },
+    ], timestamp: 24 },
+    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa-total', entityLabel: 'Total DSA', type: 'edit', fields: [
+      { key: 'montant', label: 'Montant', before: '0 €', after: '6 132,50 €' },
+    ], timestamp: 25 },
+    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa-revalo', entityLabel: 'Revalorisation activée', type: 'add', paramKey: 'revaloriser', fields: [
+      { key: 'etat', label: 'État', after: 'On', badge: 'success' },
+      { key: 'valeur', label: 'Valeur', after: 'IPC Annuel' },
+    ], timestamp: 26 },
   ],
   'calc-dft': [
-    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft', entityLabel: 'DFT — Déficit fonctionnel temporaire', type: 'edit', before: '0 €', after: '5 385 €', timestamp: 21 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-line-1', entityLabel: 'Hospitalisation initiale', type: 'add', fields: [
+      { key: 'debut', label: 'Début', after: '05/06/2022' },
+      { key: 'fin', label: 'Fin', after: '12/06/2022' },
+      { key: 'jours', label: 'Jours', after: '8' },
+      { key: 'taux', label: 'Taux', after: '100%' },
+      { key: 'montant', label: 'Montant', after: '224 €' },
+    ], timestamp: 30 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-line-2', entityLabel: 'Chirurgie + soins intensifs', type: 'add', fields: [
+      { key: 'debut', label: 'Début', after: '13/06/2022' },
+      { key: 'fin', label: 'Fin', after: '18/06/2022' },
+      { key: 'jours', label: 'Jours', after: '6' },
+      { key: 'taux', label: 'Taux', after: '100%' },
+      { key: 'montant', label: 'Montant', after: '168 €' },
+    ], timestamp: 31 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-line-3', entityLabel: 'Alitement strict post-op.', type: 'add', fields: [
+      { key: 'debut', label: 'Début', after: '19/06/2022' },
+      { key: 'fin', label: 'Fin', after: '01/07/2022' },
+      { key: 'jours', label: 'Jours', after: '13' },
+      { key: 'taux', label: 'Taux', after: '100%' },
+      { key: 'montant', label: 'Montant', after: '364 €' },
+    ], timestamp: 32 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-line-4', entityLabel: 'Convalescence post-op.', type: 'edit', fields: [
+      { key: 'fin', label: 'Fin', before: '30/08/2022', after: '15/09/2022' },
+      { key: 'jours', label: 'Jours', before: '60', after: '76' },
+      { key: 'montant', label: 'Montant', before: '840 €', after: '1 064 €' },
+    ], timestamp: 33 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-line-5', entityLabel: 'Rééducation active', type: 'add', fields: [
+      { key: 'debut', label: 'Début', after: '16/09/2022' },
+      { key: 'fin', label: 'Fin', after: '16/12/2022' },
+      { key: 'jours', label: 'Jours', after: '92' },
+      { key: 'taux', label: 'Taux', after: '40%' },
+      { key: 'montant', label: 'Montant', after: '1 030 €' },
+    ], timestamp: 34 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-line-6', entityLabel: "Rééducation d'entretien (doublon)", type: 'delete', fields: [
+      { key: 'debut', label: 'Début', before: '17/12/2022' },
+      { key: 'fin', label: 'Fin', before: '19/03/2023' },
+      { key: 'taux', label: 'Taux', before: '25%' },
+      { key: 'montant', label: 'Montant', before: '644 €' },
+    ], timestamp: 35 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-line-7', entityLabel: 'Gêne résiduelle pré-conso.', type: 'add', fields: [
+      { key: 'debut', label: 'Début', after: '20/03/2023' },
+      { key: 'fin', label: 'Fin', after: '15/01/2024' },
+      { key: 'jours', label: 'Jours', after: '301' },
+      { key: 'taux', label: 'Taux', after: '15%' },
+      { key: 'montant', label: 'Montant', after: '1 264 €' },
+    ], timestamp: 36 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-total', entityLabel: 'Total DFT', type: 'edit', fields: [
+      { key: 'montant', label: 'Montant', before: '0 €', after: '5 385 €' },
+    ], timestamp: 37 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-revalo', entityLabel: 'Revalorisation désactivée', type: 'delete', paramKey: 'base-journaliere-dft', fields: [
+      { key: 'etat', label: 'État', before: 'On', after: 'Off' },
+    ], timestamp: 38 },
   ],
   'calc-pgpa': [
-    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa', entityLabel: 'PGPA — Pertes de gains prof. actuels', type: 'edit', before: '0 €', after: '6 700 €', timestamp: 22 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-rev-1', entityLabel: 'Salaire net 2022', type: 'add', fields: [
+      { key: 'annee', label: 'Année', after: '2022' },
+      { key: 'montant', label: 'Montant', after: '32 400 €' },
+      { key: 'revalorise', label: 'Revalorisé', after: '33 696 €' },
+    ], timestamp: 40 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-rev-2', entityLabel: 'Salaire net 2021', type: 'edit', fields: [
+      { key: 'montant', label: 'Montant', before: '29 800 €', after: '31 200 €' },
+      { key: 'revalorise', label: 'Revalorisé', before: '31 886 €', after: '33 384 €' },
+    ], timestamp: 41 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-rev-3', entityLabel: 'Prime exceptionnelle 2021 (non récurrent)', type: 'delete', fields: [
+      { key: 'annee', label: 'Année', before: '2021' },
+      { key: 'montant', label: 'Montant', before: '1 500 €' },
+    ], timestamp: 42 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-rev-4', entityLabel: 'Prime annuelle 2022', type: 'add', fields: [
+      { key: 'annee', label: 'Année', after: '2022' },
+      { key: 'montant', label: 'Montant', after: '2 400 €' },
+      { key: 'revalorise', label: 'Revalorisé', after: '2 496 €' },
+    ], timestamp: 42 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-rp-1', entityLabel: 'Maintien partiel salaire', type: 'add', fields: [
+      { key: 'tiers', label: 'Tiers', after: 'Employeur' },
+      { key: 'periode', label: 'Période', after: 'Mars - Juin 2023' },
+      { key: 'montant', label: 'Montant', after: '8 500 €' },
+    ], timestamp: 43 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-ij-1', entityLabel: 'IJ Sécurité sociale', type: 'add', fields: [
+      { key: 'tiers', label: 'Tiers', after: 'CPAM' },
+      { key: 'periode', label: 'Période', after: 'Mars 2023 - Sept 2024' },
+      { key: 'montant', label: 'Montant', after: '11 650 €' },
+    ], timestamp: 44 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-ij-2', entityLabel: 'IJ Prévoyance', type: 'add', fields: [
+      { key: 'tiers', label: 'Tiers', after: 'AG2R' },
+      { key: 'periode', label: 'Période', after: 'Mars 2023 - Sept 2024' },
+      { key: 'montant', label: 'Montant', after: '4 850 €' },
+    ], timestamp: 45 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-total', entityLabel: 'Total PGPA', type: 'edit', fields: [
+      { key: 'montant', label: 'Montant', before: '0 €', after: '6 700 €' },
+    ], timestamp: 46 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-revalo', entityLabel: 'Revalorisation modifiée', type: 'edit', paramKey: 'revaloriser-pgpa', fields: [
+      { key: 'indice', label: 'Indice', before: 'IPC Annuel', after: 'IPC Mensuel' },
+    ], timestamp: 47 },
   ],
   'calc-pgpf': [
-    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf', entityLabel: 'PGPF — Pertes de gains prof. futurs', type: 'edit', before: '0 €', after: '231 525 €', timestamp: 23 },
+    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf-reprise', entityLabel: 'Salaire reprise mi-temps', type: 'add', fields: [
+      { key: 'tiers', label: 'Tiers', after: 'Employeur' },
+      { key: 'periode', label: 'Période', after: 'Sept 2024 - Jan 2025' },
+      { key: 'montant', label: 'Montant', after: '4 800 €' },
+    ], timestamp: 50 },
+    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf-ij', entityLabel: 'IJ CPAM mi-temps thérapeutique', type: 'add', fields: [
+      { key: 'tiers', label: 'Tiers', after: 'CPAM' },
+      { key: 'periode', label: 'Période', after: 'Sept 2024 - Jan 2025' },
+      { key: 'montant', label: 'Montant', after: '3 200 €' },
+    ], timestamp: 51 },
+    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf-cap', entityLabel: 'Capitalisation viagère', type: 'add', fields: [
+      { key: 'perteAnnuelle', label: 'Perte annuelle', after: '9 450 €' },
+      { key: 'age', label: 'Âge consolidation', after: '42 ans' },
+      { key: 'bareme', label: 'Barème', after: 'Gazette du Palais 2025 (0,5%)' },
+      { key: 'coefficient', label: 'Coefficient', after: '24,5' },
+      { key: 'montant', label: 'Capital', after: '231 525 €' },
+    ], timestamp: 52 },
+    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf-tp-1', entityLabel: 'Rente CPAM', type: 'add', fields: [
+      { key: 'tiers', label: 'Tiers', after: 'CPAM' },
+      { key: 'renteAnnuelle', label: 'Rente annuelle', after: '3 600 €' },
+      { key: 'montantCapitalise', label: 'Capitalisé', after: '88 200 €' },
+    ], timestamp: 53 },
+    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf-tp-2', entityLabel: 'Rente prévoyance', type: 'add', fields: [
+      { key: 'tiers', label: 'Tiers', after: 'AG2R' },
+      { key: 'renteAnnuelle', label: 'Rente annuelle', after: '1 800 €' },
+      { key: 'montantCapitalise', label: 'Capitalisé', after: '44 100 €' },
+    ], timestamp: 54 },
+    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf-total', entityLabel: 'Total PGPF', type: 'edit', fields: [
+      { key: 'montant', label: 'Montant', before: '0 €', after: '231 525 €' },
+    ], timestamp: 55 },
+    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf-capitaliser', entityLabel: 'Capitalisation modifiée', type: 'edit', paramKey: 'capitaliser-pgpf', fields: [
+      { key: 'bareme', label: 'Barême', before: 'IPC Mensuel', after: 'IPC Annuel' },
+      { key: 'finArrerage', label: 'Fin arrérage', before: 'IPC Mensuel', after: 'IPC Annuel' },
+    ], timestamp: 56 },
   ],
   'calc-se': [
-    { actionId: 'calc-se', zone: 'postes', entityId: 'se', entityLabel: 'SE — Souffrances endurées', type: 'edit', before: '0 €', after: '15 000 €', timestamp: 24 },
+    { actionId: 'calc-se', zone: 'postes', entityId: 'se-eval', entityLabel: 'Souffrances endurées', type: 'edit', fields: [
+      { key: 'referentiel', label: 'Référentiel', after: 'Cour d\'appel 2024' },
+      { key: 'cotation', label: 'Cotation', after: '4/7' },
+      { key: 'montant', label: 'Montant', before: '0 €', after: '15 000 €' },
+    ], timestamp: 60 },
   ],
   'calc-dfp': [
-    { actionId: 'calc-dfp', zone: 'postes', entityId: 'dfp', entityLabel: 'DFP — Déficit fonctionnel permanent', type: 'edit', before: '0 €', after: '27 000 €', timestamp: 25 },
+    { actionId: 'calc-dfp', zone: 'postes', entityId: 'dfp-eval', entityLabel: 'Déficit fonctionnel permanent', type: 'edit', fields: [
+      { key: 'referentiel', label: 'Référentiel', after: 'Cour d\'appel 2024' },
+      { key: 'age', label: 'Âge', after: '42 ans' },
+      { key: 'taux', label: 'Taux', after: '18%' },
+      { key: 'pointBase', label: 'Point', after: '1 500 €' },
+      { key: 'montant', label: 'Montant', before: '0 €', after: '27 000 €' },
+    ], timestamp: 61 },
   ],
   'calc-pep': [
-    { actionId: 'calc-pep', zone: 'postes', entityId: 'pep', entityLabel: 'PEP — Préjudice esthétique permanent', type: 'edit', before: '0 €', after: '4 500 €', timestamp: 26 },
+    { actionId: 'calc-pep', zone: 'postes', entityId: 'pep-eval', entityLabel: 'Préjudice esthétique permanent', type: 'edit', fields: [
+      { key: 'referentiel', label: 'Référentiel', after: 'Cour d\'appel 2024' },
+      { key: 'cotation', label: 'Cotation', after: '3/7' },
+      { key: 'montant', label: 'Montant', before: '0 €', after: '4 500 €' },
+    ], timestamp: 62 },
   ],
 };
 
+/* ============================================================================
+ * PARAMETER PILL — SPEC
+ * ============================================================================
+ *
+ * A parameter pill is a compact, rounded-full chip displayed in a chiffrage
+ * settings row. It represents a single hypothesis/parameter (e.g. Revaloriser,
+ * Capitaliser, Base journalière). When an AI diff targets a parameter, the
+ * pill transforms to show the pending change inline, with embedded
+ * accept / reject buttons.
+ *
+ * ── ANATOMY ──────────────────────────────────────────────────────────────────
+ *
+ *  ┌─────────────────────────────────────────────────────────────────────┐
+ *  │  [◆]  ⊙  Label   Value / ~~old~~ → new          [ ✓ ] [ ✗ ]     │
+ *  └─────────────────────────────────────────────────────────────────────┘
+ *   diamond icon label   value content                accept  reject
+ *
+ *  • Diamond (◆): 6×6 rotated square. Only shown when a diff is pending.
+ *    Color encodes the diff TYPE (green / orange / red).
+ *  • Icon: CircleArrowUp, 14×14, always present.
+ *  • Label: parameter name, font-weight 500.
+ *  • Value content: plain text when no diff; strikethrough old → new when diff.
+ *  • Accept / Reject: 20×20 rounded-full circles, only when diff pending.
+ *
+ * ── COLOR MODEL ──────────────────────────────────────────────────────────────
+ *
+ *  Pill background/border = TARGET STATE of the parameter (where it's going):
+ *    • ON  → info (blue)   — bg #eef3fa, border #aabcd5, text #1e3a8a
+ *    • OFF → neutral (gray) — bg transparent, border #d6d3d1, text #78716c
+ *
+ *  Diamond color = DIFF TYPE (what kind of change):
+ *    • add    → green  #059669   (param was OFF, turning ON)
+ *    • edit   → orange #bd6c1a   (param stays ON, value changed)
+ *    • delete → red    #991b1b   (param was ON, turning OFF)
+ *
+ *  Summary table:
+ *  ┌──────────┬──────────────┬──────────────┬────────────────────────────────┐
+ *  │ Diff     │ Pill color   │ Diamond      │ Value content                  │
+ *  ├──────────┼──────────────┼──────────────┼────────────────────────────────┤
+ *  │ add      │ info (blue)  │ green ◆      │ new value(s)                   │
+ *  │ edit     │ info (blue)  │ orange ◆     │ ~~old~~ → new                  │
+ *  │ delete   │ neutral (gray)│ red ◆       │ ~~On~~ → Off                   │
+ *  │ (none)   │ info / neutral│ —           │ current value(s)               │
+ *  │ accepted │ info (blue)  │ —            │ accepted value (no buttons)     │
+ *  │ rejected │ info / neutral│ —           │ original value (no buttons)     │
+ *  └──────────┴──────────────┴──────────────┴────────────────────────────────┘
+ *
+ * ── ACCEPT / REJECT BUTTONS ─────────────────────────────────────────────────
+ *
+ *  Neutral by default to avoid "christmas tree" effect alongside colored pills.
+ *  • Rest: white bg, border #d6d3d1, icon #78716c (stone)
+ *  • Hover accept: bg #ecfdf5, border #a5c9b7 (subtle green hint)
+ *  • Hover reject: bg #fef2f2, border #cf9d9d (subtle red hint)
+ *  Same design used in artifact card diff rows for consistency.
+ *
+ * ── STATE TRANSITIONS ────────────────────────────────────────────────────────
+ *
+ *  On accept:
+ *    • Diff marked approved → diamond + buttons disappear
+ *    • add:    enabledParams[key] → true,  pill becomes blue with new value
+ *    • edit:   value updates to new,       pill stays blue
+ *    • delete: enabledParams[key] → false, pill becomes gray (OFF)
+ *
+ *  On reject:
+ *    • Diff marked rejected → diamond + buttons disappear
+ *    • Pill reverts to its original state (value + color unchanged)
+ *
+ * ── VALUE TYPES ──────────────────────────────────────────────────────────────
+ *
+ *  • Boolean toggle: "On" / "Off" (or label-only when off)
+ *  • Single select:  "IPC Annuel", "SMIC Horaire"
+ *  • Numeric:        "28 €/j"
+ *  • Multi-value:    "IPC Annuel, XX, XX ans" (concatenated)
+ *  • Multi-field diff: "~~IPC Mensuel~~ → Annuel, ~~62~~ → 64 ans"
+ *
+ * ── EDGE CASE: SUB-FIELD DELETION ────────────────────────────────────────────
+ *
+ *  When a parameter stays ON but one sub-field is removed (e.g. Capitaliser
+ *  keeps Barême but drops Fin arrérage), this is an edit (orange diamond)
+ *  on a blue pill. The deleted sub-field renders as strikethrough without
+ *  a replacement: "Barême IPC Annuel, ~~Fin arrérage 64 ans~~".
+ *
+ * ── PILL SCHEMES (5 variants) ────────────────────────────────────────────────
+ *
+ *  Used by pills AND UI kit specimens. Only info + neutral are used for
+ *  live pills; success / warning / destructive are reserved for badges
+ *  and future extensions.
+ *
+ * ── IMPLEMENTATION ───────────────────────────────────────────────────────────
+ *
+ *  Helper:       renderParamPill({ paramKey, label, values, enabled, onClick })
+ *  Diff lookup:  getParamDiff(paramKey) — finds matching pending diff
+ *  Wire format:  diff.paramKey must match enabledParams key
+ *  Pill shape:   rounded-full, px-3 py-1.5, text-xs font-medium, border
+ *  Diamond:      w-1.5 h-1.5, rotate(45deg), borderRadius 0.5px
+ *  Buttons:      w-5 h-5, rounded-full, Check/X icons w-3 h-3 strokeWidth 2.5
+ *
+ * ========================================================================= */
+const PILL_SCHEMES = {
+  info:        { bg: '#eef3fa', border: '#aabcd5', text: '#1e3a8a' },
+  neutral:     { bg: 'transparent', border: '#d6d3d1', text: '#78716c' },
+  success:     { bg: '#dcfce7', border: '#a7f3d0', text: '#064e3b' },
+  warning:     { bg: '#f9ecd6', border: '#eeb97e', text: '#855b31' },
+  destructive: { bg: 'transparent', border: '#fecaca', text: '#7f1d1d' },
+};
+const DIAMOND_COLORS = { add: '#059669', edit: '#bd6c1a', delete: '#991b1b' };
+
+/* ============================================================================
+ * TABLE ROW DIFF — SPEC
+ * ============================================================================
+ *
+ * Figma ref: node 1324:17669
+ *
+ * ── LEFT STRIP ───────────────────────────────────────────────────────────────
+ *
+ *  4px wide, absolute left edge, full row height.
+ *  Solid COLOR background.
+ *    • add    → green  #059669
+ *    • edit   → orange #bd6c1a
+ *    • delete → red    #991b1b
+ *
+ * ── ROW TYPES ────────────────────────────────────────────────────────────────
+ *
+ *  ADD:    Green strip. All values shown normally. White bg.
+ *  EDIT:   Orange strip. Changed cells stack old→new vertically:
+ *            • Old: 12px line-through #a8a29e (small, above)
+ *            • New: 14px medium #292524 (bold, below)
+ *          Unchanged cells render normally.
+ *  DELETE: Red strip. Dashed icon (white bg, #a8a29e border, 0.4 opacity).
+ *          All text: 14px line-through #a8a29e. NO row-level opacity.
+ *  MIX:    Orange strip (treated as edit). Individual cells can be:
+ *            • Edited (stacked old→new)
+ *            • Deleted (line-through, no replacement)
+ *            • Unchanged (normal)
+ *  NORMAL: No strip. Standard rendering.
+ *
+ * ── CELL-LEVEL DIFF (EDIT ROWS) ─────────────────────────────────────────────
+ *
+ *  Each cell checks `l.oldValues[field]` to determine if it changed.
+ *  If old value exists → render stacked: oldVal above, newVal below.
+ *  If no old value → render current value normally (unchanged cell).
+ *
+ *  Special cases:
+ *    • Badge diff: old badge with line-through (secondary bg) → new badge
+ *      (success bg). Example: ~~50%~~ → 100%
+ *    • Deleted cell in edit row: line-through #a8a29e, no new value.
+ *    • Reimbursement cell: shows the full "250€ · ⊙ 255€" pattern,
+ *      with old values stacked above.
+ *
+ * ── DOC ICON ─────────────────────────────────────────────────────────────────
+ *
+ *  Normal:  Blue bg (#DFE8F5), counter badge (#1e3a8a bg)
+ *  Empty:   Dashed border #e7e5e3, gray icon
+ *  Deleted: Dashed border #a8a29e, white bg, icon at 0.4 opacity
+ *
+ * ── ACCEPT / REJECT ──────────────────────────────────────────────────────────
+ *
+ *  20×20 rounded-full, neutral at rest (white bg, #d6d3d1 border).
+ *  Hover: accept → #ecfdf5 bg + #a5c9b7 border
+ *         reject → #fef2f2 bg + #cf9d9d border
+ *  Appear on row hover (opacity 0→1 transition).
+ *
+ * ========================================================================= */
+const ROW_DIFF_COLORS = { add: '#059669', edit: '#bd6c1a', delete: '#991b1b' };
+
 const ZONE_LABELS = { infos_dossier: 'Info dossier', postes: 'Postes', pieces: 'Pièces' };
+const posteIconMap = {
+  dsa: 'HeartPulse',       // Dépenses de santé → health
+  pgpa: 'Wallet',          // Pertes de gains → income/wallet
+  dft: 'Activity',         // Déficit fonctionnel temporaire → body function
+  fda: 'Receipt',          // Frais divers → expenses
+  dsf: 'HeartPulse',       // Dépenses de santé futures → health
+  pgpf: 'Wallet',          // Pertes de gains futurs → income
+  dfp: 'Brain',            // Déficit fonctionnel permanent → permanent impairment
+  ipp: 'Scale',            // Incidence professionnelle → balance/justice
+};
 
 const PIECE_TYPE_COLORS = {
   'Expertise': 'bg-[#dfe8f5] text-[#1e3a8a]',
@@ -314,7 +662,7 @@ export default function App() {
   const isInitialLoad = useRef(true);
 
   // ========== STATE ==========
-  const [currentPage, setCurrentPage] = useState('list'); // 'list' | 'dossier'
+  const [currentPage, setCurrentPage] = useState('list'); // 'list' | 'dossier' | 'components'
   const [activeDossierId, setActiveDossierId] = useState(null);
 
   // ========== LISTE DES DOSSIERS ==========
@@ -357,6 +705,7 @@ export default function App() {
   const [manualReorder, setManualReorder] = useState(false);
   const [rapportBannerDismissed, setRapportBannerDismissed] = useState(false);
   const [chatSidebarOpen, setChatSidebarOpen] = useState(true);
+  const [chatBlocked, setChatBlocked] = useState(false);
   const [chatWidth, setChatWidth] = useState(408);
   const chatResizing = useRef(false);
   const [posteSearchOpen, setPosteSearchOpen] = useState(false);
@@ -364,6 +713,7 @@ export default function App() {
   const [editingPieceField, setEditingPieceField] = useState(null); // null | { pieceId, field }
   const [toastMessage, setToastMessage] = useState(null); // null | string
   const [activeDiffs, setActiveDiffs] = useState([]); // Array of diff events pushed by mock actions
+  // Rejected diffs stay visible (strikethrough + muted) for review
   const [pickerOpen, setPickerOpen] = useState(null); // null | 'dft' | 'dsa' | 'pgpa-revenu-ref' | 'pgpa-revenu-percu' | 'pgpa-ij'
   const [pickerSelected, setPickerSelected] = useState([]); // array of piece IDs (multi-select)
   const [pickerSearch, setPickerSearch] = useState('');
@@ -386,11 +736,78 @@ export default function App() {
   // Serif amounts for card titles and totals
   const serifAmountStyle = { fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '18px', letterSpacing: '-0.5px', fontWeight: 400 };
   // Reusable card block class
-  const cardBlockClass = "bg-white rounded-lg border border-[#e7e5e3] overflow-hidden shadow-[0_1px_2px_0_rgba(26,26,26,0.05)]";
+  const cardBlockClass = "bg-white rounded-lg border border-[#e7e5e3] overflow-visible shadow-[0_1px_2px_0_rgba(26,26,26,0.05)]";
   // Total block class
   const totalBlockClass = "bg-[#eeece6] border border-[#e7e5e3] rounded-lg shadow-[0_1px_2px_0_rgba(26,26,26,0.05)] p-4";
 
   const typesFaitGenerateur = ['Accident de la route', 'Accident du travail', 'Accident médical', 'Agression', 'Accident domestique', 'Autre'];
+
+  // ========== DIFF-AWARE PARAMETER PILL ==========
+  const getParamDiff = (paramKey) => activeDiffs.find(d => d.paramKey === paramKey && !d.approved && !d.rejected);
+
+  const renderParamPill = ({ paramKey, label, values, enabled, onClick }) => {
+    const diff = getParamDiff(paramKey);
+    const hasDiff = !!diff;
+    const diffType = diff?.type;
+
+    // Pill color = target state: add/edit → ON (blue), delete → OFF (gray)
+    // Diamond color encodes the diff type (green/orange/red)
+    const scheme = hasDiff
+      ? (diffType === 'delete' ? PILL_SCHEMES.neutral : PILL_SCHEMES.info)
+      : (enabled ? PILL_SCHEMES.info : PILL_SCHEMES.neutral);
+
+    // Build value display text
+    let valueContent = null;
+    if (hasDiff && diff.fields) {
+      const parts = diff.fields.map(f => {
+        if (f.before && f.after) return <span key={f.key}><span style={{ textDecoration: 'line-through', opacity: 0.6 }}>{f.before}</span> → {f.after}</span>;
+        if (f.after) return <span key={f.key}>{f.after}</span>;
+        if (f.before) return <span key={f.key} style={{ textDecoration: 'line-through', opacity: 0.6 }}>{f.before}</span>;
+        return null;
+      }).filter(Boolean);
+      valueContent = parts.length > 0 ? parts.reduce((acc, part, i) => i === 0 ? [part] : [...acc, <span key={`sep-${i}`}>, </span>, part], []) : null;
+    } else if (values) {
+      valueContent = <span style={{ fontWeight: 400 }}>{values}</span>;
+    }
+
+    const handleAccept = (e) => {
+      e.stopPropagation();
+      setActiveDiffs(prev => prev.filter(d => !(d.paramKey === paramKey && !d.approved && !d.rejected)));
+      // Update enabledParams: accept add → ON, accept delete → OFF
+      if (diffType === 'add') setEnabledParams(p => ({ ...p, [paramKey]: true }));
+      if (diffType === 'delete') setEnabledParams(p => ({ ...p, [paramKey]: false }));
+    };
+    const handleReject = (e) => {
+      e.stopPropagation();
+      setActiveDiffs(prev => prev.map(d => d.paramKey === paramKey && !d.approved && !d.rejected ? { ...d, rejected: true } : d));
+      // Reject keeps original state — no enabledParams change needed
+    };
+
+    return (
+      <button
+        onClick={onClick}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors"
+        style={{ background: scheme.bg, borderColor: scheme.border, color: scheme.text }}
+      >
+        {hasDiff && (
+          <span className="w-1.5 h-1.5 flex-shrink-0" style={{ background: DIAMOND_COLORS[diffType], transform: 'rotate(45deg)', borderRadius: '0.5px', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} />
+        )}
+        <CircleArrowUp className="w-3.5 h-3.5 flex-shrink-0" />
+        <span>{label}</span>
+        {valueContent && <span style={{ fontWeight: 400 }}>{valueContent}</span>}
+        {hasDiff && (
+          <span className="inline-flex items-center gap-1 ml-0.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+            <span className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)', cursor: 'pointer' }} onClick={handleAccept}>
+              <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+            </span>
+            <span className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)', cursor: 'pointer' }} onClick={handleReject}>
+              <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+            </span>
+          </span>
+        )}
+      </button>
+    );
+  };
 
   // ========== NOTES / ARGUMENTAIRE PAR POSTE ==========
   const [posteNotes, setPosteNotes] = useState({ dsa: '', dft: '', pgpa: '' });
@@ -728,20 +1145,7 @@ export default function App() {
   useEffect(() => {
     if (dropFirstProcessingDone && !chatExtractionAnnounced.current && dropFirstPieces.length > 0) {
       chatExtractionAnnounced.current = true;
-      const doneCount = dropFirstPieces.filter(p => p.status === 'done').length;
-      const types = [...new Set(dropFirstPieces.filter(p => p.type).map(p => p.type))];
-      setChatSidebarOpen(true);
-      setChatMessages(prev => [
-        ...prev,
-        {
-          type: 'ai-thinking',
-          label: 'Analyse des documents...',
-          steps: [
-            { tool: 'analyseDocuments', detail: `${doneCount} documents traités`, expandedText: `Types détectés : ${types.join(', ')}` },
-          ],
-          expanded: false,
-        },
-      ]);
+      // Thinking message already exists from handleDropFirstCreate — no new message needed
     }
   }, [dropFirstProcessingDone, dropFirstPieces]);
 
@@ -764,17 +1168,19 @@ export default function App() {
       // Auto-switch to chiffrage tab after a short pause so user sees the transition
       setTimeout(() => setActiveTab('chiffrage'), 800);
 
-      // Update the thinking stepper with extraction + postes steps
+      // Update the thinking stepper with extraction + postes steps, mark as done
       setChatMessages(prev => {
         const updated = prev.map(m => {
-          if (m.type === 'ai-thinking' && m.label === 'Analyse des documents...') {
+          if (m._dropFirstThinking) {
             return {
               ...m,
               label: 'Analyse terminée',
+              done: true,
+              expanded: false,
               steps: [
                 ...(m.steps || []),
-                { tool: 'extractInfoDossier', detail: 'Informations du dossier remplies', expandedText: 'Nom, prénom, date, adresse et autres champs extraits' },
-                { tool: 'detectPostes', detail: `${detectedPostes.length} postes identifiés`, expandedText: detectedPostes.join(', ') },
+                { tool: 'extractInfoDossier', detail: 'Je remplis les informations du dossier', expandedText: 'Nom, prénom, date de naissance, profession, date de l\'accident' },
+                { tool: 'detectPostes', detail: `J'ai identifié ${detectedPostes.length} postes de préjudice`, expandedText: detectedPostes.join(', ') },
               ],
             };
           }
@@ -810,7 +1216,7 @@ export default function App() {
             cards: [
               {
                 id: 'info-dossier',
-                icon: 'FileText',
+                icon: 'User',
                 zone: 'infos_dossier',
                 actionIds: ['extraction-info-dossier'],
                 navigateTo: 'dossier',
@@ -827,6 +1233,7 @@ export default function App() {
           },
         ];
       });
+      setChatBlocked(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [infoDossierStreaming?.active]);
@@ -846,29 +1253,29 @@ export default function App() {
 
   const posteDiscoveryToolMap = {
     dsa: [
-      { tool: 'readDocument', detail: 'Factures et documents médicaux', expandedText: 'Lecture des factures de soins et justificatifs' },
-      { tool: 'extractMontants', detail: '5 dépenses identifiées', expandedText: 'Hospitalisation, kiné, IRM, médicaments, consultation' },
+      { tool: 'readDocument', detail: 'Je recherche les factures et justificatifs médicaux', expandedText: 'Factures de soins, ordonnances, notes d\'honoraires' },
+      { tool: 'extractMontants', detail: 'J\'ai trouvé 5 dépenses dans vos documents', expandedText: 'Hospitalisation, kinésithérapie, IRM, médicaments, consultation' },
     ],
     dft: [
-      { tool: 'readExpertise', detail: 'Rapport d\'expertise', expandedText: 'Lecture du rapport d\'expertise médicale' },
-      { tool: 'extractPeriods', detail: '7 périodes identifiées', expandedText: 'Hospitalisation, chirurgie, convalescence, rééducation...' },
+      { tool: 'readExpertise', detail: 'Je lis le rapport d\'expertise médicale', expandedText: 'Recherche des périodes de déficit fonctionnel' },
+      { tool: 'extractPeriods', detail: 'J\'ai identifié 7 périodes de déficit', expandedText: 'Hospitalisation, chirurgie, convalescence, rééducation...' },
     ],
     pgpa: [
-      { tool: 'readBulletins', detail: 'Bulletins de salaire', expandedText: 'Lecture des bulletins et attestations employeur' },
-      { tool: 'extractRevenus', detail: 'Revenu de référence identifié', expandedText: '~37 800 €/an sur 2 années de salaire + primes' },
+      { tool: 'readBulletins', detail: 'Je lis les bulletins de salaire et attestations', expandedText: 'Analyse des revenus sur les 2 dernières années' },
+      { tool: 'extractRevenus', detail: 'J\'ai établi le revenu de référence', expandedText: '~37 800 €/an sur la base de 2 années de salaire + primes' },
     ],
     pgpf: [
-      { tool: 'readExpertise', detail: 'Consolidation et séquelles', expandedText: 'Extraction des données post-consolidation' },
-      { tool: 'readBaremes', detail: 'Barème Gazette du Palais 2025', expandedText: 'Recherche du coefficient de capitalisation' },
+      { tool: 'readExpertise', detail: 'Je recherche les données post-consolidation', expandedText: 'Séquelles, capacités résiduelles, impact professionnel' },
+      { tool: 'readBaremes', detail: 'Je consulte le barème Gazette du Palais 2025', expandedText: 'Recherche du coefficient de capitalisation adapté' },
     ],
     se: [
-      { tool: 'readExpertise', detail: 'Cotation expertise', expandedText: 'Lecture de la cotation des souffrances endurées' },
+      { tool: 'readExpertise', detail: 'Je lis la cotation des souffrances dans l\'expertise', expandedText: 'Évaluation par l\'expert des souffrances physiques et morales' },
     ],
     dfp: [
-      { tool: 'readExpertise', detail: 'Taux DFP et âge', expandedText: 'Lecture du taux et de l\'âge à la consolidation' },
+      { tool: 'readExpertise', detail: 'Je lis le taux de DFP et l\'âge à la consolidation', expandedText: 'Données nécessaires pour appliquer le barème d\'indemnisation' },
     ],
     pep: [
-      { tool: 'readExpertise', detail: 'Cotation esthétique', expandedText: 'Lecture de la cotation du préjudice esthétique' },
+      { tool: 'readExpertise', detail: 'Je lis la cotation esthétique dans l\'expertise', expandedText: 'Évaluation des séquelles visibles par l\'expert' },
     ],
   };
 
@@ -885,20 +1292,20 @@ export default function App() {
     // Push calculation thinking
     setChatMessages(prev => [
       ...prev,
-      { type: 'ai-thinking', label: `Calcul du ${posteName}...`, steps: [], expanded: false, _posteCalcId: posteId },
+      { type: 'ai-thinking', label: `Je calcule le ${posteName}...`, steps: [], expanded: false, _posteCalcId: posteId },
     ]);
 
     const calcToolMap = {
-      dsa: [{ tool: 'calculDSA', detail: 'Calcul des dépenses', expandedText: 'Somme des dépenses de santé actuelles' }],
-      dft: [{ tool: 'calculDFT', detail: 'Forfait 28 €/j appliqué', expandedText: 'Application des taux par période' }],
-      pgpa: [{ tool: 'calculPGPA', detail: 'Perte calculée sur 18 mois', expandedText: 'Revenu - revenus perçus - IJ' }],
-      pgpf: [{ tool: 'calculCapitalisation', detail: 'Capitalisation viagère', expandedText: 'Capitalisation de la perte future' }],
-      se: [{ tool: 'calculSE', detail: 'Évaluation souffrances', expandedText: 'Application du référentiel' }],
-      dfp: [{ tool: 'calculDFP', detail: 'Calcul point × taux', expandedText: 'Application du barème' }],
-      pep: [{ tool: 'calculPEP', detail: 'Évaluation esthétique', expandedText: 'Application du référentiel' }],
+      dsa: [{ tool: 'calculDSA', detail: 'Je totalise les dépenses de santé', expandedText: 'Somme des montants restant à charge après remboursements' }],
+      dft: [{ tool: 'calculDFT', detail: 'J\'applique le forfait journalier de 28 € par période', expandedText: 'Montant pondéré selon le taux de déficit de chaque période' }],
+      pgpa: [{ tool: 'calculPGPA', detail: 'Je calcule la perte de revenus sur 18 mois d\'arrêt', expandedText: 'Revenu de référence moins les indemnités perçues (IJ, employeur)' }],
+      pgpf: [{ tool: 'calculCapitalisation', detail: 'Je capitalise la perte de revenus future', expandedText: 'Application du barème de capitalisation viagère Gazette du Palais' }],
+      se: [{ tool: 'calculSE', detail: 'J\'évalue les souffrances d\'après le référentiel', expandedText: 'Cotation 4/7 appliquée au barème de la Cour d\'appel 2024' }],
+      dfp: [{ tool: 'calculDFP', detail: 'Je calcule l\'indemnité selon le taux et l\'âge', expandedText: 'Valeur du point multipliée par le taux de déficit permanent' }],
+      pep: [{ tool: 'calculPEP', detail: 'J\'évalue le préjudice esthétique d\'après le référentiel', expandedText: 'Cotation 3/7 appliquée au barème de la Cour d\'appel 2024' }],
     };
 
-    const calcTools = calcToolMap[posteId] || [{ tool: `calcul${posteName}`, detail: `Évaluation ${posteName}`, expandedText: 'Calcul en cours...' }];
+    const calcTools = calcToolMap[posteId] || [{ tool: `calcul${posteName}`, detail: `J'évalue le ${posteName}`, expandedText: 'Calcul en cours...' }];
 
     calcTools.forEach((toolData, idx) => {
       const t = setTimeout(() => {
@@ -917,24 +1324,24 @@ export default function App() {
       // ---- Populate mock data for empty postes ----
       if (posteId === 'dsa' && dsaLignes.length === 0) {
         setDsaLignes([
-          { id: `dsa-ai-${Date.now()}-1`, status: 'ai-suggested', label: 'Hospitalisation CHU Bordeaux', type: 'Hospitalisation', date: '05/06/2022', montant: 4500, dejaRembourse: 4200, pieceIds: [], confidence: 95 },
-          { id: `dsa-ai-${Date.now()}-2`, status: 'ai-suggested', label: 'Kinésithérapie (24 séances)', type: 'Soins', date: '15/07/2022', montant: 1280, dejaRembourse: 960, pieceIds: [], confidence: 92 },
-          { id: `dsa-ai-${Date.now()}-3`, status: 'ai-suggested', label: 'IRM genou droit', type: 'Examen', date: '20/06/2022', montant: 320, dejaRembourse: 280, pieceIds: [], confidence: 94 },
-          { id: `dsa-ai-${Date.now()}-4`, status: 'ai-suggested', label: 'Médicaments (antalgiques, anti-inflammatoires)', type: 'Pharmacie', date: '05/06/2022', montant: 87.50, dejaRembourse: 65, pieceIds: [], confidence: 88 },
-          { id: `dsa-ai-${Date.now()}-5`, status: 'ai-suggested', label: 'Consultation orthopédique Dr. Martin', type: 'Consultation', date: '12/06/2022', montant: 55, dejaRembourse: 25, pieceIds: [], confidence: 90 },
+          { id: `dsa-ai-${Date.now()}-1`, diffType: 'add', label: 'Hospitalisation CHU Bordeaux', type: 'Hospitalisation', date: '05/06/2022', montant: 4500, dejaRembourse: 4200, pieceIds: [] },
+          { id: `dsa-ai-${Date.now()}-2`, diffType: 'edit', label: 'Kinésithérapie (24 séances)', type: 'Soins', date: '15/07/2022', montant: 1280, dejaRembourse: 960, pieceIds: [], oldValues: { montant: 960, date: '12/07/2022' } },
+          { id: `dsa-ai-${Date.now()}-3`, diffType: 'add', label: 'IRM genou droit', type: 'Examen', date: '20/06/2022', montant: 320, dejaRembourse: 280, pieceIds: [] },
+          { id: `dsa-ai-${Date.now()}-4`, diffType: 'delete', label: 'Consultation Dr. Dupont (doublon)', type: 'Consultation', date: '12/06/2022', montant: 55, dejaRembourse: 25, pieceIds: [] },
+          { id: `dsa-ai-${Date.now()}-5`, diffType: 'add', label: 'Médicaments (antalgiques, anti-inflammatoires)', type: 'Pharmacie', date: '05/06/2022', montant: 87.50, dejaRembourse: 65, pieceIds: [] },
         ]);
       }
 
       if (posteId === 'dft' && dftLignes.length === 0) {
         const baseJ = chiffrageParams.baseJournaliereDFT || 28;
         setDftLignes([
-          { id: `dft-ai-${Date.now()}-1`, status: 'ai-suggested', label: 'Hospitalisation initiale', debut: '05/06/2022', fin: '12/06/2022', jours: 8, taux: 100, montant: Math.round(8 * baseJ), pieceIds: [], confidence: 96 },
-          { id: `dft-ai-${Date.now()}-2`, status: 'ai-suggested', label: 'Chirurgie + soins intensifs', debut: '13/06/2022', fin: '18/06/2022', jours: 6, taux: 100, montant: Math.round(6 * baseJ), pieceIds: [], confidence: 94 },
-          { id: `dft-ai-${Date.now()}-3`, status: 'ai-suggested', label: 'Alitement strict post-opératoire', debut: '19/06/2022', fin: '01/07/2022', jours: 13, taux: 100, montant: Math.round(13 * baseJ), pieceIds: [], confidence: 93 },
-          { id: `dft-ai-${Date.now()}-4`, status: 'ai-suggested', label: 'Convalescence post-opératoire', debut: '02/07/2022', fin: '15/09/2022', jours: 76, taux: 50, montant: Math.round(76 * baseJ * 0.5), pieceIds: [], confidence: 89 },
-          { id: `dft-ai-${Date.now()}-5`, status: 'ai-suggested', label: 'Rééducation active intensive', debut: '16/09/2022', fin: '16/12/2022', jours: 92, taux: 40, montant: Math.round(92 * baseJ * 0.4), pieceIds: [], confidence: 86 },
-          { id: `dft-ai-${Date.now()}-6`, status: 'ai-suggested', label: 'Rééducation d\'entretien', debut: '17/12/2022', fin: '19/03/2023', jours: 92, taux: 25, montant: Math.round(92 * baseJ * 0.25), pieceIds: [], confidence: 84 },
-          { id: `dft-ai-${Date.now()}-7`, status: 'ai-suggested', label: 'Gêne résiduelle pré-consolidation', debut: '20/03/2023', fin: '15/01/2024', jours: 301, taux: 15, montant: Math.round(301 * baseJ * 0.15), pieceIds: [], confidence: 80 },
+          { id: `dft-ai-${Date.now()}-1`, diffType: 'add', label: 'Hospitalisation initiale', debut: '05/06/2022', fin: '12/06/2022', jours: 8, taux: 100, montant: Math.round(8 * baseJ), pieceIds: [] },
+          { id: `dft-ai-${Date.now()}-2`, diffType: 'add', label: 'Chirurgie + soins intensifs', debut: '13/06/2022', fin: '18/06/2022', jours: 6, taux: 100, montant: Math.round(6 * baseJ), pieceIds: [] },
+          { id: `dft-ai-${Date.now()}-3`, diffType: 'add', label: 'Alitement strict post-opératoire', debut: '19/06/2022', fin: '01/07/2022', jours: 13, taux: 100, montant: Math.round(13 * baseJ), pieceIds: [] },
+          { id: `dft-ai-${Date.now()}-4`, diffType: 'edit', label: 'Convalescence post-opératoire', debut: '02/07/2022', fin: '15/09/2022', jours: 76, taux: 50, montant: Math.round(76 * baseJ * 0.5), pieceIds: [], oldValues: { taux: 75, fin: '01/09/2022' } },
+          { id: `dft-ai-${Date.now()}-5`, diffType: 'add', label: 'Rééducation active intensive', debut: '16/09/2022', fin: '16/12/2022', jours: 92, taux: 40, montant: Math.round(92 * baseJ * 0.4), pieceIds: [] },
+          { id: `dft-ai-${Date.now()}-6`, diffType: 'delete', label: 'Rééducation d\'entretien (doublon)', debut: '17/12/2022', fin: '19/03/2023', jours: 92, taux: 25, montant: Math.round(92 * baseJ * 0.25), pieceIds: [] },
+          { id: `dft-ai-${Date.now()}-7`, diffType: 'add', label: 'Gêne résiduelle pré-consolidation', debut: '20/03/2023', fin: '15/01/2024', jours: 301, taux: 15, montant: Math.round(301 * baseJ * 0.15), pieceIds: [] },
         ]);
       }
 
@@ -945,18 +1352,19 @@ export default function App() {
             revalorisation: 'ipc-annuel',
             coefficientPerteChance: 100,
             lignes: [
-              { id: `pgpa-rev-${Date.now()}-1`, status: 'ai-suggested', type: 'revenu', label: 'Salaire net 2022', annee: '2022', montant: 32400, revalorise: 33696, pieceIds: [], confidence: 94 },
-              { id: `pgpa-rev-${Date.now()}-2`, status: 'ai-suggested', type: 'revenu', label: 'Salaire net 2021', annee: '2021', montant: 31200, revalorise: 33384, pieceIds: [], confidence: 92 },
-              { id: `pgpa-rev-${Date.now()}-3`, status: 'ai-suggested', type: 'gain', label: 'Prime annuelle 2022', annee: '2022', montant: 2400, revalorise: 2496, pieceIds: [], confidence: 88 },
+              { id: `pgpa-rev-${Date.now()}-1`, diffType: 'add', type: 'revenu', label: 'Salaire net 2022', annee: '2022', montant: 32400, revalorise: 33696, pieceIds: [] },
+              { id: `pgpa-rev-${Date.now()}-2`, diffType: 'edit', type: 'revenu', label: 'Salaire net 2021', annee: '2021', montant: 31200, revalorise: 33384, pieceIds: [], oldValues: { montant: 29800 } },
+              { id: `pgpa-rev-${Date.now()}-3`, diffType: 'delete', type: 'gain', label: 'Prime exceptionnelle 2021 (non récurrent)', annee: '2021', montant: 1500, revalorise: 1500, pieceIds: [] },
+              { id: `pgpa-rev-${Date.now()}-4`, diffType: 'add', type: 'gain', label: 'Prime annuelle 2022', annee: '2022', montant: 2400, revalorise: 2496, pieceIds: [] },
             ],
             total: 37800,
           },
           revenusPercus: [
-            { id: `pgpa-rp-${Date.now()}-1`, status: 'ai-suggested', label: 'Maintien partiel salaire', tiers: 'Employeur', periode: 'Mars - Juin 2023', periodeDebut: '15/03/2023', periodeFin: '30/06/2023', jours: 108, montant: 8500, pieceIds: [], confidence: 90 },
+            { id: `pgpa-rp-${Date.now()}-1`, diffType: 'add', label: 'Maintien partiel salaire', tiers: 'Employeur', periode: 'Mars - Juin 2023', periodeDebut: '15/03/2023', periodeFin: '30/06/2023', jours: 108, montant: 8500, pieceIds: [] },
           ],
           ijPercues: [
-            { id: `pgpa-ij-${Date.now()}-1`, status: 'ai-suggested', label: 'IJ Sécurité sociale', tiers: 'CPAM', periode: 'Mars 2023 - Sept 2024', periodeDebut: '15/03/2023', periodeFin: '12/09/2024', jours: 547, montantBrut: 12200, csgCrds: 550, montant: 11650, pieceIds: [], confidence: 91 },
-            { id: `pgpa-ij-${Date.now()}-2`, status: 'ai-suggested', label: 'IJ Prévoyance', tiers: 'AG2R', periode: 'Mars 2023 - Sept 2024', periodeDebut: '15/03/2023', periodeFin: '12/09/2024', jours: 547, montantBrut: 5100, csgCrds: 250, montant: 4850, pieceIds: [], confidence: 87 },
+            { id: `pgpa-ij-${Date.now()}-1`, diffType: 'add', label: 'IJ Sécurité sociale', tiers: 'CPAM', periode: 'Mars 2023 - Sept 2024', periodeDebut: '15/03/2023', periodeFin: '12/09/2024', jours: 547, montantBrut: 12200, csgCrds: 550, montant: 11650, pieceIds: [] },
+            { id: `pgpa-ij-${Date.now()}-2`, diffType: 'add', label: 'IJ Prévoyance', tiers: 'AG2R', periode: 'Mars 2023 - Sept 2024', periodeDebut: '15/03/2023', periodeFin: '12/09/2024', jours: 547, montantBrut: 5100, csgCrds: 250, montant: 4850, pieceIds: [] },
           ],
         });
       }
@@ -968,10 +1376,10 @@ export default function App() {
               periode: { debut: '12/09/2024', fin: '15/01/2025', mois: 4 },
               revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 37800, syncPGPA: true },
               revenusPercus: [
-                { id: `pgpf-rp-${Date.now()}-1`, status: 'ai-suggested', label: 'Salaire reprise mi-temps', tiers: 'Employeur', periode: 'Sept 2024 - Jan 2025', periodeDebut: '12/09/2024', periodeFin: '15/01/2025', montant: 4800, pieceIds: [] },
+                { id: `pgpf-rp-${Date.now()}-1`, diffType: 'add', label: 'Salaire reprise mi-temps', tiers: 'Employeur', periode: 'Sept 2024 - Jan 2025', periodeDebut: '12/09/2024', periodeFin: '15/01/2025', montant: 4800, pieceIds: [] },
               ],
               ijPercues: [
-                { id: `pgpf-ij-${Date.now()}-1`, status: 'ai-suggested', label: 'IJ CPAM (mi-temps thérapeutique)', tiers: 'CPAM', periode: 'Sept 2024 - Jan 2025', periodeDebut: '12/09/2024', periodeFin: '15/01/2025', montant: 3200, pieceIds: [] },
+                { id: `pgpf-ij-${Date.now()}-1`, diffType: 'add', label: 'IJ CPAM (mi-temps thérapeutique)', tiers: 'CPAM', periode: 'Sept 2024 - Jan 2025', periodeDebut: '12/09/2024', periodeFin: '15/01/2025', montant: 3200, pieceIds: [] },
               ],
             },
             'pgpf-al': {
@@ -1075,7 +1483,7 @@ export default function App() {
       if (!taxo) return;
       const posteName = taxo.acronym || posteId.toUpperCase();
       const welcome = posteWelcomeMap[posteId] || { greeting: `Bienvenue sur le ${posteName} !`, analysis: 'Je consulte les documents du dossier...', proposal: `J'ai trouvé des éléments à calculer. Voulez-vous que je lance le calcul du ${posteName} ?` };
-      const discoveryTools = posteDiscoveryToolMap[posteId] || [{ tool: 'readDocument', detail: 'Pièces du dossier', expandedText: 'Analyse des documents...' }];
+      const discoveryTools = posteDiscoveryToolMap[posteId] || [{ tool: 'readDocument', detail: 'Je recherche les informations dans vos documents', expandedText: 'Analyse des pièces du dossier' }];
 
       setChatSidebarOpen(true);
 
@@ -1131,7 +1539,7 @@ export default function App() {
   }, [navStack]);
 
   // ========== CALCULS ==========
-  const dsaTotal = dsaLignes.filter(l => l.status === 'validated').reduce((s, l) => s + (l.montant || 0), 0);
+  const dsaTotal = dsaLignes.reduce((s, l) => s + (l.montant || 0), 0);
   
   const pgpaRevPercusTotal = pgpaData.revenusPercus.reduce((s, l) => s + l.montant, 0);
   const pgpaIjTotal = pgpaData.ijPercues.reduce((s, l) => s + l.montant, 0);
@@ -1406,7 +1814,11 @@ export default function App() {
 
   // ========== NAVIGATION ANCHORS ==========
   const handleNavigateToZone = (zone, tabName) => {
-    setNavStack(prev => prev.map((n, ni) => ni === prev.length - 1 ? { ...n, activeTab: tabName } : n));
+    // Pop back to dossier level if inside a poste, then switch tab
+    setNavStack(prev => {
+      const base = prev.length > 1 ? [prev[0]] : [...prev];
+      return base.map((n, ni) => ni === base.length - 1 ? { ...n, activeTab: tabName } : n);
+    });
     setTimeout(() => {
       const zoneEl = document.querySelector(`[data-zone-id="${zone}"]`);
       if (zoneEl) {
@@ -1414,11 +1826,29 @@ export default function App() {
         zoneEl.classList.add('is-zone-highlighted');
         setTimeout(() => zoneEl.classList.remove('is-zone-highlighted'), 3000);
       }
-    }, 100);
+    }, 150);
   };
 
   const handleNavigateToEntity = (entityId, zone, tabName) => {
-    setNavStack(prev => prev.map((n, ni) => ni === prev.length - 1 ? { ...n, activeTab: tabName } : n));
+    // For postes zone: navigate inside the poste page
+    if (zone === 'postes') {
+      const poste = allPostes.find(p => p.id === entityId);
+      if (poste) {
+        // Ensure we're at dossier level first, then drill in
+        setNavStack(prev => {
+          const base = prev.length > 1 ? [prev[0]] : [...prev];
+          const updated = base.map((n, ni) => ni === base.length - 1 ? { ...n, activeTab: 'chiffrage' } : n);
+          return [...updated, { ...poste, type: 'poste', activeTab: tabsConfig.poste?.[0]?.toLowerCase() }];
+        });
+        return;
+      }
+    }
+
+    // Pop back to dossier level if inside a poste, then switch tab and scroll
+    setNavStack(prev => {
+      const base = prev.length > 1 ? [prev[0]] : [...prev];
+      return base.map((n, ni) => ni === base.length - 1 ? { ...n, activeTab: tabName } : n);
+    });
     setTimeout(() => {
       const el = document.querySelector(`[data-entity-id="${entityId}"]`);
       if (el) {
@@ -1426,7 +1856,13 @@ export default function App() {
         el.classList.add('is-highlighted');
         setTimeout(() => el.classList.remove('is-highlighted'), 3000);
       } else {
-        showToast({ text: 'Cet élément a été supprimé', type: 'ai' });
+        // Entity not found by ID — fall back to zone-level navigation
+        const zoneEl = zone && document.querySelector(`[data-zone-id="${zone}"]`);
+        if (zoneEl) {
+          zoneEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          zoneEl.classList.add('is-zone-highlighted');
+          setTimeout(() => zoneEl.classList.remove('is-zone-highlighted'), 3000);
+        }
       }
     }, 150);
   };
@@ -1540,16 +1976,16 @@ export default function App() {
           total: pgpa.revenuRef?.total || 0,
           lignes: [
             ...(pgpa.revenuRef?.lignes || []),
-            ...prev.revenuRef.lignes.filter(l => !l.status || l.status !== 'ai-suggested')
+            ...prev.revenuRef.lignes.filter(l => !l.status || !l.diffType)
           ]
         },
         revenusPercus: [
           ...(pgpa.revenusPercus || []),
-          ...prev.revenusPercus.filter(l => !l.status || l.status !== 'ai-suggested')
+          ...prev.revenusPercus.filter(l => !l.status || !l.diffType)
         ],
         ijPercues: [
           ...(pgpa.ijPercues || []),
-          ...prev.ijPercues.filter(l => !l.status || l.status !== 'ai-suggested')
+          ...prev.ijPercues.filter(l => !l.status || !l.diffType)
         ]
       }));
     }
@@ -1614,8 +2050,7 @@ export default function App() {
           date: '15/03/2023',
           montant: 2850,
           tiers: 'CHU Bordeaux',
-          confidence: 94,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dsa-ai-${timestamp}-2`,
@@ -1624,8 +2059,7 @@ export default function App() {
           date: '28/03/2023',
           montant: 4200,
           tiers: 'Clinique du Sport',
-          confidence: 91,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dsa-ai-${timestamp}-3`,
@@ -1634,8 +2068,7 @@ export default function App() {
           date: '10/04/2023',
           montant: 60,
           tiers: 'Dr Leblanc',
-          confidence: 93,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dsa-ai-${timestamp}-4`,
@@ -1644,8 +2077,7 @@ export default function App() {
           date: '2023-2024',
           montant: 1800,
           tiers: 'Cabinet Kiné Martin',
-          confidence: 88,
-          status: 'ai-suggested'
+          diffType: 'edit'
         },
         {
           id: `dsa-ai-${timestamp}-5`,
@@ -1654,38 +2086,43 @@ export default function App() {
           date: '15/06/2023',
           montant: 380,
           tiers: 'Centre Imagerie Bordeaux',
-          confidence: 92,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dsa-ai-${timestamp}-6`,
+          label: 'Consultation doublon Dr Dupont',
+          type: 'Consultation',
+          date: '10/04/2023',
+          montant: 60,
+          tiers: 'Dr Dupont',
+          diffType: 'delete'
+        },
+        {
+          id: `dsa-ai-${timestamp}-7`,
           label: 'Médicaments anti-inflammatoires',
           type: 'Pharmacie',
           date: '03/2023 - 09/2024',
           montant: 245,
           tiers: 'Pharmacie des Lilas',
-          confidence: 78,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
-          id: `dsa-ai-${timestamp}-7`,
+          id: `dsa-ai-${timestamp}-8`,
           label: 'Attelle de genou post-opératoire',
           type: 'Appareillage',
           date: '30/03/2023',
           montant: 180,
           tiers: 'Orthopédie Plus',
-          confidence: 85,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
-          id: `dsa-ai-${timestamp}-8`,
+          id: `dsa-ai-${timestamp}-9`,
           label: 'Consultations Dr Martin (suivi)',
           type: 'Consultation',
           date: '2023-2024',
           montant: 300,
           tiers: 'Dr Martin',
-          confidence: 87,
-          status: 'ai-suggested'
+          diffType: 'add'
         }
       ],
 
@@ -1699,8 +2136,7 @@ export default function App() {
           jours: 8,
           taux: 100,
           montant: 200,
-          confidence: 96,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dft-ai-${timestamp}-2`,
@@ -1710,8 +2146,7 @@ export default function App() {
           jours: 6,
           taux: 100,
           montant: 150,
-          confidence: 94,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dft-ai-${timestamp}-3`,
@@ -1721,8 +2156,7 @@ export default function App() {
           jours: 13,
           taux: 100,
           montant: 325,
-          confidence: 91,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dft-ai-${timestamp}-4`,
@@ -1732,8 +2166,7 @@ export default function App() {
           jours: 76,
           taux: 50,
           montant: 950,
-          confidence: 89,
-          status: 'ai-suggested'
+          diffType: 'edit'
         },
         {
           id: `dft-ai-${timestamp}-5`,
@@ -1743,19 +2176,17 @@ export default function App() {
           jours: 92,
           taux: 40,
           montant: 920,
-          confidence: 86,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dft-ai-${timestamp}-6`,
-          label: 'Rééducation d\'entretien',
+          label: 'Rééducation d\'entretien (doublon)',
           debut: '01/10/2023',
           fin: '31/12/2023',
           jours: 92,
           taux: 25,
           montant: 575,
-          confidence: 84,
-          status: 'ai-suggested'
+          diffType: 'delete'
         },
         {
           id: `dft-ai-${timestamp}-7`,
@@ -1765,8 +2196,7 @@ export default function App() {
           jours: 256,
           taux: 15,
           montant: 960,
-          confidence: 82,
-          status: 'ai-suggested'
+          diffType: 'add'
         }
       ],
 
@@ -1777,7 +2207,7 @@ export default function App() {
         pointValue: 1580,
         montantTotal: 23700,
         confidence: 92,
-        status: 'ai-suggested'
+        diffType: 'add'
       },
 
       // PGPA (Pertes de Gains Professionnels Actuels)
@@ -1801,7 +2231,7 @@ export default function App() {
               aRevaloriser: true,
               pieceIds: [],
               confidence: 91,
-              status: 'ai-suggested'
+              diffType: 'add'
             },
             {
               id: `pgpa-ai-rev-${timestamp}-2`,
@@ -1813,10 +2243,22 @@ export default function App() {
               aRevaloriser: true,
               pieceIds: [],
               confidence: 88,
-              status: 'ai-suggested'
+              diffType: 'edit'
             },
             {
               id: `pgpa-ai-gain-${timestamp}-1`,
+              type: 'gain',
+              label: 'Prime exceptionnelle (non récurrent)',
+              annee: '2021',
+              montant: 1500,
+              revalorise: 1500,
+              aRevaloriser: false,
+              pieceIds: [],
+              confidence: 72,
+              diffType: 'delete'
+            },
+            {
+              id: `pgpa-ai-gain-${timestamp}-2`,
               type: 'gain',
               label: 'Prime annuelle',
               annee: '2022',
@@ -1825,10 +2267,10 @@ export default function App() {
               aRevaloriser: true,
               pieceIds: [],
               confidence: 85,
-              status: 'ai-suggested'
+              diffType: 'add'
             },
             {
-              id: `pgpa-ai-gain-${timestamp}-2`,
+              id: `pgpa-ai-gain-${timestamp}-3`,
               type: 'gain',
               label: 'Heures supplémentaires',
               annee: '2022',
@@ -1837,7 +2279,7 @@ export default function App() {
               aRevaloriser: true,
               pieceIds: [],
               confidence: 79,
-              status: 'ai-suggested'
+              diffType: 'add'
             }
           ]
         },
@@ -1853,7 +2295,7 @@ export default function App() {
             tiers: 'Employeur',
             pieceIds: [],
             confidence: 87,
-            status: 'ai-suggested'
+            diffType: 'add'
           }
         ],
         ijPercues: [
@@ -1870,7 +2312,7 @@ export default function App() {
             montant: 11650,
             pieceIds: [],
             confidence: 93,
-            status: 'ai-suggested'
+            diffType: 'add'
           },
           {
             id: `pgpa-ai-ij-${timestamp}-2`,
@@ -1885,7 +2327,7 @@ export default function App() {
             montant: 4850,
             pieceIds: [],
             confidence: 81,
-            status: 'ai-suggested'
+            diffType: 'add'
           }
         ]
       }
@@ -1964,6 +2406,7 @@ export default function App() {
 
     // Reset chat state for new dossier
     setChatMessages([]);
+    setChatBlocked(false);
     chatExtractionAnnounced.current = false;
     chatPostesAnnounced.current = false;
     chatAnalyzedPostes.current = new Set();
@@ -2090,7 +2533,7 @@ export default function App() {
         const hasAllData = result.data?.label && result.data?.type && result.data?.date && result.data?.montant;
         setDsaLignes(prev => [{
           id: `dsa-${Date.now()}`,
-          status: result.status === 'error' ? 'error' : hasAllData ? 'ai-suggested' : 'pending',
+          diffType: result.status === 'error' ? undefined : hasAllData ? 'add' : undefined,
           fileName: file.name,
           pieceIds: [newPieceId],
           confidence: result.confidence,
@@ -2119,7 +2562,7 @@ export default function App() {
             lignes: [{
               id: `pgpa-rev-${Date.now()}`,
               type: mock.type,
-              status: 'ai-suggested',
+              diffType: 'add',
               label: mock.label,
               annee,
               montant: mock.montant,
@@ -2142,7 +2585,7 @@ export default function App() {
           ...prev,
           revenusPercus: [{
             id: `pgpa-percu-${Date.now()}`,
-            status: 'ai-suggested',
+            diffType: 'add',
             label: mock.label,
             periode: 'Mars - Juin 2023',
             periodeDebut: '15/03/2023',
@@ -2166,7 +2609,7 @@ export default function App() {
           ...prev,
           ijPercues: [{
             id: `pgpa-ij-${Date.now()}`,
-            status: 'ai-suggested',
+            diffType: 'add',
             label: mock.label,
             tiers: mock.tiers,
             periode: 'Mars 2023 - Sept 2024',
@@ -2194,7 +2637,7 @@ export default function App() {
         const baseJ = chiffrageParams.baseJournaliereDFT || 33;
         setDftLignes(prev => [{
           id: `dft-${Date.now()}`,
-          status: 'ai-suggested',
+          diffType: 'add',
           label: mock.label,
           debut: '15/03/2023',
           fin: (() => { const d = new Date(2023, 2, 15 + mock.jours); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })(),
@@ -2264,7 +2707,7 @@ export default function App() {
       const hasAllData = result.data?.label && result.data?.type && result.data?.date && result.data?.montant;
       setDsaLignes(prev => [{
         id: `dsa-${Date.now()}`,
-        status: hasAllData ? 'ai-suggested' : 'pending',
+        diffType: hasAllData ? 'add' : undefined,
         fileName: piece.nom,
         pieceIds: [piece.id],
         confidence: result.confidence,
@@ -2293,7 +2736,7 @@ export default function App() {
           lignes: [{
             id: `pgpa-rev-${Date.now()}`,
             type: mock.type,
-            status: 'ai-suggested',
+            diffType: 'add',
             label: mock.label,
             annee,
             montant: mock.montant,
@@ -2317,7 +2760,7 @@ export default function App() {
         ...prev,
         revenusPercus: [{
           id: `pgpa-percu-${Date.now()}`,
-          status: 'ai-suggested',
+          diffType: 'add',
           label: mock.label,
           periode: 'Mars - Juin 2023',
           periodeDebut: '15/03/2023',
@@ -2342,7 +2785,7 @@ export default function App() {
         ...prev,
         ijPercues: [{
           id: `pgpa-ij-${Date.now()}`,
-          status: 'ai-suggested',
+          diffType: 'add',
           label: mock.label,
           tiers: mock.tiers,
           periode: 'Mars 2023 - Sept 2024',
@@ -2371,7 +2814,7 @@ export default function App() {
       const baseJ = chiffrageParams.baseJournaliereDFT || 33;
       setDftLignes(prev => [{
         id: `dft-${Date.now()}`,
-        status: 'ai-suggested',
+        diffType: 'add',
         label: mock.label,
         debut: '15/03/2023',
         fin: (() => { const d = new Date(2023, 2, 15 + mock.jours); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })(),
@@ -2492,6 +2935,94 @@ export default function App() {
 
   const _handleValidateLigne = (ligneId) => setDsaLignes(prev => prev.map(l => l.id === ligneId ? { ...l, status: 'validated' } : l)); // eslint-disable-line no-unused-vars
   const handleRejectLigne = (ligneId) => setDsaLignes(prev => prev.filter(l => l.id !== ligneId));
+
+  // Approve a diff: accept the change and clear diffType so the row becomes "normal"
+  // For deletions: approving means removing the row (the deletion is accepted)
+  const handleApproveDiff = (ligneId, zone) => {
+    const clearDiff = (list) => list.map(l => l.id === ligneId ? { ...l, diffType: undefined } : l);
+    const removeLigne = (list) => list.filter(l => l.id !== ligneId);
+    const findInList = (list) => list.find(l => l.id === ligneId);
+
+    if (zone === 'dsa' || (!zone && findInList(dsaLignes))) {
+      const ligne = dsaLignes.find(l => l.id === ligneId);
+      if (ligne?.diffType === 'delete') setDsaLignes(prev => removeLigne(prev));
+      else setDsaLignes(prev => clearDiff(prev));
+    } else if (zone === 'dft' || (!zone && findInList(dftLignes))) {
+      const ligne = dftLignes.find(l => l.id === ligneId);
+      if (ligne?.diffType === 'delete') setDftLignes(prev => removeLigne(prev));
+      else setDftLignes(prev => clearDiff(prev));
+    } else if (zone === 'pgpa') {
+      setPgpaData(prev => {
+        const inRef = prev.revenuRef.lignes.find(l => l.id === ligneId);
+        if (inRef) {
+          return inRef.diffType === 'delete'
+            ? { ...prev, revenuRef: { ...prev.revenuRef, lignes: prev.revenuRef.lignes.filter(l => l.id !== ligneId) } }
+            : { ...prev, revenuRef: { ...prev.revenuRef, lignes: prev.revenuRef.lignes.map(l => l.id === ligneId ? { ...l, diffType: undefined } : l) } };
+        }
+        const inPercus = prev.revenusPercus.find(l => l.id === ligneId);
+        if (inPercus) {
+          return inPercus.diffType === 'delete'
+            ? { ...prev, revenusPercus: prev.revenusPercus.filter(l => l.id !== ligneId) }
+            : { ...prev, revenusPercus: prev.revenusPercus.map(l => l.id === ligneId ? { ...l, diffType: undefined } : l) };
+        }
+        return prev;
+      });
+    } else if (zone === 'infos_dossier') {
+      // For infos_dossier, approving means keeping the agent's "after" value (already set in state)
+      // Just mark as approved in activeDiffs below
+    }
+    // Remove from activeDiffs — accepted changes become the new baseline
+    setActiveDiffs(prev => prev.filter(d => d.entityId !== ligneId));
+  };
+
+  // Reject a diff: revert the change — for additions remove the row, for edits/deletes clear diffType
+  const handleRejectDiff = (ligneId, zone) => {
+    const clearDiff = (list) => list.map(l => l.id === ligneId ? { ...l, diffType: undefined } : l);
+    const removeLigne = (list) => list.filter(l => l.id !== ligneId);
+    const findInList = (list) => list.find(l => l.id === ligneId);
+
+    if (zone === 'dsa' || (!zone && findInList(dsaLignes))) {
+      const ligne = dsaLignes.find(l => l.id === ligneId);
+      if (ligne?.diffType === 'add') setDsaLignes(prev => removeLigne(prev));
+      else setDsaLignes(prev => clearDiff(prev));
+    } else if (zone === 'dft' || (!zone && findInList(dftLignes))) {
+      const ligne = dftLignes.find(l => l.id === ligneId);
+      if (ligne?.diffType === 'add') setDftLignes(prev => removeLigne(prev));
+      else setDftLignes(prev => clearDiff(prev));
+    } else if (zone === 'pgpa') {
+      setPgpaData(prev => {
+        const inRef = prev.revenuRef.lignes.find(l => l.id === ligneId);
+        if (inRef) {
+          return inRef.diffType === 'add'
+            ? { ...prev, revenuRef: { ...prev.revenuRef, lignes: prev.revenuRef.lignes.filter(l => l.id !== ligneId) } }
+            : { ...prev, revenuRef: { ...prev.revenuRef, lignes: prev.revenuRef.lignes.map(l => l.id === ligneId ? { ...l, diffType: undefined } : l) } };
+        }
+        const inPercus = prev.revenusPercus.find(l => l.id === ligneId);
+        if (inPercus) {
+          return inPercus.diffType === 'add'
+            ? { ...prev, revenusPercus: prev.revenusPercus.filter(l => l.id !== ligneId) }
+            : { ...prev, revenusPercus: prev.revenusPercus.map(l => l.id === ligneId ? { ...l, diffType: undefined } : l) };
+        }
+        return prev;
+      });
+    } else if (zone === 'infos_dossier') {
+      // For infos_dossier, rejecting means reverting the field to its "before" value
+      const diff = activeDiffs.find(d => d.entityId === ligneId && d.zone === 'infos_dossier' && !d.approved && !d.rejected);
+      if (diff) {
+        // Determine which state setter to use based on the field key
+        const victimeFields = ['nom', 'prenom', 'sexe', 'dateNaissance'];
+        const faitFields = ['typeFait', 'dateAccident', 'premiereConstatation', 'dateConsolidation'];
+        if (victimeFields.includes(ligneId)) {
+          setVictimeData(prev => ({ ...prev, [ligneId]: diff.before ?? '' }));
+        } else if (faitFields.includes(ligneId)) {
+          const stateKey = ligneId === 'typeFait' ? 'type' : ligneId;
+          setFaitGenerateur(prev => ({ ...prev, [stateKey]: diff.before ?? '' }));
+        }
+      }
+    }
+    // Also mark as rejected in activeDiffs
+    setActiveDiffs(prev => prev.map(d => d.entityId === ligneId ? { ...d, rejected: true } : d));
+  };
   const handleSaveLigne = (ligneId, data) => {
     setDsaLignes(prev => prev.map(l => l.id === ligneId ? { ...l, ...data, pieceIds: editingPieceIds, status: 'validated' } : l));
     setEditPanel(null);
@@ -2538,8 +3069,22 @@ export default function App() {
               const isActive = currentLevel?.type === 'dossier'
                 ? currentLevel.activeTab === tabKey
                 : navStack[0]?.activeTab === tabKey;
+
+              // Diff diamond: check activeDiffs for pending diffs in this tab's zone
+              const tabZoneMap = { dossier: 'infos_dossier', chiffrage: 'postes', 'pièces': 'pieces' };
+              const tabZone = tabZoneMap[tabKey];
+              const zoneDiffs = tabZone ? activeDiffs.filter(d => d.zone === tabZone && !d.approved && !d.rejected) : [];
+              // Determine dominant diff type for color
+              const hasAdds = zoneDiffs.some(d => d.type === 'add');
+              const hasEdits = zoneDiffs.some(d => d.type === 'edit');
+              const hasDeletes = zoneDiffs.some(d => d.type === 'delete');
+              const diffDiamondColor = hasEdits ? ROW_DIFF_COLORS.edit : hasDeletes ? ROW_DIFF_COLORS.delete : hasAdds ? ROW_DIFF_COLORS.add : null;
+              const showDiffDiamond = zoneDiffs.length > 0;
+
+              // Legacy streaming dot (only if no diff diamond)
               const hasExtracted = tab === 'Dossier' && infoDossierStreaming?.fieldsRevealed?.length > 0;
-              const showDot = hasExtracted && !isActive;
+              const showStreamingDot = hasExtracted && !isActive && !showDiffDiamond;
+
               return (
                 <button
                   key={tab}
@@ -2554,8 +3099,19 @@ export default function App() {
                   className={`px-4 py-3 text-body-medium relative transition-colors ${isActive ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}`}
                 >
                   <span className="flex items-center gap-1.5">
+                    {showDiffDiamond && (
+                      <span className="inline-flex items-center justify-center w-3 h-3 flex-shrink-0">
+                        <span className="w-[6px] h-[6px] flex-shrink-0" style={{
+                          background: diffDiamondColor,
+                          transform: 'rotate(45deg)',
+                          borderRadius: '0.5px',
+                          border: '1px solid rgba(0,0,0,0.1)',
+                          boxShadow: `0 0 0 3px ${diffDiamondColor}20, 0 1px 2px 0 rgba(26,26,26,0.05)`,
+                        }} />
+                      </span>
+                    )}
                     {tab}
-                    {showDot && <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse-scale" />}
+                    {showStreamingDot && <span className="w-1.5 h-1.5 animate-pulse-scale" style={{ background: '#4a9168', transform: 'rotate(45deg)' }} />}
                   </span>
                   {isActive && <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-stone-800 rounded-full" />}
                 </button>
@@ -2638,7 +3194,7 @@ export default function App() {
       {[0, 1, 2].map(row => (
         <div key={row} style={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
           {[0, 1, 2].map(col => (
-            <div key={col} style={{ width: 3, height: 3, backgroundColor: '#ea7949', borderRadius: 0.5, transform: 'rotate(45deg)' }} />
+            <div key={col} style={{ width: 3, height: 3, backgroundColor: '#d4845a', borderRadius: 0.5, transform: 'rotate(45deg)' }} />
           ))}
         </div>
       ))}
@@ -2654,7 +3210,17 @@ export default function App() {
   const chatAnalysisTimeouts = useRef([]);
   const chatExtractionAnnounced = useRef(false);
   const chatPostesAnnounced = useRef(false);
+  const chatScrollRef = useRef(null);
+  const prevChatCountRef = useRef(0);
   const chatAnalyzedPostes = useRef(new Set()); // track which postes chat has already analyzed
+
+  // Auto-scroll chat only when new messages are added
+  useEffect(() => {
+    if (chatMessages.length > prevChatCountRef.current && chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+    prevChatCountRef.current = chatMessages.length;
+  }, [chatMessages.length]);
 
   const renderChatSidebar = () => {
     const hasContent = chatInputValue.trim().length > 0 || stagedDocs.length > 0;
@@ -2682,14 +3248,12 @@ export default function App() {
           <div
             className="flex-1 overflow-y-auto p-5 flex flex-col gap-2.5"
             style={{ backgroundColor: '#F8F7F5' }}
-            ref={el => {
-              if (el) el.scrollTop = el.scrollHeight;
-            }}
+            ref={chatScrollRef}
           >
             {chatMessages.length === 0 && (
               <div className="flex flex-col items-center justify-center flex-1 py-12 px-6">
                 <PlatoIcon />
-                <p style={{ fontSize: 13, color: '#a8a29e', textAlign: 'center', marginTop: 12, lineHeight: '18px' }}>
+                <p style={{ fontSize: 14, color: '#a8a29e', textAlign: 'center', marginTop: 12, lineHeight: '18px' }}>
                   Ajoutez un poste depuis l'onglet Chiffrage ou demandez-moi directement de calculer un préjudice.
                 </p>
               </div>
@@ -2729,6 +3293,7 @@ export default function App() {
               // AI thinking status — collapsible stepper with animations
               if (msg.type === 'ai-thinking') {
                 const isExpanded = msg.expanded;
+                const isDone = !!msg.done;
                 const steps = msg.steps || [];
                 const currentStep = steps.length > 0 ? steps[steps.length - 1] : null;
                 const stepIconMap = {
@@ -2738,67 +3303,74 @@ export default function App() {
                   calculDSA: Radical, calculDFT: Radical, calculPGPA: Radical, calculCapitalisation: Radical, calculPGPF: Radical,
                   calculSE: Radical, calculDFP: Radical, calculPEP: Radical,
                 };
-                const stepStatusColor = (si) => si < steps.length - 1 ? '#16a34a' : '#ea7949';
+                // Collect unique tool icons for collapsed summary
+                const uniqueToolIcons = isDone ? [...new Set(steps.map(s => s.tool))].map(t => stepIconMap[t] || Search).slice(0, 5) : [];
                 return (
                   <div key={i} className="flex flex-col items-start" style={{ paddingRight: 20 }}>
                     {/* Header — always visible */}
                     <div
-                      className="flex items-center gap-2.5 cursor-pointer select-none py-1.5 w-full"
+                      className="flex items-center gap-2 cursor-pointer select-none py-1.5 w-full"
                       onClick={() => setChatMessages(prev => prev.map((m, mi) => mi === i ? { ...m, expanded: !m.expanded } : m))}
                     >
-                      <div className="animate-dot-grid-pulse"><PlatoDotGrid /></div>
-                      <span className="flex-1 min-w-0 truncate" style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>
-                        {currentStep ? currentStep.detail || currentStep.tool : msg.label}
+                      {isExpanded
+                        ? <ChevronDown className="w-3.5 h-3.5 text-[#a8a29e] flex-shrink-0" />
+                        : <ChevronRight className="w-3.5 h-3.5 text-[#a8a29e] flex-shrink-0" />
+                      }
+                      <span className="flex-1 min-w-0 truncate" style={{ fontSize: 12, fontWeight: 500, color: isDone ? '#a8a29e' : '#78716c', lineHeight: '16px' }}>
+                        {isDone
+                          ? `${steps.length} étape${steps.length > 1 ? 's' : ''}`
+                          : (currentStep ? currentStep.detail || currentStep.tool : msg.label)
+                        }
                       </span>
-                      {/* Animated dots for active state */}
-                      {steps.length > 0 && (
-                        <span className="flex items-center gap-0.5 flex-shrink-0 mr-1">
-                          <span className="w-1 h-1 rounded-full bg-[#ea7949] animate-thinking-dot-1" />
-                          <span className="w-1 h-1 rounded-full bg-[#ea7949] animate-thinking-dot-2" />
-                          <span className="w-1 h-1 rounded-full bg-[#ea7949] animate-thinking-dot-3" />
+                      {/* Tool type icons for collapsed summary */}
+                      {!isExpanded && uniqueToolIcons.length > 0 && (
+                        <span className="flex items-center gap-1 flex-shrink-0">
+                          {uniqueToolIcons.map((Icon, ii) => <Icon key={ii} className="w-3 h-3 text-[#a8a29e]" />)}
                         </span>
                       )}
-                      {isExpanded ? <ChevronDown className="w-3 h-3 text-[#a8a29e] flex-shrink-0" /> : <ChevronRight className="w-3 h-3 text-[#a8a29e] flex-shrink-0" />}
+                      {/* Animated dots for active state */}
+                      {!isDone && (
+                        <span className="flex items-center gap-0.5 flex-shrink-0">
+                          <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-1" />
+                          <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-2" />
+                          <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-3" />
+                        </span>
+                      )}
                     </div>
-                    {/* Expanded timeline */}
+                    {/* Expanded — flat log */}
                     {isExpanded && steps.length > 0 && (
-                      <div className="flex flex-col mt-0.5 ml-[7px] mb-1">
+                      <div className="flex flex-col gap-0.5 mb-1.5" style={{ paddingLeft: 6 }}>
                         {steps.map((step, si) => {
                           const StepIcon = stepIconMap[step.tool] || Search;
-                          const isLast = si === steps.length - 1;
-                          const isDone = si < steps.length - 1;
-                          const dotColor = stepStatusColor(si);
+                          const stepDone = isDone || si < steps.length - 1;
+                          const isActive = !isDone && si === steps.length - 1;
                           return (
-                            <div key={si} className="flex gap-3 items-start animate-step-slide-in" style={{ animationDelay: `${si * 50}ms` }}>
-                              <div className="flex flex-col items-center flex-shrink-0" style={{ width: 16 }}>
-                                {isDone ? (
-                                  <div className="w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#dcfce7' }}>
-                                    <Check className="w-2.5 h-2.5 text-[#16a34a]" strokeWidth={2.5} />
-                                  </div>
-                                ) : (
-                                  <div className="w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#fff7ed', border: '1.5px solid #ea7949' }}>
-                                    <StepIcon className="flex-shrink-0" style={{ width: 8, height: 8, color: '#ea7949' }} />
-                                  </div>
-                                )}
-                                {!isLast && <div className="animate-line-grow" style={{ width: 1.5, flex: 1, minHeight: 16, backgroundColor: isDone ? '#86efac' : '#e7e5e3', borderRadius: 1 }} />}
-                              </div>
-                              <div style={{ paddingBottom: isLast ? 0 : 10, paddingTop: 1 }}>
-                                <span style={{ fontSize: 12, fontWeight: isDone ? 400 : 500, color: isDone ? '#a8a29e' : '#44403c', lineHeight: '16px', letterSpacing: 0.12 }}>
-                                  {step.expandedText || step.detail || step.tool}
+                            <div key={si} className="animate-step-slide-in" style={{ animationDelay: `${si * 40}ms` }}>
+                              {/* Tool/agent line */}
+                              <div className="flex items-center gap-1.5 py-0.5">
+                                <StepIcon className="w-3 h-3 flex-shrink-0" style={{ color: isActive ? '#d4845a' : '#a8a29e' }} />
+                                <span style={{ fontSize: 12, color: isActive ? '#44403c' : '#78716c', lineHeight: '16px' }}>
+                                  {step.detail || step.tool}
                                 </span>
-                                {isDone && <span style={{ fontSize: 11, color: '#16a34a', marginLeft: 6 }}>✓</span>}
+                                {stepDone && <span style={{ fontSize: 11, color: '#a8a29e' }}>✓</span>}
                               </div>
+                              {/* Expandable detail */}
+                              {step.expandedText && (
+                                <div style={{ paddingLeft: 18, fontSize: 11, color: '#a8a29e', lineHeight: '15px' }}>
+                                  {step.expandedText}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
-                        {/* Active indicator at bottom */}
-                        <div className="flex items-center gap-2 mt-1 ml-1">
-                          <span className="flex items-center gap-0.5">
-                            <span className="w-1 h-1 rounded-full bg-[#ea7949] animate-thinking-dot-1" />
-                            <span className="w-1 h-1 rounded-full bg-[#ea7949] animate-thinking-dot-2" />
-                            <span className="w-1 h-1 rounded-full bg-[#ea7949] animate-thinking-dot-3" />
-                          </span>
-                        </div>
+                        {/* Active dots at bottom */}
+                        {!isDone && (
+                          <div className="flex items-center gap-0.5 py-0.5" style={{ paddingLeft: 2 }}>
+                            <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-1" />
+                            <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-2" />
+                            <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-3" />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -2816,7 +3388,7 @@ export default function App() {
                         setChatMessages(prev => prev.map((m, mi) => mi === i ? { ...m, expanded: !m.expanded } : m));
                       }}
                     >
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <div className="w-1.5 h-1.5" style={{ background: '#34d399', transform: 'rotate(45deg)' }} />
                       <span style={{ fontSize: 11, fontWeight: 500, color: '#065f46', fontFamily: "'IBM Plex Mono', monospace" }}>{msg.tool}</span>
                       {msg.detail && <span style={{ fontSize: 11, color: '#047857' }}>— {msg.detail}</span>}
                     </div>
@@ -2845,13 +3417,22 @@ export default function App() {
 
               // Artifact cards (diff-aware, one per poste, ghost expand/collapse)
               if (msg.type === 'artifact-cards') {
-                const iconMap = { FileText: FileText, Calculator: Calculator };
+                const iconMap = {
+                  FileText: FileText, Calculator: Calculator, ClipboardList: ClipboardList,
+                  HeartPulse: HeartPulse, Wallet: Wallet, Activity: Activity,
+                  Receipt: Receipt, Scale: Scale, Brain: Brain, ShieldCheck: ShieldCheck,
+                  Landmark: Landmark, Scissors: Scissors, Settings: Settings,
+                  User: User, Paperclip: Paperclip,
+                };
                 const getDiffsForCard = (card) => card.actionIds ? activeDiffs.filter(d => card.actionIds.includes(d.actionId) && d.zone === card.zone) : [];
-                const getDiffSummary = (diffs) => ({
-                  adds: diffs.filter(d => d.type === 'add').length,
-                  edits: diffs.filter(d => d.type === 'edit').length,
-                  deletes: diffs.filter(d => d.type === 'delete').length,
-                });
+                const getDiffSummary = (diffs) => {
+                  const pending = diffs.filter(d => !d.approved && !d.rejected);
+                  return {
+                    adds: pending.filter(d => d.type === 'add').length,
+                    edits: pending.filter(d => d.type === 'edit').length,
+                    deletes: pending.filter(d => d.type === 'delete').length,
+                  };
+                };
                 // Group cards by zone for dividers between subgroups
                 const zoneGroups = [];
                 let currentZone = null;
@@ -2875,91 +3456,238 @@ export default function App() {
                       const summary = getDiffSummary(diffs);
                       const hasDiffs = diffs.length > 0;
                       const cardTitle = card.posteLabel || ZONE_LABELS[card.zone] || card.title || card.zone;
-                      // Build subtitle from diff counts
-                      const subtitleParts = [];
-                      if (summary.adds > 0) subtitleParts.push(`${summary.adds} addition${summary.adds > 1 ? 's' : ''}`);
-                      if (summary.edits > 0) subtitleParts.push(`${summary.edits} modification${summary.edits > 1 ? 's' : ''}`);
-                      if (summary.deletes > 0) subtitleParts.push(`${summary.deletes} suppression${summary.deletes > 1 ? 's' : ''}`);
-                      const subtitleText = subtitleParts.join(' · ') || card.subtitle || '';
+                      // Build subtitle chips from diff counts
+                      const diffChips = [];
+                      if (summary.adds > 0) diffChips.push({ icon: Plus, count: summary.adds, color: ROW_DIFF_COLORS.add });
+                      if (summary.edits > 0) diffChips.push({ icon: Pencil, count: summary.edits, color: ROW_DIFF_COLORS.edit });
+                      if (summary.deletes > 0) diffChips.push({ icon: Trash2, count: summary.deletes, color: ROW_DIFF_COLORS.delete });
+                      const subtitleText = card.subtitle || '';
+                      const allResolved = diffs.length > 0 && diffs.every(d => d.approved || d.rejected);
+                      const approvedCount = diffs.filter(d => d.approved).length;
+                      const rejectedCount = diffs.filter(d => d.rejected).length;
+                      const resolutionType = allResolved ? (rejectedCount === 0 ? 'all-approved' : approvedCount === 0 ? 'all-rejected' : 'mixed') : null;
 
                       return (
                         <div
                           key={card.id}
-                          className="rounded-lg border border-[#e7e5e3] transition-all duration-200 hover:border-[#d6d3d1] overflow-hidden"
-                          style={{
-                            background: 'linear-gradient(135deg, #ffffff 0%, #fafaf9 60%, #f5f5f4 100%)',
-                            boxShadow: '0px 1px 3px 0px rgba(26,26,26,0.06), 0px 1px 2px -1px rgba(26,26,26,0.06), inset 0px -2px 4px 0px rgba(0,0,0,0.03)',
-                          }}
+                          className="group/card rounded-lg border border-[#e7e5e3] transition-all duration-300 hover:border-[#d6d3d1] bg-white overflow-hidden"
+                          style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -2px 4px rgba(0,0,0,0.03)', opacity: allResolved ? 0.85 : 1, transition: 'opacity 0.3s ease' }}
                         >
-                          {/* Header row */}
-                          <div className="flex items-center gap-3" style={{ padding: '12px 14px' }}>
+                          {/* Header row — click to navigate to zone */}
+                          <div
+                            className="flex items-stretch cursor-pointer select-none group/header"
+                            onClick={() => handleNavigateToZone(card.zone, card.navigateTo)}
+                          >
                             <div
-                              className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
-                              style={{
-                                background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
-                                boxShadow: 'inset 0px -1px 2px 0px rgba(234,121,73,0.12)',
-                                border: '1px solid rgba(234,121,73,0.15)',
-                              }}
+                              className="w-10 flex items-center justify-center flex-shrink-0"
+                              style={{ background: allResolved ? (resolutionType === 'all-approved' ? '#ecfdf5' : resolutionType === 'all-rejected' ? '#fef2f2' : '#f5f5f4') : '#f5f5f4' }}
                             >
-                              <CardIcon className="w-4 h-4" style={{ color: '#ea7949' }} />
+                              <CardIcon className="w-3.5 h-3.5" style={{ color: allResolved ? (resolutionType === 'all-approved' ? ROW_DIFF_COLORS.add : resolutionType === 'all-rejected' ? ROW_DIFF_COLORS.delete : '#78716c') : '#78716c' }} />
                             </div>
+                            <div className="flex items-center gap-3 flex-1 min-w-0" style={{ padding: '12px 14px 12px 12px' }}>
                             <div className="flex-1 min-w-0">
-                              <div style={{ fontSize: 13, fontWeight: 500, color: '#292524', lineHeight: '18px' }}>{cardTitle}</div>
-                              <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', lineHeight: '16px' }}>{subtitleText}</div>
+                              <div className="group-hover/header:underline" style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '18px', textDecorationColor: '#d6d3d1' }}>{cardTitle}</div>
+                              {allResolved ? (
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, lineHeight: '14px', color: resolutionType === 'all-approved' ? ROW_DIFF_COLORS.add : resolutionType === 'all-rejected' ? ROW_DIFF_COLORS.delete : '#78716c' }}>
+                                    {resolutionType === 'all-approved' ? 'Tout accepté' : resolutionType === 'all-rejected' ? 'Tout rejeté' : `${approvedCount}/${diffs.length} accepté${approvedCount > 1 ? 's' : ''}`}
+                                  </span>
+                                </div>
+                              ) : diffChips.length > 0 ? (
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  {diffChips.map((chip, ci) => {
+                                    const ChipIcon = chip.icon;
+                                    return (
+                                      <span key={ci} className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: chip.color, fontWeight: 500, lineHeight: '14px' }}>
+                                        <ChipIcon className="w-2.5 h-2.5" strokeWidth={2.5} />{chip.count}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              ) : subtitleText ? (
+                                <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', lineHeight: '16px' }}>{subtitleText}</div>
+                              ) : null}
                             </div>
-                            {/* Navigate to zone button */}
-                            <button
-                              className="flex-shrink-0 px-2 py-1 rounded flex items-center gap-1 transition-colors hover:bg-[rgba(234,121,73,0.1)]"
-                              style={{ fontSize: 12, fontWeight: 500, color: '#ea7949', background: 'rgba(234,121,73,0.06)' }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleNavigateToZone(card.zone, card.navigateTo);
-                              }}
-                            >
-                              Voir <ChevronRight className="w-3 h-3" />
-                            </button>
+                            {/* Expand/collapse toggle — stops propagation so it doesn't navigate */}
+                            {hasDiffs ? (
+                              <button
+                                className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0 transition-colors hover:bg-[#e7e5e3]"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedArtifacts(prev => ({ ...prev, [card.id]: !prev[card.id] }));
+                                }}
+                                title={isExpanded ? 'Masquer les détails' : 'Voir les détails'}
+                              >
+                                <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" style={{ color: '#78716c', transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' }} />
+                              </button>
+                            ) : null}
+                            </div>
                           </div>
 
-                          {/* Expanded diff rows */}
+                          {/* Expanded diff rows — remain visible for review after resolution */}
                           {isExpanded && hasDiffs && (
-                            <div style={{ background: '#fafaf9', borderTop: '1px solid #e7e5e3' }}>
-                              {diffs.map((diff, di) => (
-                                <div
-                                  key={di}
-                                  className="flex items-center gap-2 cursor-pointer transition-colors hover:bg-[#f0efed]"
-                                  style={{ padding: '8px 14px', fontSize: 12, lineHeight: '18px', borderBottom: di < diffs.length - 1 ? '1px solid #f0efed' : 'none' }}
-                                  onClick={() => handleNavigateToEntity(diff.entityId, card.zone, card.navigateTo)}
-                                >
-                                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{
-                                    background: diff.type === 'add' ? '#16a34a' : diff.type === 'delete' ? '#dc2626' : '#ea7949'
-                                  }} />
-                                  <span style={{ color: '#78716c', fontWeight: 500, flexShrink: 0 }}>{diff.entityLabel}</span>
-                                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                    {diff.before && (
-                                      <span className="truncate" style={{ color: '#a8a29e', textDecoration: 'line-through' }}>{diff.before}</span>
+                            <div style={{ borderTop: '1px solid #f0efed' }}>
+                              {diffs.map((diff, di) => {
+                                const dotColor = ROW_DIFF_COLORS[diff.type] || ROW_DIFF_COLORS.edit;
+                                // Multi-field rendering
+                                if (diff.fields && diff.fields.length > 0) {
+                                  return (
+                                    <div
+                                      key={di}
+                                      className={`group/diff cursor-pointer transition-colors ${diff.approved ? 'diff-row-accepted' : diff.rejected ? 'diff-row-rejected' : 'hover:bg-[#fafaf9]'}`}
+                                      style={{ padding: '8px 14px', fontSize: 12, lineHeight: '18px', borderBottom: di < diffs.length - 1 ? '1px solid #f0efed' : 'none' }}
+                                      onClick={() => handleNavigateToEntity(diff.entityId, card.zone, card.navigateTo)}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        {diff.approved
+                                          ? <Check className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.add }} strokeWidth={3} />
+                                          : diff.rejected
+                                            ? (diff.type === 'delete'
+                                              ? <RotateCcw className="w-2.5 h-2.5 flex-shrink-0" style={{ color: '#a8a29e' }} strokeWidth={2.5} />
+                                              : <X className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.delete }} strokeWidth={3} />)
+                                            : <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dotColor, transform: 'rotate(45deg)' }} />
+                                        }
+                                        <span style={{ color: (diff.approved || diff.rejected) ? '#a8a29e' : diff.type === 'delete' ? '#a8a29e' : '#44403c', fontWeight: 500, flex: 1, textDecoration: (diff.type === 'delete' && !diff.rejected) || (diff.rejected && diff.type !== 'delete') ? 'line-through' : 'none' }}>{diff.entityLabel}</span>
+                                        {!diff.approved && !diff.rejected && (
+                                          <span className="flex items-center gap-1.5 opacity-0 group-hover/diff:opacity-100 transition-opacity flex-shrink-0">
+                                            <button
+                                              className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#ecfdf5] hover:border-[#a5c9b7]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                                              onClick={(e) => { e.stopPropagation(); setActiveDiffs(prev => prev.filter(d => !(d.entityId === diff.entityId && d.actionId === diff.actionId))); }}
+                                              title="Approuver"
+                                            >
+                                              <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                                            </button>
+                                            <button
+                                              className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#fef2f2] hover:border-[#cf9d9d]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                                              onClick={(e) => { e.stopPropagation(); setActiveDiffs(prev => prev.map(d => d.entityId === diff.entityId && d.actionId === diff.actionId ? { ...d, rejected: true } : d)); }}
+                                              title="Rejeter"
+                                            >
+                                              <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                                            </button>
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 items-center" style={{ paddingLeft: 14 }}>
+                                        {diff.fields.map((f, fi) => {
+                                          const badgeStyle = f.badge ? { display: 'inline-flex', alignItems: 'center', padding: '1px 6px', borderRadius: 6, fontSize: 11, fontWeight: 500, lineHeight: '16px', ...(f.badge === 'success' ? { background: '#cce6d9', color: '#064e3b' } : { background: '#eeece6', color: '#44403c' }) } : null;
+                                          const renderVal = (val, style) => f.badge
+                                            ? <span style={{ ...badgeStyle, ...style }}>{val}</span>
+                                            : <span style={style}>{val}</span>;
+                                          return (
+                                          <span key={fi} className="inline-flex items-center gap-1" style={{ fontSize: 12, color: (diff.approved || diff.rejected) ? '#a8a29e' : '#78716c', lineHeight: '16px' }}>
+                                            <span style={{ color: '#a8a29e' }}>{f.label}:</span>{' '}
+                                            {diff.rejected ? (
+                                              diff.type === 'delete' ? (
+                                                renderVal(f.before || f.after, { color: '#78716c' })
+                                              ) : diff.type === 'add' ? (
+                                                <>{f.after && renderVal(f.after, { textDecoration: 'line-through', color: '#a8a29e', opacity: f.badge ? 0.5 : 1 })}</>
+                                              ) : (<>
+                                                {f.after && renderVal(f.after, { textDecoration: 'line-through', color: '#a8a29e', opacity: f.badge ? 0.5 : 1 })}
+                                                {f.before && <span style={{ color: '#a8a29e' }}> → </span>}
+                                                {f.before && renderVal(f.before, { color: '#78716c' })}
+                                              </>)
+                                            ) : (<>
+                                              {f.before && renderVal(f.before, { textDecoration: 'line-through', color: '#a8a29e', opacity: f.badge ? 0.5 : 1 })}
+                                              {f.before && f.after && <span style={{ color: '#a8a29e' }}> → </span>}
+                                              {f.after && renderVal(f.after, f.badge ? {} : { color: diff.approved ? '#a8a29e' : '#44403c', fontWeight: 500 })}
+                                            </>)}
+                                            {/* Hypothese peels */}
+                                            {f.variants && f.variants.length > 1 && !diff.approved && !diff.rejected && (
+                                              <span className="inline-flex items-center gap-1 ml-1.5">
+                                                {f.variants.map((v, vi) => (
+                                                  <span key={vi} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ fontSize: 10, fontWeight: 500, background: vi === 0 ? '#eef3fa' : '#f5f5f4', border: `1px solid ${vi === 0 ? '#aabcd5' : '#e7e5e3'}`, color: vi === 0 ? '#1e3a8a' : '#78716c', boxShadow: vi === 0 ? '0 1px 2px rgba(0,0,0,0.06)' : 'none' }}>
+                                                    <CircleArrowUp className="w-2.5 h-2.5" />{v.source}: {v.value}
+                                                  </span>
+                                                ))}
+                                              </span>
+                                            )}
+                                          </span>
+                                        ); })}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                // Legacy single-value rendering
+                                return (
+                                  <div
+                                    key={di}
+                                    className={`group/diff flex items-center gap-2 cursor-pointer transition-colors ${diff.approved ? 'diff-row-accepted' : diff.rejected ? 'diff-row-rejected' : 'hover:bg-[#fafaf9]'}`}
+                                    style={{ padding: '8px 14px', fontSize: 12, lineHeight: '18px', borderBottom: di < diffs.length - 1 ? '1px solid #f0efed' : 'none' }}
+                                    onClick={() => handleNavigateToEntity(diff.entityId, card.zone, card.navigateTo)}
+                                  >
+                                    {diff.approved
+                                      ? <Check className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.add }} strokeWidth={3} />
+                                      : diff.rejected
+                                        ? <X className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.delete }} strokeWidth={3} />
+                                        : <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dotColor, transform: 'rotate(45deg)' }} />
+                                    }
+                                    <span style={{ color: (diff.approved || diff.rejected) ? '#a8a29e' : '#78716c', fontWeight: 500, flexShrink: 0, textDecoration: (diff.type === 'delete' && !diff.rejected) || (diff.rejected && diff.type !== 'delete') ? 'line-through' : 'none' }}>{diff.entityLabel}</span>
+                                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                      {diff.rejected ? (
+                                        diff.type === 'delete' ? (
+                                          <span className="truncate" style={{ color: '#78716c' }}>{diff.before || diff.after}</span>
+                                        ) : diff.type === 'add' ? (
+                                          <span className="truncate" style={{ color: '#a8a29e', textDecoration: 'line-through' }}>{diff.after}</span>
+                                        ) : (<>
+                                          <span className="truncate" style={{ color: '#a8a29e', textDecoration: 'line-through' }}>{diff.after}</span>
+                                          {diff.before && <><span style={{ color: '#a8a29e' }}>→</span><span className="truncate" style={{ color: '#78716c' }}>{diff.before}</span></>}
+                                        </>)
+                                      ) : (<>
+                                        {diff.before && <span className="truncate" style={{ color: '#a8a29e', textDecoration: 'line-through' }}>{diff.before}</span>}
+                                        {diff.before && <span style={{ color: '#a8a29e' }}>→</span>}
+                                        <span className="truncate" style={{ color: diff.approved ? '#a8a29e' : '#292524', fontWeight: 500 }}>{diff.after}</span>
+                                      </>)}
+                                    </div>
+                                    {!diff.approved && !diff.rejected && (
+                                      <span className="flex items-center gap-1.5 opacity-0 group-hover/diff:opacity-100 transition-opacity flex-shrink-0">
+                                        <button className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#ecfdf5] hover:border-[#a5c9b7]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} onClick={(e) => { e.stopPropagation(); setActiveDiffs(prev => prev.filter(d => !(d.entityId === diff.entityId && d.actionId === diff.actionId))); }} title="Approuver">
+                                          <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                                        </button>
+                                        <button className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#fef2f2] hover:border-[#cf9d9d]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} onClick={(e) => { e.stopPropagation(); setActiveDiffs(prev => prev.map(d => d.entityId === diff.entityId && d.actionId === diff.actionId ? { ...d, rejected: true } : d)); }} title="Rejeter">
+                                          <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                                        </button>
+                                      </span>
                                     )}
-                                    {diff.before && <span style={{ color: '#a8a29e' }}>→</span>}
-                                    <span className="truncate" style={{ color: '#292524', fontWeight: 500 }}>{diff.after}</span>
                                   </div>
-                                  <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 diff-row-chevron" style={{ color: '#a8a29e' }} />
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
 
-                          {/* Ghost expand/collapse button */}
-                          {hasDiffs && diffs.length > 0 && (
-                            <button
-                              className="w-full flex items-center justify-center gap-1.5 py-2 transition-colors hover:bg-[#f0efed]"
-                              style={{ fontSize: 12, fontWeight: 500, color: '#78716c', borderTop: '1px solid #e7e5e3' }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setExpandedArtifacts(prev => ({ ...prev, [card.id]: !prev[card.id] }));
-                              }}
-                            >
-                              <ChevronDown className="w-3.5 h-3.5" style={{ transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} />
-                              {isExpanded ? 'Masquer les détails' : `${diffs.length} changement${diffs.length > 1 ? 's' : ''}`}
-                            </button>
+                          {/* Footer — bulk actions (hidden once all resolved) */}
+                          {hasDiffs && !allResolved && (
+                            <div style={{ borderTop: '1px solid #f0efed' }} className="flex items-center">
+                              {/* Accept all */}
+                              <button
+                                className="flex-1 flex items-center justify-center gap-1.5 py-2 transition-colors hover:bg-[#fafaf9]"
+                                style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveDiffs(prev => prev.filter(d => !(card.actionIds?.includes(d.actionId) && d.zone === card.zone)));
+                                }}
+                                title="Accepter tous les changements"
+                              >
+                                <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                                Tout accepter
+                              </button>
+                              <div style={{ width: 1, height: 16, background: '#e7e5e3' }} />
+                              {/* Reject all */}
+                              <button
+                                className="flex-1 flex items-center justify-center gap-1.5 py-2 transition-colors hover:bg-[#fafaf9]"
+                                style={{ fontSize: 12, fontWeight: 500, color: '#a8a29e' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveDiffs(prev => prev.map(d => {
+                                    if (card.actionIds?.includes(d.actionId) && d.zone === card.zone) return { ...d, rejected: true };
+                                    return d;
+                                  }));
+                                }}
+                                title="Annuler tous les changements"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                Tout annuler
+                              </button>
+                            </div>
                           )}
                         </div>
                       );
@@ -3073,18 +3801,30 @@ export default function App() {
                   ))}
                 </div>
               )}
+              {/* Blocked indicator */}
+              {chatBlocked && (
+                <div className="flex items-center gap-2 px-3 py-1.5" style={{ borderBottom: '1px solid #e7e5e3' }}>
+                  <span className="flex items-center gap-0.5">
+                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-1" />
+                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-2" />
+                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-3" />
+                  </span>
+                  <span style={{ fontSize: 11, color: '#a8a29e' }}>Plato analyse vos documents...</span>
+                </div>
+              )}
               {/* Text area */}
               <div style={{ padding: '12px 12px 32px 12px' }}>
                 <textarea
                   className="w-full text-[14px] resize-none focus:outline-none"
-                  style={{ color: chatInputValue ? '#11181c' : '#78716c', lineHeight: '20px', minHeight: 20, maxHeight: 120 }}
-                  placeholder="Demander à Plato Master de calculer, rechercher des JP, rédiger des actes..."
+                  style={{ color: chatInputValue ? '#11181c' : '#78716c', lineHeight: '20px', minHeight: 20, maxHeight: 120, opacity: chatBlocked ? 0.5 : 1, cursor: chatBlocked ? 'not-allowed' : undefined }}
+                  placeholder={chatBlocked ? 'Plato analyse vos documents...' : 'Demander à Plato Master de calculer, rechercher des JP, rédiger des actes...'}
                   value={chatInputValue}
-                  onChange={(e) => setChatInputValue(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSend(); } }}
+                  onChange={(e) => { if (!chatBlocked) setChatInputValue(e.target.value); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!chatBlocked) handleChatSend(); } }}
                   onFocus={() => setChatInputFocused(true)}
                   onBlur={() => setChatInputFocused(false)}
                   rows={1}
+                  disabled={chatBlocked}
                 />
               </div>
 
@@ -3092,28 +3832,28 @@ export default function App() {
               <div
                 className="flex items-center justify-between px-3 py-3"
                 style={{
-                  background: hasContent ? 'linear-gradient(to bottom, white 44.66%, #eeece6 100%)' : 'transparent',
+                  background: (hasContent && !chatBlocked) ? 'linear-gradient(to bottom, white 44.66%, #eeece6 100%)' : 'transparent',
                 }}
               >
                 <div className="flex items-center gap-0.5">
-                  <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors">
+                  <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors" disabled={chatBlocked} style={{ opacity: chatBlocked ? 0.4 : 1 }}>
                     <Paperclip className="w-4 h-4 text-[#78716c]" />
                   </button>
-                  <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors">
+                  <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors" disabled={chatBlocked} style={{ opacity: chatBlocked ? 0.4 : 1 }}>
                     <Lightbulb className="w-4 h-4 text-[#78716c]" />
                   </button>
                 </div>
                 <button
                   className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
                   style={{
-                    backgroundColor: hasContent ? '#b9703f' : '#eeece6',
-                    boxShadow: hasContent ? '0px 1px 2px 0px rgba(26,26,26,0.05)' : 'none',
-                    opacity: hasContent ? 1 : 0.5,
-                    cursor: hasContent ? 'pointer' : 'default',
+                    backgroundColor: (hasContent && !chatBlocked) ? '#b9703f' : '#eeece6',
+                    boxShadow: (hasContent && !chatBlocked) ? '0px 1px 2px 0px rgba(26,26,26,0.05)' : 'none',
+                    opacity: (hasContent && !chatBlocked) ? 1 : 0.5,
+                    cursor: (hasContent && !chatBlocked) ? 'pointer' : 'default',
                   }}
-                  onClick={hasContent ? handleChatSend : undefined}
+                  onClick={(hasContent && !chatBlocked) ? handleChatSend : undefined}
                 >
-                  <ArrowUp className="w-4 h-4" style={{ color: hasContent ? 'white' : '#78716c' }} />
+                  <ArrowUp className="w-4 h-4" style={{ color: (hasContent && !chatBlocked) ? 'white' : '#78716c' }} />
                 </button>
               </div>
             </div>
@@ -3579,9 +4319,12 @@ export default function App() {
             <div className="flex items-center gap-2 min-w-0">
               {isPieceDetail && <span className="px-2 py-0.5 bg-zinc-800 text-white text-caption-medium rounded flex-shrink-0">P{data.index}</span>}
               <h3 className="text-body-medium text-[#292524] truncate">{isPieceDetail ? (data.intitule || data.nom) : (editPanel.title || 'Édition')}</h3>
-              {data?.status === 'ai-suggested' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-600 text-caption-medium rounded-full flex-shrink-0">
-                  <Sparkles className="w-3 h-3" />AI
+              {data?.diffType && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-caption-medium rounded-full flex-shrink-0" style={{
+                  background: data.diffType === 'add' ? '#dcfce7' : data.diffType === 'edit' ? '#fff7ed' : '#fef2f2',
+                  color: ROW_DIFF_COLORS[data.diffType] || '#bd6c1a',
+                }}>
+                  {data.diffType === 'add' ? 'Ajout' : data.diffType === 'edit' ? 'Modif.' : 'Suppr.'}
                 </span>
               )}
             </div>
@@ -3595,20 +4338,35 @@ export default function App() {
               <div className="flex-1 overflow-y-auto px-5 py-5">
                 {/* DSA Ligne - Panel systémique */}
                 {editPanel.type === 'dsa-ligne' && (() => {
-                  // Helper pour le style des champs extraits par IA
+                  // Diff helpers
+                  const diffColor = data.diffType ? ROW_DIFF_COLORS[data.diffType] : null;
+                  const diffLabel = data.diffType === 'add' ? 'Ligne ajoutée par l\'agent' : data.diffType === 'edit' ? 'Ligne modifiée par l\'agent' : data.diffType === 'delete' ? 'Ligne supprimée par l\'agent' : null;
+                  const diffBg = data.diffType === 'add' ? '#f0fdf4' : data.diffType === 'edit' ? '#fff7ed' : data.diffType === 'delete' ? '#fef2f2' : null;
+                  const diffBorder = data.diffType === 'add' ? '#bbf7d0' : data.diffType === 'edit' ? '#fed7aa' : data.diffType === 'delete' ? '#fecaca' : null;
+                  const ov = data.oldValues || {};
+                  const hasDiff = (key) => data.diffType === 'edit' && ov[key] != null;
+                  const isDeleted = data.diffType === 'delete';
+
+                  // IA extraction helpers
                   const isIaExtracted = data.confidence != null;
                   const needsValidation = data.status === 'pending';
                   const iaFieldClass = (fieldValue) => {
                     if (!isIaExtracted) return '';
-
                     if (fieldValue == null || fieldValue === '') return 'border-amber-400 bg-amber-50/50';
                     return '';
                   };
 
                   return (
-                    <div className="space-y-5">
+                    <div className="space-y-5" style={isDeleted ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>
+                      {/* Diff banner */}
+                      {diffColor && (
+                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: diffBg, border: `1px solid ${diffBorder}` }}>
+                          <div className="w-1.5 h-1.5" style={{ background: diffColor, transform: 'rotate(45deg)' }} />
+                          <span style={{ fontSize: 12, fontWeight: 500, color: diffColor }}>{diffLabel}</span>
+                        </div>
+                      )}
                       {/* Bandeau IA si extraction */}
-                      {isIaExtracted && (
+                      {isIaExtracted && !diffColor && (
                         <div className={`flex items-center gap-3 p-3 rounded-lg ${
                           data.confidence >= 80 ? 'bg-emerald-50 border border-emerald-200' : 'bg-amber-50 border border-amber-200'
                         }`}>
@@ -3626,14 +4384,19 @@ export default function App() {
 
                       {/* Libellé dépense */}
                       <div>
-                        <label className="text-caption text-[#78716c] mb-1.5 block">Libellé dépense</label>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label className="text-body-medium text-[#292524]">Libellé dépense</label>
+                          {(data.diffType === 'add' || hasDiff('label')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />}
+                        </div>
                         <input
                           type="text"
                           defaultValue={data.label || ''}
                           id="edit-label"
                           placeholder="Nom de la dépense"
-                          className={`w-full px-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e] ${iaFieldClass(data.label)}`}
+                          className={`w-full px-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)] ${iaFieldClass(data.label)}`}
+                          style={{ boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
                         />
+                        {hasDiff('label') && <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Ancien : {ov.label}</p>}
                       </div>
 
                       {/* Pièces justificatives */}
@@ -3688,18 +4451,23 @@ export default function App() {
 
                       {/* Date de la dépense */}
                       <div>
-                        <label id="dsa-ponctuelle-label" className="text-caption text-[#78716c] mb-1.5 block">
-                          {data.isPeriodique ? 'Date de début' : 'Date de la dépense'}
-                        </label>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label id="dsa-ponctuelle-label" className="text-body-medium text-[#292524]">
+                            {data.isPeriodique ? 'Date de début' : 'Date de la dépense'}
+                          </label>
+                          {(data.diffType === 'add' || hasDiff('date')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />}
+                        </div>
                         <div className="relative">
                           <input type="text" defaultValue={data.date || ''} id="edit-date"
                             placeholder="JJ/MM/AAAA" maxLength={10}
                             onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
-                            className={`w-full px-3 py-2 pr-9 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e] ${iaFieldClass(data.date)}`}
+                            className={`w-full px-3 py-2 pr-9 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)] ${iaFieldClass(data.date)}`}
+                            style={{ boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
                           />
                           <input type="date" id="edit-date-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'edit-date')} />
                           <button type="button" onClick={() => openDatePicker('edit-date')} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-[#f5f5f4] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                         </div>
+                        {hasDiff('date') && <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Ancien : {ov.date}</p>}
                         {/* Champs période (masqués si ponctuelle) */}
                         <div id="dsa-periode-fields" style={{ display: data.isPeriodique ? 'block' : 'none' }}>
                           <div className="mt-3 space-y-3">
@@ -3724,25 +4492,33 @@ export default function App() {
 
                       {/* Montant dépense */}
                       <div>
-                        <label className="text-caption text-[#78716c] mb-1.5 block">Montant dépense</label>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label className="text-body-medium text-[#292524]">Montant dépense</label>
+                          {(data.diffType === 'add' || hasDiff('montant')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />}
+                        </div>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#78716c]" style={{ fontSize: 14 }}>€</span>
                           <input
                             type="number"
                             step="0.01"
                             defaultValue={data.montant ?? ''}
                             id="edit-montant"
                             placeholder="0"
-                            className={`w-full pl-8 pr-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e] ${iaFieldClass(data.montant)}`}
+                            className={`w-full pl-8 pr-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)] ${iaFieldClass(data.montant)}`}
+                            style={{ boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
                           />
                         </div>
+                        {hasDiff('montant') && <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Ancien : {ov.montant} €</p>}
                       </div>
 
                       {/* Reste à charge */}
                       <div>
-                        <label className="text-caption text-[#78716c] mb-1.5 block">Reste à charge</label>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label className="text-body-medium text-[#292524]">Reste à charge</label>
+                          {(data.diffType === 'add' || hasDiff('dejaRembourse')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />}
+                        </div>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#78716c]" style={{ fontSize: 14 }}>€</span>
                           <input
                             type="number"
                             step="0.01"
@@ -4097,8 +4873,25 @@ export default function App() {
                 {/* ========== PANELS PGPA ========== */}
                 
                 {/* Panel PGPA - Revenu de référence */}
-                {editPanel.type === 'pgpa-revenu' && (
-                  <div className="space-y-6">
+                {editPanel.type === 'pgpa-revenu' && (() => {
+                  const pgpaRevDiffColor = data.diffType ? ROW_DIFF_COLORS[data.diffType] : null;
+                  const pgpaRevDiffLabel = data.diffType === 'add' ? 'Ligne ajoutée par l\'agent' : data.diffType === 'edit' ? 'Ligne modifiée par l\'agent' : data.diffType === 'delete' ? 'Ligne supprimée par l\'agent' : null;
+                  const pgpaRevDiffBg = data.diffType === 'add' ? '#f0fdf4' : data.diffType === 'edit' ? '#fff7ed' : '#fef2f2';
+                  const pgpaRevDiffBorder = data.diffType === 'add' ? '#bbf7d0' : data.diffType === 'edit' ? '#fed7aa' : '#fecaca';
+                  const pgpaRevOv = data.oldValues || {};
+                  const pgpaRevHasDiff = (key) => data.diffType === 'edit' && pgpaRevOv[key] != null;
+                  const pgpaRevInputCls = "w-full px-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)]";
+                  const pgpaRevInputShadow = { boxShadow: '0 1px 2px rgba(26,26,26,0.05)' };
+                  const pgpaRevDescP = (text) => <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Ancien : {text}</p>;
+                  return (
+                  <div className="space-y-6" style={data.diffType === 'delete' ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>
+                    {pgpaRevDiffColor && (
+                      <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: pgpaRevDiffBg, border: `1px solid ${pgpaRevDiffBorder}` }}>
+                        <div className="w-1.5 h-1.5" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />
+                        <span style={{ fontSize: 12, fontWeight: 500, color: pgpaRevDiffColor }}>{pgpaRevDiffLabel}</span>
+                      </div>
+                    )}
+
                     {/* Section Pièces justificatives */}
                     <div>
                       <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Pièces justificatives</h4>
@@ -4157,66 +4950,90 @@ export default function App() {
                       <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Informations</h4>
                       <div className="space-y-4">
                         <div>
-                          <label className="text-body-medium text-gray-700">Type</label>
-                          <select id="pgpa-revenu-type" defaultValue={data.type || 'revenu'} className="mt-1 w-full px-3 py-2 border rounded-lg">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Type</label>
+                            {(data.diffType === 'add' || pgpaRevHasDiff('type')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />}
+                          </div>
+                          <select id="pgpa-revenu-type" defaultValue={data.type || 'revenu'} className={pgpaRevInputCls} style={pgpaRevInputShadow}>
                             <option value="revenu">Revenu professionnel</option>
                             <option value="gain">Gain supplémentaire (prime, indemnité...)</option>
                           </select>
+                          {pgpaRevHasDiff('type') && pgpaRevDescP(pgpaRevOv.type)}
                         </div>
 
                         <div>
-                          <label className="text-body-medium text-gray-700">Intitulé</label>
-                          <input id="pgpa-revenu-label" type="text" defaultValue={data.label || ''} placeholder="Ex: Salaire net imposable" className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Intitulé</label>
+                            {(data.diffType === 'add' || pgpaRevHasDiff('label')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />}
+                          </div>
+                          <input id="pgpa-revenu-label" type="text" defaultValue={data.label || ''} placeholder="Ex: Salaire net imposable" className={pgpaRevInputCls} style={pgpaRevInputShadow} />
+                          {pgpaRevHasDiff('label') && pgpaRevDescP(pgpaRevOv.label)}
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-body-medium text-gray-700">Année</label>
-                            <input id="pgpa-revenu-annee" type="text" defaultValue={data.annee || ''} placeholder="2022" className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Année</label>
+                              {(data.diffType === 'add' || pgpaRevHasDiff('annee')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />}
+                            </div>
+                            <input id="pgpa-revenu-annee" type="text" defaultValue={data.annee || ''} placeholder="2022" className={pgpaRevInputCls} style={pgpaRevInputShadow} />
+                            {pgpaRevHasDiff('annee') && pgpaRevDescP(pgpaRevOv.annee)}
                           </div>
                           <div>
-                            <label className="text-body-medium text-gray-700">Unité de temps</label>
-                            <select id="pgpa-revenu-unite" defaultValue={data.unite || 'annuel'} className="mt-1 w-full px-3 py-2 border rounded-lg">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Unité de temps</label>
+                              {(data.diffType === 'add' || pgpaRevHasDiff('unite')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />}
+                            </div>
+                            <select id="pgpa-revenu-unite" defaultValue={data.unite || 'annuel'} className={pgpaRevInputCls} style={pgpaRevInputShadow}>
                               <option value="annuel">Annuel</option>
                               <option value="mensuel">Mensuel</option>
                               <option value="journalier">Journalier</option>
                             </select>
+                            {pgpaRevHasDiff('unite') && pgpaRevDescP(pgpaRevOv.unite)}
                           </div>
                         </div>
 
                         <div>
-                          <label className="text-body-medium text-gray-700">Commentaire</label>
-                          <textarea id="pgpa-revenu-commentaire" rows={2} defaultValue={data.commentaire || ''} placeholder="Informations complémentaires..." className="mt-1 w-full px-3 py-2 border rounded-lg resize-none" />
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Commentaire</label>
+                          </div>
+                          <textarea id="pgpa-revenu-commentaire" rows={2} defaultValue={data.commentaire || ''} placeholder="Informations complémentaires..." className={`${pgpaRevInputCls} resize-none`} style={pgpaRevInputShadow} />
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Section Montants */}
                     <div>
                       <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Montants</h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-body-medium text-gray-700">Revenu net payé</label>
-                            <div className="mt-1 relative">
-                              <input id="pgpa-revenu-montant" type="number" step="0.01" defaultValue={data.montant || ''} readOnly className="w-full px-3 py-2 pr-8 border rounded-lg bg-[#F8F7F5] text-[#78716c] cursor-default" />
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Revenu net payé</label>
+                              {(data.diffType === 'add' || pgpaRevHasDiff('montant')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />}
+                            </div>
+                            <div className="relative">
+                              <input id="pgpa-revenu-montant" type="number" step="0.01" defaultValue={data.montant || ''} readOnly className={`${pgpaRevInputCls} pr-8 bg-[#F8F7F5] text-[#78716c] cursor-default`} style={pgpaRevInputShadow} />
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
                             </div>
+                            {pgpaRevHasDiff('montant') && pgpaRevDescP(`${pgpaRevOv.montant} €`)}
                           </div>
                           <div>
-                            <label className="text-body-medium text-gray-700">Montant revalorisé</label>
-                            <div className="mt-1 relative">
-                              <input id="pgpa-revenu-revalorise" type="number" step="0.01" defaultValue={data.revalorise || ''} className="w-full px-3 py-2 pr-8 border rounded-lg bg-[#F8F7F5] font-medium" readOnly />
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Montant revalorisé</label>
+                            </div>
+                            <div className="relative">
+                              <input id="pgpa-revenu-revalorise" type="number" step="0.01" defaultValue={data.revalorise || ''} className={`${pgpaRevInputCls} pr-8 bg-[#F8F7F5] font-medium`} style={pgpaRevInputShadow} readOnly />
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
                             </div>
-                            <p className="mt-1 text-caption text-[#78716c]">Calculé automatiquement selon le barème</p>
+                            <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Calculé automatiquement selon le barème</p>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between p-3 bg-[#F8F7F5] rounded-lg border">
                           <div className="flex items-center gap-3">
                             <input type="checkbox" id="pgpa-revenu-revalo-checkbox" defaultChecked={data.aRevaloriser !== false} className="rounded text-blue-600" />
-                            <label htmlFor="pgpa-revenu-revalo-checkbox" className="text-body-medium text-gray-700">Appliquer la revalorisation</label>
+                            <label htmlFor="pgpa-revenu-revalo-checkbox" className="text-body-medium text-[#292524]">Appliquer la revalorisation</label>
                           </div>
                           <div className="text-body text-[#78716c]">
                             {pgpaData.revenuRef.revalorisation === 'ipc-annuel' ? 'IPC annuel' : pgpaData.revenuRef.revalorisation === 'smic-horaire' ? 'SMIC horaire' : 'Aucune'} · Quotient : <span className="font-medium">1.04</span>
@@ -4225,11 +5042,28 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                )}
+                  );})()}
                 
                 {/* Panel PGPA - Revenu perçu période */}
-                {editPanel.type === 'pgpa-revenu-percu' && (
-                  <div className="space-y-6">
+                {editPanel.type === 'pgpa-revenu-percu' && (() => {
+                  const prcDiffColor = data.diffType ? ROW_DIFF_COLORS[data.diffType] : null;
+                  const prcDiffLabel = data.diffType === 'add' ? 'Ligne ajoutée par l\'agent' : data.diffType === 'edit' ? 'Ligne modifiée par l\'agent' : data.diffType === 'delete' ? 'Ligne supprimée par l\'agent' : null;
+                  const prcDiffBg = data.diffType === 'add' ? '#f0fdf4' : data.diffType === 'edit' ? '#fff7ed' : '#fef2f2';
+                  const prcDiffBorder = data.diffType === 'add' ? '#bbf7d0' : data.diffType === 'edit' ? '#fed7aa' : '#fecaca';
+                  const prcOv = data.oldValues || {};
+                  const prcHasDiff = (key) => data.diffType === 'edit' && prcOv[key] != null;
+                  const prcInputCls = "w-full px-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)]";
+                  const prcInputShadow = { boxShadow: '0 1px 2px rgba(26,26,26,0.05)' };
+                  const prcDescP = (text) => <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Ancien : {text}</p>;
+                  return (
+                  <div className="space-y-6" style={data.diffType === 'delete' ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>
+                    {prcDiffColor && (
+                      <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: prcDiffBg, border: `1px solid ${prcDiffBorder}` }}>
+                        <div className="w-1.5 h-1.5" style={{ background: prcDiffColor, transform: 'rotate(45deg)' }} />
+                        <span style={{ fontSize: 12, fontWeight: 500, color: prcDiffColor }}>{prcDiffLabel}</span>
+                      </div>
+                    )}
+
                     {/* Section Pièces justificatives */}
                     <div>
                       <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Pièces justificatives</h4>
@@ -4288,42 +5122,60 @@ export default function App() {
                       <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Informations</h4>
                       <div className="space-y-4">
                         <div>
-                          <label className="text-body-medium text-gray-700">Intitulé</label>
-                          <input id="pgpa-percu-label" type="text" defaultValue={data.label || ''} placeholder="Ex: Maintien de salaire partiel" className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Intitulé</label>
+                            {(data.diffType === 'add' || prcHasDiff('label')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: prcDiffColor, transform: 'rotate(45deg)' }} />}
+                          </div>
+                          <input id="pgpa-percu-label" type="text" defaultValue={data.label || ''} placeholder="Ex: Maintien de salaire partiel" className={prcInputCls} style={prcInputShadow} />
+                          {prcHasDiff('label') && prcDescP(prcOv.label)}
                         </div>
 
                         <div>
-                          <label className="text-body-medium text-gray-700">Organisme / Tiers</label>
-                          <input id="pgpa-percu-tiers" type="text" defaultValue={data.tiers || ''} placeholder="Ex: Employeur, Prévoyance..." className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Organisme / Tiers</label>
+                            {(data.diffType === 'add' || prcHasDiff('tiers')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: prcDiffColor, transform: 'rotate(45deg)' }} />}
+                          </div>
+                          <input id="pgpa-percu-tiers" type="text" defaultValue={data.tiers || ''} placeholder="Ex: Employeur, Prévoyance..." className={prcInputCls} style={prcInputShadow} />
+                          {prcHasDiff('tiers') && prcDescP(prcOv.tiers)}
                         </div>
 
                         <div>
-                          <label className="text-body-medium text-gray-700">Commentaire</label>
-                          <textarea id="pgpa-percu-commentaire" rows={2} defaultValue={data.commentaire || ''} placeholder="Informations complémentaires..." className="mt-1 w-full px-3 py-2 border rounded-lg resize-none" />
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Commentaire</label>
+                          </div>
+                          <textarea id="pgpa-percu-commentaire" rows={2} defaultValue={data.commentaire || ''} placeholder="Informations complémentaires..." className={`${prcInputCls} resize-none`} style={prcInputShadow} />
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Section Période */}
                     <div>
                       <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Période</h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-body-medium text-gray-700">Date de début</label>
-                            <div className="relative mt-1">
-                              <input id="pgpa-percu-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Date de début</label>
+                              {(data.diffType === 'add' || prcHasDiff('periodeDebut')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: prcDiffColor, transform: 'rotate(45deg)' }} />}
+                            </div>
+                            <div className="relative">
+                              <input id="pgpa-percu-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className={`${prcInputCls} pr-9`} style={prcInputShadow} />
                               <input type="date" id="pgpa-percu-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-percu-debut')} />
                               <button type="button" onClick={() => openDatePicker('pgpa-percu-debut')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                             </div>
+                            {prcHasDiff('periodeDebut') && prcDescP(prcOv.periodeDebut)}
                           </div>
                           <div>
-                            <label className="text-body-medium text-gray-700">Date de fin</label>
-                            <div className="relative mt-1">
-                              <input id="pgpa-percu-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Date de fin</label>
+                              {(data.diffType === 'add' || prcHasDiff('periodeFin')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: prcDiffColor, transform: 'rotate(45deg)' }} />}
+                            </div>
+                            <div className="relative">
+                              <input id="pgpa-percu-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className={`${prcInputCls} pr-9`} style={prcInputShadow} />
                               <input type="date" id="pgpa-percu-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-percu-fin')} />
                               <button type="button" onClick={() => openDatePicker('pgpa-percu-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                             </div>
+                            {prcHasDiff('periodeFin') && prcDescP(prcOv.periodeFin)}
                           </div>
                         </div>
 
@@ -4333,36 +5185,44 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Section Montants */}
                     <div>
                       <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Montants</h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-body-medium text-gray-700">Revenu perçu net</label>
-                            <div className="mt-1 relative">
-                              <input id="pgpa-percu-montant" type="number" step="0.01" defaultValue={data.montant || ''} readOnly className="w-full px-3 py-2 pr-8 border rounded-lg bg-[#F8F7F5] text-[#78716c] cursor-default" />
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Revenu perçu net</label>
+                              {(data.diffType === 'add' || prcHasDiff('montant')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: prcDiffColor, transform: 'rotate(45deg)' }} />}
+                            </div>
+                            <div className="relative">
+                              <input id="pgpa-percu-montant" type="number" step="0.01" defaultValue={data.montant || ''} readOnly className={`${prcInputCls} pr-8 bg-[#F8F7F5] text-[#78716c] cursor-default`} style={prcInputShadow} />
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
                             </div>
+                            {prcHasDiff('montant') && prcDescP(`${prcOv.montant} €`)}
                           </div>
                           <div>
-                            <label className="text-body-medium text-gray-700">Unité de temps</label>
-                            <select id="pgpa-percu-unite" defaultValue={data.unite || 'total'} className="mt-1 w-full px-3 py-2 border rounded-lg">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Unité de temps</label>
+                              {(data.diffType === 'add' || prcHasDiff('unite')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: prcDiffColor, transform: 'rotate(45deg)' }} />}
+                            </div>
+                            <select id="pgpa-percu-unite" defaultValue={data.unite || 'total'} className={prcInputCls} style={prcInputShadow}>
                               <option value="total">Total période</option>
                               <option value="mensuel">Par mois</option>
                               <option value="journalier">Par jour</option>
                             </select>
+                            {prcHasDiff('unite') && prcDescP(prcOv.unite)}
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between p-3 bg-[#F8F7F5] rounded-lg border">
                           <div className="flex items-center gap-3">
                             <input type="checkbox" id="pgpa-percu-no-revalo" defaultChecked={data.noRevalo || false} className="rounded text-blue-600" />
-                            <label htmlFor="pgpa-percu-no-revalo" className="text-body-medium text-gray-700">Montant à ne pas revaloriser</label>
+                            <label htmlFor="pgpa-percu-no-revalo" className="text-body-medium text-[#292524]">Montant à ne pas revaloriser</label>
                           </div>
                         </div>
-                        
+
                         <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
                           <div className="flex items-center justify-between">
                             <span className="text-body text-amber-800">Perte de gains sur la période</span>
@@ -4373,11 +5233,28 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                )}
+                  );})()}
                 
                 {/* Panel PGPA - Indemnités journalières */}
-                {editPanel.type === 'pgpa-ij' && (
-                  <div className="space-y-6">
+                {editPanel.type === 'pgpa-ij' && (() => {
+                  const ijDiffColor = data.diffType ? ROW_DIFF_COLORS[data.diffType] : null;
+                  const ijDiffLabel = data.diffType === 'add' ? 'Ligne ajoutée par l\'agent' : data.diffType === 'edit' ? 'Ligne modifiée par l\'agent' : data.diffType === 'delete' ? 'Ligne supprimée par l\'agent' : null;
+                  const ijDiffBg = data.diffType === 'add' ? '#f0fdf4' : data.diffType === 'edit' ? '#fff7ed' : '#fef2f2';
+                  const ijDiffBorder = data.diffType === 'add' ? '#bbf7d0' : data.diffType === 'edit' ? '#fed7aa' : '#fecaca';
+                  const ijOv = data.oldValues || {};
+                  const ijHasDiff = (key) => data.diffType === 'edit' && ijOv[key] != null;
+                  const ijInputCls = "w-full px-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)]";
+                  const ijInputShadow = { boxShadow: '0 1px 2px rgba(26,26,26,0.05)' };
+                  const ijDescP = (text) => <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Ancien : {text}</p>;
+                  return (
+                  <div className="space-y-6" style={data.diffType === 'delete' ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>
+                    {ijDiffColor && (
+                      <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: ijDiffBg, border: `1px solid ${ijDiffBorder}` }}>
+                        <div className="w-1.5 h-1.5" style={{ background: ijDiffColor, transform: 'rotate(45deg)' }} />
+                        <span style={{ fontSize: 12, fontWeight: 500, color: ijDiffColor }}>{ijDiffLabel}</span>
+                      </div>
+                    )}
+
                     {/* Section Pièces justificatives */}
                     <div>
                       <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Pièces justificatives</h4>
@@ -4436,48 +5313,66 @@ export default function App() {
                       <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Tiers payeur</h4>
                       <div className="space-y-4">
                         <div>
-                          <label className="text-body-medium text-gray-700">Organisme</label>
-                          <select id="pgpa-ij-tiers" defaultValue={data.tiers || ''} className="mt-1 w-full px-3 py-2 border rounded-lg">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Organisme</label>
+                            {(data.diffType === 'add' || ijHasDiff('tiers')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: ijDiffColor, transform: 'rotate(45deg)' }} />}
+                          </div>
+                          <select id="pgpa-ij-tiers" defaultValue={data.tiers || ''} className={ijInputCls} style={ijInputShadow}>
                             <option value="">— Sélectionner —</option>
                             {chiffrageParams.tiersPayeurs.map((t, i) => (
                               <option key={i} value={t}>{t}</option>
                             ))}
                             <option value="autre">Autre...</option>
                           </select>
+                          {ijHasDiff('tiers') && ijDescP(ijOv.tiers)}
                         </div>
 
                         <div>
-                          <label className="text-body-medium text-gray-700">Libellé / Description</label>
-                          <input id="pgpa-ij-label" type="text" defaultValue={data.label || ''} placeholder="Ex: IJ Sécurité sociale" className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Libellé / Description</label>
+                            {(data.diffType === 'add' || ijHasDiff('label')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: ijDiffColor, transform: 'rotate(45deg)' }} />}
+                          </div>
+                          <input id="pgpa-ij-label" type="text" defaultValue={data.label || ''} placeholder="Ex: IJ Sécurité sociale" className={ijInputCls} style={ijInputShadow} />
+                          {ijHasDiff('label') && ijDescP(ijOv.label)}
                         </div>
 
                         <div>
-                          <label className="text-body-medium text-gray-700">Commentaire</label>
-                          <textarea id="pgpa-ij-commentaire" rows={2} defaultValue={data.commentaire || ''} placeholder="Informations complémentaires..." className="mt-1 w-full px-3 py-2 border rounded-lg resize-none" />
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Commentaire</label>
+                          </div>
+                          <textarea id="pgpa-ij-commentaire" rows={2} defaultValue={data.commentaire || ''} placeholder="Informations complémentaires..." className={`${ijInputCls} resize-none`} style={ijInputShadow} />
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Section Période d'arrêt */}
                     <div>
                       <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Période d'arrêt de travail</h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-body-medium text-gray-700">Date de début</label>
-                            <div className="relative mt-1">
-                              <input id="pgpa-ij-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Date de début</label>
+                              {(data.diffType === 'add' || ijHasDiff('periodeDebut')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: ijDiffColor, transform: 'rotate(45deg)' }} />}
+                            </div>
+                            <div className="relative">
+                              <input id="pgpa-ij-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className={`${ijInputCls} pr-9`} style={ijInputShadow} />
                               <input type="date" id="pgpa-ij-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-ij-debut')} />
                               <button type="button" onClick={() => openDatePicker('pgpa-ij-debut')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                             </div>
+                            {ijHasDiff('periodeDebut') && ijDescP(ijOv.periodeDebut)}
                           </div>
                           <div>
-                            <label className="text-body-medium text-gray-700">Date de fin</label>
-                            <div className="relative mt-1">
-                              <input id="pgpa-ij-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Date de fin</label>
+                              {(data.diffType === 'add' || ijHasDiff('periodeFin')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: ijDiffColor, transform: 'rotate(45deg)' }} />}
+                            </div>
+                            <div className="relative">
+                              <input id="pgpa-ij-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className={`${ijInputCls} pr-9`} style={ijInputShadow} />
                               <input type="date" id="pgpa-ij-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-ij-fin')} />
                               <button type="button" onClick={() => openDatePicker('pgpa-ij-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                             </div>
+                            {ijHasDiff('periodeFin') && ijDescP(ijOv.periodeFin)}
                           </div>
                         </div>
 
@@ -4487,28 +5382,36 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Section Montants */}
                     <div>
                       <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Montants</h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-body-medium text-gray-700">Indemnité brute perçue</label>
-                            <div className="mt-1 relative">
-                              <input id="pgpa-ij-brut" type="number" step="0.01" defaultValue={data.montantBrut || ''} placeholder="0.00" className="w-full px-3 py-2 pr-8 border rounded-lg" />
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Indemnité brute perçue</label>
+                              {(data.diffType === 'add' || ijHasDiff('montantBrut')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: ijDiffColor, transform: 'rotate(45deg)' }} />}
+                            </div>
+                            <div className="relative">
+                              <input id="pgpa-ij-brut" type="number" step="0.01" defaultValue={data.montantBrut || ''} placeholder="0.00" className={`${ijInputCls} pr-8`} style={ijInputShadow} />
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
                             </div>
+                            {ijHasDiff('montantBrut') && ijDescP(`${ijOv.montantBrut} €`)}
                           </div>
                           <div>
-                            <label className="text-body-medium text-gray-700">CSG-CRDS</label>
-                            <div className="mt-1 relative">
-                              <input id="pgpa-ij-csg" type="number" step="0.01" defaultValue={data.csgCrds || ''} placeholder="0.00" className="w-full px-3 py-2 pr-8 border rounded-lg" />
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">CSG-CRDS</label>
+                              {(data.diffType === 'add' || ijHasDiff('csgCrds')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: ijDiffColor, transform: 'rotate(45deg)' }} />}
+                            </div>
+                            <div className="relative">
+                              <input id="pgpa-ij-csg" type="number" step="0.01" defaultValue={data.csgCrds || ''} placeholder="0.00" className={`${ijInputCls} pr-8`} style={ijInputShadow} />
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
                             </div>
+                            {ijHasDiff('csgCrds') && ijDescP(`${ijOv.csgCrds} €`)}
                           </div>
                         </div>
-                        
+
                         <div className="p-3 bg-green-50 rounded-lg border border-green-200">
                           <div className="flex items-center justify-between">
                             <span className="text-body text-green-800">Indemnité nette perçue</span>
@@ -4516,7 +5419,7 @@ export default function App() {
                           </div>
                           <p className="text-caption text-green-600 mt-1">Brut − CSG-CRDS</p>
                         </div>
-                        
+
                         <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-body-medium text-purple-800">Créance du tiers payeur</span>
@@ -4527,23 +5430,37 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                )}
+                  );})()}
 
                 {/* Panel DFT */}
-                {editPanel.type === 'dft-ligne' && (
-                  <div className="space-y-5">
-                    {data?.status === 'ai-suggested' && data?.confidence && (
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-indigo-50 border border-indigo-200">
-                        <Sparkles className="w-4 h-4 text-indigo-600" />
-                        <span className="text-caption-medium text-indigo-700">Suggestion IA · Confiance {data.confidence}%</span>
+                {editPanel.type === 'dft-ligne' && (() => {
+                  const dftDiffColor = data.diffType ? ROW_DIFF_COLORS[data.diffType] : null;
+                  const dftDiffLabel = data.diffType === 'add' ? 'Ligne ajoutée par l\'agent' : data.diffType === 'edit' ? 'Ligne modifiée par l\'agent' : data.diffType === 'delete' ? 'Ligne supprimée par l\'agent' : null;
+                  const dftDiffBg = data.diffType === 'add' ? '#f0fdf4' : data.diffType === 'edit' ? '#fff7ed' : '#fef2f2';
+                  const dftDiffBorder = data.diffType === 'add' ? '#bbf7d0' : data.diffType === 'edit' ? '#fed7aa' : '#fecaca';
+                  const dftOv = data.oldValues || {};
+                  const dftHasDiff = (key) => data.diffType === 'edit' && dftOv[key] != null;
+                  const inputShadow = { boxShadow: '0 1px 2px rgba(26,26,26,0.05)' };
+                  const inputCls = "w-full px-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)]";
+                  const descP = (text) => <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Ancien : {text}</p>;
+                  return (
+                  <div className="space-y-5" style={data.diffType === 'delete' ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>
+                    {dftDiffColor && (
+                      <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: dftDiffBg, border: `1px solid ${dftDiffBorder}` }}>
+                        <div className="w-1.5 h-1.5" style={{ background: dftDiffColor, transform: 'rotate(45deg)' }} />
+                        <span style={{ fontSize: 12, fontWeight: 500, color: dftDiffColor }}>{dftDiffLabel}</span>
                       </div>
                     )}
 
                     {/* Libellé dépense */}
                     <div>
-                      <label className="text-caption text-[#78716c] mb-1.5 block">Libellé dépense</label>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <label className="text-body-medium text-[#292524]">Libellé dépense</label>
+                        {(data.diffType === 'add' || dftHasDiff('label')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dftDiffColor, transform: 'rotate(45deg)' }} />}
+                      </div>
                       <input type="text" id="dft-label" defaultValue={data.label || ''} placeholder="Nom de la période"
-                        className="w-full px-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e]" />
+                        className={inputCls} style={inputShadow} />
+                      {dftHasDiff('label') && descP(dftOv.label)}
                     </div>
 
                     {/* Pièces justificatives */}
@@ -4599,20 +5516,28 @@ export default function App() {
                     {/* Dates side by side */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-caption text-[#78716c] mb-1.5 block">Date de début</label>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label className="text-body-medium text-[#292524]">Date de début</label>
+                          {(data.diffType === 'add' || dftHasDiff('debut')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dftDiffColor, transform: 'rotate(45deg)' }} />}
+                        </div>
                         <div className="relative">
-                          <input type="text" id="dft-debut" defaultValue={data.debut} className="w-full px-3 py-2 pr-9 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e]" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                          <input type="text" id="dft-debut" defaultValue={data.debut} className={`${inputCls} pr-9`} style={inputShadow} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                           <input type="date" id="dft-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'dft-debut')} />
                           <button type="button" onClick={() => openDatePicker('dft-debut')} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-[#f5f5f4] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                         </div>
+                        {dftHasDiff('debut') && descP(dftOv.debut)}
                       </div>
                       <div>
-                        <label className="text-caption text-[#78716c] mb-1.5 block">Date de fin</label>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label className="text-body-medium text-[#292524]">Date de fin</label>
+                          {(data.diffType === 'add' || dftHasDiff('fin')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dftDiffColor, transform: 'rotate(45deg)' }} />}
+                        </div>
                         <div className="relative">
-                          <input type="text" id="dft-fin" defaultValue={data.fin} className="w-full px-3 py-2 pr-9 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e]" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                          <input type="text" id="dft-fin" defaultValue={data.fin} className={`${inputCls} pr-9`} style={inputShadow} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                           <input type="date" id="dft-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'dft-fin')} />
                           <button type="button" onClick={() => openDatePicker('dft-fin')} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-[#f5f5f4] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                         </div>
+                        {dftHasDiff('fin') && descP(dftOv.fin)}
                       </div>
                     </div>
                     <div className="text-caption text-[#78716c] italic -mt-3">
@@ -4622,27 +5547,35 @@ export default function App() {
                     {/* Base journalière + % DFT side by side */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-caption text-[#78716c] mb-1.5 block">Base journalière</label>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label className="text-body-medium text-[#292524]">Base journalière</label>
+                          {(data.diffType === 'add' || dftHasDiff('base')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dftDiffColor, transform: 'rotate(45deg)' }} />}
+                        </div>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
                           <input type="number" id="dft-base" defaultValue={chiffrageParams.baseJournaliereDFT || 33}
-                            className="w-full pl-8 pr-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e]" />
+                            className={`${inputCls} pl-8`} style={inputShadow} />
                         </div>
+                        {dftHasDiff('base') && descP(`${dftOv.base} €`)}
                       </div>
                       <div>
-                        <label className="text-caption text-[#78716c] mb-1.5 block">% de DFT</label>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label className="text-body-medium text-[#292524]">% de DFT</label>
+                          {(data.diffType === 'add' || dftHasDiff('taux')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dftDiffColor, transform: 'rotate(45deg)' }} />}
+                        </div>
                         <div className="relative">
                           <input type="number" id="dft-taux" defaultValue={data.taux || 100} min={0} max={100}
-                            className="w-full px-3 py-2 pr-8 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e]" />
+                            className={`${inputCls} pr-8`} style={inputShadow} />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">%</span>
                         </div>
+                        {dftHasDiff('taux') && descP(`${dftOv.taux}%`)}
                       </div>
                     </div>
 
                     {/* Commentaire hidden */}
                     <input type="hidden" id="dft-commentaire" value={data.commentaire || ''} />
                   </div>
-                )}
+                  );})()}
 
               </div>
 
@@ -4715,7 +5648,7 @@ export default function App() {
               {/* Footer actions */}
               {editPanel.type === 'dsa-ligne' && (
                 <div className="px-5 py-4 flex justify-between">
-                  <button onClick={() => { handleRejectLigne(data.id); setEditPanel(null); }} className="px-4 py-2 text-[#dc2626] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                  <button onClick={() => { handleRejectLigne(data.id); setEditPanel(null); }} className="px-4 py-2 text-[#c45555] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
                     Supprimer
                   </button>
                   <button onClick={() => {
@@ -4766,7 +5699,7 @@ export default function App() {
                         }))
                       }));
                       setEditPanel(null);
-                    }} className="px-4 py-2 text-[#dc2626] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                    }} className="px-4 py-2 text-[#c45555] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
                       Supprimer
                     </button>
                     <button onClick={() => {
@@ -4878,7 +5811,7 @@ export default function App() {
                     }));
                     setEditPanel(null);
                     setEditingPieceIds([]);
-                  }} className="px-4 py-2 text-[#dc2626] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                  }} className="px-4 py-2 text-[#c45555] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
                     Supprimer
                   </button>
                   <div className="flex gap-2">
@@ -4920,7 +5853,7 @@ export default function App() {
                     }));
                     setEditPanel(null);
                     setEditingPieceIds([]);
-                  }} className="px-4 py-2 text-[#dc2626] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                  }} className="px-4 py-2 text-[#c45555] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
                     Supprimer
                   </button>
                   <div className="flex gap-2">
@@ -4963,7 +5896,7 @@ export default function App() {
                     }));
                     setEditPanel(null);
                     setEditingPieceIds([]);
-                  }} className="px-4 py-2 text-[#dc2626] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                  }} className="px-4 py-2 text-[#c45555] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
                     Supprimer
                   </button>
                   <div className="flex gap-2">
@@ -5004,7 +5937,7 @@ export default function App() {
                   <button onClick={() => {
                     setDftLignes(prev => prev.filter(l => l.id !== data.id));
                     setEditPanel(null); setEditingPieceIds([]);
-                  }} className="px-4 py-2 text-[#dc2626] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                  }} className="px-4 py-2 text-[#c45555] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
                     Supprimer
                   </button>
                   <div className="flex gap-2">
@@ -5046,42 +5979,18 @@ export default function App() {
     return false;
   };
 
-  // Statut effectif d'une ligne
-  const getLigneStatus = (ligne) => {
-    if (ligne.status === 'ai-suggested' || ligne.status === 'suggested') return 'suggested';
-    return 'normal';
-  };
+  // Diff color for a line
+  const getDiffColor = (ligne) => ligne.diffType ? ROW_DIFF_COLORS[ligne.diffType] : null;
 
   // ========== DSA LIGNE COMPONENT ==========
   const _renderDsaLigne = (ligne) => { // eslint-disable-line no-unused-vars
-    const status = getLigneStatus(ligne);
-    const isError = ligne.status === 'error';
+    const diffColor = getDiffColor(ligne);
     const pieceCount = ligne.pieceIds?.length || 0;
 
-    if (isError) {
-      return (
-        <div key={ligne.id} className="relative flex items-center p-3 bg-red-50 group">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-              <X className="w-3 h-3 text-red-500" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-body-medium text-red-900 truncate">{ligne.fileName}</div>
-              <div className="text-caption text-red-600">{ligne.error}</div>
-            </div>
-          </div>
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-l from-red-50 via-red-50 to-transparent pl-6 pr-1">
-            <button onClick={() => openDsaEditPanel({ ...ligne, label: '', type: '', date: '', montant: null })} className="px-2.5 py-1 text-caption bg-red-600 text-white rounded hover:bg-red-700 shadow-sm">Compléter</button>
-            <button onClick={() => handleRejectLigne(ligne.id)} className="p-1.5 text-red-500 bg-white hover:bg-red-100 rounded shadow-sm border border-red-200"><X className="w-3.5 h-3.5" /></button>
-          </div>
-        </div>
-      );
-    }
-
-    // Icône de statut
-    const StatusIcon = () => {
-      if (status === 'suggested') return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-      return null;
+    // Diff indicator dot
+    const DiffIndicator = () => {
+      if (!diffColor) return null;
+      return <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />;
     };
 
     // Indicateur pièces avec tooltip
@@ -5117,8 +6026,9 @@ export default function App() {
 
     return (
       <div key={ligne.id} className="relative flex items-center p-3 hover:bg-[#fafaf9] group transition-colors">
+        {diffColor && <div className="absolute inset-0 pointer-events-none rounded-[inherit]" style={{ boxShadow: `inset 2px 0 0 0 ${diffColor}` }} />}
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <StatusIcon />
+          <DiffIndicator />
           <PieceIndicator />
           <div className="min-w-0">
             <div className="text-body-medium text-[#292524] truncate">{ligne.label || 'Sans libellé'}</div>
@@ -5143,13 +6053,13 @@ export default function App() {
 
   // ========== PGPA/PGPF LIGNE COMPONENT ==========
   const renderPGLigne = (ligne, { onEdit, onDelete, showTiers = true, showPeriode = true, onValidate }) => {
-    const isSuggested = ligne.status === 'ai-suggested' || ligne.status === 'suggested';
+    const diffColor = getDiffColor(ligne);
     const pieceCount = ligne.pieceIds?.length || 0;
 
-    // Icône de statut - harmonisé
-    const StatusIcon = () => {
-      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-      return null;
+    // Diff indicator dot
+    const DiffIndicator = () => {
+      if (!diffColor) return null;
+      return <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />;
     };
 
     // Indicateur pièces avec tooltip
@@ -5194,8 +6104,9 @@ export default function App() {
 
     return (
       <div key={ligne.id} className="relative flex items-center p-3 hover:bg-[#fafaf9] group transition-colors">
+        {diffColor && <div className="absolute inset-0 pointer-events-none rounded-[inherit]" style={{ boxShadow: `inset 2px 0 0 0 ${diffColor}` }} />}
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <StatusIcon />
+          <DiffIndicator />
           <PieceIndicator />
           <div className="min-w-0">
             <div className="text-body-medium text-[#292524] truncate">{ligne.label || 'Sans libellé'}</div>
@@ -5240,10 +6151,11 @@ export default function App() {
           const isCurrentlyStreaming = (key) => streamingField === key;
 
           const fieldClass = (key) => {
-            if (isCurrentlyStreaming(key)) return 'animate-field-glow pl-3 transition-all duration-300';
-            if (isRevealed(key)) return 'border-l-3 border-purple-300/40 pl-3 transition-all duration-500';
+            if (isCurrentlyStreaming(key)) return 'animate-field-glow transition-all duration-300';
+            if (isRevealed(key)) return 'transition-all duration-500';
             return '';
           };
+          const fieldBorderStyle = () => ({});
 
           const rapportPiece = dropFirstPieces.find(p => p.isRapport);
           const rapportName = rapportPiece?.cleanName || rapportPiece?.originalName || 'Rapport d\'expertise';
@@ -5251,18 +6163,36 @@ export default function App() {
           const renderField = (key, label, value, isLongText = false) => {
             const hasValue = isRevealed(key) && value;
             const isActive = isCurrentlyStreaming(key);
+
+            // Diff awareness: look up pending diff for this field
+            const pendingDiff = activeDiffs.find(d => d.entityId === key && d.zone === 'infos_dossier' && !d.approved && !d.rejected);
+            const approvedDiff = activeDiffs.find(d => d.entityId === key && d.zone === 'infos_dossier' && d.approved);
+            const rejectedDiff = activeDiffs.find(d => d.entityId === key && d.zone === 'infos_dossier' && d.rejected);
+            const diffColor = pendingDiff ? ROW_DIFF_COLORS[pendingDiff.type === 'edit' ? 'edit' : pendingDiff.type === 'delete' ? 'delete' : 'add'] : null;
+
             return (
-              <div className={fieldClass(key)} key={key} data-entity-id={key}>
+              <div
+                className={`${fieldClass(key)} group/field relative`}
+                style={{
+                  ...fieldBorderStyle(key),
+                  ...(pendingDiff ? { paddingLeft: 8, borderRadius: 3 } : {}),
+                }}
+                key={key}
+                data-entity-id={key}
+              >
                 <div className="text-caption-medium text-[#78716c] mb-1 flex items-center gap-1">
                   {label}
-                  {isRevealed(key) && (
+                  {pendingDiff && (
+                    <span className="inline-block w-1.5 h-1.5" style={{ background: diffColor, transform: 'rotate(45deg)' }} />
+                  )}
+                  {isRevealed(key) && !pendingDiff && (
                     <span className="relative group">
-                      <Sparkles className="w-2.5 h-2.5 text-purple-500 cursor-help" fill="currentColor" />
+                      <span className="inline-block w-1.5 h-1.5 cursor-help" style={{ background: '#4a9168', transform: 'rotate(45deg)' }} />
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20 pointer-events-none">
                         <div className="bg-zinc-800 text-white rounded-lg px-3 py-2 shadow-lg w-[220px]">
                           <p className="text-caption text-[#a8a29e] mb-1">Extrait depuis</p>
                           <div className="flex items-center gap-2">
-                            <FileText className="w-3.5 h-3.5 text-purple-300 flex-shrink-0" />
+                            <FileText className="w-3.5 h-3.5 text-[#86efac] flex-shrink-0" />
                             <span className="text-caption-medium text-white truncate">{rapportName}</span>
                           </div>
                         </div>
@@ -5271,15 +6201,68 @@ export default function App() {
                     </span>
                   )}
                 </div>
-                <div className={`text-body ${hasValue || isActive ? 'text-[#292524]' : 'text-[#d6d3d1]'} ${isLongText ? 'leading-relaxed' : ''}`}>
-                  {isActive ? (
-                    <span>{streamingText}<span className="inline-block w-0.5 h-4 bg-purple-500 animate-pulse ml-0.5 align-middle"></span></span>
-                  ) : hasValue ? (
-                    value
-                  ) : (
-                    <span className="italic">Non renseigné</span>
-                  )}
-                </div>
+
+                {/* Diff: show before/after values */}
+                {pendingDiff ? (
+                  <div>
+                    {pendingDiff.before != null && (
+                      <div style={{ fontSize: 12, lineHeight: '16px', color: '#9CA3AF', opacity: 0.5, textDecoration: 'line-through' }}>
+                        {pendingDiff.before}
+                      </div>
+                    )}
+                    {pendingDiff.type !== 'delete' && pendingDiff.after != null && (
+                      <div style={{ fontSize: 14, lineHeight: '20px', fontWeight: 500, color: '#292524' }}>
+                        {pendingDiff.after}
+                      </div>
+                    )}
+                    {pendingDiff.type === 'delete' && (
+                      <div style={{ fontSize: 14, lineHeight: '20px', color: '#9CA3AF', textDecoration: 'line-through' }}>
+                        {pendingDiff.before}
+                      </div>
+                    )}
+                  </div>
+                ) : rejectedDiff ? (
+                  <div>
+                    <div style={{ fontSize: 12, lineHeight: '16px', color: '#9CA3AF', opacity: 0.5, textDecoration: 'line-through' }}>
+                      {rejectedDiff.after}
+                    </div>
+                    <div className="text-body text-[#292524]">
+                      {rejectedDiff.before || value || <span className="italic text-[#d6d3d1]">Non renseigné</span>}
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`text-body ${hasValue || isActive ? 'text-[#292524]' : 'text-[#d6d3d1]'} ${isLongText ? 'leading-relaxed' : ''}`}>
+                    {isActive ? (
+                      <span>{streamingText}<span className="inline-block w-0.5 h-4 animate-pulse ml-0.5 align-middle" style={{ background: '#4a9168' }}></span></span>
+                    ) : hasValue ? (
+                      value
+                    ) : (
+                      <span className="italic">Non renseigné</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Accept/Reject buttons on hover */}
+                {pendingDiff && (
+                  <span className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover/field:opacity-100 transition-opacity z-10">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleApproveDiff(key, 'infos_dossier'); }}
+                      className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors"
+                      style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                      title="Approuver"
+                    >
+                      <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRejectDiff(key, 'infos_dossier'); }}
+                      className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors"
+                      style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                      title="Rejeter"
+                    >
+                      <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                    </button>
+                  </span>
+                )}
               </div>
             );
           };
@@ -5350,39 +6333,11 @@ export default function App() {
                     {renderField('sexe', 'Sexe', victimeData.sexe)}
                   </div>
                   <div className="flex-1 px-5 py-4 space-y-1">
-                    <div className={fieldClass('dateNaissance')}>
-                      <div className="text-caption-medium text-[#78716c] mb-0.5 flex items-center gap-1">
-                        Date de naissance
-                        {isRevealed('dateNaissance') && (
-                          <span className="relative group">
-                            <Sparkles className="w-2.5 h-2.5 text-purple-500 cursor-help" fill="currentColor" />
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20 pointer-events-none">
-                              <div className="bg-zinc-800 text-white rounded-lg px-3 py-2 shadow-lg w-[220px]">
-                                <p className="text-caption text-[#a8a29e] mb-1">Extrait depuis</p>
-                                <div className="flex items-center gap-2">
-                                  <FileText className="w-3.5 h-3.5 text-purple-300 flex-shrink-0" />
-                                  <span className="text-caption-medium text-white truncate">{rapportName}</span>
-                                </div>
-                              </div>
-                              <div className="w-2 h-2 bg-zinc-800 rotate-45 mx-auto -mt-1"></div>
-                            </div>
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-body ${isRevealed('dateNaissance') && victimeData.dateNaissance ? 'text-[#292524]' : 'text-[#d6d3d1] italic'}`}>
-                          {isCurrentlyStreaming('dateNaissance') ? (
-                            <span>{streamingText}<span className="inline-block w-0.5 h-4 bg-purple-500 animate-pulse ml-0.5 align-middle"></span></span>
-                          ) : isRevealed('dateNaissance') && victimeData.dateNaissance ? victimeData.dateNaissance : 'Non renseigné'}
-                        </span>
-                        {isRevealed('dateNaissance') && victimeData.dateNaissance && calcAge(victimeData.dateNaissance) && (
-                          <>
-                            <span className="w-1 h-1 rounded-full bg-[#d9d9d9]"></span>
-                            <span className="text-body text-[#78716c]">{calcAge(victimeData.dateNaissance)} ans</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                    {renderField('dateNaissance', 'Date de naissance',
+                      victimeData.dateNaissance
+                        ? <span className="flex items-center gap-2">{victimeData.dateNaissance}{calcAge(victimeData.dateNaissance) && <><span className="w-1 h-1 rounded-full bg-[#d9d9d9]"></span><span className="text-body text-[#78716c]">{calcAge(victimeData.dateNaissance)} ans</span></>}</span>
+                        : null
+                    )}
                   </div>
                 </div>
               </div>
@@ -5639,27 +6594,8 @@ export default function App() {
         );
       }
       if (currentLevel.activeTab === 'chiffrage') {
-        // ========== CALCUL STATUT POSTE ==========
-        const getPosteStatus = (posteId) => {
-          let lignes = [];
-          if (posteId === 'dsa') lignes = dsaLignes;
-          else if (posteId === 'dft') lignes = dftLignes;
-          else if (posteId === 'pgpa') {
-            lignes = [
-              ...pgpaData.revenuRef.lignes,
-              ...pgpaData.revenusPercus,
-              ...pgpaData.ijPercues
-            ];
-          }
-          if (lignes.length === 0) return 'validated';
-          const allSuggested = lignes.every(l => l.status === 'ai-suggested' || l.status === 'suggested');
-          const allValidated = lignes.every(l => l.status === 'validated' && !isLigneIncomplete(l));
-          if (allSuggested) return 'suggested';
-          if (allValidated) return 'validated';
-          return 'in_progress';
-        };
-
-        const getPosteAiReasoning = () => null;
+        // eslint-disable-next-line no-unused-vars
+        const _getPosteAiReasoning = () => null;
 
         // UI de progression pendant l'extraction
         if (extractionState && extractionState.phase !== 'done') {
@@ -5725,18 +6661,18 @@ export default function App() {
           );
         }
 
-        const pgpaAiCount = pgpaData.revenuRef.lignes.filter(l => l.status === 'ai-suggested').length +
-          pgpaData.revenusPercus.filter(l => l.status === 'ai-suggested').length +
-          pgpaData.ijPercues.filter(l => l.status === 'ai-suggested').length;
+        const pgpaAiCount = pgpaData.revenuRef.lignes.filter(l => !!l.diffType).length +
+          pgpaData.revenusPercus.filter(l => !!l.diffType).length +
+          pgpaData.ijPercues.filter(l => !!l.diffType).length;
 
         const _hasAiSuggestions = // eslint-disable-line no-unused-vars
-          dsaLignes.some(l => l.status === 'ai-suggested') ||
-          dftLignes.some(l => l.status === 'ai-suggested') ||
+          dsaLignes.some(l => !!l.diffType) ||
+          dftLignes.some(l => !!l.diffType) ||
           pgpaAiCount > 0;
 
         const _aiSuggestedCount = // eslint-disable-line no-unused-vars
-          dsaLignes.filter(l => l.status === 'ai-suggested').length +
-          dftLignes.filter(l => l.status === 'ai-suggested').length +
+          dsaLignes.filter(l => !!l.diffType).length +
+          dftLignes.filter(l => !!l.diffType).length +
           pgpaAiCount;
 
         // Compute summary totals
@@ -5763,14 +6699,14 @@ export default function App() {
               <div className="flex-1" />
               <button
                 className="h-9 px-3 flex items-center gap-2 border border-[#d6d3d1] rounded-lg whitespace-nowrap hover:bg-stone-50 transition-colors"
-                style={{ fontSize: 13, fontWeight: 500, color: '#44403c' }}
+                style={{ fontSize: 14, fontWeight: 500, color: '#44403c' }}
               >
                 <Download className="w-3.5 h-3.5 text-[#78716c]" />
                 Exporter
               </button>
               <button
                 className="h-9 px-3 flex items-center gap-2 rounded-lg whitespace-nowrap hover:opacity-90 transition-opacity"
-                style={{ fontSize: 13, fontWeight: 500, color: 'white', backgroundColor: '#292524' }}
+                style={{ fontSize: 14, fontWeight: 500, color: 'white', backgroundColor: '#292524' }}
                 onClick={() => setPosteSearchOpen(true)}
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -5812,14 +6748,8 @@ export default function App() {
                         onClick={() => navigateTo(p)}
                         className={`w-full flex items-center h-14 bg-white hover:bg-[#fafaf9] transition-colors ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}
                       >
-                        {/* Green check badge */}
-                        <div className="pl-4 pr-3 flex items-center justify-center">
-                          <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: '#cce6d9' }}>
-                            <Check className="w-3 h-3 text-[#16a34a]" strokeWidth={2.5} />
-                          </span>
-                        </div>
                         {/* Acronym */}
-                        <div className="w-[42px] px-1 flex items-center">
+                        <div className="pl-4 pr-1 w-[52px] flex items-center">
                           <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{p.title}</span>
                         </div>
                         {/* Full name */}
@@ -6007,13 +6937,14 @@ export default function App() {
     // ========== DSA ==========
     if (currentLevel.id === 'dsa') {
       const allLignes = [...dsaLignes].sort((a, b) => {
-        if (a.status !== 'validated' && b.status === 'validated') return -1;
-        if (a.status === 'validated' && b.status !== 'validated') return 1;
+        // Sort diff lines first, then non-diff
+        if (a.diffType && !b.diffType) return -1;
+        if (!a.diffType && b.diffType) return 1;
         return 0;
       });
       // Calculs DSA
-      const totalMontant = dsaLignes.filter(l => l.status === 'validated').reduce((s, l) => s + (l.montant || 0), 0);
-      const totalRembourse = dsaLignes.filter(l => l.status === 'validated').reduce((s, l) => s + (l.dejaRembourse || 0), 0);
+      const totalMontant = dsaLignes.reduce((s, l) => s + (l.montant || 0), 0);
+      const totalRembourse = dsaLignes.reduce((s, l) => s + (l.dejaRembourse || 0), 0);
       const totalResteACharge = totalMontant - totalRembourse;
       const indemniteVictime = totalResteACharge;
       
@@ -6030,17 +6961,13 @@ export default function App() {
               <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
                 <Settings className="w-3.5 h-3.5 text-[#78716c]" />
               </div>
-              <button
-                onClick={() => setActiveParamChip(activeParamChip === 'revaloriser' ? null : 'revaloriser')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                  enabledParams['revaloriser']
-                    ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
-                    : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
-                }`}
-              >
-                <CircleArrowUp className="w-3.5 h-3.5" />
-                Revaloriser IPC Annuel
-              </button>
+              {renderParamPill({
+                paramKey: 'revaloriser',
+                label: 'Revaloriser',
+                values: 'IPC Annuel',
+                enabled: enabledParams['revaloriser'],
+                onClick: () => setActiveParamChip(activeParamChip === 'revaloriser' ? null : 'revaloriser'),
+              })}
             </div>
             {activeParamChip === 'revaloriser' && (
               <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
@@ -6133,20 +7060,20 @@ export default function App() {
             {allLignes.length > 0 && (
               <>
                 <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
-                  <div className="w-12 flex-shrink-0"></div>
-                  <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+                  <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
                   <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
                   <div className="flex-1 min-w-0 px-3 text-right" style={colHeaderStyle}>Date</div>
                   <div className="w-[254px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant</div>
                   <div className="flex-1 min-w-0 px-2 text-right" style={colHeaderStyle}>Reste à charge</div>
-                  <div className="w-11 flex-shrink-0"></div>
                 </div>
 
                 {/* Lignes */}
                 {allLignes.map(l => {
-                  const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                  const isIncomplete = !l.montant || !l.label || !l.date;
+                  const diffColor = l.diffType ? ROW_DIFF_COLORS[l.diffType] : null;
                   const pieceCount = l.pieceIds?.length || 0;
+                  const isDeleted = l.diffType === 'delete';
+                  const isEdited = l.diffType === 'edit';
+                  const old = l.oldValues || {};
 
                   return (
                     <div
@@ -6154,31 +7081,20 @@ export default function App() {
                       onClick={() => openDsaEditPanel(l)}
                       className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
                     >
-                      {/* Left inset border */}
-                      {isSuggested && <div className="absolute inset-0 pointer-events-none rounded-[inherit]" style={{ boxShadow: isIncomplete ? 'inset 2px 0 0 0 #eeb97e' : 'inset 2px 0 0 0 #9333ea' }} />}
-
-                      {/* Status icon */}
-                      <div className="w-12 flex items-center justify-center flex-shrink-0">
-                        {isSuggested && (
-                          isIncomplete ? (
-                            <div className="w-5 h-5 rounded-full bg-[#f9ecd6] flex items-center justify-center">
-                              <AlertCircle className="w-3 h-3 text-[#d97706]" />
-                            </div>
-                          ) : (
-                            <div className="w-5 h-5 rounded-full bg-[#f3e8ff] flex items-center justify-center">
-                              <Sparkles className="w-3 h-3 text-[#9333ea]" />
-                            </div>
-                          )
-                        )}
-                      </div>
+                      {/* Left strip — 4px solid, diff-colored */}
+                      {diffColor && <div className="absolute left-0 top-0 bottom-0 w-1 pointer-events-none" style={{ background: diffColor }} />}
 
                       {/* Doc indicator */}
-                      <div className="w-[52px] flex items-center justify-center flex-shrink-0">
-                        {pieceCount > 0 ? (
+                      <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
+                        {isDeleted ? (
+                          <span className="inline-flex items-center justify-center w-7 h-7 bg-white rounded-md border border-dashed border-[#a8a29e]" style={{ opacity: 0.4 }}>
+                            <FileText className="w-3.5 h-3.5 text-[#a8a29e]" />
+                          </span>
+                        ) : pieceCount > 0 ? (
                           <div className="relative group/piece">
                             <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
                               <FileText className="w-4 h-4 text-[#2563eb]" />
-                              <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#2563eb] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceCount}</span>
+                              <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#1e3a8a] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceCount}</span>
                             </span>
                             <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-[#e7e5e3] rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
                               <div className="text-counter text-[#78716c] uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
@@ -6199,18 +7115,37 @@ export default function App() {
 
                       {/* Libellé */}
                       <div className="flex-1 min-w-0 px-3">
-                        <span className="text-body-medium text-[#292524] truncate block">{l.label || 'Sans libellé'}</span>
+                        {isEdited && old.label ? (
+                          <div className="flex flex-col">
+                            <span style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through', letterSpacing: '0.12px' }} className="truncate block">{old.label}</span>
+                            <span className="text-body-medium truncate block" style={{ color: '#292524' }}>{l.label || 'Sans libellé'}</span>
+                          </div>
+                        ) : (
+                          <span className="text-body-medium truncate block" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{l.label || 'Sans libellé'}</span>
+                        )}
                       </div>
 
                       {/* Date */}
                       <div className="flex-1 min-w-0 px-3 text-right">
-                        <span className="text-body text-[#78716c]">{l.date || '—'}</span>
+                        {isEdited && old.date ? (
+                          <div className="flex flex-col items-end">
+                            <span style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through', letterSpacing: '0.12px' }}>{old.date}</span>
+                            <span className="text-body-medium" style={{ color: '#292524' }}>{l.date}</span>
+                          </div>
+                        ) : (
+                          <span className="text-body" style={{ color: isDeleted ? '#a8a29e' : '#78716c', textDecoration: isDeleted ? 'line-through' : 'none' }}>{l.date || '—'}</span>
+                        )}
                       </div>
 
                       {/* Montant */}
                       <div className="w-[254px] px-3 text-right flex-shrink-0">
-                        {l.montant != null ? (
-                          <span className="text-body text-[#44403c]">{fmt(l.montant)}</span>
+                        {isEdited && old.montant != null ? (
+                          <div className="flex flex-col items-end">
+                            <span style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through', letterSpacing: '0.12px' }}>{fmt(old.montant)}</span>
+                            <span className="text-body-medium" style={{ color: '#292524' }}>{fmt(l.montant)}</span>
+                          </div>
+                        ) : l.montant != null ? (
+                          <span className="text-body" style={{ color: isDeleted ? '#a8a29e' : '#44403c', textDecoration: isDeleted ? 'line-through' : 'none' }}>{fmt(l.montant)}</span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#f9ecd6] rounded-md text-caption-medium text-[#855b31]">
                             <AlertCircle className="w-3 h-3" /> Compléter
@@ -6220,8 +7155,13 @@ export default function App() {
 
                       {/* Reste à charge */}
                       <div className="flex-1 min-w-0 px-2 text-right">
-                        {l.montant != null ? (
-                          <span className="text-body-medium text-[#292524]">{fmt((l.montant || 0) - (l.dejaRembourse || 0))}</span>
+                        {isEdited && old.montant != null ? (
+                          <div className="flex flex-col items-end">
+                            <span style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through', letterSpacing: '0.12px' }}>{fmt((old.montant || 0) - (old.dejaRembourse ?? l.dejaRembourse ?? 0))}</span>
+                            <span className="text-body-medium" style={{ color: '#292524' }}>{fmt((l.montant || 0) - (l.dejaRembourse || 0))}</span>
+                          </div>
+                        ) : l.montant != null ? (
+                          <span className="text-body-medium" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{fmt((l.montant || 0) - (l.dejaRembourse || 0))}</span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#f9ecd6] rounded-md text-caption-medium text-[#855b31]">
                             <AlertCircle className="w-3 h-3" /> Compléter
@@ -6229,15 +7169,34 @@ export default function App() {
                         )}
                       </div>
 
-                      {/* Options menu */}
-                      <div className="w-11 flex items-center justify-center flex-shrink-0">
+                      {/* Actions — overlapping the table right edge */}
+                      {l.diffType ? (
+                        <span className="absolute right-[-20px] top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleApproveDiff(l.id, 'dsa'); }}
+                            className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors"
+                            style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                            title="Approuver"
+                          >
+                            <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleRejectDiff(l.id, 'dsa'); }}
+                            className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors"
+                            style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                            title="Rejeter"
+                          >
+                            <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                          </button>
+                        </span>
+                      ) : (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleRejectLigne(l.id); }}
-                          className="p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
-                      </div>
+                      )}
                     </div>
                   );
                 })}
@@ -6347,17 +7306,13 @@ export default function App() {
               <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
                 <Settings className="w-3.5 h-3.5 text-[#78716c]" />
               </div>
-              <button
-                onClick={() => setActiveParamChip(activeParamChip === 'revaloriser-pgpa' ? null : 'revaloriser-pgpa')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                  enabledParams['revaloriser-pgpa']
-                    ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
-                    : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
-                }`}
-              >
-                <CircleArrowUp className="w-3.5 h-3.5" />
-                Revaloriser {pgpaData.revenuRef.revalorisation === 'ipc-annuel' ? 'IPC Annuel' : pgpaData.revenuRef.revalorisation === 'smic-horaire' ? 'SMIC Horaire' : 'Aucune'}
-              </button>
+              {renderParamPill({
+                paramKey: 'revaloriser-pgpa',
+                label: 'Revaloriser',
+                values: pgpaData.revenuRef.revalorisation === 'ipc-annuel' ? 'IPC Annuel' : pgpaData.revenuRef.revalorisation === 'smic-horaire' ? 'SMIC Horaire' : 'Aucune',
+                enabled: enabledParams['revaloriser-pgpa'],
+                onClick: () => setActiveParamChip(activeParamChip === 'revaloriser-pgpa' ? null : 'revaloriser-pgpa'),
+              })}
             </div>
             {activeParamChip === 'revaloriser-pgpa' && (
               <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
@@ -6416,26 +7371,22 @@ export default function App() {
             {/* Column headers */}
             {allRevenuRefLignes.length > 0 && (
               <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
-                <div className="w-12 flex-shrink-0"></div>
-                <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+                <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
                 <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période</div>
                 <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
-                <div className="w-11 flex-shrink-0"></div>
               </div>
             )}
             {/* Data rows */}
             {allRevenuRefLignes.map(l => {
-              const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
+              const diffColor = l.diffType ? ROW_DIFF_COLORS[l.diffType] : null;
               const pieceCount = l.pieceIds?.length || 0;
+              const isDeleted = l.diffType === 'delete';
               return (
                 <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'pgpa-revenu', title: 'Éditer le revenu', data: l }); }}
-                  className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
-                  {isSuggested && <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: 'inset 2px 0 0 0 #9333ea' }} />}
-                  <div className="w-12 flex items-center justify-center flex-shrink-0">
-                    {isSuggested && <div className="w-5 h-5 rounded-full bg-[#f3e8ff] flex items-center justify-center"><Sparkles className="w-3 h-3 text-[#9333ea]" /></div>}
-                    {l.status === 'validated' && <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center"><Check className="w-3 h-3 text-emerald-500" /></div>}
-                  </div>
-                  <div className="w-[52px] flex items-center justify-center flex-shrink-0">
+                  className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                  >
+                  {diffColor && <div className="absolute left-0 top-0 bottom-0 w-1 pointer-events-none" style={{ background: diffColor }} />}
+                  <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
                     {pieceCount > 0 ? (
                       <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
                         <FileText className="w-4 h-4 text-[#2563eb]" />
@@ -6446,14 +7397,19 @@ export default function App() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0 px-3">
-                    <span className="text-body-medium text-[#292524] block">{l.label || l.annee || 'Sans libellé'}</span>
+                    <span className="text-body-medium block" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{l.label || l.annee || 'Sans libellé'}</span>
                   </div>
                   <div className="w-[200px] px-3 text-right flex-shrink-0">
-                    <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.revalorise || l.montant || 0)}</span>
+                    <span className="text-body-medium font-semibold tabular-nums" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{fmt(l.revalorise || l.montant || 0)}</span>
                   </div>
-                  <div className="w-11 flex items-center justify-center flex-shrink-0">
-                    <button onClick={(e) => { e.stopPropagation(); }} className="p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></button>
-                  </div>
+                  {l.diffType ? (
+                    <span className="absolute right-[-20px] top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <button onClick={(e) => { e.stopPropagation(); handleApproveDiff(l.id, 'pgpa'); }} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} title="Approuver"><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); handleRejectDiff(l.id, 'pgpa'); }} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} title="Rejeter"><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                    </span>
+                  ) : (
+                    <button onClick={(e) => { e.stopPropagation(); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></button>
+                  )}
                 </div>
               );
             })}
@@ -6498,11 +7454,9 @@ export default function App() {
             {/* Column headers */}
             {pgpaData.revenusPercus.length > 0 && (
               <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
-                <div className="w-12 flex-shrink-0"></div>
-                <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+                <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
                 <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période</div>
                 <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
-                <div className="w-11 flex-shrink-0"></div>
               </div>
             )}
             {/* Data rows */}
@@ -6511,10 +7465,7 @@ export default function App() {
               return (
                 <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'pgpa-revenu-percu', title: 'Éditer le revenu perçu', data: l }); }}
                   className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
-                  <div className="w-12 flex items-center justify-center flex-shrink-0">
-                    <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center"><Check className="w-3 h-3 text-emerald-500" /></div>
-                  </div>
-                  <div className="w-[52px] flex items-center justify-center flex-shrink-0">
+                  <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
                     {pieceCount > 0 ? (
                       <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
                         <FileText className="w-4 h-4 text-[#2563eb]" />
@@ -6531,9 +7482,7 @@ export default function App() {
                   <div className="w-[200px] px-3 text-right flex-shrink-0">
                     <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.montant)}</span>
                   </div>
-                  <div className="w-11 flex items-center justify-center flex-shrink-0">
-                    <button onClick={(e) => { e.stopPropagation(); }} className="p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></button>
-                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></button>
                 </div>
               );
             })}
@@ -6563,7 +7512,6 @@ export default function App() {
               <div className="w-28 px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant espéré</div>
               <div className="w-24 px-3 text-center flex-shrink-0" style={colHeaderStyle}>Coefficient</div>
               <div className="w-28 px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant proraté</div>
-              <div className="w-11 flex-shrink-0"></div>
             </div>
             {/* Add row */}
             <div className="flex items-center justify-center h-[45px] bg-white">
@@ -6661,17 +7609,13 @@ export default function App() {
               <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
                 <Settings className="w-3.5 h-3.5 text-[#78716c]" />
               </div>
-              <button
-                onClick={() => setActiveParamChip(activeParamChip === 'capitaliser-pgpf' ? null : 'capitaliser-pgpf')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                  enabledParams['capitaliser-pgpf']
-                    ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
-                    : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
-                }`}
-              >
-                <CircleArrowUp className="w-3.5 h-3.5" />
-                Capitaliser
-              </button>
+              {renderParamPill({
+                paramKey: 'capitaliser-pgpf',
+                label: 'Capitaliser',
+                values: enabledParams['capitaliser-pgpf'] ? 'IPC Annuel, XX, XX ans' : null,
+                enabled: enabledParams['capitaliser-pgpf'],
+                onClick: () => setActiveParamChip(activeParamChip === 'capitaliser-pgpf' ? null : 'capitaliser-pgpf'),
+              })}
             </div>
             {activeParamChip === 'capitaliser-pgpf' && (
               <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
@@ -6753,7 +7697,6 @@ export default function App() {
                   <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
                   <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période</div>
                   <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
-                  <div className="w-11 flex-shrink-0"></div>
                 </div>
               )}
               {/* Data rows */}
@@ -6781,9 +7724,7 @@ export default function App() {
                     <div className="w-[200px] px-3 text-right flex-shrink-0">
                       <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.montant)}</span>
                     </div>
-                    <div className="w-11 flex items-center justify-center flex-shrink-0">
-                      <button onClick={(e) => { e.stopPropagation(); }} className="p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></button>
-                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></button>
                   </div>
                 );
               })}
@@ -6812,7 +7753,6 @@ export default function App() {
                 <div className="w-28 px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant espéré</div>
                 <div className="w-24 px-3 text-center flex-shrink-0" style={colHeaderStyle}>Coefficient</div>
                 <div className="w-28 px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant proraté</div>
-                <div className="w-11 flex-shrink-0"></div>
               </div>
               <div className="flex items-center justify-center h-[45px] bg-white">
                 <button className="flex items-center gap-2 text-body-medium text-[#1e3a8a]">
@@ -6935,17 +7875,13 @@ export default function App() {
               <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
                 <Settings className="w-3.5 h-3.5 text-[#78716c]" />
               </div>
-              <button
-                onClick={() => setActiveParamChip(activeParamChip === 'base-journaliere-dft' ? null : 'base-journaliere-dft')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                  enabledParams['base-journaliere-dft']
-                    ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
-                    : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
-                }`}
-              >
-                <CircleArrowUp className="w-3.5 h-3.5" />
-                Base {chiffrageParams.baseJournaliereDFT} €/j
-              </button>
+              {renderParamPill({
+                paramKey: 'base-journaliere-dft',
+                label: 'Base',
+                values: `${chiffrageParams.baseJournaliereDFT} €/j`,
+                enabled: enabledParams['base-journaliere-dft'],
+                onClick: () => setActiveParamChip(activeParamChip === 'base-journaliere-dft' ? null : 'base-journaliere-dft'),
+              })}
             </div>
             {activeParamChip === 'base-journaliere-dft' && (
               <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
@@ -7032,44 +7968,28 @@ export default function App() {
               {/* Column headers */}
               {dftLignes.length > 0 && (
                 <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
-                  <div className="w-12 flex-shrink-0"></div>
-                  <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+                  <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
                   <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période & jours</div>
                   <div className="w-20 px-3 text-center flex-shrink-0" style={colHeaderStyle}>Taux</div>
                   <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant</div>
-                  <div className="w-11 flex-shrink-0"></div>
                 </div>
               )}
 
               {/* Rows */}
               {dftLignes.map(l => {
-                const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                const isIncomplete = !l.montant || !l.label;
+                const diffColor = l.diffType ? ROW_DIFF_COLORS[l.diffType] : null;
                 const pieceCount = l.pieceIds?.length || 0;
 
+                const isDeleted = l.diffType === 'delete';
                 return (
                   <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'dft-ligne', title: 'Éditer la dépense', data: l }); }}
-                    className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
-                    {/* Left inset border */}
-                    {isSuggested && <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: isIncomplete ? 'inset 2px 0 0 0 #eeb97e' : 'inset 2px 0 0 0 #9333ea' }} />}
-
-                    {/* Status icon */}
-                    <div className="w-12 flex items-center justify-center flex-shrink-0">
-                      {isSuggested && (
-                        isIncomplete ? (
-                          <div className="w-5 h-5 rounded-full bg-[#f9ecd6] flex items-center justify-center">
-                            <AlertCircle className="w-3 h-3 text-[#d97706]" />
-                          </div>
-                        ) : (
-                          <div className="w-5 h-5 rounded-full bg-[#f3e8ff] flex items-center justify-center">
-                            <Sparkles className="w-3 h-3 text-[#9333ea]" />
-                          </div>
-                        )
-                      )}
-                    </div>
+                    className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                    >
+                    {/* Left inset border — diff-colored */}
+                    {diffColor && <div className="absolute left-0 top-0 bottom-0 w-1 pointer-events-none" style={{ background: diffColor }} />}
 
                     {/* Doc indicator */}
-                    <div className="w-[52px] flex items-center justify-center flex-shrink-0">
+                    <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
                       {pieceCount > 0 ? (
                         <div className="relative group/piece">
                           <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
@@ -7092,19 +8012,19 @@ export default function App() {
 
                     {/* Période & jours */}
                     <div className="flex-1 min-w-0 px-3">
-                      <span className="text-body-medium text-[#292524] block">{l.label || 'Sans libellé'}</span>
-                      <span className="text-caption text-[#78716c]">{l.debut} → {l.fin} · {l.jours}j</span>
+                      <span className="text-body-medium block" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{l.label || 'Sans libellé'}</span>
+                      <span className="text-caption" style={{ color: '#78716c', textDecoration: isDeleted ? 'line-through' : 'none' }}>{l.debut} → {l.fin} · {l.jours}j</span>
                     </div>
 
                     {/* Taux */}
                     <div className="w-20 px-3 text-center flex-shrink-0">
-                      <span className={`text-caption-medium px-2 py-0.5 rounded-full ${l.taux === 100 ? 'bg-[#eeece6] text-[#44403c]' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>{l.taux || 100}%</span>
+                      <span className={`text-caption-medium px-2 py-0.5 rounded-full ${isDeleted ? 'bg-red-50 text-red-400 border border-red-200' : l.taux === 100 ? 'bg-[#eeece6] text-[#44403c]' : 'bg-amber-50 text-amber-700 border border-amber-200'}`} style={isDeleted ? { textDecoration: 'line-through' } : undefined}>{l.taux || 100}%</span>
                     </div>
 
                     {/* Montant */}
                     <div className="w-[200px] px-3 text-right flex-shrink-0">
                       {l.montant != null ? (
-                        <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.montant)}</span>
+                        <span className="text-body-medium font-semibold tabular-nums" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{fmt(l.montant)}</span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#f9ecd6] rounded-md text-caption-medium text-[#855b31]">
                           <AlertCircle className="w-3 h-3" /> Compléter
@@ -7112,12 +8032,17 @@ export default function App() {
                       )}
                     </div>
 
-                    {/* Options */}
-                    <div className="w-11 flex items-center justify-center flex-shrink-0">
-                      <button onClick={(e) => { e.stopPropagation(); handleRejectLigne(l.id); }} className="p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Actions — overlapping the table right edge */}
+                    {l.diffType ? (
+                      <span className="absolute right-[-20px] top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <button onClick={(e) => { e.stopPropagation(); handleApproveDiff(l.id, 'dft'); }} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} title="Approuver"><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleRejectDiff(l.id, 'dft'); }} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} title="Rejeter"><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                      </span>
+                    ) : (
+                      <button onClick={(e) => { e.stopPropagation(); handleRejectLigne(l.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity">
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
-                    </div>
+                    )}
                   </div>
                 );
               })}
@@ -7203,17 +8128,12 @@ export default function App() {
                     <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
                       <Settings className="w-3.5 h-3.5 text-[#78716c]" />
                     </div>
-                    <button
-                      onClick={() => setActiveParamChip(activeParamChip === 'revaloriser-se' ? null : 'revaloriser-se')}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                        enabledParams['revaloriser-se']
-                          ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
-                          : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
-                      }`}
-                    >
-                      <CircleArrowUp className="w-3.5 h-3.5" />
-                      Revaloriser
-                    </button>
+                    {renderParamPill({
+                      paramKey: 'revaloriser-se',
+                      label: 'Revaloriser',
+                      enabled: enabledParams['revaloriser-se'],
+                      onClick: () => setActiveParamChip(activeParamChip === 'revaloriser-se' ? null : 'revaloriser-se'),
+                    })}
                   </div>
                   {activeParamChip === 'revaloriser-se' && (
                     <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
@@ -7343,17 +8263,12 @@ export default function App() {
                     <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
                       <Settings className="w-3.5 h-3.5 text-[#78716c]" />
                     </div>
-                    <button
-                      onClick={() => setActiveParamChip(activeParamChip === 'revaloriser-pep' ? null : 'revaloriser-pep')}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                        enabledParams['revaloriser-pep']
-                          ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
-                          : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
-                      }`}
-                    >
-                      <CircleArrowUp className="w-3.5 h-3.5" />
-                      Revaloriser
-                    </button>
+                    {renderParamPill({
+                      paramKey: 'revaloriser-pep',
+                      label: 'Revaloriser',
+                      enabled: enabledParams['revaloriser-pep'],
+                      onClick: () => setActiveParamChip(activeParamChip === 'revaloriser-pep' ? null : 'revaloriser-pep'),
+                    })}
                   </div>
                   {activeParamChip === 'revaloriser-pep' && (
                     <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
@@ -7482,17 +8397,12 @@ export default function App() {
                     <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
                       <Settings className="w-3.5 h-3.5 text-[#78716c]" />
                     </div>
-                    <button
-                      onClick={() => setActiveParamChip(activeParamChip === 'revaloriser-dfp' ? null : 'revaloriser-dfp')}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                        enabledParams['revaloriser-dfp']
-                          ? 'bg-[#eef3fa] border-[#aabcd5] text-[#1e3a8a]'
-                          : 'bg-transparent border-[#d6d3d1] text-[#78716c] hover:border-[#a8a29e]'
-                      }`}
-                    >
-                      <CircleArrowUp className="w-3.5 h-3.5" />
-                      Revaloriser
-                    </button>
+                    {renderParamPill({
+                      paramKey: 'revaloriser-dfp',
+                      label: 'Revaloriser',
+                      enabled: enabledParams['revaloriser-dfp'],
+                      onClick: () => setActiveParamChip(activeParamChip === 'revaloriser-dfp' ? null : 'revaloriser-dfp'),
+                    })}
                   </div>
                   {activeParamChip === 'revaloriser-dfp' && (
                     <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
@@ -7922,7 +8832,17 @@ export default function App() {
     setInfoDossierStreaming(null);
 
     // Reset chat state for new dossier
-    setChatMessages([]);
+    setChatBlocked(true);
+    setChatSidebarOpen(true);
+    setChatMessages([{
+      type: 'ai-thinking',
+      label: 'Analyse de vos documents...',
+      steps: [
+        { tool: 'analyseDocuments', detail: `Je commence l'analyse de ${processingItems.length} document${processingItems.length > 1 ? 's' : ''}`, expandedText: processingItems.map(f => f.originalName).join(', ') },
+      ],
+      expanded: true,
+      _dropFirstThinking: true,
+    }]);
     chatExtractionAnnounced.current = false;
     chatPostesAnnounced.current = false;
     chatAnalyzedPostes.current = new Set();
@@ -8000,6 +8920,29 @@ export default function App() {
           return newPieces;
         });
 
+        // Add progressive step to thinking message
+        const poolEntry = item.poolRef;
+        const stepTool = poolEntry.type === 'Expertise' ? 'readExpertise'
+          : poolEntry.type === 'Factures' ? 'extractMontants'
+          : poolEntry.type === 'Revenus' ? 'readBulletins'
+          : 'readDocument';
+        const stepAction = poolEntry.type === 'Expertise' ? 'Lecture du rapport d\'expertise'
+          : poolEntry.type === 'Factures' ? 'Extraction des montants depuis une facture'
+          : poolEntry.type === 'Revenus' ? 'Lecture d\'un bulletin de salaire'
+          : poolEntry.type === 'Certificat médical' ? 'Lecture d\'un certificat médical'
+          : 'Lecture d\'un document';
+        setChatMessages(prev => prev.map(m => {
+          if (!m._dropFirstThinking) return m;
+          return {
+            ...m,
+            steps: [...(m.steps || []), {
+              tool: stepTool,
+              detail: stepAction,
+              expandedText: poolEntry.cleanName || item.originalName,
+            }],
+          };
+        }));
+
         // Clear justCompleted flag after animation
         setTimeout(() => {
           setDropFirstPieces(prev => prev.map(p => ({ ...p, justCompleted: false })));
@@ -8012,6 +8955,20 @@ export default function App() {
     // Mark all done after all items processed
     const finalDelay = cumulativeDelay + 500;
     const doneTid = setTimeout(() => {
+      // Add classification step
+      const types = [...new Set(items.map(it => it.poolRef?.type).filter(Boolean))];
+      setChatMessages(prev => prev.map(m => {
+        if (!m._dropFirstThinking) return m;
+        return {
+          ...m,
+          steps: [...(m.steps || []), {
+            tool: 'detectPostes',
+            detail: 'Je classe les documents par catégorie',
+            expandedText: `${types.length} types identifiés : ${types.join(', ')}`,
+          }],
+        };
+      }));
+
       setDropFirstProcessingDone(true);
       // If has rapport, start streaming after a small delay
       if (hasRapport) {
@@ -8374,7 +9331,7 @@ export default function App() {
                         {/* Grip handle */}
                         <td className="w-[38px] text-center">
                           {canDrag ? (
-                            <GripVertical className="w-3.5 h-3.5 text-[#d6d3d1] cursor-grab opacity-0 group-hover:opacity-100 transition-opacity inline-block" strokeWidth={1.5} />
+                            <GripVertical className="w-3.5 h-3.5 text-[#d6d3d1] cursor-grab inline-block" strokeWidth={1.5} />
                           ) : null}
                         </td>
                         {/* N° / loader */}
@@ -9285,8 +10242,15 @@ export default function App() {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Bottom: Settings + User */}
+        {/* Bottom: Components + Settings + User */}
         <div className="flex flex-col items-center gap-3">
+          <button
+            onClick={() => setCurrentPage('components')}
+            title="UI Components"
+            className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${currentPage === 'components' ? 'text-white bg-[#44403c]' : 'text-[#78716c] hover:text-[#d6d3d1] hover:bg-[#44403c]'}`}
+          >
+            <LayoutGrid className="w-[18px] h-[18px]" />
+          </button>
           <button className="w-9 h-9 rounded-lg flex items-center justify-center text-[#78716c] hover:text-[#d6d3d1] hover:bg-[#44403c] transition-colors">
             <Settings className="w-[18px] h-[18px]" />
           </button>
@@ -9393,7 +10357,1452 @@ export default function App() {
   
   const parentInfo = getParentInfo(); // eslint-disable-line no-unused-vars
 
+  // ========== SHARED SANDBOX COMPONENTS ==========
+  // These are reused by both the UI Kit and Diff Engine pages.
+
+  const DIFF_TABLE_TAG_STYLES = {
+    add: { bg: '#dcfce7', color: '#064e3b', label: 'ADD' },
+    edit: { bg: '#f9ecd6', color: '#855b31', label: 'EDIT' },
+    mixed: { bg: '#fff7ed', color: '#9a3412', label: 'MIXED' },
+    delete: { bg: '#fef2f2', color: '#991b1b', label: 'DELETE' },
+  };
+  const diffTag = (type) => { const t = DIFF_TABLE_TAG_STYLES[type]; return <span className="text-counter px-1.5 py-0.5 rounded" style={{ background: t.bg, color: t.color, fontWeight: 600 }}>{t.label}</span>; };
+
+  const DIFF_TABLE_INITIAL_ROWS = [
+    { id: 'r1', diffType: 'add', label: 'Hospitalisation jour', date: '15/02/2026', montant: '500 €', reste: '255,00 €', resteBase: '250,00€', taux: '100%', status: 'pending' },
+    { id: 'r2', diffType: 'edit', label: 'Hospitalisation jour', date: '15/02/2026', oldDate: '15/02/2026', montant: '200€', oldMontant: '500€', reste: '255,00 €', resteBase: '250,00€', oldReste: '255,00 €', oldResteBase: '250,00€', taux: '100%', status: 'pending' },
+    { id: 'r3', diffType: 'edit', label: 'Hospitalisation de nuit', oldLabel: 'Hospitalisation jour', date: '15/02/2026', montant: '200€', reste: '255,00 €', resteBase: '250,00€', taux: '100%', bgAlt: true, status: 'pending' },
+    { id: 'r4', diffType: 'edit', label: 'Hospitalisation de nuit', badgeEdit: true, oldTaux: '50%', montant: null, oldMontant: '200€', reste: '255,00 €', resteBase: '250,00€', taux: '100%', tauxSuccess: true, status: 'pending' },
+    { id: 'r5', diffType: 'mixed', label: 'Hospitalisation de nuit', oldLabel: 'Hospitalisation jour', date: '15/02/2026', montant: null, oldMontant: '200€', reste: '255,00 €', resteBase: '250,00€', taux: '100%', tauxSuccess: true, status: 'pending' },
+    { id: 'r6', diffType: 'delete', label: 'Hospitalisation jour', date: '15/02/2026', montant: '500 €', reste: '255,00 €', resteBase: '250,00€', taux: '100%', status: 'pending' },
+    { id: 'r7', diffType: null, label: 'Frais pharmaceutiques', date: '20/07/2022', montant: '320,00 €', reste: '320,00 €', resteBase: '320,00€', taux: '100%', status: null },
+  ];
+
+  const ARTIFACT_CARD_INITIAL_DIFFS = [
+    { id: 'dsa-1', entityLabel: 'Hospitalisation CHU', type: 'add', fields: [{ label: 'Montant', after: '4 500 €' }, { label: 'Date', after: '05/06/2022' }] },
+    { id: 'dsa-2', entityLabel: 'Kinésithérapie', type: 'edit', fields: [{ label: 'Montant', before: '960 €', after: '1 280 €' }] },
+    { id: 'dsa-3', entityLabel: 'Consultation doublon', type: 'delete', fields: [{ label: 'Montant', before: '55 €' }] },
+    { id: 'dsa-4', entityLabel: 'Revalorisation activée', type: 'add', fields: [{ label: 'État', after: 'On', badge: 'success' }, { label: 'Valeur', after: 'IPC Annuel' }] },
+    { id: 'dsa-5', entityLabel: 'Revalorisation modifiée', type: 'edit', fields: [{ label: 'Indice', before: 'IPC Annuel', after: 'IPC Mensuel' }] },
+    { id: 'dsa-6', entityLabel: 'Revalorisation désactivée', type: 'delete', fields: [{ label: 'État', before: 'Off', badge: 'secondary' }] },
+    { id: 'info-1', entityLabel: 'Nom', type: 'add', fields: [{ label: 'Valeur', after: 'Martin' }] },
+    { id: 'info-2', entityLabel: 'Prénom', type: 'add', fields: [{ label: 'Valeur', after: 'Sophie' }] },
+    { id: 'info-3', entityLabel: 'Date de naissance', type: 'add', fields: [{ label: 'Valeur', after: '14/03/1985' }] },
+    { id: 'info-4', entityLabel: 'Date accident', type: 'edit', fields: [{ label: 'Valeur', before: '04/06/2022', after: '05/06/2022' }] },
+    { id: 'info-5', entityLabel: 'Profession', type: 'edit', fields: [{ label: 'Valeur', before: 'Commerciale', after: 'Cadre commercial' }] },
+    { id: 'info-6', entityLabel: 'AIPP', type: 'add', fields: [{ label: 'Valeur', after: '8%' }] },
+  ];
+  const ARTIFACT_CARD_DEFS = [
+    { id: 'kit-dsa', title: 'DSA — Dépenses de santé actuelles', Icon: HeartPulse, diffIds: ['dsa-1', 'dsa-2', 'dsa-3', 'dsa-4', 'dsa-5', 'dsa-6'] },
+    { id: 'kit-info', title: 'Info dossier', Icon: ClipboardList, diffIds: ['info-1', 'info-2', 'info-3', 'info-4', 'info-5', 'info-6'] },
+  ];
+
+  const SharedDiffTableSandbox = () => {
+    const [rows, setRows] = React.useState(DIFF_TABLE_INITIAL_ROWS);
+    const pending = rows.filter(r => r.status === 'pending');
+    const reset = () => setRows(DIFF_TABLE_INITIAL_ROWS);
+    const accept = (id) => setRows(prev => prev.map(r => r.id === id ? { ...r, status: 'accepted' } : r));
+    const reject = (id) => setRows(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+
+    const thStyle = { fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '0 8px' };
+    const oldVal = (v) => <div style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through', letterSpacing: '0.12px' }}>{v}</div>;
+    const newVal = (v, opts = {}) => <div style={{ fontSize: 14, lineHeight: '20px', fontWeight: 500, color: '#292524', ...opts }}>{v}</div>;
+    const delVal = (v) => <span style={{ fontSize: 14, color: '#a8a29e', textDecoration: 'line-through' }}>{v}</span>;
+    const strip = (color) => <div className="absolute left-0 top-0 bottom-0 w-1 pointer-events-none" style={{ background: color }} />;
+
+    const renderBtns = (id) => (
+      <span className="absolute right-[-20px] top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover/diff:opacity-100 transition-opacity z-10">
+        <button onClick={() => accept(id)} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+        <button onClick={() => reject(id)} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+      </span>
+    );
+
+    const docIcon = (r) => {
+      if (r.diffType === 'delete') return <span className="inline-flex items-center justify-center w-7 h-7 bg-white rounded-md border border-dashed border-[#a8a29e]" style={{ opacity: 0.4 }}><FileText className="w-3.5 h-3.5 text-[#a8a29e]" /></span>;
+      if (!r.diffType) return <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]"><FileText className="w-3.5 h-3.5" /></span>;
+      return <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative"><FileText className="w-4 h-4 text-[#2563eb]" /><span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#1e3a8a] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">1</span></span>;
+    };
+
+    const resteCell = (r, muted) => {
+      const c = muted ? '#a8a29e' : '#78716c';
+      const mc = muted ? '#a8a29e' : '#292524';
+      const strike = muted ? 'line-through' : 'none';
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+          <span style={{ fontSize: 12, color: c, textDecoration: strike, letterSpacing: muted ? '0.12px' : undefined }}>{r.resteBase} ·</span>
+          <CircleArrowUp className="w-3 h-3" style={{ color: c }} />
+          <span style={{ fontSize: 14, fontWeight: 500, color: mc, textDecoration: strike }}>{r.reste}</span>
+        </div>
+      );
+    };
+
+    const resolvedDocIcon = <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative"><FileText className="w-4 h-4 text-[#2563eb]" /><span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#1e3a8a] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">1</span></span>;
+
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-caption text-[#78716c]">{pending.length} pending · {rows.filter(r => r.status === 'accepted').length} accepted · {rows.filter(r => r.status === 'rejected').length} rejected</span>
+          <button onClick={reset} className="flex items-center gap-1.5 text-caption-medium text-[#1e3a8a] hover:text-[#1e40af]"><RotateCcw className="w-3 h-3" /> Reset</button>
+        </div>
+        <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-visible">
+          <div className="flex items-center" style={{ borderBottom: '1px solid #e7e5e3', background: '#fafaf9', padding: '8px 0' }}>
+            <div className="w-[52px] flex-shrink-0" style={{ ...thStyle, paddingLeft: 14 }}>Doc</div>
+            <div className="flex-1 min-w-0" style={thStyle}>Libellé</div>
+            <div className="flex-1 min-w-0" style={thStyle}>Taux</div>
+            <div className="flex-1 min-w-0" style={thStyle}>Date</div>
+            <div className="flex-1 min-w-0" style={{ ...thStyle, textAlign: 'right' }}>Montant</div>
+            <div className="flex-1 min-w-0" style={{ ...thStyle, textAlign: 'right' }}>Reste à charge</div>
+            <div className="flex-1 min-w-0" style={{ ...thStyle, textAlign: 'right' }}>Type</div>
+          </div>
+          {rows.filter(r => {
+            if (r.status === 'accepted' && r.diffType === 'delete') return false;
+            if (r.status === 'rejected' && r.diffType === 'add') return false;
+            return true;
+          }).map((r, i, arr) => {
+            const isPending = r.status === 'pending';
+            const isAccepted = r.status === 'accepted';
+            const isRejected = r.status === 'rejected';
+            const isDel = r.diffType === 'delete';
+            const resolved = isAccepted || isRejected;
+            const diffColor = r.diffType ? ROW_DIFF_COLORS[r.diffType === 'mixed' ? 'edit' : r.diffType] : null;
+            const showLabel = resolved && isRejected && r.oldLabel ? r.oldLabel : r.label;
+            const showDate = resolved && isRejected && r.oldDate ? r.oldDate : r.date;
+            const showMontant = resolved && isRejected && r.oldMontant ? r.oldMontant : r.montant;
+            const showTaux = resolved && isRejected && r.oldTaux ? r.oldTaux : r.taux;
+            const showReste = resolved && isRejected && r.oldReste ? r.oldReste : r.reste;
+            const showResteBase = resolved && isRejected && r.oldResteBase ? r.oldResteBase : r.resteBase;
+            return (
+              <div key={r.id} className={`group/diff relative flex items-center transition-colors ${isAccepted ? 'diff-row-accepted' : isRejected ? 'diff-row-rejected' : ''}`} style={{ borderBottom: i < arr.length - 1 ? '1px solid #f0efed' : 'none', minHeight: 56, background: r.bgAlt && isPending ? '#fafaf9' : undefined }}>
+                {isPending && diffColor && strip(diffColor)}
+                <div className="w-[52px] flex-shrink-0 px-2 pl-[14px]">{resolved ? resolvedDocIcon : docIcon(r)}</div>
+                <div className="flex-1 min-w-0 px-2">
+                  {resolved ? newVal(showLabel) : isPending && isDel ? delVal(r.label) : isPending && r.oldLabel ? <>{oldVal(r.oldLabel)}{newVal(r.label)}</> : newVal(r.label)}
+                </div>
+                <div className="flex-1 min-w-0 px-2">
+                  {resolved ? <span className="text-caption-medium px-2 py-0.5 rounded-[6px] bg-[#eeece6] text-[#44403c]">{showTaux}</span>
+                    : isPending && r.badgeEdit ? <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span className="text-caption-medium px-2 py-0.5 rounded-[6px] line-through" style={{ background: '#eeece6', color: '#a8a29e' }}>{r.oldTaux}</span><span className="text-caption-medium px-2 py-0.5 rounded-[6px]" style={{ background: '#cce6d9', color: '#064e3b' }}>{r.taux}</span></div>
+                    : isPending && isDel ? <span className="text-caption-medium px-2 py-0.5 rounded-[6px] line-through" style={{ background: '#f5f5f4', color: '#a8a29e' }}>{r.taux}</span>
+                    : r.tauxSuccess ? <span className="text-caption-medium px-2 py-0.5 rounded-[6px]" style={{ background: '#cce6d9', color: '#064e3b' }}>{r.taux}</span>
+                    : <span className="text-caption-medium px-2 py-0.5 rounded-[6px] bg-[#eeece6] text-[#44403c]">{r.taux}</span>}
+                </div>
+                <div className="flex-1 min-w-0 px-2">
+                  {resolved ? <span style={{ fontSize: 14, color: '#78716c' }}>{showDate}</span> : isPending && isDel ? delVal(r.date) : isPending && r.oldDate ? <>{oldVal(r.oldDate)}{newVal(r.date, { fontWeight: 500 })}</> : <span style={{ fontSize: 14, color: '#78716c' }}>{r.date}</span>}
+                </div>
+                <div className="flex-1 min-w-0 px-2 text-right">
+                  {resolved ? (showMontant ? newVal(showMontant, { color: '#44403c' }) : <span style={{ color: '#a8a29e' }}>—</span>) : r.montant == null && r.oldMontant && isPending ? delVal(r.oldMontant) : isPending && isDel ? delVal(r.montant) : isPending && r.oldMontant ? <>{oldVal(r.oldMontant)}{newVal(r.montant)}</> : r.montant ? newVal(r.montant, { color: '#44403c' }) : <span style={{ color: '#a8a29e' }}>—</span>}
+                </div>
+                <div className="flex-1 min-w-0 px-2 text-right">
+                  {resolved ? resteCell({ resteBase: showResteBase, reste: showReste }, false) : isPending && r.oldReste ? <>{resteCell({ resteBase: r.oldResteBase, reste: r.oldReste }, true)}{resteCell(r, false)}</> : resteCell(r, isPending && isDel)}
+                </div>
+                <div className="flex-1 min-w-0 px-2 text-right">
+                  {r.diffType ? diffTag(r.diffType) : <span className="text-counter text-[#a8a29e]">—</span>}
+                </div>
+                {isPending && r.diffType && renderBtns(r.id)}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const SharedInteractiveCards = ({ initialDiffs = ARTIFACT_CARD_INITIAL_DIFFS, cardDefs = ARTIFACT_CARD_DEFS }) => {
+    const [diffs, setDiffs] = React.useState(initialDiffs);
+    const [expanded, setExpanded] = React.useState({});
+    const reset = () => { setDiffs(initialDiffs); setExpanded({}); };
+
+    return (
+      <div className="flex flex-col gap-5" style={{ maxWidth: 420, marginBottom: 24 }}>
+        {cardDefs.map(card => {
+          const cardDiffs = diffs.filter(d => card.diffIds.includes(d.id));
+          const pending = cardDiffs.filter(d => !d.approved && !d.rejected);
+          const allResolved = cardDiffs.length > 0 && cardDiffs.every(d => d.approved || d.rejected);
+          const isExp = !!expanded[card.id];
+          const summary = { adds: pending.filter(d => d.type === 'add').length, edits: pending.filter(d => d.type === 'edit').length, deletes: pending.filter(d => d.type === 'delete').length };
+          const chips = [];
+          if (summary.adds > 0) chips.push({ icon: Plus, count: summary.adds, color: ROW_DIFF_COLORS.add });
+          if (summary.edits > 0) chips.push({ icon: Pencil, count: summary.edits, color: ROW_DIFF_COLORS.edit });
+          if (summary.deletes > 0) chips.push({ icon: Trash2, count: summary.deletes, color: ROW_DIFF_COLORS.delete });
+          const approvedCnt = cardDiffs.filter(d => d.approved).length;
+          const rejectedCnt = cardDiffs.filter(d => d.rejected).length;
+          const resType = allResolved ? (rejectedCnt === 0 ? 'all-approved' : approvedCnt === 0 ? 'all-rejected' : 'mixed') : null;
+          return (
+            <div key={card.id}>
+              <div className="rounded-lg border border-[#e7e5e3] bg-white overflow-hidden transition-all duration-300" style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -2px 4px rgba(0,0,0,0.03)', opacity: allResolved ? 0.85 : 1 }}>
+                <div className="flex items-stretch cursor-pointer select-none group/header">
+                  <div className="w-10 flex items-center justify-center flex-shrink-0" style={{ background: allResolved ? (resType === 'all-approved' ? '#ecfdf5' : resType === 'all-rejected' ? '#fef2f2' : '#f5f5f4') : '#f5f5f4' }}><card.Icon className="w-3.5 h-3.5" style={{ color: allResolved ? (resType === 'all-approved' ? ROW_DIFF_COLORS.add : resType === 'all-rejected' ? ROW_DIFF_COLORS.delete : '#78716c') : '#78716c' }} /></div>
+                  <div className="flex items-center gap-3 flex-1 min-w-0" style={{ padding: '12px 14px 12px 12px' }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="group-hover/header:underline" style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '18px', textDecorationColor: '#d6d3d1' }}>{card.title}</div>
+                      {allResolved ? (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, lineHeight: '14px', color: resType === 'all-approved' ? ROW_DIFF_COLORS.add : resType === 'all-rejected' ? ROW_DIFF_COLORS.delete : '#78716c' }}>
+                            {resType === 'all-approved' ? 'Tout accepté' : resType === 'all-rejected' ? 'Tout rejeté' : `${approvedCnt}/${cardDiffs.length} accepté${approvedCnt > 1 ? 's' : ''}`}
+                          </span>
+                        </div>
+                      ) : chips.length > 0 ? (
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {chips.map((chip, ci) => { const CI = chip.icon; return <span key={ci} className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: chip.color, fontWeight: 500 }}><CI className="w-2.5 h-2.5" strokeWidth={2.5} />{chip.count}</span>; })}
+                        </div>
+                      ) : null}
+                    </div>
+                    {cardDiffs.length > 0 && <button className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0 hover:bg-[#e7e5e3]" onClick={() => setExpanded(prev => ({ ...prev, [card.id]: !prev[card.id] }))}><ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" style={{ color: '#78716c', transform: isExp ? 'rotate(0deg)' : 'rotate(-90deg)' }} /></button>}
+                  </div>
+                </div>
+                {isExp && (
+                  <div style={{ borderTop: '1px solid #f0efed' }}>
+                    {cardDiffs.map((diff, di) => {
+                      const dotColor = ROW_DIFF_COLORS[diff.type] || ROW_DIFF_COLORS.edit;
+                      return (
+                        <div key={diff.id} className={`group/diff cursor-pointer transition-colors ${diff.approved ? 'diff-row-accepted' : diff.rejected ? 'diff-row-rejected' : 'hover:bg-[#fafaf9]'}`} style={{ padding: '8px 14px', fontSize: 12, borderBottom: di < cardDiffs.length - 1 ? '1px solid #f0efed' : 'none' }}>
+                          <div className="flex items-center gap-2">
+                            {diff.approved ? <Check className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.add }} strokeWidth={3} />
+                              : diff.rejected ? (diff.type === 'delete' ? <RotateCcw className="w-2.5 h-2.5 flex-shrink-0" style={{ color: '#a8a29e' }} strokeWidth={2.5} /> : <X className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.delete }} strokeWidth={3} />)
+                              : <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dotColor, transform: 'rotate(45deg)' }} />}
+                            <span style={{ color: (diff.approved || diff.rejected) ? '#a8a29e' : diff.type === 'delete' ? '#a8a29e' : '#44403c', fontWeight: 500, flex: 1, textDecoration: (diff.type === 'delete' && !diff.rejected) || (diff.rejected && diff.type !== 'delete') ? 'line-through' : 'none' }}>{diff.entityLabel}</span>
+                            {!diff.approved && !diff.rejected && (
+                              <span className="flex items-center gap-1.5 opacity-0 group-hover/diff:opacity-100 transition-opacity flex-shrink-0">
+                                <button className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#ecfdf5] hover:border-[#a5c9b7]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} onClick={() => setDiffs(prev => prev.map(d => d.id === diff.id ? { ...d, approved: true } : d))}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                                <button className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#fef2f2] hover:border-[#cf9d9d]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} onClick={() => setDiffs(prev => prev.map(d => d.id === diff.id ? { ...d, rejected: true } : d))}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 items-center" style={{ paddingLeft: 14 }}>
+                            {diff.fields.map((f, fi) => {
+                              const badgeStyle = f.badge ? { display: 'inline-flex', alignItems: 'center', padding: '1px 6px', borderRadius: 6, fontSize: 11, fontWeight: 500, lineHeight: '16px', ...(f.badge === 'success' ? { background: '#cce6d9', color: '#064e3b' } : { background: '#eeece6', color: '#44403c' }) } : null;
+                              const renderVal = (val, style) => f.badge ? <span style={{ ...badgeStyle, ...style }}>{val}</span> : <span style={style}>{val}</span>;
+                              return (
+                                <span key={fi} className="inline-flex items-center gap-1" style={{ fontSize: 12, color: (diff.approved || diff.rejected) ? '#a8a29e' : '#78716c' }}>
+                                  <span style={{ color: '#a8a29e' }}>{f.label}:</span>{' '}
+                                  {diff.rejected ? (
+                                    diff.type === 'delete' ? renderVal(f.before || f.after, { color: '#78716c' })
+                                    : diff.type === 'add' ? <>{f.after && renderVal(f.after, { textDecoration: 'line-through', color: '#a8a29e', opacity: f.badge ? 0.5 : 1 })}</>
+                                    : <>{f.after && renderVal(f.after, { textDecoration: 'line-through', color: '#a8a29e', opacity: f.badge ? 0.5 : 1 })}{f.before && <span style={{ color: '#a8a29e' }}> → </span>}{f.before && renderVal(f.before, { color: '#78716c' })}</>
+                                  ) : (
+                                    <>{f.before && renderVal(f.before, { textDecoration: 'line-through', color: '#a8a29e', opacity: f.badge ? 0.5 : 1 })}{f.before && f.after && <span style={{ color: '#a8a29e' }}> → </span>}{f.after && renderVal(f.after, f.badge ? {} : { color: diff.approved ? '#a8a29e' : '#44403c', fontWeight: 500 })}</>
+                                  )}
+                                  {f.variants && f.variants.length > 1 && !diff.approved && !diff.rejected && (
+                                    <span className="inline-flex items-center gap-1 ml-1.5" style={{ position: 'relative' }}>
+                                      {f.variants.map((v, vi) => (
+                                        <span key={vi} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ fontSize: 10, fontWeight: 500, background: vi === 0 ? '#eef3fa' : '#f5f5f4', border: `1px solid ${vi === 0 ? '#aabcd5' : '#e7e5e3'}`, color: vi === 0 ? '#1e3a8a' : '#78716c', boxShadow: vi === 0 ? '0 1px 2px rgba(0,0,0,0.06)' : 'none' }}>
+                                          <CircleArrowUp className="w-2.5 h-2.5" />{v.source}: {v.value}
+                                        </span>
+                                      ))}
+                                    </span>
+                                  )}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {cardDiffs.length > 0 && !allResolved && (
+                  <div style={{ borderTop: '1px solid #f0efed' }} className="flex items-center">
+                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2 hover:bg-[#fafaf9]" style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }} onClick={() => setDiffs(prev => prev.map(d => card.diffIds.includes(d.id) ? { ...d, approved: true } : d))}><Check className="w-3.5 h-3.5" strokeWidth={2.5} /> Tout accepter</button>
+                    <div style={{ width: 1, height: 16, background: '#e7e5e3' }} />
+                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2 hover:bg-[#fafaf9]" style={{ fontSize: 12, fontWeight: 500, color: '#a8a29e' }} onClick={() => setDiffs(prev => prev.map(d => card.diffIds.includes(d.id) ? { ...d, rejected: true } : d))}><RotateCcw className="w-3 h-3" /> Tout annuler</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        <button onClick={reset} className="inline-flex items-center gap-1.5 self-start px-3 py-1.5 rounded-md border border-[#e7e5e3] hover:bg-[#fafaf9] transition-colors" style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}><RotateCcw className="w-3 h-3" /> Reset</button>
+      </div>
+    );
+  };
+
+  // ========== COMPONENTS SHOWCASE ==========
+  const renderComponentsPage = () => {
+    const sectionClass = "mb-10";
+    const sectionTitle = (title) => <h2 style={{ fontSize: 18, fontWeight: 600, color: '#292524', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>{title}</h2>;
+    const subTitle = (title) => <h3 style={{ fontSize: 14, fontWeight: 600, color: '#78716c', marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</h3>;
+    const row = (children) => <div className="flex items-start gap-4 flex-wrap mb-4">{children}</div>;
+
+    // Sample diffs for artifact card demo
+    const sampleDiffs = [
+      { actionId: 'demo', zone: 'postes', entityId: 'demo-1', entityLabel: 'Hospitalisation CHU', type: 'add', fields: [{ key: 'montant', label: 'Montant', after: '4 500 €' }, { key: 'date', label: 'Date', after: '05/06/2022' }], timestamp: 1 },
+      { actionId: 'demo', zone: 'postes', entityId: 'demo-2', entityLabel: 'Kinésithérapie', type: 'edit', fields: [{ key: 'montant', label: 'Montant', before: '960 €', after: '1 280 €' }], timestamp: 2 },
+      { actionId: 'demo', zone: 'postes', entityId: 'demo-3', entityLabel: 'Consultation doublon', type: 'delete', fields: [{ key: 'montant', label: 'Montant', before: '55 €' }], timestamp: 3 },
+    ];
+
+    return (
+      <div className="h-screen flex" style={{ backgroundColor: '#F8F7F5', fontFamily: "'Inter', system-ui, sans-serif" }}>
+        {/* Sidebar */}
+        <div className="w-[220px] flex-shrink-0 border-r border-[#e7e5e3] bg-white overflow-y-auto" style={{ padding: '20px 16px' }}>
+          <button onClick={() => setCurrentPage('list')} className="flex items-center gap-2 text-body-medium text-[#78716c] hover:text-[#292524] mb-6 transition-colors">
+            <ChevronRight className="w-4 h-4 rotate-180" /> Retour
+          </button>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#292524', marginBottom: 16 }}>UI Components</div>
+          <nav className="flex flex-col gap-1">
+            {['Diff Rows', 'Artifact Cards', 'Panel Diff Inputs', 'Reasoning', 'Chat Messages', 'Field Streaming', 'Badges & Pills', 'Buttons'].map(s => (
+              /* Hypothèses diff is a subsection of Diff Rows — no separate nav entry needed */
+              <a key={s} href={`#section-${s.toLowerCase().replace(/\s+/g, '-')}`} className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">{s}</a>
+            ))}
+            <div className="mt-4 pt-4 border-t border-[#e7e5e3]">
+              <button onClick={() => setCurrentPage('diff-engine')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5" /> Diff Engine
+              </button>
+            </div>
+          </nav>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto" style={{ padding: '32px 48px' }}>
+          <div>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#292524', marginBottom: 4 }}>Plato UI Components</h1>
+            <p style={{ fontSize: 14, color: '#78716c', marginBottom: 32 }}>Composants visuels du prototype Plato — tester les propriétés et variantes en situation.</p>
+
+            {/* ====== DIFF ROWS ====== */}
+            <div id="section-diff-rows" className={sectionClass}>
+              {sectionTitle('Diff Rows')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Table rows with cell-level diff rendering. Left 4px strip encodes row diff type. Changed cells stack old→new. Figma ref: 1324:17669.</p>
+
+              {subTitle('Multi-column table — all diff types')}
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 12 }}>Interactive sandbox. Accept/reject per row on hover. Reset to restore all pending diffs.</p>
+              <SharedDiffTableSandbox />
+
+
+              {subTitle('Legend — Diff dot colors')}
+              {row(<>
+                {[
+                  { type: 'add', color: ROW_DIFF_COLORS.add, label: 'Ajout' },
+                  { type: 'edit', color: ROW_DIFF_COLORS.edit, label: 'Modification' },
+                  { type: 'delete', color: ROW_DIFF_COLORS.delete, label: 'Suppression' },
+                ].map(d => (
+                  <div key={d.type} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#e7e5e3] bg-white">
+                    <div className="w-1.5 h-1.5" style={{ background: d.color, transform: 'rotate(45deg)' }} />
+                    <span style={{ fontSize: 12, color: '#44403c' }}>{d.label}</span>
+                    <code style={{ fontSize: 11, color: '#a8a29e', fontFamily: 'DM Mono, monospace' }}>{d.color}</code>
+                  </div>
+                ))}
+              </>)}
+
+              {subTitle('Cell types in diff context')}
+              {(() => {
+                const cellLabel = (text) => <div style={{ fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{text}</div>;
+                const cellCard = (children, opts = {}) => <div className="border border-[#e7e5e3] rounded-lg bg-white p-3" style={opts.deleted ? { opacity: 0.55 } : undefined}>{children}</div>;
+                return (
+              <div style={{ maxWidth: 680 }}>
+                {/* TEXT — label never changes, only default + deleted */}
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#292524', marginBottom: 8, marginTop: 4 }}>Text</div>
+                <div className="grid grid-cols-2 gap-3 mb-5" style={{ maxWidth: 440 }}>
+                  {cellCard(<>
+                    {cellLabel('Default')}
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>Kinésithérapie</div>
+                    <div style={{ fontSize: 11, color: '#a8a29e' }}>24 séances post-opératoires</div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Deleted')}
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#a8a29e', textDecoration: 'line-through' }}>Consultation Dr. Dupont</div>
+                    <div style={{ fontSize: 11, color: '#a8a29e', textDecoration: 'line-through' }}>Doublon — déjà comptabilisé</div>
+                  </>, { deleted: true })}
+                </div>
+
+                {/* AMOUNT */}
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#292524', marginBottom: 8 }}>Amount</div>
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {cellCard(<>
+                    {cellLabel('Default')}
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#292524', fontVariantNumeric: 'tabular-nums' }}>4 500,00 €</div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Modified')}
+                    <div style={{ fontSize: 11, color: '#a8a29e', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>960,00 €</div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#292524', fontVariantNumeric: 'tabular-nums' }}>1 280,00 €</div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Deleted')}
+                    <div style={{ fontSize: 14, color: '#a8a29e', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>55,00 €</div>
+                  </>, { deleted: true })}
+                </div>
+
+                {/* DATE */}
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#292524', marginBottom: 8 }}>Date</div>
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {cellCard(<>
+                    {cellLabel('Default')}
+                    <div style={{ fontSize: 12, color: '#44403c' }}>05/06/2022</div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Modified')}
+                    <div style={{ fontSize: 11, color: '#a8a29e', textDecoration: 'line-through' }}>01/01/2023</div>
+                    <div style={{ fontSize: 12, color: '#44403c' }}>15/03/2023</div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Deleted')}
+                    <div style={{ fontSize: 12, color: '#a8a29e', textDecoration: 'line-through' }}>10/01/2022</div>
+                  </>, { deleted: true })}
+                </div>
+
+                {/* BADGE / PILL */}
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#292524', marginBottom: 8 }}>Badge / Pill</div>
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {cellCard(<>
+                    {cellLabel('Default')}
+                    <span className="text-caption-medium px-2 py-0.5 rounded-full bg-[#eeece6] text-[#44403c]">100%</span>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Modified')}
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="text-caption-medium px-2 py-0.5 rounded-full line-through" style={{ background: '#f5f5f4', color: '#a8a29e', fontSize: 10 }}>50%</span>
+                      <span className="text-caption-medium px-2 py-0.5 rounded-full" style={{ background: '#fff7ed', color: ROW_DIFF_COLORS.edit, fontSize: 10 }}>100%</span>
+                    </div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Deleted')}
+                    <span className="text-caption-medium px-2 py-0.5 rounded-full line-through" style={{ background: '#fef2f2', color: '#a8a29e' }}>100%</span>
+                  </>, { deleted: true })}
+                </div>
+
+                {/* TOGGLE / ON-OFF */}
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#292524', marginBottom: 8 }}>Toggle</div>
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {cellCard(<>
+                    {cellLabel('Default')}
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-caption-medium" style={{ background: '#dcfce7', color: ROW_DIFF_COLORS.add }}>ON</span>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Modified')}
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-caption-medium line-through" style={{ background: '#fef2f2', color: '#a8a29e' }}>OFF</span>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-caption-medium" style={{ background: '#dcfce7', color: ROW_DIFF_COLORS.add }}>ON</span>
+                    </div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Deleted')}
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-caption-medium line-through" style={{ background: '#f5f5f4', color: '#a8a29e' }}>ON</span>
+                  </>, { deleted: true })}
+                </div>
+
+                {/* TOTAL WITH REVALO */}
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#292524', marginBottom: 8 }}>Total with Revalo</div>
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {cellCard(<>
+                    {cellLabel('Default')}
+                    <div className="flex items-center gap-1.5">
+                      <span style={{ fontSize: 13, color: '#78716c', fontVariantNumeric: 'tabular-nums' }}>32 400 €</span>
+                      <span style={{ fontSize: 11, color: '#a8a29e' }}>·</span>
+                      <CircleArrowUp className="w-3.5 h-3.5 text-[#1e3a8a]" />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: '#292524', fontVariantNumeric: 'tabular-nums' }}>33 696 €</span>
+                    </div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Modified — amount changed')}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1.5">
+                        <span style={{ fontSize: 11, color: '#a8a29e', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>29 800 €</span>
+                        <span style={{ fontSize: 11, color: '#a8a29e' }}>·</span>
+                        <CircleArrowUp className="w-3 h-3 text-[#a8a29e]" />
+                        <span style={{ fontSize: 11, color: '#a8a29e', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>31 886 €</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span style={{ fontSize: 13, color: '#78716c', fontVariantNumeric: 'tabular-nums' }}>31 200 €</span>
+                        <span style={{ fontSize: 11, color: '#a8a29e' }}>·</span>
+                        <CircleArrowUp className="w-3.5 h-3.5 text-[#1e3a8a]" />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#292524', fontVariantNumeric: 'tabular-nums' }}>33 384 €</span>
+                      </div>
+                    </div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Modified — revalo toggled ON')}
+                    <div className="flex flex-col gap-1">
+                      <div>
+                        <span style={{ fontSize: 13, color: '#a8a29e', fontVariantNumeric: 'tabular-nums' }}>32 400 €</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span style={{ fontSize: 13, color: '#78716c', fontVariantNumeric: 'tabular-nums' }}>32 400 €</span>
+                        <span style={{ fontSize: 11, color: '#a8a29e' }}>·</span>
+                        <CircleArrowUp className="w-3.5 h-3.5 text-[#1e3a8a]" />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#292524', fontVariantNumeric: 'tabular-nums' }}>33 696 €</span>
+                      </div>
+                    </div>
+                  </>)}
+                </div>
+                <div className="grid grid-cols-3 gap-3 mb-2">
+                  {cellCard(<>
+                    {cellLabel('Modified — revalo index changed')}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1.5">
+                        <span style={{ fontSize: 11, color: '#a8a29e', fontVariantNumeric: 'tabular-nums' }}>32 400 €</span>
+                        <span style={{ fontSize: 11, color: '#a8a29e' }}>·</span>
+                        <CircleArrowUp className="w-3 h-3 text-[#a8a29e]" />
+                        <span style={{ fontSize: 11, color: '#a8a29e', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>33 048 €</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span style={{ fontSize: 13, color: '#78716c', fontVariantNumeric: 'tabular-nums' }}>32 400 €</span>
+                        <span style={{ fontSize: 11, color: '#a8a29e' }}>·</span>
+                        <CircleArrowUp className="w-3.5 h-3.5 text-[#1e3a8a]" />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#292524', fontVariantNumeric: 'tabular-nums' }}>33 696 €</span>
+                      </div>
+                    </div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Deleted')}
+                    <div className="flex items-center gap-1.5">
+                      <span style={{ fontSize: 13, color: '#a8a29e', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>32 400 €</span>
+                      <span style={{ fontSize: 11, color: '#a8a29e' }}>·</span>
+                      <CircleArrowUp className="w-3.5 h-3.5 text-[#a8a29e]" />
+                      <span style={{ fontSize: 14, color: '#a8a29e', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>33 696 €</span>
+                    </div>
+                  </>, { deleted: true })}
+                  {cellCard(<>
+                    {cellLabel('Default — no revalo')}
+                    <div className="flex items-center gap-1.5">
+                      <span style={{ fontSize: 14, fontWeight: 600, color: '#292524', fontVariantNumeric: 'tabular-nums' }}>32 400 €</span>
+                    </div>
+                  </>)}
+                </div>
+              </div>
+                );
+              })()}
+
+              {subTitle('Field-level streaming indicator')}
+              <div className="border border-[#e7e5e3] rounded-lg bg-white p-4" style={{ maxWidth: 320 }}>
+                <div className="animate-field-glow">
+                  <div className="text-caption-medium text-[#78716c] mb-1 flex items-center gap-1">
+                    Nom
+                    <span className="inline-block w-1.5 h-1.5" style={{ background: '#4a9168', transform: 'rotate(45deg)' }} />
+                  </div>
+                  <div className="text-body text-[#292524]">
+                    Martin<span className="inline-block w-0.5 h-4 animate-pulse ml-0.5 align-middle" style={{ background: '#4a9168' }}></span>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="text-caption-medium text-[#78716c] mb-1 flex items-center gap-1">
+                    Prénom
+                    <span className="inline-block w-1.5 h-1.5" style={{ background: '#4a9168', transform: 'rotate(45deg)' }} />
+                  </div>
+                  <div className="text-body text-[#292524]">Sophie</div>
+                </div>
+              </div>
+            </div>
+
+            {/* ====== PARAMETER PILLS ====== */}
+            <div id="section-param-pills" className={sectionClass}>
+              {sectionTitle('Parameter Pills')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Hypothèse/parameter pills with diff states. Accept/reject embedded inside the pill when a diff is pending.</p>
+
+              {subTitle('All states')}
+              <div className="flex flex-wrap items-center gap-3" style={{ maxWidth: 900, marginBottom: 24 }}>
+                {/* Default enabled (blue info) */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.info.bg, borderColor: PILL_SCHEMES.info.border, color: PILL_SCHEMES.info.text }}>
+                  <CircleArrowUp className="w-3.5 h-3.5" /> Capitaliser <span style={{ fontWeight: 400 }}>IPC Annuel, XX, XX ans</span>
+                </span>
+                {/* Default disabled (gray neutral) */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.neutral.bg, borderColor: PILL_SCHEMES.neutral.border, color: PILL_SCHEMES.neutral.text }}>
+                  <CircleArrowUp className="w-3.5 h-3.5" /> Param
+                </span>
+                {/* Add diff (blue info + green diamond) */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.info.bg, borderColor: PILL_SCHEMES.info.border, color: PILL_SCHEMES.info.text }}>
+                  <span className="w-1.5 h-1.5 flex-shrink-0" style={{ background: DIAMOND_COLORS.add, transform: 'rotate(45deg)', borderRadius: '0.5px' }} />
+                  <CircleArrowUp className="w-3.5 h-3.5" /> Revaloriser <span style={{ fontWeight: 400 }}>On · IPC Annuel</span>
+                  <span className="inline-flex items-center gap-1 ml-0.5">
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                  </span>
+                </span>
+                {/* Edit diff (blue ON + orange diamond) */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.info.bg, borderColor: PILL_SCHEMES.info.border, color: PILL_SCHEMES.info.text }}>
+                  <span className="w-1.5 h-1.5 flex-shrink-0" style={{ background: DIAMOND_COLORS.edit, transform: 'rotate(45deg)', borderRadius: '0.5px' }} />
+                  <CircleArrowUp className="w-3.5 h-3.5" /> Revalorisation <span style={{ fontWeight: 400 }}><span style={{ textDecoration: 'line-through', opacity: 0.6 }}>IPC Mensuel</span> → Annuel</span>
+                  <span className="inline-flex items-center gap-1 ml-0.5">
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                  </span>
+                </span>
+                {/* Delete diff (gray OFF + red diamond) */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.neutral.bg, borderColor: PILL_SCHEMES.neutral.border, color: PILL_SCHEMES.neutral.text }}>
+                  <span className="w-1.5 h-1.5 flex-shrink-0" style={{ background: DIAMOND_COLORS.delete, transform: 'rotate(45deg)', borderRadius: '0.5px' }} />
+                  <CircleArrowUp className="w-3.5 h-3.5" /> Capitaliser <span style={{ fontWeight: 400 }}><span style={{ textDecoration: 'line-through', opacity: 0.6 }}>On</span> → Off</span>
+                  <span className="inline-flex items-center gap-1 ml-0.5">
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                  </span>
+                </span>
+              </div>
+
+              {subTitle('In-context — settings row with mixed states')}
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 12 }}>Simulates a real settings row: icon + stacked pills, some default, some with pending diffs.</p>
+              <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden" style={{ maxWidth: 880, marginBottom: 24, boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}>
+                <div className="flex items-center gap-3 px-4 h-[52px] flex-wrap">
+                  <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                    <Settings className="w-3.5 h-3.5 text-[#78716c]" />
+                  </div>
+                  {/* Default enabled */}
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.info.bg, borderColor: PILL_SCHEMES.info.border, color: PILL_SCHEMES.info.text }}>
+                    <CircleArrowUp className="w-3.5 h-3.5" /> Capitaliser <span style={{ fontWeight: 400 }}>IPC Annuel, XX, XX ans</span>
+                  </span>
+                  {/* Edit diff */}
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.info.bg, borderColor: PILL_SCHEMES.info.border, color: PILL_SCHEMES.info.text }}>
+                    <span className="w-1.5 h-1.5 flex-shrink-0" style={{ background: DIAMOND_COLORS.edit, transform: 'rotate(45deg)', borderRadius: '0.5px' }} />
+                    <CircleArrowUp className="w-3.5 h-3.5" /> Revalorisation <span style={{ fontWeight: 400 }}><span style={{ textDecoration: 'line-through', opacity: 0.6 }}>IPC Mensuel</span> → Annuel</span>
+                    <span className="inline-flex items-center gap-1 ml-0.5">
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                    </span>
+                  </span>
+                  {/* Delete diff */}
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.neutral.bg, borderColor: PILL_SCHEMES.neutral.border, color: PILL_SCHEMES.neutral.text }}>
+                    <span className="w-1.5 h-1.5 flex-shrink-0" style={{ background: DIAMOND_COLORS.delete, transform: 'rotate(45deg)', borderRadius: '0.5px' }} />
+                    <CircleArrowUp className="w-3.5 h-3.5" /> Capitaliser <span style={{ fontWeight: 400 }}><span style={{ textDecoration: 'line-through', opacity: 0.6 }}>On</span> → Off</span>
+                  </span>
+                  {/* Default disabled */}
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.neutral.bg, borderColor: PILL_SCHEMES.neutral.border, color: PILL_SCHEMES.neutral.text }}>
+                    <CircleArrowUp className="w-3.5 h-3.5" /> Param
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ====== ARTIFACT CARDS ====== */}
+            <div id="section-artifact-cards" className={sectionClass}>
+              {sectionTitle('Artifact Cards')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Cartes affichées dans le chat pour résumer les changements par zone. Expandable avec actions approve/reject.</p>
+
+              {subTitle('By zone type — collapsed')}
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 16 }}>Icon + title identify the zone. Color is reserved exclusively for diff counters (green/orange/red).</p>
+
+              {/* Three cards side by side */}
+              <div className="grid grid-cols-3 gap-4" style={{ maxWidth: 880, marginBottom: 24 }}>
+                {[
+                  { label: 'Poste / Chiffrage', title: 'DSA — Dépenses de santé actuelles', Icon: HeartPulse, adds: 3, edits: 1, deletes: 1 },
+                  { label: 'Documents', title: 'Pièces du dossier', Icon: FileText, adds: 4, edits: 0, deletes: 0 },
+                  { label: 'Infos dossier', title: 'Info dossier', Icon: ClipboardList, adds: 8, edits: 2, deletes: 0 },
+                ].map((zone, zi) => (
+                  <div key={zi}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{zone.label}</div>
+                    <div className="rounded-lg border border-[#e7e5e3] bg-white overflow-hidden" style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -2px 4px rgba(0,0,0,0.03)' }}>
+                      <div className="flex items-stretch">
+                        <div className="w-10 flex items-center justify-center flex-shrink-0" style={{ background: '#f5f5f4' }}>
+                          <zone.Icon className="w-3.5 h-3.5" style={{ color: '#78716c' }} />
+                        </div>
+                        <div className="flex items-center gap-3 flex-1 min-w-0" style={{ padding: '12px 14px 12px 12px' }}>
+                          <div className="flex-1 min-w-0">
+                            <div style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '18px' }}>{zone.title}</div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {zone.adds > 0 && <span className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: ROW_DIFF_COLORS.add, fontWeight: 500 }}><Plus className="w-2.5 h-2.5" strokeWidth={2.5} />{zone.adds}</span>}
+                              {zone.edits > 0 && <span className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: ROW_DIFF_COLORS.edit, fontWeight: 500 }}><Pencil className="w-2.5 h-2.5" strokeWidth={2.5} />{zone.edits}</span>}
+                              {zone.deletes > 0 && <span className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: ROW_DIFF_COLORS.delete, fontWeight: 500 }}><Trash2 className="w-2.5 h-2.5" strokeWidth={2.5} />{zone.deletes}</span>}
+                            </div>
+                          </div>
+                          <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#a8a29e', transform: 'rotate(-90deg)' }} />
+                        </div>
+                      </div>
+                      {/* Footer — always visible */}
+                      <div style={{ borderTop: '1px solid #f0efed' }} className="flex items-center">
+                        <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 hover:bg-[#fafaf9]" style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}>
+                          <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> Tout accepter
+                        </button>
+                        <div style={{ width: 1, height: 14, background: '#e7e5e3' }} />
+                        <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 hover:bg-[#fafaf9]" style={{ fontSize: 12, fontWeight: 500, color: '#a8a29e' }}>
+                          <RotateCcw className="w-3 h-3" /> Tout annuler
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {subTitle('Interactive — expand/collapse + accept/reject')}
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 12 }}>Click chevron to expand/collapse. Accept/reject per row or bulk. Card collapses to "Traité" when all resolved. Click reset to start over.</p>
+
+              <SharedInteractiveCards />
+            </div>
+
+            {/* ====== REASONING ====== */}
+            <div id="section-reasoning" className={sectionClass}>
+              {sectionTitle('Reasoning')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Composant de raisonnement de l'agent dans le chat. Expandable, avec étapes progressives.</p>
+
+              {subTitle('Active (expanded)')}
+              <div style={{ maxWidth: 380 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <div className="flex items-center gap-2 cursor-pointer select-none py-1.5 w-full">
+                  <ChevronDown className="w-3.5 h-3.5 text-[#a8a29e]" />
+                  <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', flex: 1 }}>Lecture du rapport d'expertise</span>
+                  <span className="flex items-center gap-0.5">
+                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-1" />
+                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-2" />
+                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-3" />
+                  </span>
+                </div>
+                <div className="flex flex-col gap-0.5 mb-1.5" style={{ paddingLeft: 6 }}>
+                  {[
+                    { icon: FileSearch, detail: 'Je commence l\'analyse de 6 documents', sub: 'rapport.pdf, facture_1.pdf, ...',done: true },
+                    { icon: Search, detail: 'Lecture du rapport d\'expertise', sub: 'Rapport d\'expertise médico-légale Dr. Blanc', done: true },
+                    { icon: FileMinus, detail: 'Extraction des montants depuis une facture', sub: 'Facture CHU Bordeaux — 4 500 €', done: false },
+                  ].map((step, si) => {
+                    const Icon = step.icon;
+                    return (
+                      <div key={si}>
+                        <div className="flex items-center gap-1.5 py-0.5">
+                          <Icon className="w-3 h-3 flex-shrink-0" style={{ color: step.done ? '#a8a29e' : '#d4845a' }} />
+                          <span style={{ fontSize: 12, color: step.done ? '#78716c' : '#44403c' }}>{step.detail}</span>
+                          {step.done && <span style={{ fontSize: 11, color: '#a8a29e' }}>✓</span>}
+                        </div>
+                        {step.sub && <div style={{ paddingLeft: 18, fontSize: 11, color: '#a8a29e' }}>{step.sub}</div>}
+                      </div>
+                    );
+                  })}
+                  <div className="flex items-center gap-0.5 py-0.5" style={{ paddingLeft: 2 }}>
+                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-1" />
+                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-2" />
+                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-3" />
+                  </div>
+                </div>
+              </div>
+
+              {subTitle('Done (collapsed)')}
+              <div style={{ maxWidth: 380 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <div className="flex items-center gap-2 py-1.5">
+                  <ChevronRight className="w-3.5 h-3.5 text-[#a8a29e]" />
+                  <span style={{ fontSize: 12, fontWeight: 500, color: '#a8a29e', flex: 1 }}>8 étapes</span>
+                  <span className="flex items-center gap-1">
+                    <FileSearch className="w-3 h-3 text-[#a8a29e]" />
+                    <Search className="w-3 h-3 text-[#a8a29e]" />
+                    <FileMinus className="w-3 h-3 text-[#a8a29e]" />
+                    <ListChecks className="w-3 h-3 text-[#a8a29e]" />
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ====== CHAT MESSAGES ====== */}
+            <div id="section-chat-messages" className={sectionClass}>
+              {sectionTitle('Chat Messages')}
+
+              {subTitle('Chat blocked indicator')}
+              <div style={{ maxWidth: 380 }} className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-1.5" style={{ borderBottom: '1px solid #e7e5e3' }}>
+                  <span className="flex items-center gap-0.5">
+                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-1" />
+                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-2" />
+                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-3" />
+                  </span>
+                  <span style={{ fontSize: 11, color: '#a8a29e' }}>Plato analyse vos documents...</span>
+                </div>
+                <div style={{ padding: '12px', opacity: 0.5 }}>
+                  <span className="text-[14px]" style={{ color: '#78716c' }}>Plato analyse vos documents...</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ====== PANEL DIFF INPUTS ====== */}
+            <div id="section-panel-diff-inputs" className={sectionClass}>
+              {sectionTitle('Panel Diff Inputs')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Champs du panel d'édition avec contexte diff agent. Utilise l'anatomie shadcn Field : label → input (shadow-xs) → description. Le sparkle ✦ signale les champs touchés par l'agent, la description affiche l'ancienne valeur.</p>
+
+              {(() => {
+                const inputBase = "w-full px-3 py-2 bg-white border border-[#e7e5e3] rounded-lg text-[14px] leading-5 text-[#292524] placeholder:text-[#78716c] focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)]";
+                const shadowXs = '0 1px 2px rgba(26,26,26,0.05)';
+                const labelStyle = { fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' };
+                const descStyle = { fontSize: 12, fontWeight: 400, color: '#78716c', lineHeight: '16px', letterSpacing: '0.12px', marginTop: 6 };
+                const warnLabelStyle = { ...labelStyle, color: '#855b31' };
+                const warnDescStyle = { ...descStyle, color: '#855b31' };
+
+                // Shadcn Field wrapper
+                const Field = ({ label: lbl, diffColor, warning, description, descColor, children }) => (
+                  <div className="flex flex-col" style={{ gap: 6 }}>
+                    <div className="flex items-center gap-1.5">
+                      <span style={warning ? warnLabelStyle : labelStyle}>{lbl}</span>
+                      {diffColor && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />}
+                    </div>
+                    {children}
+                    {description && <p style={warning ? warnDescStyle : { ...descStyle, color: descColor || '#78716c' }}>{description}</p>}
+                  </div>
+                );
+
+                const PanelDiffDemo = () => {
+                  const [montant, setMontant] = React.useState('1 280,00');
+                  const [base, setBase] = React.useState('30');
+                  const [date, setDate] = React.useState('12/03/2023');
+                  const [label, setLabel] = React.useState('Kinésithérapie (24 séances)');
+                  const [saved, setSaved] = React.useState(false);
+
+                  const reset = () => { setMontant('1 280,00'); setBase('30'); setDate('12/03/2023'); setLabel('Kinésithérapie (24 séances)'); setSaved(false); };
+
+                  if (saved) {
+                    return (
+                      <div style={{ maxWidth: 380 }}>
+                        <div className="border border-[#e7e5e3] rounded-lg bg-white p-5 space-y-5">
+                          <div className="flex items-center gap-2 p-3 rounded-lg" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                            <Check className="w-4 h-4" style={{ color: ROW_DIFF_COLORS.add }} strokeWidth={2.5} />
+                            <span className="text-body-medium" style={{ color: ROW_DIFF_COLORS.add }}>Enregistré — diffs effacés</span>
+                          </div>
+                          <Field label="Libellé dépense"><input type="text" readOnly value={label} className={inputBase} style={{ boxShadow: shadowXs, background: '#fafaf9' }} /></Field>
+                          <Field label="Montant"><input type="text" readOnly value={`€ ${montant}`} className={inputBase} style={{ boxShadow: shadowXs, background: '#fafaf9' }} /></Field>
+                        </div>
+                        <button onClick={reset} className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#e7e5e3] hover:bg-[#fafaf9] transition-colors" style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}>
+                          <RotateCcw className="w-3 h-3" /> Reset
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div style={{ maxWidth: 380 }}>
+                      {/* ---- Edit diff ---- */}
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Edit — agent modified fields</div>
+                      <div className="border border-[#e7e5e3] rounded-lg bg-white p-5 space-y-5">
+                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: '#fff7ed', border: '1px solid #fed7aa' }}>
+                          <div className="w-1.5 h-1.5" style={{ background: ROW_DIFF_COLORS.edit, transform: 'rotate(45deg)' }} />
+                          <span style={{ fontSize: 12, fontWeight: 500, color: ROW_DIFF_COLORS.edit }}>Ligne modifiée par l'agent</span>
+                        </div>
+
+                        {/* Untouched field — no sparkle, no description */}
+                        <Field label="Libellé dépense">
+                          <input type="text" value={label} onChange={e => setLabel(e.target.value)} className={inputBase} style={{ boxShadow: shadowXs }} />
+                        </Field>
+
+                        {/* Agent-touched field — sparkle + old value in description */}
+                        <Field label="Montant" diffColor={ROW_DIFF_COLORS.edit} description="Ancien : 960,00 €">
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#78716c]" style={{ fontSize: 14 }}>€</span>
+                            <input type="text" value={montant} onChange={e => setMontant(e.target.value)} className={inputBase} style={{ boxShadow: shadowXs, paddingLeft: 28 }} />
+                          </div>
+                        </Field>
+
+                        {/* Agent-touched field — sparkle + old value */}
+                        <Field label="Date" diffColor={ROW_DIFF_COLORS.edit} description="Ancien : 01/03/2023">
+                          <input type="text" value={date} onChange={e => setDate(e.target.value)} className={inputBase} style={{ boxShadow: shadowXs }} />
+                        </Field>
+
+                        {/* Agent-touched + revalo */}
+                        <Field label="Base journalière" diffColor={ROW_DIFF_COLORS.edit}>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#78716c]" style={{ fontSize: 14 }}>€</span>
+                            <input type="text" value={base} onChange={e => setBase(e.target.value)} className={inputBase} style={{ boxShadow: shadowXs, paddingLeft: 28 }} />
+                          </div>
+                          {/* Revalo row — matches Figma ↳ Revalo pattern */}
+                          <div className="flex items-center gap-2 px-0.5" style={{ marginTop: 6 }}>
+                            <div className="flex items-center gap-1 flex-1 min-w-0">
+                              <CircleArrowUp className="w-3 h-3 flex-shrink-0" style={{ color: '#1e3a8a' }} />
+                              <span style={{ fontSize: 12, fontWeight: 500, lineHeight: '16px' }}>
+                                <span style={{ color: '#78716c' }}>Revalo (IPC Annuel)</span>{' '}
+                                <span style={{ color: '#1e3a8a' }}>32,70 €</span>
+                              </span>
+                            </div>
+                            <span style={{ fontSize: 12, color: '#78716c', lineHeight: '16px', letterSpacing: '0.12px' }}>30,00 × 1,09</span>
+                          </div>
+                        </Field>
+
+                        {/* Warning state — missing info */}
+                        <Field label="Taux de responsabilité" warning description="Info. manquante pour calculer">
+                          <input type="text" placeholder="Ex: 100" className={inputBase} style={{ boxShadow: '0 0 0 3px #f9ecd6', borderColor: '#eeb97e' }} />
+                        </Field>
+
+                        <div className="flex items-center gap-3 pt-2">
+                          <button onClick={() => setSaved(true)} className="flex-1 px-4 py-2 rounded-lg text-body-medium text-white transition-colors" style={{ backgroundColor: '#292524' }}>Enregistrer</button>
+                          <button onClick={reset} className="px-4 py-2 rounded-lg text-body-medium text-[#44403c] hover:bg-[#f5f5f4] transition-colors">Annuler</button>
+                        </div>
+                      </div>
+
+                      {/* ---- Add ---- */}
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, marginTop: 24 }}>Add — all fields are new</div>
+                      <div className="border border-[#e7e5e3] rounded-lg bg-white p-5 space-y-5">
+                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                          <div className="w-1.5 h-1.5" style={{ background: '#4a9168', transform: 'rotate(45deg)' }} />
+                          <span style={{ fontSize: 12, fontWeight: 500, color: ROW_DIFF_COLORS.add }}>Ligne ajoutée par l'agent</span>
+                        </div>
+                        <Field label="Libellé dépense" diffColor={ROW_DIFF_COLORS.add}>
+                          <input type="text" defaultValue="Hospitalisation CHU Bordeaux" className={inputBase} style={{ boxShadow: shadowXs }} />
+                        </Field>
+                        <Field label="Montant" diffColor={ROW_DIFF_COLORS.add}>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#78716c]" style={{ fontSize: 14 }}>€</span>
+                            <input type="text" defaultValue="4 500,00" className={inputBase} style={{ boxShadow: shadowXs, paddingLeft: 28 }} />
+                          </div>
+                        </Field>
+                        <Field label="Date" diffColor={ROW_DIFF_COLORS.add}>
+                          <input type="text" defaultValue="05/06/2022" className={inputBase} style={{ boxShadow: shadowXs }} />
+                        </Field>
+                      </div>
+
+                      {/* ---- Delete ---- */}
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, marginTop: 24 }}>Delete — read-only</div>
+                      <div className="border border-[#e7e5e3] rounded-lg bg-white p-5 space-y-5" style={{ opacity: 0.6 }}>
+                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
+                          <div className="w-1.5 h-1.5" style={{ background: ROW_DIFF_COLORS.delete, transform: 'rotate(45deg)' }} />
+                          <span style={{ fontSize: 12, fontWeight: 500, color: ROW_DIFF_COLORS.delete }}>Ligne supprimée par l'agent</span>
+                        </div>
+                        <Field label="Libellé dépense">
+                          <div className={inputBase} style={{ boxShadow: shadowXs, color: '#a8a29e', background: '#fafaf9', textDecoration: 'line-through' }}>Consultation Dr. Dupont</div>
+                        </Field>
+                        <Field label="Montant">
+                          <div className={inputBase} style={{ boxShadow: shadowXs, color: '#a8a29e', background: '#fafaf9', textDecoration: 'line-through' }}>55,00 €</div>
+                        </Field>
+                        <div className="flex items-center gap-3 pt-2">
+                          <button className="flex-1 px-4 py-2 rounded-lg text-body-medium text-[#c45555] border border-[#fecaca] hover:bg-[#fef2f2] transition-colors">Confirmer la suppression</button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                };
+
+                return <PanelDiffDemo />;
+              })()}
+            </div>
+
+            {/* ====== FIELD STREAMING ====== */}
+            <div id="section-field-streaming" className={sectionClass}>
+              {sectionTitle('Field Streaming')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Indicateurs visuels lors du remplissage automatique des champs par l'agent.</p>
+
+              {subTitle('States: streaming → revealed → default')}
+              <div className="border border-[#e7e5e3] rounded-lg bg-white p-4 space-y-4" style={{ maxWidth: 320 }}>
+                <div className="animate-field-glow">
+                  <div className="text-caption-medium text-[#78716c] mb-1">En cours de saisie</div>
+                  <div className="text-body text-[#292524]">Mar<span className="inline-block w-0.5 h-4 animate-pulse ml-0.5 align-middle" style={{ background: '#4a9168' }}></span></div>
+                </div>
+                <div className="pl-3" style={{ borderLeft: '2px solid rgba(22, 163, 74, 0.35)' }}>
+                  <div className="text-caption-medium text-[#78716c] mb-1 flex items-center gap-1">Rempli par l'agent <span className="inline-block w-1.5 h-1.5" style={{ background: '#4a9168', transform: 'rotate(45deg)' }} /></div>
+                  <div className="text-body text-[#292524]">Martin</div>
+                </div>
+                <div>
+                  <div className="text-caption-medium text-[#78716c] mb-1">Champ normal</div>
+                  <div className="text-body text-[#292524]">Dupont</div>
+                </div>
+              </div>
+            </div>
+
+            {/* ====== BADGES & PILLS ====== */}
+            <div id="section-badges-&-pills" className={sectionClass}>
+              {sectionTitle('Badges & Pills')}
+
+              {subTitle('Diff type badges')}
+              {row(<>
+                {[
+                  { label: 'Ajout', bg: '#dcfce7', color: ROW_DIFF_COLORS.add },
+                  { label: 'Modif.', bg: '#fff7ed', color: ROW_DIFF_COLORS.edit },
+                  { label: 'Suppr.', bg: '#fef2f2', color: ROW_DIFF_COLORS.delete },
+                ].map(b => (
+                  <span key={b.label} className="inline-flex items-center gap-1 px-1.5 py-0.5 text-caption-medium rounded-full" style={{ background: b.bg, color: b.color }}>{b.label}</span>
+                ))}
+              </>)}
+
+              {subTitle('Diff chips (subtitle)')}
+              {row(<>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#e7e5e3] bg-white">
+                  <span className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: ROW_DIFF_COLORS.add, fontWeight: 500 }}><Plus className="w-2.5 h-2.5" strokeWidth={2.5} />3</span>
+                  <span className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: ROW_DIFF_COLORS.edit, fontWeight: 500 }}><Pencil className="w-2.5 h-2.5" strokeWidth={2.5} />2</span>
+                  <span className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: ROW_DIFF_COLORS.delete, fontWeight: 500 }}><Trash2 className="w-2.5 h-2.5" strokeWidth={2.5} />1</span>
+                </div>
+              </>)}
+
+              {subTitle('DFT taux pills')}
+              {row(<>
+                <span className="text-caption-medium px-2 py-0.5 rounded-full bg-[#eeece6] text-[#44403c]">100%</span>
+                <span className="text-caption-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">50%</span>
+                <span className="text-caption-medium px-2 py-0.5 rounded-full bg-red-50 text-red-400 border border-red-200" style={{ textDecoration: 'line-through' }}>25%</span>
+              </>)}
+            </div>
+
+            {/* ====== BUTTONS ====== */}
+            <div id="section-buttons" className={sectionClass}>
+              {sectionTitle('Buttons')}
+
+              {subTitle('Primary actions')}
+              {row(<>
+                <button className="px-4 py-2 rounded-lg text-body-medium text-white" style={{ backgroundColor: '#b9703f' }}>Action principale</button>
+                <button className="px-4 py-2 rounded-lg text-body-medium text-[#292524] border border-[#e7e5e3] bg-white hover:bg-[#fafaf9]">Secondaire</button>
+                <button className="px-2 py-1 rounded flex items-center gap-1" style={{ fontSize: 12, fontWeight: 500, color: ROW_DIFF_COLORS.edit, background: 'rgba(234,121,73,0.06)' }}>Voir <ChevronRight className="w-3 h-3" /></button>
+              </>)}
+
+              {subTitle('Approve / Reject')}
+              {row(<>
+                <button className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded hover:bg-[#fafaf9] border border-[#e7e5e3]" style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}>
+                  <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> Tout accepter
+                </button>
+                <span className="flex items-center gap-0.5">
+                  <button className="w-6 h-6 rounded flex items-center justify-center hover:bg-[#fafaf9] border border-[#e7e5e3]"><Check className="w-3.5 h-3.5 text-[#44403c]" strokeWidth={2.5} /></button>
+                  <button className="w-6 h-6 rounded flex items-center justify-center hover:bg-[#fafaf9] border border-[#e7e5e3]"><X className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={2.5} /></button>
+                </span>
+              </>)}
+
+              {subTitle('Toast notification')}
+              {row(<>
+                <div className="px-4 py-3 text-white text-body rounded-lg shadow-lg flex items-center gap-2 bg-zinc-800">
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#4a9168' }} />
+                  Informations du dossier extraites
+                </div>
+              </>)}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ========== DIFF ENGINE DOCUMENTATION ==========
+  const renderDiffEnginePage = () => {
+    const sectionClass = "mb-16";
+    const heading = (title) => <h2 style={{ fontSize: 20, fontWeight: 700, color: '#292524', marginBottom: 8 }}>{title}</h2>;
+    const prose = (text) => <p style={{ fontSize: 14, lineHeight: '24px', color: '#57534e', marginBottom: 20, maxWidth: 720 }}>{text}</p>;
+    const quote = (text) => <blockquote style={{ borderLeft: '3px solid #e7e5e3', paddingLeft: 16, margin: '16px 0 24px', fontSize: 14, lineHeight: '22px', color: '#78716c', fontStyle: 'italic', maxWidth: 720 }}>{text}</blockquote>;
+    const sandboxLabel = () => <div style={{ fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Sandbox</div>;
+
+    /* ── S1: The Problem Today ── */
+    const BeforeAfterToggle = () => {
+      const [view, setView] = React.useState('after');
+      return (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            {['before', 'after'].map(v => (
+              <button key={v} onClick={() => setView(v)}
+                className="px-3 py-1.5 rounded-md text-caption-medium transition-colors"
+                style={{ background: view === v ? '#292524' : '#eeece6', color: view === v ? 'white' : '#78716c' }}
+              >{v === 'before' ? 'Before (no feedback)' : 'After (diff system)'}</button>
+            ))}
+          </div>
+          <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden" style={{ maxWidth: 700 }}>
+            {view === 'before' ? (
+              /* Before: flat row, no indication of what changed — the user sees final values but has zero visibility */
+              <div className="flex items-center h-[56px] px-4 gap-4">
+                <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md"><FileText className="w-4 h-4 text-[#2563eb]" /></span>
+                <span className="text-body-medium text-[#292524] flex-1">Hospitalisation jour</span>
+                <span className="text-body text-[#78716c]">15/02/2026</span>
+                <span className="text-body-medium text-[#44403c]">500 €</span>
+              </div>
+            ) : (
+              /* After: diff-aware row with before/after values, colored strip, accept/reject */
+              <div className="group/diff relative flex items-center h-[56px] px-4 gap-4">
+                <div className="absolute left-0 top-0 bottom-0 w-1 pointer-events-none" style={{ background: ROW_DIFF_COLORS.edit }} />
+                <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md"><FileText className="w-4 h-4 text-[#2563eb]" /></span>
+                <span className="text-body-medium text-[#292524] flex-1">Hospitalisation jour</span>
+                <div className="text-right">
+                  <div style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through' }}>15/01/2026</div>
+                  <div className="text-body-medium text-[#292524]">15/02/2026</div>
+                </div>
+                <div className="text-right">
+                  <div style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through' }}>350 €</div>
+                  <div className="text-body-medium text-[#44403c]">500 €</div>
+                </div>
+                <span className="flex items-center gap-1 opacity-0 group-hover/diff:opacity-100 transition-opacity">
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    /* ── S3: Visual System specimens ── */
+    const TypoSpecimen = ({ label, size, weight, color, decoration, value }) => (
+      <div className="px-4 py-3 rounded-lg border border-[#e7e5e3] bg-white" style={{ minWidth: 160 }}>
+        <div className="text-counter text-[#a8a29e] mb-2 uppercase">{label}</div>
+        <span style={{ fontSize: size, fontWeight: weight, color, textDecoration: decoration }}>{value}</span>
+        <div className="text-counter text-[#d6d3d1] mt-2">{size}px · {weight === 500 ? 'Medium' : 'Regular'} · {color}</div>
+      </div>
+    );
+
+    /* ── S4: Canvas Table (reuse DiffTableSandbox) ── */
+
+    /* ── S6: Panel States ── */
+    const PanelField = ({ label, value, diffColor, oldValue }) => (
+      <div className="mb-4">
+        <div className="flex items-center gap-1.5 mb-1">
+          {diffColor && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />}
+          <label style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}>{label}</label>
+        </div>
+        <input type="text" readOnly value={value} className="w-full px-3 py-2 rounded-lg border text-body text-[#292524]" style={{ borderColor: diffColor ? diffColor : '#e7e5e3', background: diffColor ? `${diffColor}08` : 'white' }} />
+        {oldValue && <div style={{ fontSize: 11, color: '#a8a29e', marginTop: 2 }}>Ancien : {oldValue}</div>}
+      </div>
+    );
+
+    /* ── S7: Peels (Hypotheses) ── */
+    const PeelSandbox = () => {
+      const initialPeels = [
+        { id: 'p1', label: 'Revaloriser', diffType: 'add', fields: [{ key: 'etat', before: null, after: 'On' }, { key: 'indice', before: null, after: 'IPC Annuel' }], status: 'pending' },
+        { id: 'p2', label: 'Capitaliser', diffType: null, fields: [], enabled: true, values: 'IPC Annuel, 62 ans', status: null },
+        { id: 'p3', label: 'Revalorisation', diffType: 'edit', fields: [{ key: 'indice', before: 'IPC Mensuel', after: 'IPC Annuel' }], status: 'pending' },
+        { id: 'p4', label: 'Capitaliser', diffType: 'delete', fields: [{ key: 'etat', before: 'On', after: 'Off' }], status: 'pending' },
+        { id: 'p5', label: 'Param', diffType: null, fields: [], enabled: false, status: null },
+      ];
+      const [peels, setPeels] = React.useState(initialPeels);
+      const reset = () => setPeels(initialPeels);
+
+      const renderPill = (p) => {
+        const hasDiff = p.status === 'pending' && !!p.diffType;
+        const isAccepted = p.status === 'accepted';
+        const isRejected = p.status === 'rejected';
+        const resolved = isAccepted || isRejected;
+
+        // Pill scheme: diff add/edit → info (blue ON), diff delete → neutral (gray OFF), no diff → enabled ? info : neutral
+        const scheme = hasDiff
+          ? (p.diffType === 'delete' ? PILL_SCHEMES.neutral : PILL_SCHEMES.info)
+          : (p.enabled !== false ? PILL_SCHEMES.info : PILL_SCHEMES.neutral);
+
+        // Value display
+        let valueContent = null;
+        if (hasDiff && p.fields.length > 0) {
+          const parts = p.fields.map(f => {
+            if (f.before && f.after) return <span key={f.key}><span style={{ textDecoration: 'line-through', opacity: 0.6 }}>{f.before}</span> → {f.after}</span>;
+            if (f.after) return <span key={f.key}>{f.after}</span>;
+            if (f.before) return <span key={f.key} style={{ textDecoration: 'line-through', opacity: 0.6 }}>{f.before}</span>;
+            return null;
+          }).filter(Boolean);
+          valueContent = parts.length > 0 ? parts.reduce((acc, part, i) => i === 0 ? [part] : [...acc, <span key={`sep-${i}`}>, </span>, part], []) : null;
+        } else if (p.values) {
+          valueContent = <span style={{ fontWeight: 400 }}>{p.values}</span>;
+        }
+
+        // Resolved state: determine winning scheme and value
+        // Accepted: keep the "after" state (add/edit → info ON, delete → neutral OFF)
+        // Rejected: revert to "before" state (add → neutral OFF/gone, edit → info with old value, delete → info ON)
+        const resolvedScheme = isAccepted
+          ? (p.diffType === 'delete' ? PILL_SCHEMES.neutral : PILL_SCHEMES.info)
+          : (p.diffType === 'add' ? PILL_SCHEMES.neutral : PILL_SCHEMES.info);
+
+        // Build the resolved value content (the winning value after accept/reject)
+        let resolvedValueContent = null;
+        if (resolved) {
+          if (isAccepted) {
+            // Show the after values (what the agent proposed)
+            const parts = p.fields.filter(f => f.after).map(f => <span key={f.key}>{f.after}</span>);
+            resolvedValueContent = parts.length > 0 ? parts.reduce((acc, part, i) => i === 0 ? [part] : [...acc, <span key={`sep-${i}`}>, </span>, part], []) : null;
+          } else {
+            // Rejected: show the before values (reverted state)
+            const parts = p.fields.filter(f => f.before).map(f => <span key={f.key}>{f.before}</span>);
+            resolvedValueContent = parts.length > 0 ? parts.reduce((acc, part, i) => i === 0 ? [part] : [...acc, <span key={`sep-${i}`}>, </span>, part], []) : null;
+          }
+        }
+
+        return (
+          <span
+            key={p.id}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-all"
+            style={{
+              background: resolved ? resolvedScheme.bg : scheme.bg,
+              borderColor: resolved ? resolvedScheme.border : scheme.border,
+              color: resolved ? resolvedScheme.text : scheme.text,
+            }}
+          >
+            {hasDiff && !resolved && (
+              <span className="w-1.5 h-1.5 flex-shrink-0" style={{ background: DIAMOND_COLORS[p.diffType], transform: 'rotate(45deg)', borderRadius: '0.5px', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} />
+            )}
+            <CircleArrowUp className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>{p.label}</span>
+            {!resolved && valueContent && <span style={{ fontWeight: 400 }}>{valueContent}</span>}
+            {resolved && resolvedValueContent && <span style={{ fontWeight: 400 }}>{resolvedValueContent}</span>}
+            {hasDiff && !resolved && (
+              <span className="inline-flex items-center gap-1 ml-0.5 flex-shrink-0">
+                <span className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors cursor-pointer" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} onClick={() => setPeels(prev => prev.map(pp => pp.id === p.id ? { ...pp, status: 'accepted' } : pp))}>
+                  <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                </span>
+                <span className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors cursor-pointer" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} onClick={() => setPeels(prev => prev.map(pp => pp.id === p.id ? { ...pp, status: 'rejected' } : pp))}>
+                  <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                </span>
+              </span>
+            )}
+          </span>
+        );
+      };
+
+      return (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-caption text-[#78716c]">{peels.filter(p => p.status === 'pending').length} pending · {peels.filter(p => p.status === 'accepted').length} accepted · {peels.filter(p => p.status === 'rejected').length} rejected</span>
+            <button onClick={reset} className="flex items-center gap-1.5 text-caption-medium text-[#1e3a8a] hover:text-[#1e40af]"><RotateCcw className="w-3 h-3" /> Reset</button>
+          </div>
+          {/* In-context: settings row with mixed pill states */}
+          <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden mb-4" style={{ boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}>
+            <div className="flex items-center gap-3 px-4 py-3 flex-wrap">
+              <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                <Settings className="w-3.5 h-3.5 text-[#78716c]" />
+              </div>
+              {peels.map(p => renderPill(p))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    /* ── S8: Rejected State ── */
+    const RejectedStateSandbox = () => {
+      const [step, setStep] = React.useState('pending');
+      const reset = () => setStep('pending');
+      return (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            {['pending', 'rejected', 'clean'].map(s => (
+              <div key={s} className="flex items-center gap-1.5">
+                <div className="w-5 h-5 rounded-full flex items-center justify-center text-counter font-bold" style={{ background: step === s ? '#292524' : '#eeece6', color: step === s ? 'white' : '#78716c' }}>{s === 'pending' ? '1' : s === 'rejected' ? '2' : '3'}</div>
+                <span className="text-caption" style={{ color: step === s ? '#292524' : '#a8a29e', fontWeight: step === s ? 500 : 400 }}>{s === 'pending' ? 'Pending diff' : s === 'rejected' ? 'Rejected' : 'Clean state'}</span>
+              </div>
+            ))}
+          </div>
+          <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-visible" style={{ maxWidth: 600 }}>
+            <div className={`relative flex items-center h-[56px] px-4 gap-4 transition-colors ${step === 'rejected' ? 'diff-row-rejected' : ''}`}>
+              {step === 'pending' && <div className="absolute left-0 top-0 bottom-0 w-1 pointer-events-none" style={{ background: ROW_DIFF_COLORS.edit }} />}
+              <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md"><FileText className="w-4 h-4 text-[#2563eb]" /></span>
+              <span className="text-body-medium text-[#292524] flex-1">Kinésithérapie</span>
+              {step === 'pending' ? (
+                <div className="text-right">
+                  <div style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through' }}>960 €</div>
+                  <div className="text-body-medium text-[#44403c]">1 280 €</div>
+                </div>
+              ) : step === 'rejected' ? (
+                <div className="text-right">
+                  <span className="text-body-medium text-[#292524]">960 €</span>
+                </div>
+              ) : (
+                <span className="text-body-medium text-[#44403c]">960 €</span>
+              )}
+              {step === 'pending' && (
+                <span className="flex items-center gap-1">
+                  <button className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                  <button onClick={() => setStep('rejected')} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 mt-4">
+            {step === 'rejected' && <button onClick={() => setStep('clean')} className="px-3 py-1.5 rounded-md text-caption-medium bg-[#292524] text-white">Dismiss → Clean state</button>}
+            <button onClick={reset} className="px-3 py-1.5 rounded-md text-caption-medium border border-[#e7e5e3] text-[#78716c] hover:bg-[#fafaf9]"><RotateCcw className="w-3 h-3 inline mr-1" />Reset</button>
+          </div>
+        </div>
+      );
+    };
+
+
+    /* ── Surface recap table ── */
+    const SurfaceRecap = () => (
+      <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden" style={{ maxWidth: 700 }}>
+        {[
+          { surface: 'Canvas (table)', sees: true, canAccept: true, canEdit: false },
+          { surface: 'Chat (artifact card)', sees: true, canAccept: true, canEdit: false },
+          { surface: 'Panel', sees: false, canAccept: false, canEdit: true },
+        ].map((row, i) => (
+          <div key={i} className="flex items-center" style={{ borderBottom: i < 2 ? '1px solid #f0efed' : 'none', padding: '10px 16px' }}>
+            <span className="text-body-medium text-[#292524]" style={{ width: 200 }}>{row.surface}</span>
+            <span className="flex-1 text-body" style={{ color: row.sees ? ROW_DIFF_COLORS.add : '#a8a29e' }}>{row.sees ? '✓ Sees diff' : '✗ Banner only'}</span>
+            <span className="flex-1 text-body" style={{ color: row.canAccept ? ROW_DIFF_COLORS.add : '#a8a29e' }}>{row.canAccept ? '✓ Accept/Reject' : '✗ Save = implicit accept'}</span>
+            <span className="flex-1 text-body" style={{ color: row.canEdit ? ROW_DIFF_COLORS.add : '#a8a29e' }}>{row.canEdit ? '✓ Full edit' : '✗ Read-only'}</span>
+          </div>
+        ))}
+      </div>
+    );
+
+    return (
+      <div className="h-screen flex flex-col" style={{ backgroundColor: '#F8F7F5', fontFamily: "'Inter', system-ui, sans-serif" }}>
+        {/* Top bar */}
+        <div className="flex items-center h-12 px-6 border-b border-[#e7e5e3] bg-white flex-shrink-0">
+          <button onClick={() => setCurrentPage('components')} className="flex items-center gap-2 text-body-medium text-[#78716c] hover:text-[#292524] transition-colors">
+            <ChevronRight className="w-4 h-4 rotate-180" /> Back to UI Kit
+          </button>
+          <div className="ml-4 pl-4 border-l border-[#e7e5e3]">
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#292524' }}>Diff Engine</span>
+          </div>
+        </div>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto" style={{ padding: '48px 64px' }}>
+          <div style={{ maxWidth: 1100 }}>
+            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#292524', marginBottom: 4, letterSpacing: '-0.5px' }}>Diff Engine</h1>
+            <p style={{ fontSize: 16, color: '#78716c', marginBottom: 48 }}>Visualization & validation system for agent modifications</p>
+
+            {/* S1: The Problem Today */}
+            <div id="de-problem" className={sectionClass}>
+              {heading('The Problem Today')}
+              {prose('The current system uses line-level statuses (AI, Done, Pending) to indicate state. The lawyer can\'t see which fields changed, can\'t validate granularly, and loses track when the agent modifies multiple postes in one exchange.')}
+              {quote('We replace line statuses (AI / Done / etc.) with a proper diff system.')}
+              {sandboxLabel()}
+              <BeforeAfterToggle />
+            </div>
+
+            {/* S2: The Solution */}
+            <div id="de-solution" className={sectionClass}>
+              {heading('The Solution: Diff Engine')}
+              {prose('The diff engine visualizes and validates agent modifications. It has three roles:')}
+              <div className="flex flex-col gap-3 mb-6" style={{ maxWidth: 720 }}>
+                {[
+                  { n: '1', title: 'Show', desc: 'What changed (addition, modification, deletion) with before/after values' },
+                  { n: '2', title: 'Validate', desc: 'Accept or reject at different levels of granularity' },
+                  { n: '3', title: 'Stay transparent', desc: 'Only agent actions are tracked — manual edits by the lawyer don\'t go through the diff system' },
+                ].map(item => (
+                  <div key={item.n} className="flex items-start gap-3 p-4 rounded-lg border border-[#e7e5e3] bg-white">
+                    <span className="w-6 h-6 rounded-full bg-[#292524] text-white text-caption-medium flex items-center justify-center flex-shrink-0">{item.n}</span>
+                    <div><span className="text-body-medium text-[#292524]">{item.title}.</span> <span className="text-body text-[#57534e]">{item.desc}</span></div>
+                  </div>
+                ))}
+              </div>
+              {quote('The diff is a trust mechanism for agent actions, not a generic change tracker. What the agent does needs to be reviewed. What the lawyer does manually is intentional.')}
+              <div className="text-caption-medium text-[#78716c] mb-3 mt-6 uppercase" style={{ letterSpacing: '0.05em' }}>Diff surfaces</div>
+              <SurfaceRecap />
+            </div>
+
+            {/* S3: Visual System */}
+            <div id="de-visual" className={sectionClass}>
+              {heading('Visual System — Typography & Color')}
+              {prose('The diff relies on typography hierarchy to separate old vs new values, not color on text. Color lives only in structural markers (left border, status tags).')}
+              {sandboxLabel()}
+              <div className="flex flex-wrap gap-3 mb-8">
+                <TypoSpecimen label="Old value (before)" size={12} weight={400} color="#a8a29e" decoration="line-through" value="960 €" />
+                <TypoSpecimen label="New value (after)" size={14} weight={500} color="#292524" decoration="none" value="1 280 €" />
+                <TypoSpecimen label="Added value" size={14} weight={500} color="#292524" decoration="none" value="4 500 €" />
+                <TypoSpecimen label="Deleted value" size={14} weight={400} color="#a8a29e" decoration="line-through" value="55 €" />
+              </div>
+              <div className="text-caption-medium text-[#78716c] mb-3 uppercase" style={{ letterSpacing: '0.05em' }}>Row-level color system</div>
+              <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden" style={{ maxWidth: 400 }}>
+                {[
+                  { type: 'add', label: 'Ajout', color: ROW_DIFF_COLORS.add },
+                  { type: 'edit', label: 'Modif.', color: ROW_DIFF_COLORS.edit },
+                  { type: 'delete', label: 'Suppr.', color: ROW_DIFF_COLORS.delete },
+                  { type: null, label: 'No diff', color: null },
+                ].map((r, i) => (
+                  <div key={i} className="relative flex items-center h-10 px-4" style={{ borderBottom: i < 3 ? '1px solid #f0efed' : 'none' }}>
+                    {r.color && <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: r.color }} />}
+                    <span className="text-body text-[#292524] flex-1">{r.type ? r.label : '—'}</span>
+                    {r.color && <span className="text-counter px-1.5 py-0.5 rounded" style={{ background: r.color + '18', color: r.color, fontWeight: 600 }}>{r.label.toUpperCase()}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Chat (Artifact Cards) */}
+            <div id="de-chat" className={sectionClass}>
+              {heading('Chat (Artifact Cards)')}
+              {prose('The agent displays an artifact card recap in the chat after each action. Cards list added, modified, and deleted postes with per-line detail. Actions: accept all, reject all, or accept/reject line by line.')}
+              {sandboxLabel()}
+              <SharedInteractiveCards />
+            </div>
+
+            {/* S4: Canvas (Poste Table) */}
+            <div id="de-canvas" className={sectionClass}>
+              {heading('Canvas (Poste Table)')}
+              {prose('The table is the primary diff visualization surface. Row-level markers (colored left border + status tag) indicate the diff type. Cell-level stacked values show before/after. Accept/reject buttons appear on hover, overlapping the table edge.')}
+              {sandboxLabel()}
+              <SharedDiffTableSandbox />
+            </div>
+
+            {/* S6: Panel (Manual Editing) */}
+            {/* S7: Hypotheses & Parameters (Peels) */}
+            <div id="de-peels" className={sectionClass}>
+              {heading('Hypotheses & Poste Parameters')}
+              {prose('The diff engine also applies to hypotheses and parameters (revalorization, capitalization, rates). Displayed as pills with embedded accept/reject. Each parameter validates independently.')}
+              {sandboxLabel()}
+              <PeelSandbox />
+            </div>
+
+            {/* S8: Rejected State */}
+            <div id="de-rejected" className={sectionClass}>
+              {heading('Rejected State')}
+              {prose('When a value is rejected, it doesn\'t disappear. The stored value reverts to the previous state. The row shows a brief red flash, then displays the original value in default style.')}
+              {sandboxLabel()}
+              <RejectedStateSandbox />
+            </div>
+
+            {/* S9: Bulk Actions */}
+            <div id="de-bulk" className={sectionClass}>
+              {heading('Bulk Actions → Card Resolution')}
+              {prose('Once all lines in an artifact card are treated (accept all, reject all, or one by one), the card reflects a resolved state. Three variants: all approved (green), all rejected (grey), mixed.')}
+              {sandboxLabel()}
+              <div className="flex gap-4 flex-wrap">
+                <div style={{ flex: 1, minWidth: 300 }}>
+                  <div className="text-caption-medium text-[#a8a29e] mb-2 uppercase">All approved</div>
+                  <SharedInteractiveCards
+                    initialDiffs={[
+                      { id: 'ba-1', entityLabel: 'Hospitalisation CHU', type: 'add', fields: [{ label: 'Montant', after: '4 500 €' }], approved: true },
+                      { id: 'ba-2', entityLabel: 'Kinésithérapie', type: 'edit', fields: [{ label: 'Montant', before: '960 €', after: '1 280 €' }], approved: true },
+                    ]}
+                    cardDefs={[{ id: 'bulk-approved', title: 'DSA — Batch 1', Icon: HeartPulse, diffIds: ['ba-1', 'ba-2'] }]}
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: 300 }}>
+                  <div className="text-caption-medium text-[#a8a29e] mb-2 uppercase">All rejected</div>
+                  <SharedInteractiveCards
+                    initialDiffs={[
+                      { id: 'br-1', entityLabel: 'Hospitalisation CHU', type: 'add', fields: [{ label: 'Montant', after: '4 500 €' }], rejected: true },
+                      { id: 'br-2', entityLabel: 'Consultation doublon', type: 'delete', fields: [{ label: 'Montant', before: '55 €' }], rejected: true },
+                    ]}
+                    cardDefs={[{ id: 'bulk-rejected', title: 'DSA — Batch 2', Icon: HeartPulse, diffIds: ['br-1', 'br-2'] }]}
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: 300 }}>
+                  <div className="text-caption-medium text-[#a8a29e] mb-2 uppercase">Mixed</div>
+                  <SharedInteractiveCards
+                    initialDiffs={[
+                      { id: 'bm-1', entityLabel: 'Hospitalisation CHU', type: 'add', fields: [{ label: 'Montant', after: '4 500 €' }], approved: true },
+                      { id: 'bm-2', entityLabel: 'Kinésithérapie', type: 'edit', fields: [{ label: 'Montant', before: '960 €', after: '1 280 €' }], rejected: true },
+                      { id: 'bm-3', entityLabel: 'Consultation', type: 'edit', fields: [{ label: 'Date', before: '04/06', after: '05/06' }], approved: true },
+                    ]}
+                    cardDefs={[{ id: 'bulk-mixed', title: 'DSA — Batch 3', Icon: HeartPulse, diffIds: ['bm-1', 'bm-2', 'bm-3'] }]}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* What we don't build */}
+            <div id="de-exclusions" className={sectionClass}>
+              {heading('What We Don\'t Build')}
+              <div className="flex flex-col gap-2" style={{ maxWidth: 720 }}>
+                {[
+                  'Line statuses AI / Done / Pending → replaced by the diff system',
+                  'No diff visuals inside the panel',
+                  'No separate review mode vs edit mode',
+                  'No per-field accept/reject inside the panel',
+                  'No read-only panel state for deleted lines',
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 text-body text-[#78716c]">
+                    <X className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={2} />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Panel (Manual Editing) — last section */}
+            <div id="de-panel" className="mb-8">
+              {heading('Panel (Manual Editing)')}
+              {prose('The panel is NOT part of the diff system. It always shows the latest version. A subtle banner indicates "Modified by assistant" when a diff is pending. Edit + save = implicit accept. Deleted lines cannot be opened in the panel.')}
+              {sandboxLabel()}
+              <div className="flex gap-6 flex-wrap">
+                <div className="rounded-lg border border-[#e7e5e3] bg-white p-5" style={{ width: 280 }}>
+                  <div className="text-caption-medium text-[#a8a29e] mb-3 uppercase">Normal</div>
+                  <PanelField label="Libellé" value="Hospitalisation jour" />
+                  <PanelField label="Date" value="15/02/2026" />
+                  <PanelField label="Montant" value="500 €" />
+                </div>
+                <div className="rounded-lg border border-[#e7e5e3] bg-white p-5" style={{ width: 280 }}>
+                  <div className="text-caption-medium text-[#a8a29e] mb-3 uppercase">Pending diff</div>
+                  <div className="rounded-lg p-3 mb-4 flex items-center gap-2" style={{ background: `${ROW_DIFF_COLORS.edit}10`, border: `1px solid ${ROW_DIFF_COLORS.edit}30` }}>
+                    <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: ROW_DIFF_COLORS.edit, transform: 'rotate(45deg)' }} />
+                    <span style={{ fontSize: 12, fontWeight: 500, color: ROW_DIFF_COLORS.edit }}>Modifié par l'assistant</span>
+                  </div>
+                  <PanelField label="Libellé" value="Hospitalisation jour" />
+                  <PanelField label="Montant" value="1 280 €" diffColor={ROW_DIFF_COLORS.edit} oldValue="960 €" />
+                  <PanelField label="Date" value="05/06/2022" diffColor={ROW_DIFF_COLORS.edit} oldValue="04/06/2022" />
+                </div>
+                <div className="rounded-lg border border-[#e7e5e3] bg-white p-5 flex flex-col items-center justify-center" style={{ width: 280, minHeight: 240 }}>
+                  <div className="text-caption-medium text-[#a8a29e] mb-3 uppercase">Deleted line</div>
+                  <div className="w-10 h-10 rounded-full bg-[#fef2f2] flex items-center justify-center mb-3">
+                    <Trash2 className="w-4 h-4" style={{ color: ROW_DIFF_COLORS.delete }} />
+                  </div>
+                  <span className="text-body text-[#78716c] text-center">Cette ligne a été supprimée par l'agent.</span>
+                  <span className="text-caption text-[#a8a29e] mt-1">Restaurez ou confirmez depuis le tableau.</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ========== ROUTING ==========
+  if (currentPage === 'diff-engine') {
+    return renderDiffEnginePage();
+  }
+  if (currentPage === 'components') {
+    return renderComponentsPage();
+  }
   if (currentPage === 'list') {
     return renderDossierListPage();
   }
@@ -9429,9 +11838,9 @@ export default function App() {
 
       {/* Toast notification */}
       {toastMessage && (
-        <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 text-white text-body rounded-lg shadow-lg flex items-center gap-2 animate-fade-up ${toastMessage?.type === 'ai' ? 'bg-purple-900' : 'bg-zinc-800'}`}>
+        <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 text-white text-body rounded-lg shadow-lg flex items-center gap-2 animate-fade-up bg-zinc-800`}>
           {toastMessage?.type === 'ai' ? (
-            <Sparkles className="w-4 h-4 text-purple-300" fill="currentColor" />
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#4a9168' }} />
           ) : (
             <CheckCircle2 className="w-4 h-4 text-teal-400" />
           )}
