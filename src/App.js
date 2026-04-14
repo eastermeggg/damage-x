@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus } from 'lucide-react';
 
 const POSTES_TAXONOMY = [
   {
@@ -61,6 +61,165 @@ const POSTES_TAXONOMY = [
       ]},
     ]
   }
+];
+
+// ========== BARÈMES & RÉFÉRENTIELS — DEFAULT DATA ==========
+const DEFAULT_BAREMES = [
+  {
+    id: 'gdp_2025_prospective',
+    label: 'GDP 2025 Prospective 0,50%',
+    type: 'bareme',
+    status: 'active',
+    source: 'default',
+    tableData: {
+      columns: ['16 ans', '18 ans', '20 ans', '21 ans', '25 ans', '29 ans', '50 ans', '55 ans', '60 ans', '62 ans', '64 ans', '65 ans', '67 ans'],
+      rows: [
+        { header: '0', values: [0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000] },
+        { header: '1', values: [0.998, 0.998, 0.998, 0.998, 0.998, 0.998, 0.998, 0.998, 0.998, 0.998, 0.998, 0.998, 0.998] },
+        { header: '5', values: [4.951, 4.951, 4.951, 4.951, 4.951, 4.951, 4.951, 4.951, 4.951, 4.951, 4.951, 4.951, 4.951] },
+        { header: '10', values: [9.778, 9.778, 9.778, 9.778, 9.778, 9.778, 9.778, 9.778, 9.778, 9.778, 9.778, 9.778, 9.778] },
+        { header: '15', values: [14.486, 14.486, 14.486, 14.486, 14.486, 14.486, 14.486, 14.486, 14.486, 14.486, 14.486, 14.486, 14.486] },
+        { header: '20', values: [19.075, 19.075, 19.075, 19.075, 19.075, 19.075, 19.075, 19.075, 19.075, 19.075, 19.075, 19.075, 19.075] },
+        { header: '25', values: [23.550, 23.550, 23.550, 23.550, 23.550, 23.550, 23.550, 23.550, 23.550, 23.550, 23.550, 23.550, 23.550] },
+        { header: '30', values: [27.915, 27.915, 27.915, 27.915, 27.915, 27.915, 27.915, 27.915, 27.915, 27.915, 27.915, 27.915, 27.915] },
+        { header: '35', values: [32.173, 32.173, 32.173, 32.173, 32.173, 32.173, 32.173, 32.173, 32.173, 32.173, 32.173, 32.173, 32.173] },
+        { header: '40', values: [36.327, 36.327, 36.327, 36.327, 36.327, 36.327, 36.327, 36.327, 36.327, 36.327, 36.327, 36.327, 36.327] },
+        { header: '42', values: [37.984, 37.984, 37.984, 37.984, 37.984, 37.984, 37.984, 37.984, 37.984, 37.984, 37.984, 37.984, 37.984] },
+        { header: '45', values: [40.381, 40.381, 40.381, 40.381, 40.381, 40.381, 40.381, 40.381, 40.381, 40.381, 40.381, 40.381, 40.381] },
+        { header: '50', values: [44.338, 44.338, 44.338, 44.338, 44.338, 44.338, 44.338, 44.338, 44.338, 44.338, 44.338, 44.338, 44.338] },
+        { header: 'Viager', values: [52.587, 50.644, 48.711, 47.748, 43.932, 40.181, 26.441, 22.981, 19.504, 17.822, 16.119, 15.283, 13.622] },
+      ]
+    }
+  },
+  {
+    id: 'gdp_2025_stationnaire',
+    label: 'GDP 2025 Stationnaire 0,50%',
+    type: 'bareme',
+    status: 'active',
+    source: 'default',
+    tableData: {
+      columns: ['16 ans', '18 ans', '20 ans', '21 ans', '25 ans', '29 ans', '50 ans', '55 ans', '60 ans', '62 ans', '64 ans', '65 ans', '67 ans'],
+      rows: [
+        { header: '0', values: [0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000] },
+        { header: '1', values: [0.995, 0.995, 0.995, 0.995, 0.995, 0.995, 0.995, 0.995, 0.995, 0.995, 0.995, 0.995, 0.995] },
+        { header: '5', values: [4.889, 4.889, 4.889, 4.889, 4.889, 4.889, 4.889, 4.889, 4.889, 4.889, 4.889, 4.889, 4.889] },
+        { header: '10', values: [9.554, 9.554, 9.554, 9.554, 9.554, 9.554, 9.554, 9.554, 9.554, 9.554, 9.554, 9.554, 9.554] },
+        { header: '15', values: [14.005, 14.005, 14.005, 14.005, 14.005, 14.005, 14.005, 14.005, 14.005, 14.005, 14.005, 14.005, 14.005] },
+        { header: '20', values: [18.251, 18.251, 18.251, 18.251, 18.251, 18.251, 18.251, 18.251, 18.251, 18.251, 18.251, 18.251, 18.251] },
+        { header: '25', values: [22.300, 22.300, 22.300, 22.300, 22.300, 22.300, 22.300, 22.300, 22.300, 22.300, 22.300, 22.300, 22.300] },
+        { header: '30', values: [26.160, 26.160, 26.160, 26.160, 26.160, 26.160, 26.160, 26.160, 26.160, 26.160, 26.160, 26.160, 26.160] },
+        { header: '35', values: [29.839, 29.839, 29.839, 29.839, 29.839, 29.839, 29.839, 29.839, 29.839, 29.839, 29.839, 29.839, 29.839] },
+        { header: '40', values: [33.344, 33.344, 33.344, 33.344, 33.344, 33.344, 33.344, 33.344, 33.344, 33.344, 33.344, 33.344, 33.344] },
+        { header: 'Viager', values: [49.253, 47.451, 45.659, 44.767, 41.189, 37.682, 24.830, 21.609, 18.382, 16.825, 15.255, 14.482, 12.944] },
+      ]
+    }
+  },
+  {
+    id: 'bcriv_2025',
+    label: 'BCRIV 2025',
+    type: 'bareme',
+    status: 'active',
+    source: 'default',
+    tableData: {
+      columns: ['16 ans', '18 ans', '20 ans', '21 ans', '25 ans', '55 ans', '60 ans', '62 ans', '64 ans', '65 ans', '67 ans', '68 ans'],
+      rows: [
+        { header: '0', values: [0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000] },
+        { header: '1', values: [0.997, 0.997, 0.997, 0.997, 0.997, 0.997, 0.997, 0.997, 0.997, 0.997, 0.997, 0.997] },
+        { header: '5', values: [4.926, 4.926, 4.926, 4.926, 4.926, 4.926, 4.926, 4.926, 4.926, 4.926, 4.926, 4.926] },
+        { header: '10', values: [9.681, 9.681, 9.681, 9.681, 9.681, 9.681, 9.681, 9.681, 9.681, 9.681, 9.681, 9.681] },
+        { header: '20', values: [18.706, 18.706, 18.706, 18.706, 18.706, 18.706, 18.706, 18.706, 18.706, 18.706, 18.706, 18.706] },
+        { header: '30', values: [27.128, 27.128, 27.128, 27.128, 27.128, 27.128, 27.128, 27.128, 27.128, 27.128, 27.128, 27.128] },
+        { header: '40', values: [34.989, 34.989, 34.989, 34.989, 34.989, 34.989, 34.989, 34.989, 34.989, 34.989, 34.989, 34.989] },
+        { header: 'Viager', values: [51.246, 49.354, 47.474, 46.537, 42.869, 22.349, 18.945, 17.342, 15.729, 14.929, 13.344, 12.557] },
+      ]
+    }
+  },
+  {
+    id: 'oniam_2025',
+    label: 'ONIAM 2025',
+    type: 'bareme',
+    status: 'active',
+    source: 'default',
+    tableData: {
+      columns: ['25 ans', '62 ans', '67 ans'],
+      rows: [
+        { header: '0', values: [0.000, 0.000, 0.000] },
+        { header: '1', values: [0.996, 0.996, 0.996] },
+        { header: '5', values: [4.901, 4.901, 4.901] },
+        { header: '10', values: [9.589, 9.589, 9.589] },
+        { header: '20', values: [18.324, 18.324, 18.324] },
+        { header: '30', values: [26.231, 26.231, 26.231] },
+        { header: '40', values: [33.402, 33.402, 33.402] },
+        { header: 'Viager', values: [41.543, 16.891, 13.010] },
+      ]
+    }
+  },
+  // Référentiels (used by SE, PEP, DFP)
+  {
+    id: 'cours-appel-2024',
+    label: "Cour d'appel 2024",
+    type: 'referentiel',
+    status: 'active',
+    source: 'default',
+    tableData: {
+      columns: ['Minimum', 'Moyenne', 'Maximum'],
+      rows: [
+        { header: '0,5/7', values: ['800 €', '1 200 €', '1 600 €'] },
+        { header: '1/7', values: ['1 600 €', '2 500 €', '3 400 €'] },
+        { header: '1,5/7', values: ['3 400 €', '4 700 €', '6 000 €'] },
+        { header: '2/7', values: ['6 000 €', '8 500 €', '11 000 €'] },
+        { header: '2,5/7', values: ['11 000 €', '14 500 €', '18 000 €'] },
+        { header: '3/7', values: ['18 000 €', '24 000 €', '30 000 €'] },
+        { header: '3,5/7', values: ['30 000 €', '37 500 €', '45 000 €'] },
+        { header: '4/7', values: ['45 000 €', '52 500 €', '60 000 €'] },
+        { header: '4,5/7', values: ['60 000 €', '70 000 €', '80 000 €'] },
+        { header: '5/7', values: ['80 000 €', '95 000 €', '110 000 €'] },
+        { header: '5,5/7', values: ['110 000 €', '135 000 €', '160 000 €'] },
+        { header: '6/7', values: ['160 000 €', '200 000 €', '240 000 €'] },
+        { header: '6,5/7', values: ['240 000 €', '290 000 €', '340 000 €'] },
+        { header: '7/7', values: ['340 000 €', '390 000 €', '440 000 €'] },
+      ]
+    }
+  },
+  {
+    id: 'cours-appel-2023',
+    label: "Cour d'appel 2023",
+    type: 'referentiel',
+    status: 'active',
+    source: 'default',
+    tableData: {
+      columns: ['Minimum', 'Moyenne', 'Maximum'],
+      rows: [
+        { header: '0,5/7', values: ['800 €', '1 100 €', '1 500 €'] },
+        { header: '1/7', values: ['1 500 €', '2 300 €', '3 200 €'] },
+        { header: '2/7', values: ['5 500 €', '7 800 €', '10 000 €'] },
+        { header: '3/7', values: ['16 000 €', '22 000 €', '28 000 €'] },
+        { header: '4/7', values: ['42 000 €', '49 000 €', '56 000 €'] },
+        { header: '5/7', values: ['75 000 €', '88 000 €', '100 000 €'] },
+        { header: '6/7', values: ['150 000 €', '185 000 €', '220 000 €'] },
+        { header: '7/7', values: ['320 000 €', '370 000 €', '420 000 €'] },
+      ]
+    }
+  },
+  {
+    id: 'mornet-2024',
+    label: 'Référentiel Mornet 2024',
+    type: 'referentiel',
+    status: 'active',
+    source: 'default',
+    tableData: {
+      columns: ['Minimum', 'Moyenne', 'Maximum'],
+      rows: [
+        { header: '1/7', values: ['1 500 €', '2 400 €', '3 300 €'] },
+        { header: '2/7', values: ['5 800 €', '8 200 €', '10 500 €'] },
+        { header: '3/7', values: ['17 000 €', '23 000 €', '29 000 €'] },
+        { header: '4/7', values: ['43 000 €', '50 000 €', '57 000 €'] },
+        { header: '5/7', values: ['76 000 €', '90 000 €', '105 000 €'] },
+        { header: '6/7', values: ['155 000 €', '190 000 €', '225 000 €'] },
+        { header: '7/7', values: ['330 000 €', '380 000 €', '430 000 €'] },
+      ]
+    }
+  },
 ];
 
 // ========== DROP FIRST — MOCK DATA ==========
@@ -832,6 +991,28 @@ export default function App() {
     baseJournaliereDFT: 33,
     forfaitHoraireATPT: null,
   });
+
+  // ========== BARÈMES LIBRARY STATE ==========
+  const [baremesLibrary, setBaremesLibrary] = useState([...DEFAULT_BAREMES]);
+  const [baremeViewerOpen, setBaremeViewerOpen] = useState(null); // baremeId or null
+  const [baremeUploadFormOpen, setBaremeUploadFormOpen] = useState(false);
+  const [baremeUploadConfirmed, setBaremeUploadConfirmed] = useState(false);
+  const [baremeUploadData, setBaremeUploadData] = useState({ nom: '', type: 'bareme', notes: '', fileName: '' });
+  const [baremePopover, setBaremePopover] = useState(null); // null | string (popover id like 'se', 'pep', 'dfp', 'pgpf')
+  const [baremePopoverSearch, setBaremePopoverSearch] = useState('');
+
+  // Close barème popover on click outside
+  useEffect(() => {
+    if (!baremePopover) return;
+    const handleClick = (e) => {
+      // Check if click is inside a popover dropdown (identified by data attribute)
+      if (e.target.closest('[data-bareme-popover]')) return;
+      setBaremePopover(null);
+      setBaremePopoverSearch('');
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [baremePopover]);
 
   // ========== DOSSIER DATA ==========
   const [victimeData, setVictimeData] = useState({
@@ -7625,11 +7806,14 @@ export default function App() {
                     <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
                   </label>
                   <div className="w-px h-4 bg-[#d6d3d1]" />
-                  <span className="text-sm font-medium text-[#78716c]">Barême</span>
-                  <select className="text-sm text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
-                    <option>IPC Annuel</option>
-                    <option>IPC Mensuel</option>
-                  </select>
+                  {renderBaremePopoverSelect({
+                    popoverId: 'pgpf',
+                    value: chiffrageParams.baremeCapitalisation,
+                    onChange: (id) => setChiffrageParams(prev => ({ ...prev, baremeCapitalisation: id })),
+                    filterType: 'bareme',
+                    label: 'Barème',
+                    variant: 'horizontal',
+                  })}
                   <div className="w-px h-4 bg-[#d6d3d1]" />
                   <span className="text-sm font-medium text-[#78716c]">Fin arrérage</span>
                   <select className="text-sm text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
@@ -8157,16 +8341,13 @@ export default function App() {
                   <div className="p-5">
                     <div className="grid grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-[14px] font-medium text-[#78716c] mb-2">Référentiel</label>
-                        <select
-                          value={seData.referentiel}
-                          onChange={(e) => setFormPosteData(prev => ({ ...prev, se: { ...prev.se, referentiel: e.target.value } }))}
-                          className="w-full h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
-                        >
-                          <option value="cours-appel-2024">Cour d'appel 2024</option>
-                          <option value="cours-appel-2023">Cour d'appel 2023</option>
-                          <option value="mornet-2024">Référentiel Mornet 2024</option>
-                        </select>
+                        {renderBaremePopoverSelect({
+                          popoverId: 'se',
+                          value: seData.referentiel,
+                          onChange: (id) => setFormPosteData(prev => ({ ...prev, se: { ...prev.se, referentiel: id } })),
+                          filterType: 'referentiel',
+                          label: 'Référentiel',
+                        })}
                       </div>
                       <div>
                         <label className="block text-[14px] font-medium text-[#78716c] mb-2">Cotation</label>
@@ -8292,16 +8473,13 @@ export default function App() {
                   <div className="p-5">
                     <div className="grid grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-[14px] font-medium text-[#78716c] mb-2">Référentiel</label>
-                        <select
-                          value={pepData.referentiel}
-                          onChange={(e) => setFormPosteData(prev => ({ ...prev, pep: { ...prev.pep, referentiel: e.target.value } }))}
-                          className="w-full h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
-                        >
-                          <option value="cours-appel-2024">Cour d'appel 2024</option>
-                          <option value="cours-appel-2023">Cour d'appel 2023</option>
-                          <option value="mornet-2024">Référentiel Mornet 2024</option>
-                        </select>
+                        {renderBaremePopoverSelect({
+                          popoverId: 'pep',
+                          value: pepData.referentiel,
+                          onChange: (id) => setFormPosteData(prev => ({ ...prev, pep: { ...prev.pep, referentiel: id } })),
+                          filterType: 'referentiel',
+                          label: 'Référentiel',
+                        })}
                       </div>
                       <div>
                         <label className="block text-[14px] font-medium text-[#78716c] mb-2">Cotation</label>
@@ -8426,16 +8604,13 @@ export default function App() {
                   <div className="p-5 space-y-5">
                     {/* Référentiel */}
                     <div>
-                      <label className="block text-[14px] font-medium text-[#78716c] mb-2">Référentiel</label>
-                      <select
-                        value={dfpData.referentiel}
-                        onChange={(e) => setFormPosteData(prev => ({ ...prev, dfp: { ...prev.dfp, referentiel: e.target.value } }))}
-                        className="w-full h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
-                      >
-                        <option value="cours-appel-2024">Cour d'appel 2024</option>
-                        <option value="cours-appel-2023">Cour d'appel 2023</option>
-                        <option value="mornet-2024">Référentiel Mornet 2024</option>
-                      </select>
+                      {renderBaremePopoverSelect({
+                        popoverId: 'dfp',
+                        value: dfpData.referentiel,
+                        onChange: (id) => setFormPosteData(prev => ({ ...prev, dfp: { ...prev.dfp, referentiel: id } })),
+                        filterType: 'referentiel',
+                        label: 'Référentiel',
+                      })}
                     </div>
                     {/* Âge + Taux — 2 columns */}
                     <div className="grid grid-cols-2 gap-6">
@@ -10232,29 +10407,36 @@ export default function App() {
   // ========== RENDER PAGE LISTE ==========
   const renderDossierListPage = () => (
     <div className="h-screen flex relative" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: '#27272a' }}>
-      {/* Sidebar Rail - anthracite */}
-      <div className="w-14 bg-[#292524] flex flex-col items-center py-4 flex-shrink-0">
-        {/* Logo Norma */}
-        <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center mb-6">
-          <span className="text-[#292524] font-bold text-heading-sm">N</span>
+      {/* Sidebar Rail */}
+      <div className="w-12 bg-white border-r border-[#e7e5e3] flex flex-col items-start flex-shrink-0">
+        {/* Header — Logo */}
+        <div className="w-full flex flex-col items-center justify-center py-3 border-b border-[#e7e5e3]">
+          <img src="/logo-plato.png" alt="Plato" className="w-6 h-6" />
         </div>
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Bottom: Components + Settings + User */}
-        <div className="flex flex-col items-center gap-3">
+        {/* Nav items */}
+        <div className="flex-1 w-full flex flex-col gap-2 p-2">
           <button
-            onClick={() => setCurrentPage('components')}
-            title="UI Components"
-            className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${currentPage === 'components' ? 'text-white bg-[#44403c]' : 'text-[#78716c] hover:text-[#d6d3d1] hover:bg-[#44403c]'}`}
+            onClick={() => setCurrentPage('list')}
+            title="Mes dossiers"
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'list' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+            style={{ borderRadius: 8 }}
           >
-            <LayoutGrid className="w-[18px] h-[18px]" />
+            <Folder className="w-4 h-4" />
           </button>
-          <button className="w-9 h-9 rounded-lg flex items-center justify-center text-[#78716c] hover:text-[#d6d3d1] hover:bg-[#44403c] transition-colors">
-            <Settings className="w-[18px] h-[18px]" />
+          <button
+            onClick={() => setCurrentPage('baremes')}
+            title="Référentiels & Barèmes"
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'baremes' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+            style={{ borderRadius: 8 }}
+          >
+            <Scale className="w-4 h-4" />
           </button>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-caption-medium cursor-pointer">
+        </div>
+
+        {/* Footer — Avatar */}
+        <div className="w-full border-t border-[#e7e5e3] p-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium cursor-pointer overflow-hidden" style={{ borderRadius: 12 }}>
             MR
           </div>
         </div>
@@ -10638,7 +10820,7 @@ export default function App() {
           </button>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#292524', marginBottom: 16 }}>UI Components</div>
           <nav className="flex flex-col gap-1">
-            {['Diff Rows', 'Artifact Cards', 'Panel Diff Inputs', 'Reasoning', 'Chat Messages', 'Field Streaming', 'Badges & Pills', 'Buttons'].map(s => (
+            {['Diff Rows', 'Artifact Cards', 'Panel Diff Inputs', 'Reasoning', 'Chat Messages', 'Field Streaming', 'Badges & Pills', 'Buttons', 'Barème Components'].map(s => (
               /* Hypothèses diff is a subsection of Diff Rows — no separate nav entry needed */
               <a key={s} href={`#section-${s.toLowerCase().replace(/\s+/g, '-')}`} className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">{s}</a>
             ))}
@@ -11331,6 +11513,166 @@ export default function App() {
               </>)}
             </div>
 
+            {/* ====== BARÈME COMPONENTS ====== */}
+            <div id="section-barème-components" className={sectionClass}>
+              {sectionTitle('Barème Components')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Composants pour la gestion des barèmes et référentiels — bibliothèque, sélecteur, viewer, upload.</p>
+
+              {subTitle('StatusBadge — Actif / En traitement')}
+              {row(<>
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#dcfce7', color: '#065f46' }}>Actif</span>
+                  <span className="inline-flex items-center text-xs px-2.5 py-1 rounded-full" style={{ background: '#dcfce7', color: '#065f46', fontSize: 13 }}>Actif</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#92400e' }}>En traitement</span>
+                  <span className="inline-flex items-center text-xs px-2.5 py-1 rounded-full" style={{ background: '#fef3c7', color: '#92400e', fontSize: 13 }}>En traitement</span>
+                </div>
+              </>)}
+
+
+              {subTitle('BaremeListItem — Row variants')}
+              <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden mb-4" style={{ maxWidth: 500 }}>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-zinc-100">
+                      <th className="px-4 py-2.5 text-left" style={colHeaderStyle}>Nom</th>
+                      <th className="px-4 py-2.5 text-left" style={colHeaderStyle}>Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e7e5e3]">
+                    {[
+                      { label: 'GDP 2025 Prospective 0,50%', status: 'active' },
+                      { label: "Cour d'appel 2024", status: 'active' },
+                      { label: 'Barème Cabinet Martin', status: 'processing' },
+                    ].map((item, i) => (
+                      <tr key={i} className={`bg-white ${item.status === 'active' ? 'hover:bg-[#fafaf9] cursor-pointer' : 'opacity-75'}`}>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-md bg-[#eeece6] flex items-center justify-center"><Scale className="w-3.5 h-3.5 text-[#a8a29e]" /></div>
+                            <span className="text-body-medium text-[#292524]">{item.label}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {item.status === 'active'
+                            ? <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#dcfce7', color: '#065f46' }}>Actif</span>
+                            : <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#92400e' }}>En traitement</span>
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {subTitle('BaremeSelect — Vertical (label above)')}
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 12 }}>Popover dropdown with search + "Ajouter le vôtre" at the bottom. Live component below.</p>
+              <div className="bg-white rounded-lg border border-[#e7e5e3] p-5 mb-4" style={{ maxWidth: 420 }}>
+                {renderBaremePopoverSelect({
+                  popoverId: 'uikit-vertical',
+                  value: 'gdp_2025_prospective',
+                  onChange: () => {},
+                  filterType: 'bareme',
+                  label: 'Barême utilisé',
+                })}
+              </div>
+
+              {subTitle('BaremeSelect — Horizontal (inline label)')}
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 12 }}>Same popover, inline layout. Used in param chip bars (PGPF).</p>
+              <div className="bg-white rounded-lg border border-[#e7e5e3] p-5 mb-4" style={{ maxWidth: 560 }}>
+                <div className="flex items-center gap-3">
+                  {renderBaremePopoverSelect({
+                    popoverId: 'uikit-horizontal',
+                    value: 'gdp_2025_prospective',
+                    onChange: () => {},
+                    filterType: 'bareme',
+                    label: 'Barème',
+                    variant: 'horizontal',
+                  })}
+                  <div className="w-px h-4 bg-[#d6d3d1]" />
+                  <span className="text-sm font-medium text-[#78716c] flex-shrink-0">Fin arrérage</span>
+                  <select className="text-sm text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                    <option>IPC Annuel</option>
+                    <option>IPC Mensuel</option>
+                  </select>
+                </div>
+              </div>
+
+              {subTitle('BaremeTableViewer — Sidepanel preview')}
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 12 }}>Opens as a right-side panel (same pattern as document preview). Table is rendered inside.</p>
+              <div className="bg-white rounded-lg border-l-2 border border-[#e7e5e3] overflow-hidden mb-4 shadow-lg" style={{ maxWidth: 600 }}>
+                <div className="px-4 py-3 border-b border-[#e7e5e3] flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-md bg-[#eeece6] flex items-center justify-center"><Scale className="w-3.5 h-3.5 text-[#a8a29e]" /></div>
+                  <span className="text-body-medium text-[#44403c]">ONIAM 2025</span>
+                  <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#dcfce7', color: '#065f46' }}>Actif</span>
+                  <div className="flex-1" />
+                  <div className="p-1 text-[#a8a29e]"><X className="w-3.5 h-3.5" /></div>
+                </div>
+                <div className="overflow-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="px-3 py-2 text-left border border-[#e7e5e3]" style={{ background: '#f5f5f4', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase' }}>Durée</th>
+                        {['25 ans', '62 ans', '67 ans'].map((c, i) => (
+                          <th key={i} className="px-3 py-2 text-right border border-[#e7e5e3]" style={{ background: '#f5f5f4', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', whiteSpace: 'nowrap' }}>{c}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { h: '1', v: ['0.996', '0.996', '0.996'] },
+                        { h: '10', v: ['9.589', '9.589', '9.589'] },
+                        { h: '30', v: ['26.231', '26.231', '26.231'] },
+                        { h: 'Viager', v: ['41.543', '16.891', '13.010'] },
+                      ].map((r, ri) => (
+                        <tr key={ri} className="hover:bg-[#fafaf9]">
+                          <td className="px-3 py-2 border border-[#e7e5e3]" style={{ background: '#f5f5f4', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#44403c' }}>{r.h}</td>
+                          {r.v.map((val, ci) => (
+                            <td key={ci} className={`px-3 py-2 text-right border border-[#e7e5e3]`} style={{
+                              fontFamily: "'DM Mono', 'IBM Plex Mono', monospace", fontSize: 12, color: '#292524',
+                              background: ri === 2 && ci === 0 ? '#eff6ff' : 'white',
+                              ...(ri === 2 && ci === 0 ? { boxShadow: 'inset 0 0 0 2px #3b82f6', borderRadius: 2 } : {})
+                            }}>{val}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-4 py-2 border-t border-[#e7e5e3]" style={{ background: '#fafaf9' }}>
+                  <span className="text-xs text-[#a8a29e]">↑ Cellule en surbrillance = valeur retenue pour le dossier</span>
+                </div>
+              </div>
+
+              {subTitle('BaremeUploadForm — States')}
+              {row(<>
+                {/* Empty form preview */}
+                <div className="bg-white rounded-lg border border-[#e7e5e3] p-5" style={{ width: 260 }}>
+                  <div className="text-body-medium text-[#292524] mb-3">Formulaire vide</div>
+                  <div className="space-y-2.5">
+                    <div className="h-9 bg-[#f5f5f4] rounded-lg border border-[#e7e5e3]" />
+                    <div className="h-9 bg-[#f5f5f4] rounded-lg border border-[#e7e5e3]" />
+                    <div className="h-20 bg-[#f5f5f4] rounded-lg border-2 border-dashed border-[#d6d3d1] flex items-center justify-center">
+                      <FileUp className="w-4 h-4 text-[#a8a29e]" />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1">
+                      <div className="px-3 py-1.5 text-xs text-[#78716c] rounded">Annuler</div>
+                      <div className="px-3 py-1.5 text-xs text-white bg-[#e7e5e3] rounded">Soumettre</div>
+                    </div>
+                  </div>
+                </div>
+                {/* Post-submit confirmation preview */}
+                <div className="bg-white rounded-lg border border-[#e7e5e3] p-5 text-center" style={{ width: 260 }}>
+                  <div className="text-body-medium text-[#292524] mb-3">Confirmation</div>
+                  <div className="w-10 h-10 rounded-full bg-[#dcfce7] flex items-center justify-center mx-auto mb-3">
+                    <CheckCircle2 className="w-5 h-5 text-[#16a34a]" />
+                  </div>
+                  <p className="text-body-medium text-[#292524] mb-1">Demande prise en compte</p>
+                  <p className="text-xs text-[#78716c]">Activation sous 48h</p>
+                </div>
+              </>)}
+            </div>
+
           </div>
         </div>
       </div>
@@ -11796,6 +12138,425 @@ export default function App() {
     );
   };
 
+  // ========== BARÈME POPOVER SELECT ==========
+  const renderBaremePopoverSelect = ({ popoverId, value, onChange, filterType, label, variant = 'vertical' }) => {
+    const isOpen = baremePopover === popoverId;
+    const filteredBaremes = baremesLibrary
+      .filter(b => b.status === 'active' && (filterType ? b.type === filterType : true))
+      .filter(b => !baremePopoverSearch || b.label.toLowerCase().includes(baremePopoverSearch.toLowerCase()));
+    const selectedBareme = baremesLibrary.find(b => b.id === value);
+
+    const triggerBtn = (
+      <button
+        data-bareme-popover={popoverId}
+        onClick={() => { setBaremePopover(isOpen ? null : popoverId); setBaremePopoverSearch(''); }}
+        className={`flex items-center justify-between bg-white border border-[#e7e5e3] transition-colors hover:border-[#d6d3d1] ${
+          variant === 'horizontal' ? 'text-sm px-3 py-2' : 'w-full px-3 py-2 text-[14px]'
+        } text-[#292524]`}
+        style={{ borderRadius: 8, boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}
+      >
+        <span className={`overflow-hidden text-ellipsis whitespace-nowrap ${selectedBareme ? 'text-[#292524]' : 'text-[#78716c]'}`}>{selectedBareme ? selectedBareme.label : 'Sélectionner…'}</span>
+        <ChevronDown className="w-4 h-4 text-[#78716c] ml-2 flex-shrink-0" />
+      </button>
+    );
+
+    const popoverContent = isOpen && (
+      <div data-bareme-popover={popoverId} className="absolute z-40 mt-1 bg-white border border-[#e7e5e3] overflow-hidden" style={{ borderRadius: 8, width: variant === 'horizontal' ? 287 : '100%', animation: 'fadeIn 0.1s ease-out', boxShadow: '0px 2px 4px -2px rgba(26,26,26,0.05), 0px 4px 6px -1px rgba(26,26,26,0.05)' }}>
+        {/* Command Search */}
+        <button className="w-full flex items-center gap-0 px-3 py-3 border-b border-[#e7e5e3] cursor-text" onClick={() => {}}>
+          <div className="pr-2 flex-shrink-0"><Search className="w-4 h-4 text-[#78716c]" /></div>
+          <input
+            type="text"
+            value={baremePopoverSearch}
+            onChange={(e) => setBaremePopoverSearch(e.target.value)}
+            placeholder="Rechercher.."
+            className="w-full bg-transparent text-sm text-[#292524] placeholder:text-[#78716c] outline-none"
+            autoFocus
+          />
+        </button>
+        {/* Options */}
+        <div className="max-h-[200px] overflow-y-auto p-1">
+          <div className="p-1">
+            {filteredBaremes.length > 0 ? filteredBaremes.map(b => (
+              <button
+                key={b.id}
+                onClick={() => { onChange(b.id); setBaremePopover(null); setBaremePopoverSearch(''); }}
+                className={`w-full text-left px-2 py-1.5 text-sm transition-colors flex items-center justify-between gap-2 ${
+                  b.id === value ? 'font-medium text-[#292524]' : 'text-[#78716c] hover:bg-[#f8f7f5]'
+                }`}
+                style={{ borderRadius: 6, background: b.id === value ? '#f8f7f5' : undefined }}
+              >
+                {b.label}
+                {b.id === value && <Check className="w-4 h-4 text-[#292524] flex-shrink-0" />}
+              </button>
+            )) : (
+              <div className="px-2 py-4 text-center text-sm text-[#78716c]">Aucun résultat</div>
+            )}
+          </div>
+        </div>
+        {/* Ajouter footer */}
+        <div className="border-t border-[#e7e5e3] px-3 py-3">
+          <button
+            onClick={() => { setBaremePopover(null); setBaremePopoverSearch(''); setBaremeUploadFormOpen(true); setBaremeUploadData({ nom: '', type: filterType || 'bareme', notes: '', fileName: '' }); }}
+            className="w-full text-left text-xs flex items-center gap-1.5"
+          >
+            <CirclePlus className="w-4 h-4 text-[#78716c] flex-shrink-0" style={{ opacity: 0.5 }} />
+            <span className="text-[#78716c]" style={{ letterSpacing: '0.12px' }}>Barême introuvable ?</span>
+            <span className="font-medium text-[#1e3a8a]">Ajouter le vôtre</span>
+          </button>
+        </div>
+      </div>
+    );
+
+    if (variant === 'horizontal') {
+      return (
+        <div className="relative">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-sm font-medium text-[#78716c]">{label}</span>
+              {value && (
+                <button onClick={() => setBaremeViewerOpen(value)} className="text-xs font-normal text-[#1e3a8a] hover:underline transition-colors">
+                  Voir
+                </button>
+              )}
+            </div>
+            {triggerBtn}
+          </div>
+          {popoverContent}
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative">
+        <label className="block text-[14px] font-medium text-[#292524] mb-1.5">{label}</label>
+        {triggerBtn}
+        {value && (
+          <button onClick={() => setBaremeViewerOpen(value)} className="mt-1.5 text-xs font-medium text-[#1e3a8a] hover:underline transition-colors">
+            Voir le barême
+          </button>
+        )}
+        {popoverContent}
+      </div>
+    );
+  };
+
+  // ========== BARÈME TABLE VIEWER (sidepanel — adapted from doc preview) ==========
+  const renderBaremeViewer = () => {
+    const bareme = baremesLibrary.find(b => b.id === baremeViewerOpen);
+    if (!bareme) return null;
+    return (
+      <div className="fixed right-0 top-0 h-screen bg-white border-l border-[#e7e5e3] shadow-xl z-30 flex flex-col" style={{ width: '860px', animation: 'slideInRight 0.2s ease-out' }}>
+        {/* Header — matches doc preview pattern */}
+        <div className="px-4 border-b border-[#e7e5e3] flex items-center justify-between flex-shrink-0 bg-white" style={{ paddingTop: 14, paddingBottom: 14 }}>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-[22px] h-[22px] rounded-[6px] bg-[#eeece6] flex items-center justify-center flex-shrink-0">
+              <Scale className="w-3 h-3 text-[#78716c]" />
+            </div>
+            <span className="text-[14px] font-medium text-black truncate">{bareme.label}</span>
+            {bareme.status === 'active' ? (
+              <span className="inline-flex items-center text-xs font-medium px-2 py-1 rounded-[6px] flex-shrink-0" style={{ background: '#dcfce7', color: '#065f46' }}>Actif</span>
+            ) : (
+              <span className="inline-flex items-center text-xs font-medium px-2 py-1 rounded-[6px] flex-shrink-0" style={{ background: '#fef3c7', color: '#92400e' }}>En traitement</span>
+            )}
+          </div>
+          <button onClick={() => setBaremeViewerOpen(null)} className="w-4 h-4 flex items-center justify-center flex-shrink-0 ml-3 text-[#78716c] hover:text-[#292524] transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Content — full width, no padding, table fills panel */}
+        {bareme.status === 'active' && bareme.tableData ? (
+          <div className="flex-1 overflow-auto">
+              <div className="overflow-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="sticky top-0 left-0 z-20 px-3 py-2.5 text-left border-b border-r border-[#e7e5e3]" style={{ background: '#f5f5f4', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 80 }}>
+                        Durée
+                      </th>
+                      {bareme.tableData.columns.map((col, i) => (
+                        <th key={i} className="sticky top-0 z-10 px-3 py-2.5 text-right border-b border-r border-[#e7e5e3] last:border-r-0" style={{ background: '#f5f5f4', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', whiteSpace: 'nowrap', minWidth: 72 }}>
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bareme.tableData.rows.map((row, ri) => (
+                      <tr key={ri} className="hover:bg-[#fafaf9] transition-colors">
+                        <td className="sticky left-0 z-10 px-3 py-2 border-b border-r border-[#e7e5e3]" style={{ background: '#f5f5f4', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#44403c' }}>
+                          {row.header}
+                        </td>
+                        {row.values.map((val, ci) => (
+                          <td key={ci} className="px-3 py-2 text-right border-b border-r border-[#e7e5e3] last:border-r-0" style={{ fontFamily: "'DM Mono', 'IBM Plex Mono', monospace", fontSize: 12, color: '#292524', background: 'white' }}>
+                            {typeof val === 'number' ? val.toFixed(3) : val}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: '#f8f7f5' }}>
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 text-[#d6d3d1] mx-auto mb-3 animate-spin" />
+              <p className="text-body text-[#78716c]">Ce barème est en cours de modélisation.</p>
+              <p className="text-caption text-[#a8a29e] mt-1">Il sera disponible sous 48h.</p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ========== BARÈME UPLOAD FORM MODAL ==========
+  const renderBaremeUploadModal = () => {
+    if (!baremeUploadFormOpen) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onClick={() => { setBaremeUploadFormOpen(false); setBaremeUploadData({ nom: '', type: 'bareme', notes: '', fileName: '' }); }}>
+        <div className="bg-white rounded-xl shadow-2xl" style={{ width: 520 }} onClick={(e) => e.stopPropagation()}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#e7e5e3]">
+            <h2 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '18px', fontWeight: 400, color: '#18181b' }}>Ajouter un barème</h2>
+            <button onClick={() => { setBaremeUploadFormOpen(false); setBaremeUploadData({ nom: '', type: 'bareme', notes: '', fileName: '' }); }} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#eeece6] transition-colors">
+              <X className="w-4 h-4 text-[#78716c]" />
+            </button>
+          </div>
+
+            {/* Form */}
+            <div className="px-6 py-5 space-y-4">
+              {/* Nom */}
+              <div>
+                <label className="block text-[14px] font-medium text-[#78716c] mb-2">Nom du barème <span className="text-red-400">*</span></label>
+                <input
+                  type="text"
+                  value={baremeUploadData.nom}
+                  onChange={(e) => setBaremeUploadData(prev => ({ ...prev, nom: e.target.value }))}
+                  placeholder="Ex: GDP 2026, Mornet révisé…"
+                  className="w-full h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                />
+              </div>
+
+              {/* Type */}
+              <div>
+                <label className="block text-[14px] font-medium text-[#78716c] mb-2">Type</label>
+                <select
+                  value={baremeUploadData.type}
+                  onChange={(e) => setBaremeUploadData(prev => ({ ...prev, type: e.target.value }))}
+                  className="w-full h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                >
+                  <option value="bareme">Barème</option>
+                  <option value="referentiel">Référentiel</option>
+                </select>
+              </div>
+
+              {/* File upload zone */}
+              <div>
+                <label className="block text-[14px] font-medium text-[#78716c] mb-2">Document de référence <span className="text-red-400">*</span></label>
+                <div
+                  className="border-2 border-dashed border-[#d6d3d1] rounded-lg p-6 text-center hover:border-[#a8a29e] transition-colors cursor-pointer"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.pdf,.xlsx,.xls,.png,.jpg,.jpeg';
+                    input.onchange = (e) => {
+                      if (e.target.files[0]) {
+                        setBaremeUploadData(prev => ({ ...prev, fileName: e.target.files[0].name }));
+                      }
+                    };
+                    input.click();
+                  }}
+                >
+                  {baremeUploadData.fileName ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <FileText className="w-5 h-5 text-[#292524]" />
+                      <span className="text-body-medium text-[#292524]">{baremeUploadData.fileName}</span>
+                      <button onClick={(e) => { e.stopPropagation(); setBaremeUploadData(prev => ({ ...prev, fileName: '' })); }} className="ml-2 p-1 rounded hover:bg-[#eeece6]">
+                        <X className="w-3 h-3 text-[#78716c]" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <FileUp className="w-6 h-6 text-[#a8a29e] mx-auto mb-2" />
+                      <p className="text-body text-[#78716c]">Glissez votre fichier ici ou <span className="text-[#292524] font-medium underline">parcourir</span></p>
+                      <p className="text-caption text-[#a8a29e] mt-1">PDF, Excel, image</p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-[14px] font-medium text-[#78716c] mb-2">Notes</label>
+                <textarea
+                  value={baremeUploadData.notes}
+                  onChange={(e) => setBaremeUploadData(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Précisions sur le barème, source, contexte d'utilisation…"
+                  rows={3}
+                  className="w-full px-3 py-2.5 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524] resize-none"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => { setBaremeUploadFormOpen(false); setBaremeUploadData({ nom: '', type: 'bareme', notes: '', fileName: '' }); }}
+                  className="px-4 py-2.5 text-body-medium text-[#78716c] rounded-lg hover:bg-[#eeece6] transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={() => {
+                    if (!baremeUploadData.nom || !baremeUploadData.fileName) return;
+                    const newBareme = {
+                      id: baremeUploadData.nom.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''),
+                      label: baremeUploadData.nom,
+                      type: baremeUploadData.type,
+                      status: 'processing',
+                      source: 'imported',
+                      tableData: null,
+                      uploadedFileName: baremeUploadData.fileName,
+                      notes: baremeUploadData.notes,
+                    };
+                    setBaremesLibrary(prev => [...prev, newBareme]);
+                    setBaremeUploadFormOpen(false);
+                    setBaremeUploadData({ nom: '', type: 'bareme', notes: '', fileName: '' });
+                    setToastMessage('Demande prise en compte — votre barème sera activé sous 48h.');
+                    setTimeout(() => setToastMessage(null), 5000);
+                  }}
+                  disabled={!baremeUploadData.nom || !baremeUploadData.fileName}
+                  className={`px-5 py-2.5 text-body-medium rounded-lg transition-colors ${
+                    baremeUploadData.nom && baremeUploadData.fileName
+                      ? 'bg-[#292524] text-white hover:bg-[#44403c]'
+                      : 'bg-[#e7e5e3] text-[#a8a29e] cursor-not-allowed'
+                  }`}
+                >
+                  Soumettre
+                </button>
+              </div>
+            </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ========== RENDER BARÈMES LIBRARY PAGE ==========
+  const renderBaremesLibraryPage = () => (
+    <div className="h-screen flex relative" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: '#27272a' }}>
+      {/* Sidebar Rail */}
+      <div className="w-12 bg-white border-r border-[#e7e5e3] flex flex-col items-start flex-shrink-0">
+        {/* Header — Logo */}
+        <div className="w-full flex flex-col items-center justify-center py-3 border-b border-[#e7e5e3]">
+          <img src="/logo-plato.png" alt="Plato" className="w-6 h-6" />
+        </div>
+
+        {/* Nav items */}
+        <div className="flex-1 w-full flex flex-col gap-2 p-2">
+          <button
+            onClick={() => setCurrentPage('list')}
+            title="Mes dossiers"
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'list' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+            style={{ borderRadius: 8 }}
+          >
+            <Folder className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setCurrentPage('baremes')}
+            title="Référentiels & Barèmes"
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'baremes' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+            style={{ borderRadius: 8 }}
+          >
+            <Scale className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Footer — Avatar */}
+        <div className="w-full border-t border-[#e7e5e3] p-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium cursor-pointer overflow-hidden" style={{ borderRadius: 12 }}>
+            MR
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
+        {/* Header */}
+        <div className="px-8 pt-8 pb-6">
+          <div className="flex items-center justify-between">
+            <h1 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '28px', fontWeight: 400, color: '#18181b', letterSpacing: '-0.01em' }}>
+              Référentiels & Barèmes
+            </h1>
+            <button
+              onClick={() => { setBaremeUploadFormOpen(true); setBaremeUploadData({ nom: '', type: 'bareme', notes: '', fileName: '' }); }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Ajouter un barème
+            </button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="flex-1 overflow-y-auto px-8 pb-8">
+          <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-zinc-100">
+                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Nom</th>
+                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Statut</th>
+                  <th className="px-5 py-3 w-10"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#e7e5e3]">
+                {baremesLibrary.map(bareme => (
+                  <tr
+                    key={bareme.id}
+                    onClick={() => bareme.status === 'active' && setBaremeViewerOpen(bareme.id)}
+                    className={`bg-white transition-colors group ${bareme.status === 'active' ? 'hover:bg-[#fafaf9] cursor-pointer' : 'opacity-75'}`}
+                  >
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-[#eeece6] flex items-center justify-center flex-shrink-0">
+                          <Scale className="w-4 h-4 text-[#a8a29e]" />
+                        </div>
+                        <span className="text-body-medium text-[#292524]">{bareme.label}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      {bareme.status === 'active' ? (
+                        <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#dcfce7', color: '#065f46' }}>Actif</span>
+                      ) : (
+                        <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#92400e' }}>En traitement</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
+                      {bareme.status === 'active' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setBaremeViewerOpen(bareme.id); }}
+                          className="p-1.5 rounded-lg text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#eeece6] opacity-0 group-hover:opacity-100 transition-all"
+                          title="Voir le barème"
+                        >
+                          <Table2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Modals */}
+      {baremeViewerOpen && renderBaremeViewer()}
+      {renderBaremeUploadModal()}
+    </div>
+  );
+
   // ========== ROUTING ==========
   if (currentPage === 'diff-engine') {
     return renderDiffEnginePage();
@@ -11805,6 +12566,9 @@ export default function App() {
   }
   if (currentPage === 'list') {
     return renderDossierListPage();
+  }
+  if (currentPage === 'baremes') {
+    return renderBaremesLibraryPage();
   }
 
   return (
@@ -11835,6 +12599,7 @@ export default function App() {
       {renderAddModal()}
       {renderExportModal()}
       {renderSmartProcedureWizard()}
+      {baremeViewerOpen && renderBaremeViewer()}
 
       {/* Toast notification */}
       {toastMessage && (
