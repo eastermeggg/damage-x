@@ -10434,8 +10434,16 @@ export default function App() {
           </button>
         </div>
 
-        {/* Footer — Avatar */}
-        <div className="w-full border-t border-[#e7e5e3] p-2">
+        {/* Footer — UIKit + Avatar */}
+        <div className="w-full border-t border-[#e7e5e3] p-2 flex flex-col gap-2">
+          <button
+            onClick={() => setCurrentPage('components')}
+            title="UI Components"
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'components' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+            style={{ borderRadius: 8 }}
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
           <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium cursor-pointer overflow-hidden" style={{ borderRadius: 12 }}>
             MR
           </div>
@@ -12473,8 +12481,16 @@ export default function App() {
           </button>
         </div>
 
-        {/* Footer — Avatar */}
-        <div className="w-full border-t border-[#e7e5e3] p-2">
+        {/* Footer — UIKit + Avatar */}
+        <div className="w-full border-t border-[#e7e5e3] p-2 flex flex-col gap-2">
+          <button
+            onClick={() => setCurrentPage('components')}
+            title="UI Components"
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'components' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+            style={{ borderRadius: 8 }}
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
           <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium cursor-pointer overflow-hidden" style={{ borderRadius: 12 }}>
             MR
           </div>
