@@ -38,13 +38,50 @@ Displays the AI agent (Plato) reasoning steps in the chat sidebar. Streams steps
 
 ---
 
+## Integration pattern (production)
+
+The backend does **not** stream steps individually. The agent runs, then returns the full payload at once. The component supports two phases:
+
+### 1. Processing (agent is working)
+
+Show the stepper in streaming mode with no steps — just the processing gif. No step-by-step detail, just a visual indicator that the agent is thinking.
+
+```jsx
+// While the agent is running:
+<ReasoningStepper
+  status="streaming"
+  steps={[]}
+  onToggle={() => {}}
+/>
+```
+
+### 2. Result inspectable (payload received)
+
+When the agent finishes, swap to done mode with the full payload. Starts collapsed (summary + counters), user clicks to expand and inspect all steps.
+
+```jsx
+// When the payload arrives:
+<ReasoningStepper
+  status="done"
+  summary={payload.summary}
+  counters={payload.counters}
+  steps={payload.steps}
+  expanded={expanded}
+  onToggle={() => setExpanded(v => !v)}
+/>
+```
+
+> **Note:** Step-by-step streaming (`status="streaming"` with steps appearing one by one + loading gif per step) is supported by the component but only used in the demo page sandbox. If the backend adds streaming later, no component changes needed.
+
+---
+
 ## Examples & stages
 
-The component has 3 lifecycle stages that play out sequentially:
+The component supports 3 visual states:
 
 ### 1. Processing (streaming)
 
-Steps appear one at a time. The current step shows `plato-thinking.gif` (12px) in the icon slot while it processes, then swaps to its final icon when done. No header — steps are shown flat.
+Steps appear one at a time. The current step shows `plato-thinking.gif` (12px) in the icon slot while it processes, then swaps to its final icon when done. No header — steps are shown flat. In production, this is used without steps (empty array) as a simple "thinking" indicator.
 
 ```jsx
 <ReasoningStepper

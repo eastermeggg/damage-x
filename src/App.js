@@ -12978,11 +12978,17 @@ export default function App() {
             {/* EXAMPLES & STAGES                                            */}
             {/* ══════════════════════════════════════════════════════════════ */}
             <h1 style={sH1}>Examples & stages</h1>
-            <p style={sP}>Étapes apparaissent une à une. L'icône de la dernière étape est remplacée par le gif plato-thinking.gif le temps du traitement.</p>
+            <p style={{ ...sP, maxWidth: 700 }}>
+              Component designed to integrate streaming of agent actions, but also designed for V1 where there is no per-action streaming — instead, a single streaming process runs, and at the end, the full payload is displayed (reflecting the trace and all actions performed).
+            </p>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            {/* ── Live streaming (future) ── */}
+            <h2 style={sH2}>Live streaming</h2>
+            <p style={{ fontSize: 12, color: '#a8a29e', lineHeight: '18px', marginBottom: 12 }}>Steps stream one by one in real-time. Each step shows the processing gif while active, then its final icon when done.</p>
+
+            <div className="grid grid-cols-2 gap-4 mb-8">
               <ExampleStageCard
-                label="Processing reasoning"
+                label="Reasoning (streaming)"
                 summary="Complétion du poste DSA depuis 3 factures"
                 counters={{ add: 3, update: 1 }}
                 allSteps={[
@@ -13008,6 +13014,36 @@ export default function App() {
                   { type: 'navigate', label: 'Navigation vers le poste', status: 'done' },
                   { type: 'add_row', label: '1 ligne DFT', status: 'done', poste: 'DFT' },
                   { type: 'error', label: 'Extraction impossible — fichier illisible', status: 'error' },
+                ]}
+              />
+            </div>
+
+            {/* ── V1 — no per-action streaming ── */}
+            <h2 style={sH2}>V1 — no per-action streaming</h2>
+            <p style={{ fontSize: 12, color: '#a8a29e', lineHeight: '18px', marginBottom: 12 }}>No step-by-step detail during processing. A single process runs, then the full trace payload arrives at once.</p>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {/* V1 Processing */}
+              <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden">
+                <div className="px-3 py-2" style={{ backgroundColor: '#fafaf9', borderBottom: '1px solid #e7e5e3' }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Reasoning (processing)</span>
+                </div>
+                <div className="p-4 flex items-center gap-2">
+                  <img src="/plato-thinking.gif" alt="" className="w-3 h-3" style={{ objectFit: 'contain' }} />
+                  <span style={{ fontSize: 12, color: '#78716c' }}>Raisonnement en cours…</span>
+                </div>
+              </div>
+
+              {/* V1 Finished */}
+              <FinishedInspectableCard
+                summary="Complétion du poste DSA — 3 factures traitées"
+                counters={{ add: 3, update: 1 }}
+                steps={[
+                  { type: 'read_documents', label: 'Analyse de 4 documents', status: 'done' },
+                  { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 €'] },
+                  { type: 'verify_data', label: 'Vérification des données', status: 'done' },
+                  { type: 'add_row', label: '3 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation', 'IRM', 'Kiné'] },
+                  { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
                 ]}
               />
             </div>
