@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus } from 'lucide-react';
+import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
 
 const POSTES_TAXONOMY = [
   {
@@ -821,7 +822,16 @@ export default function App() {
   const isInitialLoad = useRef(true);
 
   // ========== STATE ==========
-  const [currentPage, setCurrentPage] = useState('list'); // 'list' | 'dossier' | 'components'
+  const [currentPage, setCurrentPage] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const page = params.get('page');
+    if (page === 'reasoning-demo') return 'reasoning-demo';
+    if (page === 'components') return 'components';
+    const hash = window.location.hash.split('&')[0].replace('#', '');
+    if (hash === 'reasoning-demo') return 'reasoning-demo';
+    if (hash === 'components') return 'components';
+    return 'list';
+  }); // 'list' | 'dossier' | 'components'
   const [activeDossierId, setActiveDossierId] = useState(null);
 
   // ========== LISTE DES DOSSIERS ==========
@@ -1356,7 +1366,9 @@ export default function App() {
             return {
               ...m,
               label: 'Analyse terminée',
+              status: 'done',
               done: true,
+              summary: `Analyse de ${(m.steps || []).length + 2} documents terminée`,
               expanded: false,
               steps: [
                 ...(m.steps || []),
@@ -1623,12 +1635,17 @@ export default function App() {
       }
 
       setChatMessages(prev => {
-        const withoutThinking = prev.filter(m => !(m.type === 'ai-thinking' && m._posteCalcId === posteId));
+        // Mark thinking block as done (keep it visible, collapsed)
+        const updated = prev.map(m => {
+          if (m.type === 'ai-thinking' && m._posteCalcId === posteId) {
+            return { ...m, status: 'done', expanded: false, summary: `Calcul ${posteName} terminé` };
+          }
+          return m;
+        });
         return [
-          ...withoutThinking,
+          ...updated,
           {
             type: 'ai',
-            thinkingLabel: `Calcul ${posteName} terminé`,
             text: resultTexts[posteId] || `${posteName} calculé. Données et argumentation reportées.`,
           },
           {
@@ -1700,17 +1717,25 @@ export default function App() {
         chatAnalysisTimeouts.current.push(t);
       });
 
-      // Phase 3: Proposal with action button
+      // Phase 3: Mark thinking as done + proposal with action button
       const proposalT = setTimeout(() => {
-        setChatMessages(prev => [
-          ...prev,
-          {
-            type: 'ai-proposal',
-            text: welcome.proposal,
-            posteId: posteId,
-            posteName: posteName,
-          },
-        ]);
+        setChatMessages(prev => {
+          const updated = prev.map(m => {
+            if (m.type === 'ai-thinking' && m._posteDiscoveryId === posteId) {
+              return { ...m, status: 'done', expanded: false, summary: welcome.analysis };
+            }
+            return m;
+          });
+          return [
+            ...updated,
+            {
+              type: 'ai-proposal',
+              text: welcome.proposal,
+              posteId: posteId,
+              posteName: posteName,
+            },
+          ];
+        });
       }, 800 + discoveryTools.length * 600 + 400);
       chatAnalysisTimeouts.current.push(proposalT);
     }, 400);
@@ -3369,18 +3394,7 @@ export default function App() {
     </svg>
   );
 
-  // Orange dot grid icon for AI thinking
-  const PlatoDotGrid = () => (
-    <div className="flex-shrink-0" style={{ width: 15, height: 15, display: 'flex', flexDirection: 'column', gap: 1 }}>
-      {[0, 1, 2].map(row => (
-        <div key={row} style={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-          {[0, 1, 2].map(col => (
-            <div key={col} style={{ width: 3, height: 3, backgroundColor: '#d4845a', borderRadius: 0.5, transform: 'rotate(45deg)' }} />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
+  // PlatoDotGrid is now imported from ./components/ReasoningStepper
 
   // Chat state
   const [chatInputValue, setChatInputValue] = useState('');
@@ -3471,90 +3485,19 @@ export default function App() {
                 );
               }
 
-              // AI thinking status — collapsible stepper with animations
+              // AI thinking status — collapsible stepper
               if (msg.type === 'ai-thinking') {
-                const isExpanded = msg.expanded;
-                const isDone = !!msg.done;
-                const steps = msg.steps || [];
-                const currentStep = steps.length > 0 ? steps[steps.length - 1] : null;
-                const stepIconMap = {
-                  readDocument: Search, readExpertise: Search, readBulletins: Search, readBaremes: Search,
-                  extractMontants: FileMinus, extractPeriods: FileMinus, extractRevenus: FileMinus,
-                  extractInfoDossier: FileText, detectPostes: ListChecks, analyseDocuments: FileSearch,
-                  calculDSA: Radical, calculDFT: Radical, calculPGPA: Radical, calculCapitalisation: Radical, calculPGPF: Radical,
-                  calculSE: Radical, calculDFP: Radical, calculPEP: Radical,
-                };
-                // Collect unique tool icons for collapsed summary
-                const uniqueToolIcons = isDone ? [...new Set(steps.map(s => s.tool))].map(t => stepIconMap[t] || Search).slice(0, 5) : [];
                 return (
-                  <div key={i} className="flex flex-col items-start" style={{ paddingRight: 20 }}>
-                    {/* Header — always visible */}
-                    <div
-                      className="flex items-center gap-2 cursor-pointer select-none py-1.5 w-full"
-                      onClick={() => setChatMessages(prev => prev.map((m, mi) => mi === i ? { ...m, expanded: !m.expanded } : m))}
-                    >
-                      {isExpanded
-                        ? <ChevronDown className="w-3.5 h-3.5 text-[#a8a29e] flex-shrink-0" />
-                        : <ChevronRight className="w-3.5 h-3.5 text-[#a8a29e] flex-shrink-0" />
-                      }
-                      <span className="flex-1 min-w-0 truncate" style={{ fontSize: 12, fontWeight: 500, color: isDone ? '#a8a29e' : '#78716c', lineHeight: '16px' }}>
-                        {isDone
-                          ? `${steps.length} étape${steps.length > 1 ? 's' : ''}`
-                          : (currentStep ? currentStep.detail || currentStep.tool : msg.label)
-                        }
-                      </span>
-                      {/* Tool type icons for collapsed summary */}
-                      {!isExpanded && uniqueToolIcons.length > 0 && (
-                        <span className="flex items-center gap-1 flex-shrink-0">
-                          {uniqueToolIcons.map((Icon, ii) => <Icon key={ii} className="w-3 h-3 text-[#a8a29e]" />)}
-                        </span>
-                      )}
-                      {/* Animated dots for active state */}
-                      {!isDone && (
-                        <span className="flex items-center gap-0.5 flex-shrink-0">
-                          <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-1" />
-                          <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-2" />
-                          <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-3" />
-                        </span>
-                      )}
-                    </div>
-                    {/* Expanded — flat log */}
-                    {isExpanded && steps.length > 0 && (
-                      <div className="flex flex-col gap-0.5 mb-1.5" style={{ paddingLeft: 6 }}>
-                        {steps.map((step, si) => {
-                          const StepIcon = stepIconMap[step.tool] || Search;
-                          const stepDone = isDone || si < steps.length - 1;
-                          const isActive = !isDone && si === steps.length - 1;
-                          return (
-                            <div key={si} className="animate-step-slide-in" style={{ animationDelay: `${si * 40}ms` }}>
-                              {/* Tool/agent line */}
-                              <div className="flex items-center gap-1.5 py-0.5">
-                                <StepIcon className="w-3 h-3 flex-shrink-0" style={{ color: isActive ? '#d4845a' : '#a8a29e' }} />
-                                <span style={{ fontSize: 12, color: isActive ? '#44403c' : '#78716c', lineHeight: '16px' }}>
-                                  {step.detail || step.tool}
-                                </span>
-                                {stepDone && <span style={{ fontSize: 11, color: '#a8a29e' }}>✓</span>}
-                              </div>
-                              {/* Expandable detail */}
-                              {step.expandedText && (
-                                <div style={{ paddingLeft: 18, fontSize: 11, color: '#a8a29e', lineHeight: '15px' }}>
-                                  {step.expandedText}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                        {/* Active dots at bottom */}
-                        {!isDone && (
-                          <div className="flex items-center gap-0.5 py-0.5" style={{ paddingLeft: 2 }}>
-                            <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-1" />
-                            <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-2" />
-                            <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-3" />
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <ReasoningStepper
+                    key={i}
+                    steps={msg.steps || []}
+                    label={msg.label}
+                    status={msg.status || (msg.done ? 'done' : 'streaming')}
+                    summary={msg.summary}
+                    counters={msg.counters}
+                    expanded={!!msg.expanded}
+                    onToggle={() => setChatMessages(prev => prev.map((m, mi) => mi === i ? { ...m, expanded: !m.expanded } : m))}
+                  />
                 );
               }
 
@@ -3985,11 +3928,7 @@ export default function App() {
               {/* Blocked indicator */}
               {chatBlocked && (
                 <div className="flex items-center gap-2 px-3 py-1.5" style={{ borderBottom: '1px solid #e7e5e3' }}>
-                  <span className="flex items-center gap-0.5">
-                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-1" />
-                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-2" />
-                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-3" />
-                  </span>
+                  <ThinkingDots />
                   <span style={{ fontSize: 11, color: '#a8a29e' }}>Plato analyse vos documents...</span>
                 </div>
               )}
@@ -10833,6 +10772,9 @@ export default function App() {
               <a key={s} href={`#section-${s.toLowerCase().replace(/\s+/g, '-')}`} className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">{s}</a>
             ))}
             <div className="mt-4 pt-4 border-t border-[#e7e5e3]">
+              <button onClick={() => setCurrentPage('reasoning-demo')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5" /> Reasoning Demo
+              </button>
               <button onClick={() => setCurrentPage('diff-engine')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
                 <FileText className="w-3.5 h-3.5" /> Diff Engine
               </button>
@@ -11206,58 +11148,192 @@ export default function App() {
             {/* ====== REASONING ====== */}
             <div id="section-reasoning" className={sectionClass}>
               {sectionTitle('Reasoning')}
-              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Composant de raisonnement de l'agent dans le chat. Expandable, avec étapes progressives.</p>
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Composant de raisonnement de l'agent. Streaming → auto-collapse → expand inspection.</p>
 
-              {subTitle('Active (expanded)')}
-              <div style={{ maxWidth: 380 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
-                <div className="flex items-center gap-2 cursor-pointer select-none py-1.5 w-full">
-                  <ChevronDown className="w-3.5 h-3.5 text-[#a8a29e]" />
-                  <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', flex: 1 }}>Lecture du rapport d'expertise</span>
-                  <span className="flex items-center gap-0.5">
-                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-1" />
-                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-2" />
-                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-3" />
-                  </span>
-                </div>
-                <div className="flex flex-col gap-0.5 mb-1.5" style={{ paddingLeft: 6 }}>
-                  {[
-                    { icon: FileSearch, detail: 'Je commence l\'analyse de 6 documents', sub: 'rapport.pdf, facture_1.pdf, ...',done: true },
-                    { icon: Search, detail: 'Lecture du rapport d\'expertise', sub: 'Rapport d\'expertise médico-légale Dr. Blanc', done: true },
-                    { icon: FileMinus, detail: 'Extraction des montants depuis une facture', sub: 'Facture CHU Bordeaux — 4 500 €', done: false },
-                  ].map((step, si) => {
-                    const Icon = step.icon;
-                    return (
-                      <div key={si}>
-                        <div className="flex items-center gap-1.5 py-0.5">
-                          <Icon className="w-3 h-3 flex-shrink-0" style={{ color: step.done ? '#a8a29e' : '#d4845a' }} />
-                          <span style={{ fontSize: 12, color: step.done ? '#78716c' : '#44403c' }}>{step.detail}</span>
-                          {step.done && <span style={{ fontSize: 11, color: '#a8a29e' }}>✓</span>}
-                        </div>
-                        {step.sub && <div style={{ paddingLeft: 18, fontSize: 11, color: '#a8a29e' }}>{step.sub}</div>}
-                      </div>
-                    );
-                  })}
-                  <div className="flex items-center gap-0.5 py-0.5" style={{ paddingLeft: 2 }}>
-                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-1" />
-                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-2" />
-                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-3" />
-                  </div>
-                </div>
+              {subTitle('Step type → user label mapping')}
+              <div className="flex flex-col gap-0 mb-4 border border-[#e7e5e3] rounded-lg bg-white overflow-hidden" style={{ maxWidth: 520 }}>
+                {[
+                  ['read_documents',  'Analyse de X documents'],
+                  ['read_rapport',    "Lecture du rapport d'expertise"],
+                  ['search_document', 'Recherche dans le document'],
+                  ['extract_data',    'Extraction des données'],
+                  ['calculate',       'Calcul du poste'],
+                  ['verify_data',     'Vérification des données'],
+                  ['summarize',       'Synthèse des résultats'],
+                  ['navigate',        'Navigation vers le poste'],
+                  ['add_row',         'X lignes ajoutées'],
+                  ['update_row',      'Mise à jour du champ'],
+                  ['delete_row',      'X lignes supprimées'],
+                  ['sub_agent',       'Agent extraction factures'],
+                  ['error',           'Extraction impossible — fichier illisible'],
+                ].map(([type, label], i) => {
+                  const cfg = STEP_TYPE_CONFIG[type];
+                  if (!cfg) return null;
+                  const Icon = cfg.Icon;
+                  const colors = STEP_COLORS[cfg.color] || STEP_COLORS.default;
+                  return (
+                    <div key={type} className="flex items-center gap-2.5 px-3 py-1.5" style={{ borderTop: i > 0 ? '1px solid #f5f5f4' : 'none' }}>
+                      <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: colors.icon }} />
+                      <span className="flex-shrink-0" style={{ fontSize: 11, fontFamily: 'monospace', color: '#a8a29e', width: 120 }}>{type}</span>
+                      <span style={{ fontSize: 12, color: '#44403c' }}>{label}</span>
+                      {cfg.pill && <CrudPill type={type} />}
+                    </div>
+                  );
+                })}
               </div>
 
-              {subTitle('Done (collapsed)')}
-              <div style={{ maxWidth: 380 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
-                <div className="flex items-center gap-2 py-1.5">
-                  <ChevronRight className="w-3.5 h-3.5 text-[#a8a29e]" />
-                  <span style={{ fontSize: 12, fontWeight: 500, color: '#a8a29e', flex: 1 }}>8 étapes</span>
-                  <span className="flex items-center gap-1">
-                    <FileSearch className="w-3 h-3 text-[#a8a29e]" />
-                    <Search className="w-3 h-3 text-[#a8a29e]" />
-                    <FileMinus className="w-3 h-3 text-[#a8a29e]" />
-                    <ListChecks className="w-3 h-3 text-[#a8a29e]" />
-                  </span>
+              {subTitle('CRUD Pills')}
+              {row(
+                <div className="flex items-center gap-3">
+                  <CrudPill type="add_row" />
+                  <CrudPill type="update_row" />
+                  <CrudPill type="delete_row" />
                 </div>
+              )}
+
+              {subTitle('Dot Counters')}
+              {row(
+                <div className="flex items-center gap-4">
+                  <DotCounter color="green" count={3} />
+                  <DotCounter color="orange" count={1} />
+                  <DotCounter color="red" count={1} />
+                </div>
+              )}
+
+              {subTitle('Streaming (active)')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="streaming"
+                  steps={[
+                    { type: 'read_documents', label: 'Analyse de 6 documents', status: 'done', children: ['rapport.pdf', 'facture_1.pdf', 'facture_2.pdf', 'facture_3.pdf', 'bulletin_01.pdf', 'bulletin_02.pdf'] },
+                    { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+                    { type: 'extract_data', label: 'Extraction facture CHU Bordeaux', status: 'loading', children: ['Montant : 4 500 €', 'CPAM : 3 200 €', 'RAC : 1 300 €'] },
+                  ]}
+                  onToggle={() => {}}
+                />
               </div>
+
+              {subTitle('Collapsed (done — with CRUD counters)')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="done"
+                  summary="Complétion du poste DSA depuis 3 factures"
+                  counters={{ add: 3, update: 1 }}
+                  steps={[
+                    { type: 'read_documents', label: 'Analyse de 6 documents', status: 'done' },
+                    { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+                    { type: 'extract_data', label: 'Extraction facture CHU Bordeaux', status: 'done', children: ['4 500 € — CPAM 3 200 €'] },
+                    { type: 'add_row', label: '3 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire', 'Kinésithérapie'] },
+                    { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
+                  ]}
+                  expanded={false}
+                  onToggle={() => {}}
+                />
+              </div>
+
+              {subTitle('Collapsed (read-only — no counters)')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="done"
+                  summary="Analyse du rapport d'expertise"
+                  steps={[
+                    { type: 'read_documents', label: 'Analyse de 2 documents', status: 'done' },
+                    { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+                  ]}
+                  expanded={false}
+                  onToggle={() => {}}
+                />
+              </div>
+
+              {subTitle('Expanded (inspection mode)')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="done"
+                  summary="Complétion du poste DSA depuis 3 factures"
+                  counters={{ add: 3, update: 1 }}
+                  steps={[
+                    { type: 'read_documents', label: 'Analyse de 6 documents', status: 'done', children: ['rapport.pdf', 'facture_1.pdf', 'facture_2.pdf', 'facture_3.pdf', 'bulletin_01.pdf', 'bulletin_02.pdf'] },
+                    { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+                    { type: 'extract_data', label: 'Extraction facture CHU Bordeaux', status: 'done', children: ['Montant : 4 500 €', 'CPAM : 3 200 €', 'RAC : 1 300 €'] },
+                    { type: 'add_row', label: '3 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire', 'Kinésithérapie'] },
+                    { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
+                  ]}
+                  expanded={true}
+                  onToggle={() => {}}
+                />
+              </div>
+
+              {subTitle('Partial error')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="done"
+                  summary="Extraction des factures DSA"
+                  counters={{ add: 2, error: 1 }}
+                  steps={[
+                    { type: 'read_documents', label: 'Analyse de 3 documents', status: 'done' },
+                    { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 € — CPAM 3 200 €'] },
+                    { type: 'error', label: 'Extraction impossible — facture_scan.pdf illisible', status: 'error' },
+                    { type: 'add_row', label: '2 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire'] },
+                  ]}
+                  expanded={true}
+                  onToggle={() => {}}
+                />
+              </div>
+
+              {subTitle('Total error')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="done"
+                  summary="Analyse du rapport d'expertise"
+                  counters={{ error: 1 }}
+                  steps={[
+                    { type: 'error', label: "Aucun rapport d'expertise dans le dossier", status: 'error' },
+                  ]}
+                  expanded={false}
+                  onToggle={() => {}}
+                />
+              </div>
+
+              {subTitle('Sub-agent')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="done"
+                  summary="Extraction et complétion DSA"
+                  counters={{ add: 2 }}
+                  steps={[
+                    { type: 'read_documents', label: 'Analyse de 4 documents', status: 'done' },
+                    { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+                    { type: 'sub_agent', label: 'Agent extraction factures', status: 'done', children_steps: [
+                      { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 €'] },
+                      { type: 'extract_data', label: 'Extraction facture clinique', status: 'done', children: ['2 800 €'] },
+                    ]},
+                    { type: 'add_row', label: '2 lignes DSA', status: 'done', poste: 'DSA', children: ['CHU Bordeaux', 'Clinique St-Jean'] },
+                  ]}
+                  expanded={true}
+                  onToggle={() => {}}
+                />
+              </div>
+
+              {subTitle('Backend tool mapping (real Plato Supervisor names)')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="done"
+                  summary="Analyse du poste DFT — 2 problèmes détectés"
+                  counters={{ update: 2, delete: 1 }}
+                  steps={[
+                    { type: 'read_documents', label: 'Lecture du dossier', status: 'done', children: ['rapport_expertise.pdf', 'consolidation_2023.pdf'] },
+                    { type: 'extract_data', label: 'Extraction des périodes DFT', status: 'done', children: ['3 périodes identifiées'] },
+                    { tool: 'getPosteProblemDetector', detail: 'Vérification des données DFT', expandedText: '2 doublons détectés entre sources' },
+                    { tool: 'getHistoireSummaryTool', detail: 'Synthèse des résultats' },
+                    { type: 'delete_row', label: '1 ligne en doublon', status: 'done', poste: 'DFT' },
+                    { type: 'update_row', label: 'Taux DFT période 2', status: 'done', poste: 'DFT', children: ['25% → 30%'] },
+                    { type: 'update_row', label: 'Date fin période 3', status: 'done', poste: 'DFT', children: ['15/03/2023 → 17/05/2023'] },
+                  ]}
+                  expanded={true}
+                  onToggle={() => {}}
+                />
+              </div>
+
             </div>
 
             {/* ====== CHAT MESSAGES ====== */}
@@ -11267,11 +11343,7 @@ export default function App() {
               {subTitle('Chat blocked indicator')}
               <div style={{ maxWidth: 380 }} className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden">
                 <div className="flex items-center gap-2 px-3 py-1.5" style={{ borderBottom: '1px solid #e7e5e3' }}>
-                  <span className="flex items-center gap-0.5">
-                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-1" />
-                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-2" />
-                    <span className="w-1 h-1 rounded-full bg-[#d4845a] animate-thinking-dot-3" />
-                  </span>
+                  <ThinkingDots />
                   <span style={{ fontSize: 11, color: '#a8a29e' }}>Plato analyse vos documents...</span>
                 </div>
                 <div style={{ padding: '12px', opacity: 0.5 }}>
@@ -12573,7 +12645,675 @@ export default function App() {
     </div>
   );
 
+  // ========== REASONING DEMO PAGE ==========
+  const REASONING_SCENARIOS = {
+    A: {
+      title: 'Success with CRUD (DSA completion)',
+      summary: 'Complétion du poste DSA depuis 3 factures',
+      counters: { add: 3, update: 1 },
+      response: "J'ai complété le poste DSA avec les 3 lignes extraites des factures et mis à jour le taux DFP à 20%. Le resté à charge total DSA est de 7 300 €.",
+      steps: [
+        { type: 'read_documents', label: 'Analyse de 6 documents', status: 'done', children: ['rapport.pdf', 'facture_1.pdf', 'facture_2.pdf', 'facture_3.pdf', 'bulletin_01.pdf', 'bulletin_02.pdf'] },
+        { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+        { type: 'extract_data', label: 'Extraction facture CHU Bordeaux', status: 'done', children: ['Montant : 4 500 €', 'CPAM : 3 200 €', 'RAC : 1 300 €'] },
+        { type: 'add_row', label: '3 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire', 'Kinésithérapie'] },
+        { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
+      ],
+    },
+    B: {
+      title: 'Read-only (analysis)',
+      summary: "Analyse du rapport d'expertise",
+      counters: {},
+      response: "La consolidation est fixée au 15 mars 2024. Le DFP retenu est de 20% et le DFT couvre 4 périodes (187 jours). Souhaitez-vous que je pré-remplisse les postes concernés ?",
+      steps: [
+        { type: 'read_documents', label: 'Analyse de 2 documents', status: 'done', children: ['rapport.pdf', 'conclusions_amiable.pdf'] },
+        { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+      ],
+    },
+    C: {
+      title: 'Partial error',
+      summary: 'Extraction des factures DSA',
+      counters: { add: 2, error: 1 },
+      response: "J'ai extrait 2 factures sur 3 et créé les lignes DSA. Le fichier facture_scan.pdf n'a pas pu être lu — vérifiez qu'il s'agit d'un PDF texte.",
+      steps: [
+        { type: 'read_documents', label: 'Analyse de 3 documents', status: 'done' },
+        { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 € — CPAM 3 200 €'] },
+        { type: 'error', label: 'Extraction impossible — facture_scan.pdf illisible', status: 'error' },
+        { type: 'add_row', label: '2 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire'] },
+      ],
+    },
+    D: {
+      title: 'Total error',
+      summary: "Analyse du rapport d'expertise",
+      counters: { error: 1 },
+      response: "Je n'ai pas trouvé de rapport d'expertise dans ce dossier. Déposez-le dans la section Documents puis relancez l'analyse.",
+      steps: [
+        { type: 'error', label: "Aucun rapport d'expertise dans le dossier", status: 'error' },
+      ],
+    },
+    E: {
+      title: 'Multi-poste with deletion',
+      summary: "Pré-remplissage depuis le rapport d'expertise",
+      counters: { add: 5, update: 1, delete: 1 },
+      response: "J'ai pré-rempli 3 postes depuis le rapport : DSA (3 lignes), DFT (2 périodes) et DFP (taux à 20%). J'ai aussi supprimé un doublon sur DFT.",
+      steps: [
+        { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+        { type: 'add_row', label: '3 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire', 'Kinésithérapie'] },
+        { type: 'add_row', label: '2 périodes DFT', status: 'done', poste: 'DFT', children: ['01/01 → 15/03/2024 — 25% — 74j', '16/03 → 30/06/2024 — 10% — 107j'] },
+        { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
+        { type: 'delete_row', label: '1 ligne DFT doublon', status: 'done', poste: 'DFT', children: ['Période 3 — doublon avec période 2'] },
+      ],
+    },
+    F: {
+      title: 'Sub-agent',
+      summary: 'Extraction et complétion DSA',
+      counters: { add: 2 },
+      response: "J'ai extrait les montants de 2 factures via l'agent d'extraction et ajouté les lignes correspondantes au poste DSA.",
+      steps: [
+        { type: 'read_documents', label: 'Analyse de 4 documents', status: 'done' },
+        { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+        { type: 'sub_agent', label: 'Agent extraction factures', status: 'done', children_steps: [
+          { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 €'] },
+          { type: 'extract_data', label: 'Extraction facture clinique', status: 'done', children: ['2 800 €'] },
+        ]},
+        { type: 'add_row', label: '2 lignes DSA', status: 'done', poste: 'DSA', children: ['CHU Bordeaux', 'Clinique St-Jean'] },
+      ],
+    },
+  };
+
+  const ReasoningDemoScenario = ({ id, scenario }) => {
+    const [phase, setPhase] = React.useState('idle'); // idle | streaming | done
+    const [visibleSteps, setVisibleSteps] = React.useState([]);
+    const [expanded, setExpanded] = React.useState(false);
+    const [speed, setSpeed] = React.useState(1);
+    const timeoutsRef = React.useRef([]);
+
+    const play = () => {
+      // Clear any running timeouts
+      timeoutsRef.current.forEach(t => clearTimeout(t));
+      timeoutsRef.current = [];
+      setPhase('streaming');
+      setVisibleSteps([]);
+      setExpanded(false);
+
+      const stepInterval = 15000 / Math.max(scenario.steps.length, 1);
+      const processingDelay = stepInterval * 0.6;
+      scenario.steps.forEach((step, idx) => {
+        // Add step in loading state
+        const tLoad = setTimeout(() => {
+          setVisibleSteps(prev => [...prev, { ...step, status: 'loading' }]);
+        }, (400 + idx * stepInterval) / speed);
+        timeoutsRef.current.push(tLoad);
+        // Flip to done after processing delay
+        const tDone = setTimeout(() => {
+          setVisibleSteps(prev => prev.map((s, i) => i === idx ? { ...step, status: step.status || 'done' } : s));
+        }, (400 + idx * stepInterval + processingDelay) / speed);
+        timeoutsRef.current.push(tDone);
+      });
+
+      // Auto-collapse after all steps
+      const doneT = setTimeout(() => {
+        setPhase('done');
+        setVisibleSteps(scenario.steps);
+      }, (400 + scenario.steps.length * stepInterval + 600) / speed);
+      timeoutsRef.current.push(doneT);
+    };
+
+    const reset = () => {
+      timeoutsRef.current.forEach(t => clearTimeout(t));
+      timeoutsRef.current = [];
+      setPhase('idle');
+      setVisibleSteps([]);
+      setExpanded(false);
+    };
+
+    return (
+      <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded text-xs font-semibold" style={{ backgroundColor: '#292524', color: 'white' }}>{id}</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{scenario.title}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Speed control */}
+            <div className="flex items-center gap-1 border border-[#e7e5e3] rounded overflow-hidden">
+              {[1, 2, 4].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setSpeed(s)}
+                  className="px-2 py-0.5 text-xs transition-colors"
+                  style={{ fontWeight: speed === s ? 600 : 400, color: speed === s ? '#292524' : '#a8a29e', backgroundColor: speed === s ? '#eeece6' : 'transparent' }}
+                >
+                  {s}x
+                </button>
+              ))}
+            </div>
+            {phase === 'idle' ? (
+              <button onClick={play} className="px-3 py-1 rounded text-xs font-medium text-white transition-colors" style={{ backgroundColor: '#292524' }}>
+                Play
+              </button>
+            ) : (
+              <button onClick={reset} className="px-3 py-1 rounded text-xs font-medium transition-colors border border-[#e7e5e3]" style={{ color: '#78716c' }}>
+                <RotateCcw className="w-3 h-3 inline mr-1" />Reset
+              </button>
+            )}
+          </div>
+        </div>
+        {/* Content */}
+        <div className="p-4" style={{ minHeight: 60 }}>
+          {phase === 'idle' && (
+            <p style={{ fontSize: 13, color: '#a8a29e', textAlign: 'center', padding: '16px 0' }}>
+              Cliquez Play pour lancer la simulation
+            </p>
+          )}
+          {phase === 'streaming' && (
+            <ReasoningStepper
+              status="streaming"
+              steps={visibleSteps}
+              onToggle={() => {}}
+            />
+          )}
+          {phase === 'done' && (
+            <>
+              <ReasoningStepper
+                status="done"
+                summary={scenario.summary}
+                counters={scenario.counters}
+                steps={scenario.steps}
+                expanded={expanded}
+                onToggle={() => setExpanded(v => !v)}
+              />
+              {/* Agent response */}
+              <div style={{ marginTop: 8, fontSize: 14, lineHeight: '20px', color: '#44403c' }}>
+                {scenario.response}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const FinishedInspectableCard = ({ summary, counters, steps }) => {
+    const [expanded, setExpanded] = React.useState(false);
+    return (
+      <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden">
+        <div className="px-3 py-2" style={{ backgroundColor: '#fafaf9', borderBottom: '1px solid #e7e5e3' }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Reasoning finished inspectable</span>
+        </div>
+        <div className="p-4">
+          <ReasoningStepper
+            status="done"
+            summary={summary}
+            counters={counters}
+            steps={steps}
+            expanded={expanded}
+            onToggle={() => setExpanded(v => !v)}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const ExampleStageCard = ({ label, summary, counters, allSteps }) => {
+    const [phase, setPhase] = React.useState('idle'); // idle | streaming | done
+    const [visibleSteps, setVisibleSteps] = React.useState([]);
+    const [expanded, setExpanded] = React.useState(false);
+    const timeoutsRef = React.useRef([]);
+
+    const play = () => {
+      timeoutsRef.current.forEach(t => clearTimeout(t));
+      timeoutsRef.current = [];
+      setPhase('streaming');
+      setVisibleSteps([]);
+      setExpanded(false);
+
+      const stepInterval = 10000 / Math.max(allSteps.length, 1);
+      const processingDelay = stepInterval * 0.6;
+      allSteps.forEach((step, idx) => {
+        const tLoad = setTimeout(() => {
+          setVisibleSteps(prev => [...prev, { ...step, status: 'loading' }]);
+        }, 300 + idx * stepInterval);
+        timeoutsRef.current.push(tLoad);
+        const tDone = setTimeout(() => {
+          setVisibleSteps(prev => prev.map((s, i) => i === idx ? { ...step, status: step.status || 'done' } : s));
+        }, 300 + idx * stepInterval + processingDelay);
+        timeoutsRef.current.push(tDone);
+      });
+
+      const doneT = setTimeout(() => {
+        setPhase('done');
+        setVisibleSteps(allSteps);
+        setExpanded(false);
+      }, 300 + allSteps.length * stepInterval + 400);
+      timeoutsRef.current.push(doneT);
+    };
+
+    const reset = () => {
+      timeoutsRef.current.forEach(t => clearTimeout(t));
+      timeoutsRef.current = [];
+      setPhase('idle');
+      setVisibleSteps([]);
+      setExpanded(false);
+    };
+
+    React.useEffect(() => () => timeoutsRef.current.forEach(t => clearTimeout(t)), []);
+
+    return (
+      <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden">
+        <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#fafaf9', borderBottom: '1px solid #e7e5e3' }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
+          <div className="flex items-center gap-1.5">
+            {phase === 'idle' ? (
+              <button onClick={play} className="px-2.5 py-0.5 rounded text-xs font-medium text-white transition-colors" style={{ backgroundColor: '#292524' }}>
+                Play
+              </button>
+            ) : (
+              <button onClick={reset} className="px-2.5 py-0.5 rounded text-xs font-medium transition-colors border border-[#e7e5e3]" style={{ color: '#78716c' }}>
+                <RotateCcw className="w-3 h-3 inline mr-1" />Reset
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="p-4" style={{ minHeight: 48 }}>
+          {phase === 'idle' && (
+            <p style={{ fontSize: 12, color: '#a8a29e', textAlign: 'center', padding: '12px 0' }}>
+              Cliquez Play pour lancer
+            </p>
+          )}
+          {phase === 'streaming' && (
+            <ReasoningStepper
+              status="streaming"
+              steps={visibleSteps}
+              onToggle={() => {}}
+            />
+          )}
+          {phase === 'done' && (
+            <ReasoningStepper
+              status="done"
+              summary={summary}
+              counters={counters}
+              steps={allSteps}
+              expanded={expanded}
+              onToggle={() => setExpanded(v => !v)}
+            />
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderReasoningDemoPage = () => {
+    const sH1 = { fontSize: 20, fontWeight: 700, color: '#292524', marginBottom: 6, marginTop: 48 };
+    const sH2 = { fontSize: 15, fontWeight: 600, color: '#292524', marginBottom: 6, marginTop: 32 };
+    const sP = { fontSize: 13, color: '#78716c', lineHeight: '20px', marginBottom: 16 };
+    const sCode = { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#78716c', backgroundColor: '#f5f5f4', padding: '1px 5px', borderRadius: 3 };
+    const sCard = "border border-[#e7e5e3] rounded-lg bg-white p-4";
+    const sLabel = { fontSize: 10, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 };
+
+    return (
+      <div className="h-screen flex flex-col" style={{ backgroundColor: '#F8F7F5', fontFamily: "'Inter', system-ui, sans-serif" }}>
+        {/* Top bar */}
+        <div className="flex items-center gap-3 px-6 h-12 border-b border-[#e7e5e3] flex-shrink-0 bg-white">
+          <button onClick={() => setCurrentPage('components')} className="flex items-center gap-1.5 text-[#78716c] hover:text-[#292524] transition-colors" style={{ fontSize: 13 }}>
+            <ChevronRight className="w-4 h-4 rotate-180" /> UI Kit
+          </button>
+          <span style={{ color: '#d6d3d1' }}>/</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#292524' }}>Reasoning Stepper</span>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-8 py-8">
+          <div style={{ maxWidth: 880 }}>
+
+            {/* ══════════════════════════════════════════════════════════════ */}
+            {/* TITLE                                                        */}
+            {/* ══════════════════════════════════════════════════════════════ */}
+            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#292524', marginBottom: 8, letterSpacing: '-0.5px' }}>ReasoningStepper</h1>
+            <p style={{ ...sP, maxWidth: 640 }}>
+              Affiche les étapes de raisonnement de l'agent Plato. Supporte le streaming progressif, l'auto-collapse, les sous-agents, le groupement CRUD, et la vérification des données.
+            </p>
+
+            {/* ══════════════════════════════════════════════════════════════ */}
+            {/* EXAMPLES & STAGES                                            */}
+            {/* ══════════════════════════════════════════════════════════════ */}
+            <h1 style={sH1}>Examples & stages</h1>
+            <p style={sP}>Étapes apparaissent une à une. L'icône de la dernière étape est remplacée par le gif plato-thinking.gif le temps du traitement.</p>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <ExampleStageCard
+                label="Processing reasoning"
+                summary="Complétion du poste DSA depuis 3 factures"
+                counters={{ add: 3, update: 1 }}
+                allSteps={[
+                  { type: 'read_documents', label: 'Analyse de 4 documents', status: 'done' },
+                  { type: 'read_rapport', label: "Lecture du rapport d'expertise médicale", status: 'done' },
+                  { type: 'extract_data', label: 'Extraction facture CHU Bordeaux', status: 'done', children: ['4 500 € — CPAM 3 200 €'] },
+                  { type: 'verify_data', label: 'Vérification des données', status: 'done' },
+                  { type: 'add_row', label: '3 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire', 'Kinésithérapie'] },
+                  { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
+                ]}
+              />
+              <FinishedInspectableCard
+                summary="Résumé du reasoning usage final"
+                counters={{ add: 4, update: 1 }}
+                steps={[
+                  { type: 'read_documents', label: 'Analyse de 6 documents', status: 'done' },
+                  { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+                  { type: 'extract_data', label: 'Extraction facture CHU Bordeaux', status: 'done', children: ['4 500 € — CPAM 3 200 €'] },
+                  { type: 'verify_data', label: 'Vérification des données', status: 'done' },
+                  { type: 'calculate', label: 'Calcul du poste DSA', status: 'done' },
+                  { type: 'add_row', label: '3 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire', 'Kinésithérapie'] },
+                  { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
+                  { type: 'navigate', label: 'Navigation vers le poste', status: 'done' },
+                  { type: 'add_row', label: '1 ligne DFT', status: 'done', poste: 'DFT' },
+                  { type: 'error', label: 'Extraction impossible — fichier illisible', status: 'error' },
+                ]}
+              />
+            </div>
+
+            {/* ══════════════════════════════════════════════════════════════ */}
+            {/* ANATOMY                                                      */}
+            {/* ══════════════════════════════════════════════════════════════ */}
+            <h1 style={sH1}>Anatomy</h1>
+
+            {/* ── StepIcon ── */}
+            <h2 style={sH2}>StepIcon</h2>
+            <p style={sP}>Chaque étape a un <span style={sCode}>type</span> qui détermine son icône, sa couleur, et son comportement.</p>
+            <p style={{ ...sP, fontSize: 11 }}>Les vrais noms d'outils du Plato Supervisor (PostHog traces) sont mappés via <span style={sCode}>BACKEND_TOOL_MAP</span>.</p>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {/* Left: Icon type table */}
+              <div className="flex flex-col gap-0 border border-[#e7e5e3] rounded-lg bg-white overflow-hidden">
+                <div className="flex items-center gap-2.5 px-3 py-1.5" style={{ backgroundColor: '#fafaf9', borderBottom: '1px solid #e7e5e3' }}>
+                  <span style={{ ...sLabel, marginBottom: 0, width: 16 }}></span>
+                  <span style={{ ...sLabel, marginBottom: 0, width: 110 }}>Type</span>
+                  <span style={{ ...sLabel, marginBottom: 0, flex: 1 }}>Label utilisateur</span>
+                </div>
+                {[
+                  ['read_documents',  'Analyse de X documents'],
+                  ['read_rapport',    "Lecture du rapport d'expertise"],
+                  ['search_document', 'Recherche dans le document'],
+                  ['extract_data',    'Extraction des données en cours de...'],
+                  ['verify_data',     'Vérification des données'],
+                  ['summarize',       'Synthèse des résultats'],
+                  ['calculate',       'Calcul du poste'],
+                  ['navigate',        'Navigation vers le poste'],
+                  ['add_row',         'X lignes ajoutées'],
+                  ['update_row',      'Mise à jour du champ'],
+                  ['delete_row',      'X lignes supprimées'],
+                  ['sub_agent',       'Agent extraction factures'],
+                  ['error',           'Extraction impossible — Fichier illisible'],
+                ].map(([type, label]) => {
+                  const cfg = STEP_TYPE_CONFIG[type];
+                  if (!cfg) return null;
+                  const Icon = cfg.Icon;
+                  const colors = STEP_COLORS[cfg.color] || STEP_COLORS.default;
+                  return (
+                    <div key={type} className="flex items-center gap-2.5 px-3 py-1.5" style={{ borderTop: '1px solid #f5f5f4' }}>
+                      <span className="flex items-center justify-center flex-shrink-0" style={{ width: 16 }}>
+                        <Icon className="w-3.5 h-3.5" style={{ color: colors.icon }} />
+                      </span>
+                      <span className="flex-shrink-0" style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: '#a8a29e', width: 110 }}>{type}</span>
+                      <span className="flex items-center gap-1.5 flex-1 truncate" style={{ fontSize: 12, color: '#44403c' }}>
+                        {cfg.pill && <CrudPill type={type} />}
+                        {label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Right: States + backend mapping */}
+              <div className="flex flex-col gap-4">
+                {/* Hover states */}
+                <div className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                  <p style={sLabel}>Item states</p>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: 10, color: '#a8a29e', width: 60 }}>default</span>
+                      <div className="flex-1 flex items-start gap-2 p-1 rounded">
+                        <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                          <Search className="w-3.5 h-3.5" style={{ color: '#a8a29e' }} />
+                        </span>
+                        <span style={{ fontSize: 12, color: '#44403c' }}>When hovering a collapsed item</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: 10, color: '#a8a29e', width: 60 }}>hover</span>
+                      <div className="flex-1 flex items-start gap-2 p-1 rounded" style={{ backgroundColor: '#f8f7f5' }}>
+                        <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                          <ChevronRight className="w-3.5 h-3.5" style={{ color: '#78716c' }} />
+                        </span>
+                        <span style={{ fontSize: 12, color: '#44403c' }}>When hovering an expanded item</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: 10, color: '#a8a29e', width: 60 }}>processing</span>
+                      <div className="flex-1 flex items-start gap-2 p-1 rounded">
+                        <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                          <img src="/plato-thinking.gif" alt="" className="w-3 h-3" style={{ objectFit: 'contain' }} />
+                        </span>
+                        <span style={{ fontSize: 12, color: '#78716c' }}>When step is processing</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Backend tool mapping */}
+                <div className="flex flex-col gap-0 border border-[#e7e5e3] rounded-lg bg-white overflow-hidden">
+                  <div className="flex items-center gap-2.5 px-3 py-1.5" style={{ backgroundColor: '#fafaf9', borderBottom: '1px solid #e7e5e3' }}>
+                    <span style={{ ...sLabel, marginBottom: 0, flex: 1 }}>Backend tool</span>
+                    <span style={{ ...sLabel, marginBottom: 0, width: 80 }}>Map to</span>
+                    <span style={{ ...sLabel, marginBottom: 0, flex: 1 }}>Label FR</span>
+                  </div>
+                  {Object.entries(BACKEND_TOOL_MAP).map(([tool, mapping]) => {
+                    const cfg = STEP_TYPE_CONFIG[mapping.type];
+                    const Icon = cfg?.Icon;
+                    const colors = STEP_COLORS[cfg?.color] || STEP_COLORS.default;
+                    return (
+                      <div key={tool} className="flex items-center gap-2.5 px-3 py-1.5" style={{ borderTop: '1px solid #f5f5f4' }}>
+                        <span className="flex-1 truncate" style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: '#78716c' }}>{tool}</span>
+                        <span className="flex items-center gap-1 flex-shrink-0" style={{ width: 80 }}>
+                          {Icon && <Icon className="w-3 h-3" style={{ color: colors.icon }} />}
+                          <span style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: '#a8a29e' }}>{mapping.type}</span>
+                        </span>
+                        <span className="flex-1 truncate" style={{ fontSize: 12, color: '#44403c' }}>{mapping.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* ── CrudBadges ── */}
+            <h2 style={sH2}>CrudBadges (feature level badges)</h2>
+            <p style={sP}>Le caractère de chaque étape CRUD est rapidement identifiable par un badge → indicateur. Couleur + diamant = indique le type dans le header collapsed. Indicateur = <span style={sCode}>ajout/modif./suppr.</span> → label mono apparaît dans la ligne d'étape CRUD. Counter → diamant + nombre dans le header collapsed.</p>
+
+            <div className="flex items-center gap-6 mb-6 p-4 border border-[#e7e5e3] rounded-lg bg-white" style={{ maxWidth: 480 }}>
+              <div>
+                <p style={{ ...sLabel, marginBottom: 6 }}>Pills</p>
+                <div className="flex items-center gap-2">
+                  <CrudPill type="add_row" />
+                  <CrudPill type="update_row" />
+                  <CrudPill type="delete_row" />
+                </div>
+              </div>
+              <div style={{ width: 1, height: 32, backgroundColor: '#e7e5e3' }} />
+              <div>
+                <p style={{ ...sLabel, marginBottom: 6 }}>Counters</p>
+                <div className="flex items-center gap-3">
+                  <DotCounter color="green" count={3} />
+                  <DotCounter color="orange" count={1} />
+                  <DotCounter color="red" count={1} />
+                </div>
+              </div>
+            </div>
+
+            {/* ── Tree / Tree zones ── */}
+            <h2 style={sH2}>Tree / Tree zones (planning for deeper levels)</h2>
+            <p style={sP}>
+              Tree = connecteur vertical (1px, <span style={sCode}>#e7e5e4</span>) dans un gutter de 16px, branche horizontale par child row.<br/>
+              Tree zone: Level 1 only for now.
+            </p>
+
+            <div className="flex items-start gap-4 mb-6">
+              {/* Tree component visual */}
+              <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#292524', padding: 20 }}>
+                <div className="flex flex-col">
+                  {/* Tree connector piece — vertical + horizontal branch */}
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="flex items-stretch" style={{ height: 24 }}>
+                      <div className="relative" style={{ width: 20 }}>
+                        <div className="absolute" style={{ left: 12, top: 0, bottom: i === 2 ? '50%' : 0, width: 1, backgroundColor: '#e7e5e4' }} />
+                      </div>
+                      <div className="relative" style={{ width: 20 }}>
+                        <div className="absolute" style={{ left: 0, top: '50%', width: 10, height: 1, backgroundColor: '#e7e5e4' }} />
+                      </div>
+                      <div style={{ width: 40 }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tree zone — Level 1 */}
+              <div className="rounded-lg overflow-hidden flex items-center justify-center" style={{ backgroundColor: '#292524', padding: 20 }}>
+                <div className="rounded border border-dashed flex items-center justify-center" style={{ borderColor: '#78716c', width: 80, height: 64, position: 'relative' }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Level 1</span>
+                  {/* Tree inside zone */}
+                  <div className="absolute" style={{ left: -20, top: 8 }}>
+                    {[0, 1].map((i) => (
+                      <div key={i} className="flex items-stretch" style={{ height: 24 }}>
+                        <div className="relative" style={{ width: 20 }}>
+                          <div className="absolute" style={{ left: 12, top: 0, bottom: i === 1 ? '50%' : 0, width: 1, backgroundColor: '#e7e5e4' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Step + StepItem side-by-side ── */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className={sCard}>
+                <p style={sLabel}>Step</p>
+                <p style={{ fontSize: 11, color: '#78716c', marginBottom: 8 }}>Step est le composant qui gère le type + le style dans le ReasoningStepper.</p>
+                <ReasoningStepper status="done" steps={[
+                  { type: 'extract_data', label: 'Extraction et traitement DSA', status: 'done' },
+                  { type: 'read_documents', label: 'Analyse de 4 documents', status: 'done' },
+                  { type: 'read_rapport', label: "Lecture du rapport d'expertise médicale", status: 'done' },
+                  { type: 'extract_data', label: 'Extraction des données en cours de...', status: 'done' },
+                  { type: 'add_row', label: '3 lignes ajoutées', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire', 'Kinésithérapie'] },
+                ]} expanded={true} onToggle={() => {}} />
+              </div>
+              <div className={sCard}>
+                <p style={sLabel}>StepItem</p>
+                <p style={{ fontSize: 11, color: '#78716c', marginBottom: 8 }}>StepItem = un simple wrapper padding + state default/hover.</p>
+                <div className="flex flex-col gap-0">
+                  <div className="flex items-start gap-2 p-1 rounded">
+                    <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                      <FileSearch className="w-3.5 h-3.5" style={{ color: '#a8a29e' }} />
+                    </span>
+                    <span style={{ fontSize: 12, color: '#44403c' }}>Analyse de 4 documents</span>
+                  </div>
+                  <div className="flex items-start gap-2 p-1 rounded" style={{ backgroundColor: '#f8f7f5' }}>
+                    <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                      <ChevronRight className="w-3.5 h-3.5" style={{ color: '#78716c' }} />
+                    </span>
+                    <span style={{ fontSize: 12, color: '#44403c' }}>Analyse de 4 documents</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ══════════════════════════════════════════════════════════════ */}
+            {/* WHO GOT SUBITEMS, WHO GOT DESC                               */}
+            {/* ══════════════════════════════════════════════════════════════ */}
+            <h2 style={sH2}>Who got subitems, who got desc ?</h2>
+            <p style={sP}>
+              <span style={sCode}>1 child</span> = description inline sous le label (pas d'expand, toujours visible).<br/>
+              <span style={sCode}>2+ children</span> = expandable tree avec connecteur vertical. Au clic, le chevron toggle les enfants.<br/>
+              Un child est une simple ligne de texte ("line step" / sub item) sans icône.
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className={sCard}>
+                <p style={sLabel}>1 child = description</p>
+                <ReasoningStepper status="done" steps={[
+                  { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 € — CPAM 3 200 €'] },
+                ]} expanded={true} onToggle={() => {}} />
+              </div>
+              <div className={sCard}>
+                <p style={sLabel}>2+ children = expandable tree avec connecteur</p>
+                <ReasoningStepper status="done" steps={[
+                  { type: 'read_documents', label: 'Analyse de 6 documents', status: 'done', children: ['rapport.pdf', 'facture_1.pdf', 'facture_2.pdf', 'facture_3.pdf', 'bulletin_01.pdf', 'bulletin_02.pdf'] },
+                ]} expanded={true} onToggle={() => {}} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className={sCard}>
+                <p style={sLabel}>Sub-agent with child steps</p>
+                <ReasoningStepper status="done" steps={[
+                  { type: 'sub_agent', label: 'Agent extraction factures', status: 'done', children_steps: [
+                    { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 €'] },
+                    { type: 'extract_data', label: 'Extraction facture clinique', status: 'done', children: ['2 800 €'] },
+                  ]},
+                ]} expanded={true} onToggle={() => {}} />
+              </div>
+              <div className={sCard}>
+                <p style={sLabel}>CRUD grouping (consecutive same type+poste)</p>
+                <ReasoningStepper status="done" steps={[
+                  { type: 'add_row', label: '1 ligne DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste'] },
+                  { type: 'add_row', label: '1 ligne DSA', status: 'done', poste: 'DSA', children: ['IRM lombaire'] },
+                  { type: 'add_row', label: '1 ligne DSA', status: 'done', poste: 'DSA', children: ['Kinésithérapie'] },
+                  { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
+                ]} expanded={true} onToggle={() => {}} />
+              </div>
+            </div>
+
+            {/* Lecture du rapport + sub-agents example */}
+            <div className={sCard} style={{ marginBottom: 24 }}>
+              <p style={sLabel}>Full example: Lecture + sous-agents + CRUD</p>
+              <ReasoningStepper
+                status="done"
+                summary="Extraction et complétion DSA"
+                counters={{ add: 2 }}
+                steps={[
+                  { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+                  { type: 'sub_agent', label: 'Agent extraction factures', status: 'done', children_steps: [
+                    { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 €'] },
+                    { type: 'extract_data', label: 'Extraction facture clinique', status: 'done', children: ['2 800 €'] },
+                  ]},
+                  { type: 'add_row', label: '2 lignes DSA', status: 'done', poste: 'DSA', children: ['CHU Bordeaux', 'Clinique St-Jean'] },
+                ]}
+                expanded={true}
+                onToggle={() => {}}
+              />
+            </div>
+
+            {/* ══════════════════════════════════════════════════════════════ */}
+            {/* USE CASE INTERACTIVE SANDBOX                                  */}
+            {/* ══════════════════════════════════════════════════════════════ */}
+            <h1 style={sH1}>Use case interactive sandbox</h1>
+            <p style={sP}>Chaque scénario simule le streaming avec gif de processing (~15s), l'auto-collapse, puis l'expand/collapse pour inspection.</p>
+            <div className="flex flex-col gap-4 mb-8" style={{ maxWidth: 560 }}>
+              {Object.entries(REASONING_SCENARIOS).map(([id, scenario]) => (
+                <ReasoningDemoScenario key={id} id={id} scenario={scenario} />
+              ))}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ========== ROUTING ==========
+  if (currentPage === 'reasoning-demo') {
+    return renderReasoningDemoPage();
+  }
   if (currentPage === 'diff-engine') {
     return renderDiffEnginePage();
   }
