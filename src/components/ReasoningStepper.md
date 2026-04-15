@@ -38,50 +38,15 @@ Displays the AI agent (Plato) reasoning steps in the chat sidebar. Streams steps
 
 ---
 
-## Integration pattern (production)
-
-The backend does **not** stream steps individually. The agent runs, then returns the full payload at once. The component supports two phases:
-
-### 1. Processing (agent is working)
-
-Show the stepper in streaming mode with no steps — just the processing gif. No step-by-step detail, just a visual indicator that the agent is thinking.
-
-```jsx
-// While the agent is running:
-<ReasoningStepper
-  status="streaming"
-  steps={[]}
-  onToggle={() => {}}
-/>
-```
-
-### 2. Result inspectable (payload received)
-
-When the agent finishes, swap to done mode with the full payload. Starts collapsed (summary + counters), user clicks to expand and inspect all steps.
-
-```jsx
-// When the payload arrives:
-<ReasoningStepper
-  status="done"
-  summary={payload.summary}
-  counters={payload.counters}
-  steps={payload.steps}
-  expanded={expanded}
-  onToggle={() => setExpanded(v => !v)}
-/>
-```
-
-> **Note:** Step-by-step streaming (`status="streaming"` with steps appearing one by one + loading gif per step) is supported by the component but only used in the demo page sandbox. If the backend adds streaming later, no component changes needed.
-
----
-
 ## Examples & stages
 
-The component supports 3 visual states:
+Component designed to integrate streaming of agent actions, but also designed for V1 where there is no per-action streaming — instead, a single streaming process runs, and at the end, the full payload is displayed (reflecting the trace and all actions performed).
 
-### 1. Processing (streaming)
+### Live streaming
 
-Steps appear one at a time. The current step shows `plato-thinking.gif` (12px) in the icon slot while it processes, then swaps to its final icon when done. No header — steps are shown flat. In production, this is used without steps (empty array) as a simple "thinking" indicator.
+Steps stream one by one in real-time. Each step shows `plato-thinking.gif` (12px) in the icon slot while active, then swaps to its final icon when done. No header during streaming — steps are shown flat.
+
+**Reasoning (streaming):**
 
 ```jsx
 <ReasoningStepper
@@ -94,9 +59,7 @@ Steps appear one at a time. The current step shows `plato-thinking.gif` (12px) i
 />
 ```
 
-### 2. Collapsed (finished)
-
-Single header row: chevron + summary text + CRUD diamond counters on the right. Click to expand.
+**Finished inspectable:** collapsed header (click to expand all steps).
 
 ```jsx
 <ReasoningStepper
@@ -104,25 +67,39 @@ Single header row: chevron + summary text + CRUD diamond counters on the right. 
   summary="Complétion du poste DSA depuis 3 factures"
   counters={{ add: 3, update: 1 }}
   steps={steps}
-  expanded={false}
+  expanded={expanded}
   onToggle={() => setExpanded(v => !v)}
 />
 ```
 
-### 3. Expanded (inspectable)
+### V1 — no per-action streaming
 
-Header + all steps below. CRUD steps are auto-grouped. Children rows are expandable on hover (icon swaps to chevron, background becomes `#f8f7f5`). Click to collapse back.
+No step-by-step detail during processing. A single process runs, then the full trace payload arrives at once.
+
+**Reasoning (processing):** show `plato-thinking.gif` + "Raisonnement en cours…" text. No steps, no stepper — just a visual indicator.
+
+```jsx
+// Simple processing indicator (not using ReasoningStepper):
+<div className="flex items-center gap-2">
+  <img src="/plato-thinking.gif" alt="" className="w-3 h-3" />
+  <span>Raisonnement en cours…</span>
+</div>
+```
+
+**Finished inspectable:** same as live streaming — full payload displayed as collapsed header, click to expand.
 
 ```jsx
 <ReasoningStepper
   status="done"
-  summary="Complétion du poste DSA depuis 3 factures"
-  counters={{ add: 3, update: 1 }}
-  steps={steps}
-  expanded={true}
+  summary={payload.summary}
+  counters={payload.counters}
+  steps={payload.steps}
+  expanded={expanded}
   onToggle={() => setExpanded(v => !v)}
 />
 ```
+
+> **Note:** If the backend adds per-action streaming later, no component changes are needed — just switch from the simple gif indicator to `status="streaming"` with steps arriving incrementally.
 
 ---
 
@@ -329,9 +306,10 @@ Accessible from UI Kit sidebar. Structured in 4 sections:
 
 ### 1. Examples & stages
 
-Two cards side by side:
-- **Processing reasoning** (left) — interactive with Play/Reset. Streams steps one by one with processing gif (~10s), auto-collapses when done, then allows expand/collapse.
-- **Reasoning finished inspectable** (right) — static done state. Starts collapsed, click header to expand/collapse and inspect all steps. No play controls.
+Shows both integration modes with processing + finished states for each:
+
+- **Live streaming** — left: playable card (Play/Reset, steps stream one by one with gif), right: finished inspectable (expand/collapse)
+- **V1 — no per-action streaming** — left: static processing indicator (gif + "Raisonnement en cours…"), right: finished inspectable (full payload, expand/collapse)
 
 ### 2. Anatomy
 

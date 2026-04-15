@@ -1405,20 +1405,21 @@ export default function App() {
         return [
           ...updated,
           {
-            type: 'artifact-cards',
-            cards: [
-              {
-                id: 'info-dossier',
-                icon: 'User',
-                zone: 'infos_dossier',
-                actionIds: ['extraction-info-dossier'],
-                navigateTo: 'dossier',
-              },
+            type: 'ai-thinking',
+            status: 'done',
+            summary: `Analyse du dossier — ${detectedPostes.length} postes identifiés`,
+            counters: { add: detectedPostes.length, update: 1 },
+            steps: [
+              { type: 'read_documents', label: 'Analyse de 8 documents', status: 'done' },
+              { type: 'read_rapport', label: "Lecture du rapport d'expertise médicale", status: 'done' },
+              { type: 'extract_data', label: 'Extraction des informations du dossier', status: 'done', children: ['Identité', 'Date de naissance', 'N° dossier'] },
+              { type: 'verify_data', label: 'Vérification des données extraites', status: 'done' },
+              ...detectedPostes.map(acronym => ({
+                type: 'add_row', label: `Poste ${acronym} identifié`, status: 'done', poste: acronym,
+              })),
+              { type: 'update_row', label: 'Informations du dossier complétées', status: 'done', poste: 'Dossier' },
             ],
-          },
-          {
-            type: 'artifact-cards',
-            cards: posteCards,
+            expanded: false,
           },
           {
             type: 'ai',
@@ -10767,7 +10768,7 @@ export default function App() {
           </button>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#292524', marginBottom: 16 }}>UI Components</div>
           <nav className="flex flex-col gap-1">
-            {['Diff Rows', 'Artifact Cards', 'Panel Diff Inputs', 'Reasoning', 'Chat Messages', 'Field Streaming', 'Badges & Pills', 'Buttons', 'Barème Components'].map(s => (
+            {['Diff Rows', 'Panel Diff Inputs', 'Reasoning', 'Chat Messages', 'Field Streaming', 'Badges & Pills', 'Buttons', 'Barème Components', 'Artifact Cards'].map(s => (
               /* Hypothèses diff is a subsection of Diff Rows — no separate nav entry needed */
               <a key={s} href={`#section-${s.toLowerCase().replace(/\s+/g, '-')}`} className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">{s}</a>
             ))}
