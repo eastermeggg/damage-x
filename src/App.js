@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock } from 'lucide-react';
 import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 const POSTES_TAXONOMY = [
   {
@@ -866,12 +868,18 @@ export default function App() {
   const [dropFirstProcessingDone, setDropFirstProcessingDone] = useState(false);
   const [infoDossierStreaming, setInfoDossierStreaming] = useState(null); // null | { active, fieldsRevealed: [], streamingField: null, streamingText: '' }
   const [pieceOverviewPanel, setPieceOverviewPanel] = useState(null); // null | pieceId
-  const [piecesFilter, setPiecesFilter] = useState({ type: null, search: '' });
+  const [piecesFilter, setPiecesFilter] = useState({ types: [], search: '' });
+  const [piecesTypeMenuOpen, setPiecesTypeMenuOpen] = useState(false);
   const [, setShowAddPiecesZone] = useState(false);
   const [piecesTabDragOver, setPiecesTabDragOver] = useState(false);
   const [reorderDrag, setReorderDrag] = useState(null); // { pieceId, ghostX, ghostY }
   const [reorderDropIdx, setReorderDropIdx] = useState(null);
   const [manualReorder, setManualReorder] = useState(false);
+  const [piecesSortMode, setPiecesSortMode] = useState('chrono'); // 'chrono' | 'manuel'
+  const [piecesManualOrder, setPiecesManualOrder] = useState(null);
+  const [piecesDragState, setPiecesDragState] = useState({ dragging: null, over: null });
+  const [piecesMoreMenu, setPiecesMoreMenu] = useState(false);
+  const [showReorderHint, setShowReorderHint] = useState(false);
   const [rapportBannerDismissed, setRapportBannerDismissed] = useState(false);
   const [chatSidebarOpen, setChatSidebarOpen] = useState(true);
   const [chatBlocked, setChatBlocked] = useState(false);
@@ -1861,28 +1869,157 @@ export default function App() {
     });
   };
 
+  const getOrderedPieces = () => {
+    if (piecesSortMode === 'manuel' && piecesManualOrder) {
+      return piecesManualOrder.map(id => pieces.find(p => p.id === id)).filter(Boolean);
+    }
+    return sortPiecesByDate(pieces);
+  };
+
+  const initManualOrder = () => {
+    const chronoSorted = sortPiecesByDate(pieces);
+    setPiecesManualOrder(chronoSorted.map(p => p.id));
+  };
+
+  const copyBordereau = async () => {
+    const ordered = getOrderedPieces();
+    const text = ordered.map((p, i) => {
+      const label = p.intitule || p.nom.replace(/\.[^/.]+$/, '');
+      return `${i + 1}. ${label} [${p.date}]`;
+    }).join('\n');
+    await navigator.clipboard.writeText(text);
+    setToastMessage('Bordereau copié dans le presse-papiers');
+    setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  const downloadAllAsZip = async () => {
+    const ordered = getOrderedPieces();
+    const zip = new JSZip();
+    ordered.forEach((piece, i) => {
+      const prefix = String(i + 1).padStart(2, '0');
+      const filename = `${prefix} - ${piece.nom}`;
+      zip.file(filename, `[Placeholder] ${piece.intitule}\nDate: ${piece.date}\nType: ${piece.type}`);
+    });
+    const blob = await zip.generateAsync({ type: 'blob' });
+    saveAs(blob, 'bordereau-pieces.zip');
+  };
+
   // ========== PIECES LIST COMPONENT ==========
   const renderPiecesList = (piecesArray, showUploadZone = true) => {
-    const sortedPieces = sortPiecesByDate(piecesArray);
+    const sortedPieces = getOrderedPieces();
 
     return (
       <div className="flex flex-col -mx-4 -mt-4">
         {/* Sub-header bar — full width, edge-to-edge */}
         <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[#e7e5e3]">
-          <span className="flex-1 text-sm font-medium text-[#292524]">{piecesArray.length} pièce{piecesArray.length > 1 ? 's' : ''}</span>
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#e7e5e3] rounded-lg shadow-sm text-sm text-[#78716c] cursor-pointer hover:border-[#d6d3d1]">
-              <ListFilter className="w-4 h-4" strokeWidth={1.5} />
-              <span>Filtrer par type</span>
-              <ChevronDown className="w-4 h-4" strokeWidth={1.5} />
+          {/* Sort toggle pill */}
+          <div className="flex items-center bg-[#eeece6] rounded-md p-0.5">
+            <button
+              onClick={() => { setPiecesSortMode('manuel'); if (!piecesManualOrder) initManualOrder(); }}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide rounded transition-all ${
+                piecesSortMode === 'manuel' ? 'bg-white text-[#292524] shadow-sm' : 'text-[#78716c] hover:text-[#44403c]'
+              }`}
+              style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+            >
+              <Hand className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Manuel
+            </button>
+            <button
+              onClick={() => setPiecesSortMode('chrono')}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide rounded transition-all ${
+                piecesSortMode === 'chrono' ? 'bg-white text-[#292524] shadow-sm' : 'text-[#78716c] hover:text-[#44403c]'
+              }`}
+              style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+            >
+              <Clock className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Chrono
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2.5 ml-auto">
+            <div className="relative">
+              <button
+                onClick={() => setPiecesTypeMenuOpen(prev => !prev)}
+                className={`flex items-center gap-2 h-8 pl-8 pr-8 text-sm border rounded-md bg-white shadow-sm cursor-pointer transition-colors ${(piecesFilter.types || []).length > 0 ? 'border-[#292524] text-[#292524]' : 'border-[#e7e5e3] text-[#78716c] hover:border-[#d6d3d1]'}`}
+              >
+                {(piecesFilter.types || []).length === 0 ? 'Tous types' : `${(piecesFilter.types || []).length} type${(piecesFilter.types || []).length > 1 ? 's' : ''}`}
+              </button>
+              <ListFilter className="w-4 h-4 text-[#78716c] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
+              <ChevronDown className="w-4 h-4 text-[#78716c] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
+              {piecesTypeMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setPiecesTypeMenuOpen(false)} />
+                  <div className="absolute left-0 top-full mt-1 w-48 bg-white border border-[#e7e5e3] rounded-lg shadow-lg z-50 py-1">
+                    {PIECE_TYPE_OPTIONS.map(t => {
+                      const active = (piecesFilter.types || []).includes(t);
+                      return (
+                        <button
+                          key={t}
+                          onClick={() => setPiecesFilter(prev => ({ ...prev, types: active ? (prev.types || []).filter(x => x !== t) : [...(prev.types || []), t] }))}
+                          className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-[#292524] hover:bg-[#fafaf9] transition-colors"
+                        >
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${active ? 'bg-[#292524] border-[#292524]' : 'border-[#d6d3d1]'}`}>
+                            {active && <Check className="w-3 h-3 text-white" strokeWidth={2} />}
+                          </div>
+                          <span className={`${active ? 'font-medium' : ''}`}>{t}</span>
+                        </button>
+                      );
+                    })}
+                    {(piecesFilter.types || []).length > 0 && (
+                      <>
+                        <div className="border-t border-[#e7e5e3] my-1" />
+                        <button
+                          onClick={() => { setPiecesFilter(prev => ({ ...prev, types: [] })); setPiecesTypeMenuOpen(false); }}
+                          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#78716c] hover:bg-[#fafaf9] transition-colors"
+                        >
+                          Réinitialiser
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
-            <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#e7e5e3] rounded-lg shadow-sm">
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#eeece6] rounded-md">
               <Search className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
               <span className="text-sm text-[#78716c] opacity-70">Rechercher...</span>
             </div>
-            <button className="px-3 py-2 text-sm font-medium text-[#44403c] bg-[#eeece6] rounded-md hover:bg-[#e7e5e3] transition-colors">
-              Bordereau
+            <button
+              onClick={downloadAllAsZip}
+              className="flex items-center justify-center w-8 h-8 bg-white border border-[#e7e5e3] text-[#78716c] hover:text-[#44403c] hover:bg-[#fafaf9] rounded-md shadow-sm transition-colors"
+              title="Télécharger tout"
+            >
+              <Download className="w-4 h-4" strokeWidth={1.5} />
             </button>
+            <button
+              onClick={copyBordereau}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] shadow-sm transition-colors"
+            >
+              <Copy className="w-4 h-4" strokeWidth={1.5} />
+              Copier bordereau
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setPiecesMoreMenu(!piecesMoreMenu)}
+                className="flex items-center justify-center w-8 h-8 text-[#78716c] hover:text-[#44403c] hover:bg-[#f5f5f4] rounded-md transition-colors"
+              >
+                <MoreVertical className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+              {piecesMoreMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setPiecesMoreMenu(false)} />
+                  <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-[#e7e5e3] rounded-lg shadow-lg z-50 py-1">
+                    <button
+                      onClick={() => { downloadAllAsZip(); setPiecesMoreMenu(false); }}
+                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[#292524] hover:bg-[#fafaf9] transition-colors"
+                    >
+                      <Download className="w-4 h-4" strokeWidth={1.5} />
+                      Télécharger en ZIP
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1925,6 +2062,23 @@ export default function App() {
             </div>
           )}
 
+          {/* Reorder hint banner */}
+          {showReorderHint && piecesSortMode !== 'manuel' && (
+            <div className="mb-3 flex items-center gap-3 px-4 py-3 bg-[#f8f7f5] border border-[#e7e5e3] rounded-lg">
+              <Hand className="w-4 h-4 text-[#78716c] shrink-0" strokeWidth={1.5} />
+              <span className="text-sm text-[#44403c]">Passez en mode Manuel pour réordonner les pièces par glisser-déposer.</span>
+              <button
+                onClick={() => { setPiecesSortMode('manuel'); if (!piecesManualOrder) initManualOrder(); setShowReorderHint(false); }}
+                className="ml-auto px-3 py-1.5 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] transition-colors shrink-0"
+              >
+                Passer en Manuel
+              </button>
+              <button onClick={() => setShowReorderHint(false)} className="text-[#a8a29e] hover:text-[#78716c] transition-colors shrink-0">
+                <X className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+            </div>
+          )}
+
           {/* Table */}
           <div className="border border-[#e7e5e3] rounded-md overflow-hidden">
             {/* Column headers */}
@@ -1939,59 +2093,117 @@ export default function App() {
             </div>
 
             {/* Rows */}
-            {sortedPieces.map((piece) => {
-              const globalIndex = pieces.findIndex(p => p.id === piece.id) + 1;
+            {sortedPieces.map((piece, idx) => {
+              const displayIndex = idx + 1;
               const usages = getPieceUsage(piece.id);
+              const isDragging = piecesDragState.dragging === piece.id;
+              const label = piece.intitule || piece.nom.replace(/\.[^/.]+$/, '');
               return (
-                <div
-                  key={piece.id}
-                  className="flex items-center h-14 bg-white border-b border-[#e7e5e3] last:border-b-0 hover:bg-[#fafaf9] cursor-pointer group"
-                  onClick={() => setEditPanel({ type: 'piece-detail', data: { ...piece, index: globalIndex, usages } })}
-                >
-                  {/* Grip */}
-                  <div className="w-[38px] shrink-0 flex items-center justify-center pl-3">
-                    <GripVertical className="w-3.5 h-3.5 text-[#d6d3d1] opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                <React.Fragment key={piece.id}>
+                  {/* Drop indicator line */}
+                  {piecesDragState.over === piece.id && piecesDragState.dragging !== piece.id && (
+                    <div className="h-0.5 bg-[#f59e0b] rounded-full mx-2" />
+                  )}
+                  <div
+                    draggable={piecesSortMode === 'manuel'}
+                    onDragStart={(e) => {
+                      if (piecesSortMode !== 'manuel') { e.preventDefault(); return; }
+                      const img = new window.Image();
+                      img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                      e.dataTransfer.setDragImage(img, 0, 0);
+                      e.dataTransfer.effectAllowed = 'move';
+                      setPiecesDragState({ dragging: piece.id, over: null, ghostX: e.clientX, ghostY: e.clientY, name: label, type: piece.type, num: displayIndex });
+                    }}
+                    onDrag={(e) => {
+                      if (e.clientX === 0 && e.clientY === 0) return;
+                      setPiecesDragState(prev => prev ? { ...prev, ghostX: e.clientX, ghostY: e.clientY } : prev);
+                    }}
+                    onDragOver={(e) => {
+                      if (piecesSortMode !== 'manuel') return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'move';
+                      if (piecesDragState.over !== piece.id) {
+                        setPiecesDragState(prev => ({ ...prev, over: piece.id }));
+                      }
+                    }}
+                    onDragEnd={() => {
+                      if (piecesDragState.dragging && piecesDragState.over && piecesDragState.dragging !== piecesDragState.over) {
+                        setPiecesManualOrder(prev => {
+                          const arr = [...prev];
+                          const fromIdx = arr.indexOf(piecesDragState.dragging);
+                          const toIdx = arr.indexOf(piecesDragState.over);
+                          arr.splice(fromIdx, 1);
+                          arr.splice(toIdx, 0, piecesDragState.dragging);
+                          return arr;
+                        });
+                      }
+                      setPiecesDragState({ dragging: null, over: null });
+                    }}
+                    className={`flex items-center h-14 bg-white border-b border-[#e7e5e3] last:border-b-0 hover:bg-[#fafaf9] cursor-pointer group ${isDragging ? 'opacity-20 bg-[#f4f4f5]' : ''}`}
+                    onClick={() => setEditPanel({ type: 'piece-detail', data: { ...piece, index: displayIndex, usages } })}
+                  >
+                    {/* Grip */}
+                    <div
+                      className={`w-[38px] shrink-0 flex items-center justify-center pl-3 ${piecesSortMode === 'manuel' ? 'cursor-grab' : 'cursor-not-allowed'}`}
+                      onClick={(e) => { e.stopPropagation(); if (piecesSortMode !== 'manuel') setShowReorderHint(true); }}
+                    >
+                      <GripVertical className={`w-3.5 h-3.5 transition-opacity ${piecesSortMode === 'manuel' ? 'text-[#d6d3d1] opacity-100' : 'text-[#d6d3d1] opacity-0 group-hover:opacity-40'}`} strokeWidth={1.5} />
+                    </div>
+                    {/* Number badge */}
+                    <div className="w-[50px] shrink-0 flex items-center justify-center pl-4 pr-3">
+                      <span className="inline-flex items-center justify-center w-[22px] h-[22px] bg-[#eeece6] text-[#78716c] text-xs font-semibold rounded-md">
+                        {displayIndex}
+                      </span>
+                    </div>
+                    {/* Document name */}
+                    <div className="flex-1 min-w-0 px-3">
+                      <span className="text-sm font-medium text-black truncate block">{label}</span>
+                    </div>
+                    {/* Type badge */}
+                    <div className="w-[174px] shrink-0 px-3">
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md ${PIECE_TYPE_COLORS[piece.type] || 'bg-[#eeece6] text-[#44403c]'}`}>
+                        {piece.type}
+                        <ChevronDown className="w-3 h-3" strokeWidth={1.5} />
+                      </span>
+                    </div>
+                    {/* Date */}
+                    <div className="w-[120px] shrink-0 px-3">
+                      <span className="text-sm text-[#292524]">{piece.date || '—'}</span>
+                    </div>
+                    {/* Postes liés */}
+                    <div className="w-[224px] shrink-0 px-3">
+                      {usages.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 overflow-hidden">
+                          {usages.map(u => (
+                            <span key={u} className="px-2 py-0.5 text-xs font-medium text-[#44403c] bg-[#eeece6] rounded-md">{u}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[#a8a29e]">—</span>
+                      )}
+                    </div>
+                    {/* Options */}
+                    <div className="w-[44px] shrink-0 flex items-center justify-end pr-4">
+                      <MoreVertical className="w-4 h-4 text-[#78716c] opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                    </div>
                   </div>
-                  {/* Number badge */}
-                  <div className="w-[50px] shrink-0 flex items-center justify-center pl-4 pr-3">
-                    <span className="inline-flex items-center justify-center w-[22px] h-[22px] bg-[#eeece6] text-[#78716c] text-xs font-semibold rounded-md">
-                      {globalIndex}
-                    </span>
-                  </div>
-                  {/* Document name */}
-                  <div className="flex-1 min-w-0 px-3">
-                    <span className="text-sm font-medium text-black truncate block">{piece.intitule || piece.nom.replace(/\.[^/.]+$/, '')}</span>
-                  </div>
-                  {/* Type badge */}
-                  <div className="w-[174px] shrink-0 px-3">
-                    <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md ${PIECE_TYPE_COLORS[piece.type] || 'bg-[#eeece6] text-[#44403c]'}`}>
-                      {piece.type}
-                      <ChevronDown className="w-3 h-3" strokeWidth={1.5} />
-                    </span>
-                  </div>
-                  {/* Date */}
-                  <div className="w-[120px] shrink-0 px-3">
-                    <span className="text-sm text-[#292524]">{piece.date || '—'}</span>
-                  </div>
-                  {/* Postes liés */}
-                  <div className="w-[224px] shrink-0 px-3">
-                    {usages.length > 0 ? (
-                      <div className="flex flex-wrap gap-1 overflow-hidden">
-                        {usages.map(u => (
-                          <span key={u} className="px-2 py-0.5 text-xs font-medium text-[#44403c] bg-[#eeece6] rounded-md">{u}</span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-[#a8a29e]">—</span>
-                    )}
-                  </div>
-                  {/* Options */}
-                  <div className="w-[44px] shrink-0 flex items-center justify-end pr-4">
-                    <MoreVertical className="w-4 h-4 text-[#78716c] opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
-                  </div>
-                </div>
+                </React.Fragment>
               );
             })}
+            {/* Floating ghost card */}
+            {piecesDragState.dragging && piecesDragState.ghostX && (
+              <div
+                className="fixed z-50 pointer-events-none bg-[#292524] border border-[#44403c] rounded-lg shadow-lg px-3 py-2 flex items-center gap-2"
+                style={{ left: piecesDragState.ghostX + 12, top: piecesDragState.ghostY - 16, minWidth: 200 }}
+              >
+                <GripVertical className="w-3 h-3 text-[#78716c]" strokeWidth={1.5} />
+                <span className="inline-flex items-center justify-center w-[22px] h-[22px] bg-[#44403c] text-[#d6d3d1] text-xs font-semibold rounded-md">{piecesDragState.num || '?'}</span>
+                <span className="text-sm font-medium text-white truncate max-w-[250px]">{piecesDragState.name}</span>
+                {piecesDragState.type && (
+                  <span className={`px-2 py-0.5 text-xs font-medium rounded-md bg-[#44403c] text-[#d6d3d1]`}>{piecesDragState.type}</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -9227,7 +9439,7 @@ export default function App() {
         return 0;
       });
     }
-    if (piecesFilter.type) items = items.filter(p => p.type === piecesFilter.type);
+    if (piecesFilter.types?.length > 0) items = items.filter(p => (piecesFilter.types || []).includes(p.type));
     if (piecesFilter.search) {
       const s = piecesFilter.search.toLowerCase();
       items = items.filter(p => (p.cleanName || p.originalName || '').toLowerCase().includes(s));
@@ -9239,12 +9451,25 @@ export default function App() {
     const done = manualReorder
       ? dropFirstPieces.filter(p => p.status === 'done')
       : getProcessedPieces().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-    let text = 'BORDEREAU DE PIÈCES\n\nN°    | Pièce\n------|------\n';
+    const text = done.map((p, i) => {
+      const dateStr = p.date ? `[${p.date.split('-').reverse().join('/')}]` : '';
+      return `${i + 1}. ${p.cleanName} ${dateStr}`;
+    }).join('\n');
+    navigator.clipboard.writeText(text).then(() => showToast('Bordereau copié dans le presse-papier'));
+  };
+
+  const downloadDropFirstAsZip = async () => {
+    const done = manualReorder
+      ? dropFirstPieces.filter(p => p.status === 'done')
+      : getProcessedPieces().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    const zip = new JSZip();
     done.forEach((p, i) => {
-      const num = String(i + 1).padEnd(6);
-      text += `${num}| ${p.cleanName}\n`;
+      const prefix = String(i + 1).padStart(2, '0');
+      const filename = `${prefix} - ${p.cleanName}.pdf`;
+      zip.file(filename, `[Placeholder] ${p.cleanName}\nDate: ${p.date}\nType: ${p.type}`);
     });
-    navigator.clipboard.writeText(text).then(() => showToast('Bordereau copié dans le presse-papier ✓'));
+    const blob = await zip.generateAsync({ type: 'blob' });
+    saveAs(blob, 'bordereau-pieces.zip');
   };
 
   const handleAddMorePieces = (fileList) => {
@@ -9274,7 +9499,7 @@ export default function App() {
     const totalItems = dropFirstPieces.length;
     const allDone = dropFirstProcessingDone;
     const filtered = getFilteredPieces();
-    const isFiltered = !!(piecesFilter.type || piecesFilter.search);
+    const isFiltered = !!(piecesFilter.types?.length > 0 || piecesFilter.search);
     const selectedPiece = pieceOverviewPanel ? dropFirstPieces.find(p => p.id === pieceOverviewPanel) : null;
 
     let dragLeaveTimer = null;
@@ -9303,19 +9528,73 @@ export default function App() {
         <div className="flex-1 flex flex-col min-w-0">
           {/* Sub-header bar — edge-to-edge */}
           <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[#e7e5e3]">
-            <span className="flex-1 text-sm font-medium text-[#292524]">{totalItems} pièce{totalItems > 1 ? 's' : ''}</span>
-            <div className="flex items-center gap-2.5">
+            {/* Sort toggle pill */}
+            <div className="flex items-center bg-[#eeece6] rounded-md p-0.5">
+              <button
+                onClick={() => setManualReorder(true)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide rounded transition-all ${
+                  manualReorder ? 'bg-white text-[#292524] shadow-sm' : 'text-[#78716c] hover:text-[#44403c]'
+                }`}
+                style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+              >
+                <Hand className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Manuel
+              </button>
+              <button
+                onClick={() => setManualReorder(false)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide rounded transition-all ${
+                  !manualReorder ? 'bg-white text-[#292524] shadow-sm' : 'text-[#78716c] hover:text-[#44403c]'
+                }`}
+                style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+              >
+                <Clock className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Chrono
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2.5 ml-auto">
               <div className="relative">
-                <select
-                  value={piecesFilter.type || ''}
-                  onChange={e => setPiecesFilter(prev => ({ ...prev, type: e.target.value || null }))}
-                  className="appearance-none h-9 pl-8 pr-8 text-sm border border-[#e7e5e3] rounded-lg bg-white text-[#78716c] focus:outline-none focus:ring-1 focus:ring-stone-300 shadow-sm cursor-pointer"
+                <button
+                  onClick={() => setPiecesTypeMenuOpen(prev => !prev)}
+                  className={`flex items-center gap-2 h-8 pl-8 pr-8 text-sm border rounded-md bg-white shadow-sm cursor-pointer transition-colors ${(piecesFilter.types || []).length > 0 ? 'border-[#292524] text-[#292524]' : 'border-[#e7e5e3] text-[#78716c] hover:border-[#d6d3d1]'}`}
                 >
-                  <option value="">Filtrer par type</option>
-                  {PIECE_TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                  {(piecesFilter.types || []).length === 0 ? 'Tous types' : `${(piecesFilter.types || []).length} type${(piecesFilter.types || []).length > 1 ? 's' : ''}`}
+                </button>
                 <ListFilter className="w-4 h-4 text-[#78716c] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
                 <ChevronDown className="w-4 h-4 text-[#78716c] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
+                {piecesTypeMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setPiecesTypeMenuOpen(false)} />
+                    <div className="absolute left-0 top-full mt-1 w-48 bg-white border border-[#e7e5e3] rounded-lg shadow-lg z-50 py-1">
+                      {PIECE_TYPE_OPTIONS.map(t => {
+                        const active = (piecesFilter.types || []).includes(t);
+                        return (
+                          <button
+                            key={t}
+                            onClick={() => setPiecesFilter(prev => ({ ...prev, types: active ? (prev.types || []).filter(x => x !== t) : [...(prev.types || []), t] }))}
+                            className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-[#292524] hover:bg-[#fafaf9] transition-colors"
+                          >
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${active ? 'bg-[#292524] border-[#292524]' : 'border-[#d6d3d1]'}`}>
+                              {active && <Check className="w-3 h-3 text-white" strokeWidth={2} />}
+                            </div>
+                            <span className={`${active ? 'font-medium' : ''}`}>{t}</span>
+                          </button>
+                        );
+                      })}
+                      {(piecesFilter.types || []).length > 0 && (
+                        <>
+                          <div className="border-t border-[#e7e5e3] my-1" />
+                          <button
+                            onClick={() => { setPiecesFilter(prev => ({ ...prev, types: [] })); setPiecesTypeMenuOpen(false); }}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#78716c] hover:bg-[#fafaf9] transition-colors"
+                          >
+                            Réinitialiser
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
               <div className="relative">
                 <input
@@ -9323,20 +9602,23 @@ export default function App() {
                   placeholder="Rechercher..."
                   value={piecesFilter.search}
                   onChange={e => setPiecesFilter(prev => ({ ...prev, search: e.target.value }))}
-                  className="h-9 pl-8 pr-3 text-sm border border-[#e7e5e3] rounded-lg bg-white text-[#292524] placeholder-[#78716c] placeholder-opacity-70 focus:outline-none focus:ring-1 focus:ring-stone-300 shadow-sm"
+                  className="h-8 pl-8 pr-3 text-sm bg-[#eeece6] rounded-md text-[#292524] placeholder-[#78716c] placeholder-opacity-70 focus:outline-none focus:ring-1 focus:ring-stone-300"
                 />
                 <Search className="w-4 h-4 text-[#78716c] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
               </div>
-              {isFiltered && (
-                <button onClick={() => setPiecesFilter({ type: null, search: '' })} className="text-sm text-[#78716c] hover:text-[#44403c] flex items-center gap-1 transition-colors">
-                  <X className="w-3.5 h-3.5" /> Réinitialiser
-                </button>
-              )}
+              <button
+                onClick={downloadDropFirstAsZip}
+                className="flex items-center justify-center w-8 h-8 bg-white border border-[#e7e5e3] text-[#78716c] hover:text-[#44403c] hover:bg-[#fafaf9] rounded-md shadow-sm transition-colors"
+                title="Télécharger tout"
+              >
+                <Download className="w-4 h-4" strokeWidth={1.5} />
+              </button>
               <button
                 onClick={handleCopyBordereau}
-                className="h-8 px-3 text-sm font-medium text-[#44403c] bg-[#eeece6] rounded-md hover:bg-[#e7e5e3] transition-colors"
+                className="flex items-center gap-2 h-8 px-3 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] shadow-sm transition-colors"
               >
-                Bordereau
+                <Copy className="w-4 h-4" strokeWidth={1.5} />
+                Copier bordereau
               </button>
             </div>
           </div>
@@ -9359,6 +9641,23 @@ export default function App() {
               </span>
             </div>
 
+            {/* Reorder hint banner */}
+            {showReorderHint && !manualReorder && (
+              <div className="mb-3 flex items-center gap-3 px-4 py-3 bg-[#f8f7f5] border border-[#e7e5e3] rounded-lg">
+                <Hand className="w-4 h-4 text-[#78716c] shrink-0" strokeWidth={1.5} />
+                <span className="text-sm text-[#44403c]">Passez en mode Manuel pour réordonner les pièces par glisser-déposer.</span>
+                <button
+                  onClick={() => { setManualReorder(true); setShowReorderHint(false); }}
+                  className="ml-auto px-3 py-1.5 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] transition-colors shrink-0"
+                >
+                  Passer en Manuel
+                </button>
+                <button onClick={() => setShowReorderHint(false)} className="text-[#a8a29e] hover:text-[#78716c] transition-colors shrink-0">
+                  <X className="w-4 h-4" strokeWidth={1.5} />
+                </button>
+              </div>
+            )}
+
             {/* Table */}
             <div className="border border-[#e7e5e3] rounded-md overflow-hidden bg-white">
               <table className="w-full">
@@ -9379,13 +9678,13 @@ export default function App() {
                     const pieceNum = piece.status === 'done' ? getPieceNumber(piece) : null;
                     const isSelected = pieceOverviewPanel === piece.id;
                     const isDragItem = reorderDrag?.pieceId === piece.id;
-                    const canDrag = !isProcessing && !isFiltered;
+                    const canDrag = manualReorder && !isProcessing && !isFiltered;
 
                     return (
                       <React.Fragment key={piece.id}>
                         {/* Drop indicator line */}
                         {reorderDropIdx === idx && reorderDrag?.pieceId !== piece.id && (
-                          <tr><td colSpan={7} className="p-0"><div className="h-0.5 bg-blue-500 rounded-full mx-2" /></td></tr>
+                          <tr><td colSpan={7} className="p-0"><div className="h-0.5 bg-[#f59e0b] rounded-full mx-2" /></td></tr>
                         )}
                         <tr
                           className={`border-b border-[#e7e5e3] transition-all duration-300 group bg-white ${
@@ -9444,9 +9743,12 @@ export default function App() {
                           }}
                         >
                         {/* Grip handle */}
-                        <td className="w-[38px] text-center">
-                          {canDrag ? (
-                            <GripVertical className="w-3.5 h-3.5 text-[#d6d3d1] cursor-grab inline-block" strokeWidth={1.5} />
+                        <td
+                          className={`w-[38px] text-center ${!isProcessing ? (canDrag ? 'cursor-grab' : 'cursor-not-allowed') : ''}`}
+                          onClick={(e) => { if (!isProcessing && !manualReorder) { e.stopPropagation(); setShowReorderHint(true); } }}
+                        >
+                          {!isProcessing ? (
+                            <GripVertical className={`w-3.5 h-3.5 inline-block transition-opacity ${canDrag ? 'text-[#d6d3d1] opacity-100' : 'text-[#d6d3d1] opacity-0 group-hover:opacity-40'}`} strokeWidth={1.5} />
                           ) : null}
                         </td>
                         {/* N° / loader */}
@@ -9543,14 +9845,14 @@ export default function App() {
           {/* Custom drag ghost card */}
           {reorderDrag && (
             <div
-              className="fixed z-50 pointer-events-none bg-white border border-[#e7e5e3] rounded-lg shadow-lg px-3 py-2 flex items-center gap-2"
+              className="fixed z-50 pointer-events-none bg-[#292524] border border-[#44403c] rounded-lg shadow-lg px-3 py-2 flex items-center gap-2"
               style={{ left: reorderDrag.ghostX + 12, top: reorderDrag.ghostY - 16, minWidth: 200 }}
             >
-              <GripVertical className="w-3 h-3 text-[#d6d3d1]" strokeWidth={1.5} />
-              <span className="inline-flex items-center justify-center w-[22px] h-[22px] bg-[#eeece6] text-[#78716c] text-xs font-semibold rounded-md">{reorderDrag.num || '?'}</span>
-              <span className="text-sm font-medium text-[#292524] truncate max-w-[250px]">{reorderDrag.name}</span>
+              <GripVertical className="w-3 h-3 text-[#78716c]" strokeWidth={1.5} />
+              <span className="inline-flex items-center justify-center w-[22px] h-[22px] bg-[#44403c] text-[#d6d3d1] text-xs font-semibold rounded-md">{reorderDrag.num || '?'}</span>
+              <span className="text-sm font-medium text-white truncate max-w-[250px]">{reorderDrag.name}</span>
               {reorderDrag.type && (
-                <span className={`px-2 py-0.5 text-xs font-medium rounded-md ${PIECE_TYPE_COLORS[reorderDrag.type] || 'bg-[#eeece6] text-[#44403c]'}`}>{reorderDrag.type}</span>
+                <span className={`px-2 py-0.5 text-xs font-medium rounded-md bg-[#44403c] text-[#d6d3d1]`}>{reorderDrag.type}</span>
               )}
             </div>
           )}
