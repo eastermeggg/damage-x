@@ -868,7 +868,8 @@ export default function App() {
   const [dropFirstProcessingDone, setDropFirstProcessingDone] = useState(false);
   const [infoDossierStreaming, setInfoDossierStreaming] = useState(null); // null | { active, fieldsRevealed: [], streamingField: null, streamingText: '' }
   const [pieceOverviewPanel, setPieceOverviewPanel] = useState(null); // null | pieceId
-  const [piecesFilter, setPiecesFilter] = useState({ type: null, search: '' });
+  const [piecesFilter, setPiecesFilter] = useState({ types: [], search: '' });
+  const [piecesTypeMenuOpen, setPiecesTypeMenuOpen] = useState(false);
   const [, setShowAddPiecesZone] = useState(false);
   const [piecesTabDragOver, setPiecesTabDragOver] = useState(false);
   const [reorderDrag, setReorderDrag] = useState(null); // { pieceId, ghostX, ghostY }
@@ -1936,10 +1937,48 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2.5 ml-auto">
-            <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#e7e5e3] rounded-lg shadow-sm text-sm text-[#78716c] cursor-pointer hover:border-[#d6d3d1]">
-              <ListFilter className="w-4 h-4" strokeWidth={1.5} />
-              <span>Tous types</span>
-              <ChevronDown className="w-4 h-4" strokeWidth={1.5} />
+            <div className="relative">
+              <button
+                onClick={() => setPiecesTypeMenuOpen(prev => !prev)}
+                className={`flex items-center gap-2 h-8 pl-8 pr-8 text-sm border rounded-md bg-white shadow-sm cursor-pointer transition-colors ${(piecesFilter.types || []).length > 0 ? 'border-[#292524] text-[#292524]' : 'border-[#e7e5e3] text-[#78716c] hover:border-[#d6d3d1]'}`}
+              >
+                {(piecesFilter.types || []).length === 0 ? 'Tous types' : `${(piecesFilter.types || []).length} type${(piecesFilter.types || []).length > 1 ? 's' : ''}`}
+              </button>
+              <ListFilter className="w-4 h-4 text-[#78716c] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
+              <ChevronDown className="w-4 h-4 text-[#78716c] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
+              {piecesTypeMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setPiecesTypeMenuOpen(false)} />
+                  <div className="absolute left-0 top-full mt-1 w-48 bg-white border border-[#e7e5e3] rounded-lg shadow-lg z-50 py-1">
+                    {PIECE_TYPE_OPTIONS.map(t => {
+                      const active = (piecesFilter.types || []).includes(t);
+                      return (
+                        <button
+                          key={t}
+                          onClick={() => setPiecesFilter(prev => ({ ...prev, types: active ? (prev.types || []).filter(x => x !== t) : [...(prev.types || []), t] }))}
+                          className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-[#292524] hover:bg-[#fafaf9] transition-colors"
+                        >
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${active ? 'bg-[#292524] border-[#292524]' : 'border-[#d6d3d1]'}`}>
+                            {active && <Check className="w-3 h-3 text-white" strokeWidth={2} />}
+                          </div>
+                          <span className={`${active ? 'font-medium' : ''}`}>{t}</span>
+                        </button>
+                      );
+                    })}
+                    {(piecesFilter.types || []).length > 0 && (
+                      <>
+                        <div className="border-t border-[#e7e5e3] my-1" />
+                        <button
+                          onClick={() => { setPiecesFilter(prev => ({ ...prev, types: [] })); setPiecesTypeMenuOpen(false); }}
+                          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#78716c] hover:bg-[#fafaf9] transition-colors"
+                        >
+                          Réinitialiser
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex items-center gap-2 px-3 py-2 bg-[#eeece6] rounded-md">
               <Search className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
@@ -9378,7 +9417,7 @@ export default function App() {
         return 0;
       });
     }
-    if (piecesFilter.type) items = items.filter(p => p.type === piecesFilter.type);
+    if (piecesFilter.types?.length > 0) items = items.filter(p => (piecesFilter.types || []).includes(p.type));
     if (piecesFilter.search) {
       const s = piecesFilter.search.toLowerCase();
       items = items.filter(p => (p.cleanName || p.originalName || '').toLowerCase().includes(s));
@@ -9438,7 +9477,7 @@ export default function App() {
     const totalItems = dropFirstPieces.length;
     const allDone = dropFirstProcessingDone;
     const filtered = getFilteredPieces();
-    const isFiltered = !!(piecesFilter.type || piecesFilter.search);
+    const isFiltered = !!(piecesFilter.types?.length > 0 || piecesFilter.search);
     const selectedPiece = pieceOverviewPanel ? dropFirstPieces.find(p => p.id === pieceOverviewPanel) : null;
 
     let dragLeaveTimer = null;
@@ -9493,16 +9532,47 @@ export default function App() {
 
             <div className="flex items-center gap-2.5 ml-auto">
               <div className="relative">
-                <select
-                  value={piecesFilter.type || ''}
-                  onChange={e => setPiecesFilter(prev => ({ ...prev, type: e.target.value || null }))}
-                  className="appearance-none h-8 pl-8 pr-8 text-sm border border-[#e7e5e3] rounded-md bg-white text-[#78716c] focus:outline-none focus:ring-1 focus:ring-stone-300 shadow-sm cursor-pointer"
+                <button
+                  onClick={() => setPiecesTypeMenuOpen(prev => !prev)}
+                  className={`flex items-center gap-2 h-8 pl-8 pr-8 text-sm border rounded-md bg-white shadow-sm cursor-pointer transition-colors ${(piecesFilter.types || []).length > 0 ? 'border-[#292524] text-[#292524]' : 'border-[#e7e5e3] text-[#78716c] hover:border-[#d6d3d1]'}`}
                 >
-                  <option value="">Tous types</option>
-                  {PIECE_TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                  {(piecesFilter.types || []).length === 0 ? 'Tous types' : `${(piecesFilter.types || []).length} type${(piecesFilter.types || []).length > 1 ? 's' : ''}`}
+                </button>
                 <ListFilter className="w-4 h-4 text-[#78716c] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
                 <ChevronDown className="w-4 h-4 text-[#78716c] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
+                {piecesTypeMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setPiecesTypeMenuOpen(false)} />
+                    <div className="absolute left-0 top-full mt-1 w-48 bg-white border border-[#e7e5e3] rounded-lg shadow-lg z-50 py-1">
+                      {PIECE_TYPE_OPTIONS.map(t => {
+                        const active = (piecesFilter.types || []).includes(t);
+                        return (
+                          <button
+                            key={t}
+                            onClick={() => setPiecesFilter(prev => ({ ...prev, types: active ? (prev.types || []).filter(x => x !== t) : [...(prev.types || []), t] }))}
+                            className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-[#292524] hover:bg-[#fafaf9] transition-colors"
+                          >
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${active ? 'bg-[#292524] border-[#292524]' : 'border-[#d6d3d1]'}`}>
+                              {active && <Check className="w-3 h-3 text-white" strokeWidth={2} />}
+                            </div>
+                            <span className={`${active ? 'font-medium' : ''}`}>{t}</span>
+                          </button>
+                        );
+                      })}
+                      {(piecesFilter.types || []).length > 0 && (
+                        <>
+                          <div className="border-t border-[#e7e5e3] my-1" />
+                          <button
+                            onClick={() => { setPiecesFilter(prev => ({ ...prev, types: [] })); setPiecesTypeMenuOpen(false); }}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#78716c] hover:bg-[#fafaf9] transition-colors"
+                          >
+                            Réinitialiser
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
               <div className="relative">
                 <input
