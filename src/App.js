@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock } from 'lucide-react';
 import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 const POSTES_TAXONOMY = [
   {
@@ -872,6 +874,10 @@ export default function App() {
   const [reorderDrag, setReorderDrag] = useState(null); // { pieceId, ghostX, ghostY }
   const [reorderDropIdx, setReorderDropIdx] = useState(null);
   const [manualReorder, setManualReorder] = useState(false);
+  const [piecesSortMode, setPiecesSortMode] = useState('chrono'); // 'chrono' | 'manuel'
+  const [piecesManualOrder, setPiecesManualOrder] = useState(null);
+  const [piecesDragState, setPiecesDragState] = useState({ dragging: null, over: null });
+  const [piecesMoreMenu, setPiecesMoreMenu] = useState(false);
   const [rapportBannerDismissed, setRapportBannerDismissed] = useState(false);
   const [chatSidebarOpen, setChatSidebarOpen] = useState(true);
   const [chatBlocked, setChatBlocked] = useState(false);
@@ -1861,28 +1867,112 @@ export default function App() {
     });
   };
 
+  const getOrderedPieces = () => {
+    if (piecesSortMode === 'manuel' && piecesManualOrder) {
+      return piecesManualOrder.map(id => pieces.find(p => p.id === id)).filter(Boolean);
+    }
+    return sortPiecesByDate(pieces);
+  };
+
+  const initManualOrder = () => {
+    const chronoSorted = sortPiecesByDate(pieces);
+    setPiecesManualOrder(chronoSorted.map(p => p.id));
+  };
+
+  const copyBordereau = async () => {
+    const ordered = getOrderedPieces();
+    const text = ordered.map((p) => {
+      const label = p.intitule || p.nom.replace(/\.[^/.]+$/, '');
+      return `${label} [${p.date}]`;
+    }).join('\n');
+    await navigator.clipboard.writeText(text);
+    setToastMessage('Bordereau copié dans le presse-papiers');
+    setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  const downloadAllAsZip = async () => {
+    const ordered = getOrderedPieces();
+    const zip = new JSZip();
+    ordered.forEach((piece, i) => {
+      const prefix = String(i + 1).padStart(2, '0');
+      const filename = `${prefix} - ${piece.nom}`;
+      zip.file(filename, `[Placeholder] ${piece.intitule}\nDate: ${piece.date}\nType: ${piece.type}`);
+    });
+    const blob = await zip.generateAsync({ type: 'blob' });
+    saveAs(blob, 'bordereau-pieces.zip');
+  };
+
   // ========== PIECES LIST COMPONENT ==========
   const renderPiecesList = (piecesArray, showUploadZone = true) => {
-    const sortedPieces = sortPiecesByDate(piecesArray);
+    const sortedPieces = getOrderedPieces();
 
     return (
       <div className="flex flex-col -mx-4 -mt-4">
         {/* Sub-header bar — full width, edge-to-edge */}
         <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[#e7e5e3]">
-          <span className="flex-1 text-sm font-medium text-[#292524]">{piecesArray.length} pièce{piecesArray.length > 1 ? 's' : ''}</span>
-          <div className="flex items-center gap-2.5">
+          {/* Sort toggle pill */}
+          <div className="flex items-center bg-[#eeece6] rounded-md p-0.5">
+            <button
+              onClick={() => { setPiecesSortMode('manuel'); if (!piecesManualOrder) initManualOrder(); }}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide rounded transition-all ${
+                piecesSortMode === 'manuel' ? 'bg-white text-[#292524] shadow-sm' : 'text-[#78716c] hover:text-[#44403c]'
+              }`}
+              style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+            >
+              <Hand className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Manuel
+            </button>
+            <button
+              onClick={() => setPiecesSortMode('chrono')}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide rounded transition-all ${
+                piecesSortMode === 'chrono' ? 'bg-white text-[#292524] shadow-sm' : 'text-[#78716c] hover:text-[#44403c]'
+              }`}
+              style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+            >
+              <Clock className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Chrono
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2.5 ml-auto">
             <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#e7e5e3] rounded-lg shadow-sm text-sm text-[#78716c] cursor-pointer hover:border-[#d6d3d1]">
               <ListFilter className="w-4 h-4" strokeWidth={1.5} />
-              <span>Filtrer par type</span>
+              <span>Tous types</span>
               <ChevronDown className="w-4 h-4" strokeWidth={1.5} />
             </div>
-            <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#e7e5e3] rounded-lg shadow-sm">
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#eeece6] rounded-md">
               <Search className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
               <span className="text-sm text-[#78716c] opacity-70">Rechercher...</span>
             </div>
-            <button className="px-3 py-2 text-sm font-medium text-[#44403c] bg-[#eeece6] rounded-md hover:bg-[#e7e5e3] transition-colors">
-              Bordereau
+            <button
+              onClick={copyBordereau}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] shadow-sm transition-colors"
+            >
+              <Copy className="w-4 h-4" strokeWidth={1.5} />
+              Copier bordereau
             </button>
+            <div className="relative">
+              <button
+                onClick={() => setPiecesMoreMenu(!piecesMoreMenu)}
+                className="flex items-center justify-center w-8 h-8 text-[#78716c] hover:text-[#44403c] hover:bg-[#f5f5f4] rounded-md transition-colors"
+              >
+                <MoreVertical className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+              {piecesMoreMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setPiecesMoreMenu(false)} />
+                  <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-[#e7e5e3] rounded-lg shadow-lg z-50 py-1">
+                    <button
+                      onClick={() => { downloadAllAsZip(); setPiecesMoreMenu(false); }}
+                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[#292524] hover:bg-[#fafaf9] transition-colors"
+                    >
+                      <Download className="w-4 h-4" strokeWidth={1.5} />
+                      Télécharger en ZIP
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1939,23 +2029,50 @@ export default function App() {
             </div>
 
             {/* Rows */}
-            {sortedPieces.map((piece) => {
-              const globalIndex = pieces.findIndex(p => p.id === piece.id) + 1;
+            {sortedPieces.map((piece, idx) => {
+              const displayIndex = idx + 1;
               const usages = getPieceUsage(piece.id);
+              const isDragOver = piecesDragState.over === piece.id && piecesDragState.dragging !== piece.id;
               return (
                 <div
                   key={piece.id}
-                  className="flex items-center h-14 bg-white border-b border-[#e7e5e3] last:border-b-0 hover:bg-[#fafaf9] cursor-pointer group"
-                  onClick={() => setEditPanel({ type: 'piece-detail', data: { ...piece, index: globalIndex, usages } })}
+                  draggable={piecesSortMode === 'manuel'}
+                  onDragStart={(e) => {
+                    if (piecesSortMode !== 'manuel') return;
+                    e.dataTransfer.effectAllowed = 'move';
+                    setPiecesDragState(prev => ({ ...prev, dragging: piece.id }));
+                  }}
+                  onDragOver={(e) => {
+                    if (piecesSortMode !== 'manuel') return;
+                    e.preventDefault();
+                    if (piecesDragState.over !== piece.id) {
+                      setPiecesDragState(prev => ({ ...prev, over: piece.id }));
+                    }
+                  }}
+                  onDragEnd={() => {
+                    if (piecesDragState.dragging && piecesDragState.over && piecesDragState.dragging !== piecesDragState.over) {
+                      setPiecesManualOrder(prev => {
+                        const arr = [...prev];
+                        const fromIdx = arr.indexOf(piecesDragState.dragging);
+                        const toIdx = arr.indexOf(piecesDragState.over);
+                        arr.splice(fromIdx, 1);
+                        arr.splice(toIdx, 0, piecesDragState.dragging);
+                        return arr;
+                      });
+                    }
+                    setPiecesDragState({ dragging: null, over: null });
+                  }}
+                  className={`flex items-center h-14 bg-white border-b border-[#e7e5e3] last:border-b-0 hover:bg-[#fafaf9] cursor-pointer group ${isDragOver ? 'border-t-2 border-t-[#93c5fd]' : ''} ${piecesDragState.dragging === piece.id ? 'opacity-40' : ''}`}
+                  onClick={() => setEditPanel({ type: 'piece-detail', data: { ...piece, index: displayIndex, usages } })}
                 >
                   {/* Grip */}
-                  <div className="w-[38px] shrink-0 flex items-center justify-center pl-3">
-                    <GripVertical className="w-3.5 h-3.5 text-[#d6d3d1] opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                  <div className={`w-[38px] shrink-0 flex items-center justify-center pl-3 ${piecesSortMode === 'manuel' ? 'cursor-grab' : ''}`} onClick={(e) => piecesSortMode === 'manuel' && e.stopPropagation()}>
+                    <GripVertical className={`w-3.5 h-3.5 text-[#d6d3d1] transition-opacity ${piecesSortMode === 'manuel' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} strokeWidth={1.5} />
                   </div>
                   {/* Number badge */}
                   <div className="w-[50px] shrink-0 flex items-center justify-center pl-4 pr-3">
                     <span className="inline-flex items-center justify-center w-[22px] h-[22px] bg-[#eeece6] text-[#78716c] text-xs font-semibold rounded-md">
-                      {globalIndex}
+                      {displayIndex}
                     </span>
                   </div>
                   {/* Document name */}
