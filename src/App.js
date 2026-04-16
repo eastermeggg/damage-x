@@ -1998,6 +1998,28 @@ export default function App() {
               <Copy className="w-4 h-4" strokeWidth={1.5} />
               Copier bordereau
             </button>
+            <div className="relative">
+              <button
+                onClick={() => setPiecesMoreMenu(!piecesMoreMenu)}
+                className="flex items-center justify-center w-8 h-8 text-[#78716c] hover:text-[#44403c] hover:bg-[#f5f5f4] rounded-md transition-colors"
+              >
+                <MoreVertical className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+              {piecesMoreMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setPiecesMoreMenu(false)} />
+                  <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-[#e7e5e3] rounded-lg shadow-lg z-50 py-1">
+                    <button
+                      onClick={() => { downloadAllAsZip(); setPiecesMoreMenu(false); }}
+                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[#292524] hover:bg-[#fafaf9] transition-colors"
+                    >
+                      <Download className="w-4 h-4" strokeWidth={1.5} />
+                      Télécharger en ZIP
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
