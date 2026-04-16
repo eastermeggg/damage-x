@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Image, Activity, File, FolderOpen, FileSearch, ListChecks, ShieldCheck, MoreHorizontal, User, LogOut, Copy, Plug2 } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock } from 'lucide-react';
+import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 const POSTES_TAXONOMY = [
   {
@@ -63,32 +66,781 @@ const POSTES_TAXONOMY = [
   }
 ];
 
+// ========== BARÈMES & RÉFÉRENTIELS — DEFAULT DATA ==========
+const DEFAULT_BAREMES = [
+  {
+    id: 'gdp_2025_prospective',
+    label: 'GDP 2025 Prospective 0,50%',
+    type: 'bareme',
+    status: 'active',
+    source: 'default',
+    tableData: {
+      columns: ['16 ans', '18 ans', '20 ans', '21 ans', '25 ans', '29 ans', '50 ans', '55 ans', '60 ans', '62 ans', '64 ans', '65 ans', '67 ans'],
+      rows: [
+        { header: '0', values: [0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000] },
+        { header: '1', values: [0.998, 0.998, 0.998, 0.998, 0.998, 0.998, 0.998, 0.998, 0.998, 0.998, 0.998, 0.998, 0.998] },
+        { header: '5', values: [4.951, 4.951, 4.951, 4.951, 4.951, 4.951, 4.951, 4.951, 4.951, 4.951, 4.951, 4.951, 4.951] },
+        { header: '10', values: [9.778, 9.778, 9.778, 9.778, 9.778, 9.778, 9.778, 9.778, 9.778, 9.778, 9.778, 9.778, 9.778] },
+        { header: '15', values: [14.486, 14.486, 14.486, 14.486, 14.486, 14.486, 14.486, 14.486, 14.486, 14.486, 14.486, 14.486, 14.486] },
+        { header: '20', values: [19.075, 19.075, 19.075, 19.075, 19.075, 19.075, 19.075, 19.075, 19.075, 19.075, 19.075, 19.075, 19.075] },
+        { header: '25', values: [23.550, 23.550, 23.550, 23.550, 23.550, 23.550, 23.550, 23.550, 23.550, 23.550, 23.550, 23.550, 23.550] },
+        { header: '30', values: [27.915, 27.915, 27.915, 27.915, 27.915, 27.915, 27.915, 27.915, 27.915, 27.915, 27.915, 27.915, 27.915] },
+        { header: '35', values: [32.173, 32.173, 32.173, 32.173, 32.173, 32.173, 32.173, 32.173, 32.173, 32.173, 32.173, 32.173, 32.173] },
+        { header: '40', values: [36.327, 36.327, 36.327, 36.327, 36.327, 36.327, 36.327, 36.327, 36.327, 36.327, 36.327, 36.327, 36.327] },
+        { header: '42', values: [37.984, 37.984, 37.984, 37.984, 37.984, 37.984, 37.984, 37.984, 37.984, 37.984, 37.984, 37.984, 37.984] },
+        { header: '45', values: [40.381, 40.381, 40.381, 40.381, 40.381, 40.381, 40.381, 40.381, 40.381, 40.381, 40.381, 40.381, 40.381] },
+        { header: '50', values: [44.338, 44.338, 44.338, 44.338, 44.338, 44.338, 44.338, 44.338, 44.338, 44.338, 44.338, 44.338, 44.338] },
+        { header: 'Viager', values: [52.587, 50.644, 48.711, 47.748, 43.932, 40.181, 26.441, 22.981, 19.504, 17.822, 16.119, 15.283, 13.622] },
+      ]
+    }
+  },
+  {
+    id: 'gdp_2025_stationnaire',
+    label: 'GDP 2025 Stationnaire 0,50%',
+    type: 'bareme',
+    status: 'active',
+    source: 'default',
+    tableData: {
+      columns: ['16 ans', '18 ans', '20 ans', '21 ans', '25 ans', '29 ans', '50 ans', '55 ans', '60 ans', '62 ans', '64 ans', '65 ans', '67 ans'],
+      rows: [
+        { header: '0', values: [0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000] },
+        { header: '1', values: [0.995, 0.995, 0.995, 0.995, 0.995, 0.995, 0.995, 0.995, 0.995, 0.995, 0.995, 0.995, 0.995] },
+        { header: '5', values: [4.889, 4.889, 4.889, 4.889, 4.889, 4.889, 4.889, 4.889, 4.889, 4.889, 4.889, 4.889, 4.889] },
+        { header: '10', values: [9.554, 9.554, 9.554, 9.554, 9.554, 9.554, 9.554, 9.554, 9.554, 9.554, 9.554, 9.554, 9.554] },
+        { header: '15', values: [14.005, 14.005, 14.005, 14.005, 14.005, 14.005, 14.005, 14.005, 14.005, 14.005, 14.005, 14.005, 14.005] },
+        { header: '20', values: [18.251, 18.251, 18.251, 18.251, 18.251, 18.251, 18.251, 18.251, 18.251, 18.251, 18.251, 18.251, 18.251] },
+        { header: '25', values: [22.300, 22.300, 22.300, 22.300, 22.300, 22.300, 22.300, 22.300, 22.300, 22.300, 22.300, 22.300, 22.300] },
+        { header: '30', values: [26.160, 26.160, 26.160, 26.160, 26.160, 26.160, 26.160, 26.160, 26.160, 26.160, 26.160, 26.160, 26.160] },
+        { header: '35', values: [29.839, 29.839, 29.839, 29.839, 29.839, 29.839, 29.839, 29.839, 29.839, 29.839, 29.839, 29.839, 29.839] },
+        { header: '40', values: [33.344, 33.344, 33.344, 33.344, 33.344, 33.344, 33.344, 33.344, 33.344, 33.344, 33.344, 33.344, 33.344] },
+        { header: 'Viager', values: [49.253, 47.451, 45.659, 44.767, 41.189, 37.682, 24.830, 21.609, 18.382, 16.825, 15.255, 14.482, 12.944] },
+      ]
+    }
+  },
+  {
+    id: 'bcriv_2025',
+    label: 'BCRIV 2025',
+    type: 'bareme',
+    status: 'active',
+    source: 'default',
+    tableData: {
+      columns: ['16 ans', '18 ans', '20 ans', '21 ans', '25 ans', '55 ans', '60 ans', '62 ans', '64 ans', '65 ans', '67 ans', '68 ans'],
+      rows: [
+        { header: '0', values: [0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000] },
+        { header: '1', values: [0.997, 0.997, 0.997, 0.997, 0.997, 0.997, 0.997, 0.997, 0.997, 0.997, 0.997, 0.997] },
+        { header: '5', values: [4.926, 4.926, 4.926, 4.926, 4.926, 4.926, 4.926, 4.926, 4.926, 4.926, 4.926, 4.926] },
+        { header: '10', values: [9.681, 9.681, 9.681, 9.681, 9.681, 9.681, 9.681, 9.681, 9.681, 9.681, 9.681, 9.681] },
+        { header: '20', values: [18.706, 18.706, 18.706, 18.706, 18.706, 18.706, 18.706, 18.706, 18.706, 18.706, 18.706, 18.706] },
+        { header: '30', values: [27.128, 27.128, 27.128, 27.128, 27.128, 27.128, 27.128, 27.128, 27.128, 27.128, 27.128, 27.128] },
+        { header: '40', values: [34.989, 34.989, 34.989, 34.989, 34.989, 34.989, 34.989, 34.989, 34.989, 34.989, 34.989, 34.989] },
+        { header: 'Viager', values: [51.246, 49.354, 47.474, 46.537, 42.869, 22.349, 18.945, 17.342, 15.729, 14.929, 13.344, 12.557] },
+      ]
+    }
+  },
+  {
+    id: 'oniam_2025',
+    label: 'ONIAM 2025',
+    type: 'bareme',
+    status: 'active',
+    source: 'default',
+    tableData: {
+      columns: ['25 ans', '62 ans', '67 ans'],
+      rows: [
+        { header: '0', values: [0.000, 0.000, 0.000] },
+        { header: '1', values: [0.996, 0.996, 0.996] },
+        { header: '5', values: [4.901, 4.901, 4.901] },
+        { header: '10', values: [9.589, 9.589, 9.589] },
+        { header: '20', values: [18.324, 18.324, 18.324] },
+        { header: '30', values: [26.231, 26.231, 26.231] },
+        { header: '40', values: [33.402, 33.402, 33.402] },
+        { header: 'Viager', values: [41.543, 16.891, 13.010] },
+      ]
+    }
+  },
+  // Référentiels (used by SE, PEP, DFP)
+  {
+    id: 'cours-appel-2024',
+    label: "Cour d'appel 2024",
+    type: 'referentiel',
+    status: 'active',
+    source: 'default',
+    tableData: {
+      columns: ['Minimum', 'Moyenne', 'Maximum'],
+      rows: [
+        { header: '0,5/7', values: ['800 €', '1 200 €', '1 600 €'] },
+        { header: '1/7', values: ['1 600 €', '2 500 €', '3 400 €'] },
+        { header: '1,5/7', values: ['3 400 €', '4 700 €', '6 000 €'] },
+        { header: '2/7', values: ['6 000 €', '8 500 €', '11 000 €'] },
+        { header: '2,5/7', values: ['11 000 €', '14 500 €', '18 000 €'] },
+        { header: '3/7', values: ['18 000 €', '24 000 €', '30 000 €'] },
+        { header: '3,5/7', values: ['30 000 €', '37 500 €', '45 000 €'] },
+        { header: '4/7', values: ['45 000 €', '52 500 €', '60 000 €'] },
+        { header: '4,5/7', values: ['60 000 €', '70 000 €', '80 000 €'] },
+        { header: '5/7', values: ['80 000 €', '95 000 €', '110 000 €'] },
+        { header: '5,5/7', values: ['110 000 €', '135 000 €', '160 000 €'] },
+        { header: '6/7', values: ['160 000 €', '200 000 €', '240 000 €'] },
+        { header: '6,5/7', values: ['240 000 €', '290 000 €', '340 000 €'] },
+        { header: '7/7', values: ['340 000 €', '390 000 €', '440 000 €'] },
+      ]
+    }
+  },
+  {
+    id: 'cours-appel-2023',
+    label: "Cour d'appel 2023",
+    type: 'referentiel',
+    status: 'active',
+    source: 'default',
+    tableData: {
+      columns: ['Minimum', 'Moyenne', 'Maximum'],
+      rows: [
+        { header: '0,5/7', values: ['800 €', '1 100 €', '1 500 €'] },
+        { header: '1/7', values: ['1 500 €', '2 300 €', '3 200 €'] },
+        { header: '2/7', values: ['5 500 €', '7 800 €', '10 000 €'] },
+        { header: '3/7', values: ['16 000 €', '22 000 €', '28 000 €'] },
+        { header: '4/7', values: ['42 000 €', '49 000 €', '56 000 €'] },
+        { header: '5/7', values: ['75 000 €', '88 000 €', '100 000 €'] },
+        { header: '6/7', values: ['150 000 €', '185 000 €', '220 000 €'] },
+        { header: '7/7', values: ['320 000 €', '370 000 €', '420 000 €'] },
+      ]
+    }
+  },
+  {
+    id: 'mornet-2024',
+    label: 'Référentiel Mornet 2024',
+    type: 'referentiel',
+    status: 'active',
+    source: 'default',
+    tableData: {
+      columns: ['Minimum', 'Moyenne', 'Maximum'],
+      rows: [
+        { header: '1/7', values: ['1 500 €', '2 400 €', '3 300 €'] },
+        { header: '2/7', values: ['5 800 €', '8 200 €', '10 500 €'] },
+        { header: '3/7', values: ['17 000 €', '23 000 €', '29 000 €'] },
+        { header: '4/7', values: ['43 000 €', '50 000 €', '57 000 €'] },
+        { header: '5/7', values: ['76 000 €', '90 000 €', '105 000 €'] },
+        { header: '6/7', values: ['155 000 €', '190 000 €', '225 000 €'] },
+        { header: '7/7', values: ['330 000 €', '380 000 €', '430 000 €'] },
+      ]
+    }
+  },
+];
+
+// ========== DROP FIRST — MOCK DATA ==========
+const DROP_FIRST_DOCUMENT_POOL = [
+  {
+    id: 'df-1',
+    originalName: 'scan_20240312.pdf',
+    cleanName: 'Rapport d\'expertise médicale Dr. Dubois — 12/03/2024',
+    type: 'Expertise',
+    date: '2024-03-12',
+    postesLies: ['DFT', 'PGPA', 'SE', 'AIPP'],
+    summary: 'Rapport d\'expertise médicale définitif du Dr. Dubois, consolidation fixée au 15/01/2024, AIPP 8%, DFT total 45 jours, DFT partiel classe II 120 jours.',
+    extractedInfo: { 'Médecin expert': 'Dr. Philippe Dubois', 'Date de consolidation': '15/01/2024', 'AIPP': '8%', 'DFT total': '45 jours', 'DFT partiel (classe II)': '120 jours', 'Souffrances endurées': '4/7', 'Préjudice esthétique': '2.5/7' },
+    pages: 28,
+    splits: [
+      { name: 'Corps du rapport', pages: '1–18', pageCount: 18 },
+      { name: 'Annexes médicales', pages: '19–24', pageCount: 6 },
+      { name: 'Dire des parties', pages: '25–28', pageCount: 4 }
+    ]
+  },
+  {
+    id: 'df-2',
+    originalName: 'factures_kine_2023.pdf',
+    cleanName: 'Factures kinésithérapie — Cabinet Martin — 2023',
+    type: 'Factures',
+    date: '2023-11-15',
+    postesLies: ['DSA'],
+    summary: 'Ensemble de 12 factures de kinésithérapie du cabinet Martin, période mars–novembre 2023, total 1 440 €.',
+    extractedInfo: { 'Prestataire': 'Cabinet Martin Kinésithérapie', 'Montant total': '1 440,00 €', 'Période': 'Mars–Novembre 2023', 'Nombre de factures': '12' },
+    pages: 12,
+    splits: null
+  },
+  {
+    id: 'df-3',
+    originalName: 'decompte_cpam.pdf',
+    cleanName: 'Décompte prestations CPAM — Période 2022–2024',
+    type: 'Médical',
+    date: '2024-02-20',
+    postesLies: ['DSA', 'DFT'],
+    summary: 'Décompte définitif des prestations versées par la CPAM, créance totale 14 320,50 €, couvrant hospitalisation et soins post-accident.',
+    extractedInfo: { 'Organisme': 'CPAM Paris', 'Créance totale': '14 320,50 €', 'Période couverte': 'Juin 2022 – Février 2024' },
+    pages: 4,
+    splits: null
+  },
+  {
+    id: 'df-4',
+    originalName: 'bulletins_salaire.pdf',
+    cleanName: 'Bulletins de salaire — Dupont Martin SAS — Jan–Déc 2022',
+    type: 'Revenus',
+    date: '2022-12-31',
+    postesLies: ['PGPA', 'PGPF'],
+    summary: '12 bulletins de salaire mensuels, salaire net moyen 2 850 €/mois, employeur Dupont Martin SAS.',
+    extractedInfo: { 'Employeur': 'Dupont Martin SAS', 'Salaire net moyen': '2 850 €/mois', 'Période': 'Janvier–Décembre 2022' },
+    pages: 12,
+    splits: null
+  },
+  {
+    id: 'df-5',
+    originalName: 'IMG_4521.jpg',
+    cleanName: 'Certificat médical initial — Dr. Lefèvre — 05/06/2022',
+    type: 'Médical',
+    date: '2022-06-05',
+    postesLies: ['DFT'],
+    summary: 'Certificat médical initial constatant fracture du fémur droit suite à accident de la voie publique, ITT 60 jours.',
+    extractedInfo: { 'Médecin': 'Dr. Anne Lefèvre', 'Diagnostic': 'Fracture du fémur droit', 'ITT': '60 jours' },
+    pages: 1,
+    splits: null
+  },
+  {
+    id: 'df-6',
+    originalName: 'jugement_tgi.pdf',
+    cleanName: 'Jugement TGI Paris — 14ème chambre — 18/09/2023',
+    type: 'Décision',
+    date: '2023-09-18',
+    postesLies: ['DFT', 'SE', 'PGPA'],
+    summary: 'Jugement reconnaissant la responsabilité entière du conducteur adverse, ordonnant expertise médicale complémentaire.',
+    extractedInfo: { 'Juridiction': 'TGI Paris, 14ème chambre', 'Date': '18/09/2023', 'Dispositif': 'Responsabilité entière du tiers, expertise ordonnée' },
+    pages: 8,
+    splits: null
+  },
+  {
+    id: 'df-7',
+    originalName: 'courrier_assurance_jan24.pdf',
+    cleanName: 'Courrier Allianz — Offre d\'indemnisation — 10/01/2024',
+    type: 'Correspondance',
+    date: '2024-01-10',
+    postesLies: [],
+    summary: 'Offre provisionnelle d\'indemnisation de l\'assureur Allianz, montant proposé 15 000 €, sous réserve de consolidation.',
+    extractedInfo: { 'Assureur': 'Allianz IARD', 'Montant proposé': '15 000,00 €', 'Conditions': 'Sous réserve de consolidation' },
+    pages: 2,
+    splits: null
+  },
+  {
+    id: 'df-8',
+    originalName: 'avis_impots_2022.pdf',
+    cleanName: 'Avis d\'imposition 2022 — Revenus 2021',
+    type: 'Revenus',
+    date: '2022-08-01',
+    postesLies: ['PGPA', 'PGPF'],
+    summary: 'Avis d\'imposition sur les revenus 2021, revenu fiscal de référence 38 400 €.',
+    extractedInfo: { 'Revenu fiscal de référence': '38 400,00 €', 'Année fiscale': '2021' },
+    pages: 2,
+    splits: null
+  },
+  {
+    id: 'df-9',
+    originalName: 'compte_rendu_hospitalisation.pdf',
+    cleanName: 'Compte-rendu d\'hospitalisation — CHU Pitié-Salpêtrière — Juin 2022',
+    type: 'Médical',
+    date: '2022-06-12',
+    postesLies: ['DFT', 'SE', 'DSA'],
+    summary: 'Compte-rendu d\'hospitalisation suite à intervention chirurgicale (ostéosynthèse fémur), durée 8 jours, complications mineures.',
+    extractedInfo: { 'Établissement': 'CHU Pitié-Salpêtrière', 'Durée': '8 jours', 'Intervention': 'Ostéosynthèse du fémur droit', 'Complications': 'Mineures (infection superficielle)' },
+    pages: 6,
+    splits: null
+  },
+  {
+    id: 'df-10',
+    originalName: 'photos_blessures.zip',
+    cleanName: 'Photographies des blessures — Constatations initiales — 05/06/2022',
+    type: 'Médical',
+    date: '2022-06-05',
+    postesLies: ['PE', 'SE'],
+    summary: '4 photographies des blessures prises le jour de l\'accident, montrant fracture ouverte et hématomes multiples.',
+    extractedInfo: { 'Nombre de photos': '4', 'Type': 'Constatations initiales post-accident' },
+    pages: 4,
+    splits: null
+  },
+  {
+    id: 'df-11',
+    originalName: 'pv_police.pdf',
+    cleanName: 'Procès-verbal de police — Commissariat du 12ème — 05/06/2022',
+    type: 'Administratif',
+    date: '2022-06-05',
+    postesLies: [],
+    summary: 'Procès-verbal de constatation de l\'accident, témoignages recueillis, schéma de la collision, taux d\'alcoolémie du tiers responsable 0,8 g/L.',
+    extractedInfo: { 'Commissariat': '12ème arrondissement', 'Taux d\'alcoolémie (tiers)': '0,8 g/L', 'Nombre de témoins': '2' },
+    pages: 5,
+    splits: [
+      { name: 'Constatations et schéma', pages: '1–3', pageCount: 3 },
+      { name: 'Témoignages', pages: '4–5', pageCount: 2 }
+    ]
+  },
+  {
+    id: 'df-12',
+    originalName: 'arret_travail_prolongation.pdf',
+    cleanName: 'Arrêts de travail et prolongations — Juin 2022 – Mars 2023',
+    type: 'Médical',
+    date: '2022-06-05',
+    postesLies: ['DFT', 'PGPA'],
+    summary: 'Série d\'arrêts de travail initiaux et prolongations couvrant 9 mois, médecin traitant Dr. Lefèvre.',
+    extractedInfo: { 'Médecin traitant': 'Dr. Anne Lefèvre', 'Durée totale': '9 mois', 'Période': 'Juin 2022 – Mars 2023' },
+    pages: 9,
+    splits: null
+  }
+];
+
+const DROP_FIRST_VICTIM_DATA = {
+  nom: 'Martin', prenom: 'Sophie', sexe: 'Féminin', dateNaissance: '14/03/1985', profession: 'Cadre commercial'
+};
+const DROP_FIRST_ACCIDENT_DATA = {
+  type: 'Accident de la voie publique', dateAccident: '05/06/2022',
+  resume: 'Collision frontale avec un véhicule en état d\'ivresse (0,8 g/L) sur la RN7 à hauteur de Fontainebleau. Mme Martin, conductrice, a subi un choc violent au niveau des membres inférieurs.'
+};
+const DROP_FIRST_MEDICAL_DATA = {
+  premiereConstatation: '05/06/2022 — CHU Pitié-Salpêtrière', dateConsolidation: '15/01/2024', aipp: '8%',
+  commentaire: 'Fracture complexe du fémur droit avec ostéosynthèse. Séquelles : raideur articulaire, douleurs résiduelles, boiterie légère. Retentissement professionnel modéré.'
+};
+const DROP_FIRST_POSTES_DETECTES = ['DFT', 'DSA', 'PGPA', 'PGPF', 'SE', 'PE', 'AIPP'];
+
+// ========== MOCK DIFF STORE ==========
+// Pre-scripted diff events keyed by actionId. Structure matches future agent contract.
+const MOCK_DIFF_STORE = {
+  'extraction-info-dossier': [
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'nom', entityLabel: 'Nom', type: 'add', before: null, after: 'Martin', timestamp: 1 },
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'prenom', entityLabel: 'Prénom', type: 'add', before: null, after: 'Sophie', timestamp: 2 },
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'dateNaissance', entityLabel: 'Date de naissance', type: 'add', before: null, after: '14/03/1985', timestamp: 3 },
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'profession', entityLabel: 'Profession', type: 'add', before: null, after: 'Cadre commercial', timestamp: 4 },
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'dateAccident', entityLabel: 'Date accident', type: 'add', before: null, after: '05/06/2022', timestamp: 5 },
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'typeFait', entityLabel: 'Type', type: 'add', before: null, after: 'Accident de la voie publique', timestamp: 6 },
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'dateConsolidation', entityLabel: 'Date de consolidation', type: 'add', before: null, after: '15/01/2024', timestamp: 7 },
+    { actionId: 'extraction-info-dossier', zone: 'infos_dossier', entityId: 'aipp', entityLabel: 'AIPP', type: 'add', before: null, after: '8%', timestamp: 8 },
+  ],
+  'extraction-poste-dft': [
+    { actionId: 'extraction-poste-dft', zone: 'postes', entityId: 'dft', entityLabel: 'Déficit fonctionnel temporaire', type: 'add', before: null, after: '0 €', timestamp: 10 },
+  ],
+  'extraction-poste-dsa': [
+    { actionId: 'extraction-poste-dsa', zone: 'postes', entityId: 'dsa', entityLabel: 'Dépenses de santé actuelles', type: 'add', before: null, after: '0 €', timestamp: 11 },
+  ],
+  'extraction-poste-pgpa': [
+    { actionId: 'extraction-poste-pgpa', zone: 'postes', entityId: 'pgpa', entityLabel: 'Pertes de gains prof. actuels', type: 'add', before: null, after: '0 €', timestamp: 12 },
+  ],
+  'extraction-poste-pgpf': [
+    { actionId: 'extraction-poste-pgpf', zone: 'postes', entityId: 'pgpf', entityLabel: 'Pertes de gains prof. futurs', type: 'add', before: null, after: '0 €', timestamp: 13 },
+  ],
+  'extraction-poste-se': [
+    { actionId: 'extraction-poste-se', zone: 'postes', entityId: 'se', entityLabel: 'Souffrances endurées', type: 'add', before: null, after: '0 €', timestamp: 14 },
+  ],
+  'extraction-poste-pe': [
+    { actionId: 'extraction-poste-pe', zone: 'postes', entityId: 'pe', entityLabel: 'Préjudice esthétique', type: 'add', before: null, after: '0 €', timestamp: 15 },
+  ],
+  'extraction-poste-aipp': [
+    { actionId: 'extraction-poste-aipp', zone: 'postes', entityId: 'aipp', entityLabel: 'AIPP', type: 'add', before: null, after: '0 €', timestamp: 16 },
+  ],
+  'calc-dsa': [
+    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa-line-1', entityLabel: 'Hospitalisation CHU Bordeaux', type: 'add', fields: [
+      { key: 'label', label: 'Libellé', after: 'Hospitalisation CHU Bordeaux' },
+      { key: 'type', label: 'Type', after: 'Hospitalisation' },
+      { key: 'date', label: 'Date', after: '05/06/2022' },
+      { key: 'montant', label: 'Montant', after: '4 500 €' },
+      { key: 'dejaRembourse', label: 'Déjà remboursé', after: '4 200 €' },
+    ], timestamp: 20 },
+    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa-line-2', entityLabel: 'Kinésithérapie (24 séances)', type: 'edit', fields: [
+      { key: 'montant', label: 'Montant', before: '960 €', after: '1 280 €' },
+      { key: 'dejaRembourse', label: 'Déjà remboursé', before: '720 €', after: '960 €' },
+      { key: 'date', label: 'Date', before: '10/07/2022', after: '15/07/2022' },
+    ], timestamp: 21 },
+    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa-line-3', entityLabel: 'IRM genou droit', type: 'add', fields: [
+      { key: 'label', label: 'Libellé', after: 'IRM genou droit' },
+      { key: 'type', label: 'Type', after: 'Examen' },
+      { key: 'date', label: 'Date', after: '20/06/2022' },
+      { key: 'montant', label: 'Montant', after: '320 €' },
+      { key: 'dejaRembourse', label: 'Déjà remboursé', after: '280 €' },
+    ], timestamp: 22 },
+    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa-line-4', entityLabel: 'Consultation Dr. Dupont (doublon)', type: 'delete', fields: [
+      { key: 'label', label: 'Libellé', before: 'Consultation Dr. Dupont' },
+      { key: 'date', label: 'Date', before: '12/06/2022' },
+      { key: 'montant', label: 'Montant', before: '55 €' },
+    ], timestamp: 23 },
+    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa-line-5', entityLabel: 'Médicaments', type: 'add', fields: [
+      { key: 'label', label: 'Libellé', after: 'Médicaments (antalgiques, anti-inflammatoires)' },
+      { key: 'type', label: 'Type', after: 'Pharmacie' },
+      { key: 'date', label: 'Date', after: '05/06/2022' },
+      { key: 'montant', label: 'Montant', after: '87,50 €' },
+      { key: 'dejaRembourse', label: 'Déjà remboursé', after: '65 €' },
+    ], timestamp: 24 },
+    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa-total', entityLabel: 'Total DSA', type: 'edit', fields: [
+      { key: 'montant', label: 'Montant', before: '0 €', after: '6 132,50 €' },
+    ], timestamp: 25 },
+    { actionId: 'calc-dsa', zone: 'postes', entityId: 'dsa-revalo', entityLabel: 'Revalorisation activée', type: 'add', paramKey: 'revaloriser', fields: [
+      { key: 'etat', label: 'État', after: 'On', badge: 'success' },
+      { key: 'valeur', label: 'Valeur', after: 'IPC Annuel' },
+    ], timestamp: 26 },
+  ],
+  'calc-dft': [
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-line-1', entityLabel: 'Hospitalisation initiale', type: 'add', fields: [
+      { key: 'debut', label: 'Début', after: '05/06/2022' },
+      { key: 'fin', label: 'Fin', after: '12/06/2022' },
+      { key: 'jours', label: 'Jours', after: '8' },
+      { key: 'taux', label: 'Taux', after: '100%' },
+      { key: 'montant', label: 'Montant', after: '224 €' },
+    ], timestamp: 30 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-line-2', entityLabel: 'Chirurgie + soins intensifs', type: 'add', fields: [
+      { key: 'debut', label: 'Début', after: '13/06/2022' },
+      { key: 'fin', label: 'Fin', after: '18/06/2022' },
+      { key: 'jours', label: 'Jours', after: '6' },
+      { key: 'taux', label: 'Taux', after: '100%' },
+      { key: 'montant', label: 'Montant', after: '168 €' },
+    ], timestamp: 31 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-line-3', entityLabel: 'Alitement strict post-op.', type: 'add', fields: [
+      { key: 'debut', label: 'Début', after: '19/06/2022' },
+      { key: 'fin', label: 'Fin', after: '01/07/2022' },
+      { key: 'jours', label: 'Jours', after: '13' },
+      { key: 'taux', label: 'Taux', after: '100%' },
+      { key: 'montant', label: 'Montant', after: '364 €' },
+    ], timestamp: 32 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-line-4', entityLabel: 'Convalescence post-op.', type: 'edit', fields: [
+      { key: 'fin', label: 'Fin', before: '30/08/2022', after: '15/09/2022' },
+      { key: 'jours', label: 'Jours', before: '60', after: '76' },
+      { key: 'montant', label: 'Montant', before: '840 €', after: '1 064 €' },
+    ], timestamp: 33 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-line-5', entityLabel: 'Rééducation active', type: 'add', fields: [
+      { key: 'debut', label: 'Début', after: '16/09/2022' },
+      { key: 'fin', label: 'Fin', after: '16/12/2022' },
+      { key: 'jours', label: 'Jours', after: '92' },
+      { key: 'taux', label: 'Taux', after: '40%' },
+      { key: 'montant', label: 'Montant', after: '1 030 €' },
+    ], timestamp: 34 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-line-6', entityLabel: "Rééducation d'entretien (doublon)", type: 'delete', fields: [
+      { key: 'debut', label: 'Début', before: '17/12/2022' },
+      { key: 'fin', label: 'Fin', before: '19/03/2023' },
+      { key: 'taux', label: 'Taux', before: '25%' },
+      { key: 'montant', label: 'Montant', before: '644 €' },
+    ], timestamp: 35 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-line-7', entityLabel: 'Gêne résiduelle pré-conso.', type: 'add', fields: [
+      { key: 'debut', label: 'Début', after: '20/03/2023' },
+      { key: 'fin', label: 'Fin', after: '15/01/2024' },
+      { key: 'jours', label: 'Jours', after: '301' },
+      { key: 'taux', label: 'Taux', after: '15%' },
+      { key: 'montant', label: 'Montant', after: '1 264 €' },
+    ], timestamp: 36 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-total', entityLabel: 'Total DFT', type: 'edit', fields: [
+      { key: 'montant', label: 'Montant', before: '0 €', after: '5 385 €' },
+    ], timestamp: 37 },
+    { actionId: 'calc-dft', zone: 'postes', entityId: 'dft-revalo', entityLabel: 'Revalorisation désactivée', type: 'delete', paramKey: 'base-journaliere-dft', fields: [
+      { key: 'etat', label: 'État', before: 'On', after: 'Off' },
+    ], timestamp: 38 },
+  ],
+  'calc-pgpa': [
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-rev-1', entityLabel: 'Salaire net 2022', type: 'add', fields: [
+      { key: 'annee', label: 'Année', after: '2022' },
+      { key: 'montant', label: 'Montant', after: '32 400 €' },
+      { key: 'revalorise', label: 'Revalorisé', after: '33 696 €' },
+    ], timestamp: 40 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-rev-2', entityLabel: 'Salaire net 2021', type: 'edit', fields: [
+      { key: 'montant', label: 'Montant', before: '29 800 €', after: '31 200 €' },
+      { key: 'revalorise', label: 'Revalorisé', before: '31 886 €', after: '33 384 €' },
+    ], timestamp: 41 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-rev-3', entityLabel: 'Prime exceptionnelle 2021 (non récurrent)', type: 'delete', fields: [
+      { key: 'annee', label: 'Année', before: '2021' },
+      { key: 'montant', label: 'Montant', before: '1 500 €' },
+    ], timestamp: 42 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-rev-4', entityLabel: 'Prime annuelle 2022', type: 'add', fields: [
+      { key: 'annee', label: 'Année', after: '2022' },
+      { key: 'montant', label: 'Montant', after: '2 400 €' },
+      { key: 'revalorise', label: 'Revalorisé', after: '2 496 €' },
+    ], timestamp: 42 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-rp-1', entityLabel: 'Maintien partiel salaire', type: 'add', fields: [
+      { key: 'tiers', label: 'Tiers', after: 'Employeur' },
+      { key: 'periode', label: 'Période', after: 'Mars - Juin 2023' },
+      { key: 'montant', label: 'Montant', after: '8 500 €' },
+    ], timestamp: 43 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-ij-1', entityLabel: 'IJ Sécurité sociale', type: 'add', fields: [
+      { key: 'tiers', label: 'Tiers', after: 'CPAM' },
+      { key: 'periode', label: 'Période', after: 'Mars 2023 - Sept 2024' },
+      { key: 'montant', label: 'Montant', after: '11 650 €' },
+    ], timestamp: 44 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-ij-2', entityLabel: 'IJ Prévoyance', type: 'add', fields: [
+      { key: 'tiers', label: 'Tiers', after: 'AG2R' },
+      { key: 'periode', label: 'Période', after: 'Mars 2023 - Sept 2024' },
+      { key: 'montant', label: 'Montant', after: '4 850 €' },
+    ], timestamp: 45 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-total', entityLabel: 'Total PGPA', type: 'edit', fields: [
+      { key: 'montant', label: 'Montant', before: '0 €', after: '6 700 €' },
+    ], timestamp: 46 },
+    { actionId: 'calc-pgpa', zone: 'postes', entityId: 'pgpa-revalo', entityLabel: 'Revalorisation modifiée', type: 'edit', paramKey: 'revaloriser-pgpa', fields: [
+      { key: 'indice', label: 'Indice', before: 'IPC Annuel', after: 'IPC Mensuel' },
+    ], timestamp: 47 },
+  ],
+  'calc-pgpf': [
+    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf-reprise', entityLabel: 'Salaire reprise mi-temps', type: 'add', fields: [
+      { key: 'tiers', label: 'Tiers', after: 'Employeur' },
+      { key: 'periode', label: 'Période', after: 'Sept 2024 - Jan 2025' },
+      { key: 'montant', label: 'Montant', after: '4 800 €' },
+    ], timestamp: 50 },
+    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf-ij', entityLabel: 'IJ CPAM mi-temps thérapeutique', type: 'add', fields: [
+      { key: 'tiers', label: 'Tiers', after: 'CPAM' },
+      { key: 'periode', label: 'Période', after: 'Sept 2024 - Jan 2025' },
+      { key: 'montant', label: 'Montant', after: '3 200 €' },
+    ], timestamp: 51 },
+    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf-cap', entityLabel: 'Capitalisation viagère', type: 'add', fields: [
+      { key: 'perteAnnuelle', label: 'Perte annuelle', after: '9 450 €' },
+      { key: 'age', label: 'Âge consolidation', after: '42 ans' },
+      { key: 'bareme', label: 'Barème', after: 'Gazette du Palais 2025 (0,5%)' },
+      { key: 'coefficient', label: 'Coefficient', after: '24,5' },
+      { key: 'montant', label: 'Capital', after: '231 525 €' },
+    ], timestamp: 52 },
+    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf-tp-1', entityLabel: 'Rente CPAM', type: 'add', fields: [
+      { key: 'tiers', label: 'Tiers', after: 'CPAM' },
+      { key: 'renteAnnuelle', label: 'Rente annuelle', after: '3 600 €' },
+      { key: 'montantCapitalise', label: 'Capitalisé', after: '88 200 €' },
+    ], timestamp: 53 },
+    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf-tp-2', entityLabel: 'Rente prévoyance', type: 'add', fields: [
+      { key: 'tiers', label: 'Tiers', after: 'AG2R' },
+      { key: 'renteAnnuelle', label: 'Rente annuelle', after: '1 800 €' },
+      { key: 'montantCapitalise', label: 'Capitalisé', after: '44 100 €' },
+    ], timestamp: 54 },
+    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf-total', entityLabel: 'Total PGPF', type: 'edit', fields: [
+      { key: 'montant', label: 'Montant', before: '0 €', after: '231 525 €' },
+    ], timestamp: 55 },
+    { actionId: 'calc-pgpf', zone: 'postes', entityId: 'pgpf-capitaliser', entityLabel: 'Capitalisation modifiée', type: 'edit', paramKey: 'capitaliser-pgpf', fields: [
+      { key: 'bareme', label: 'Barême', before: 'IPC Mensuel', after: 'IPC Annuel' },
+      { key: 'finArrerage', label: 'Fin arrérage', before: 'IPC Mensuel', after: 'IPC Annuel' },
+    ], timestamp: 56 },
+  ],
+  'calc-se': [
+    { actionId: 'calc-se', zone: 'postes', entityId: 'se-eval', entityLabel: 'Souffrances endurées', type: 'edit', fields: [
+      { key: 'referentiel', label: 'Référentiel', after: 'Cour d\'appel 2024' },
+      { key: 'cotation', label: 'Cotation', after: '4/7' },
+      { key: 'montant', label: 'Montant', before: '0 €', after: '15 000 €' },
+    ], timestamp: 60 },
+  ],
+  'calc-dfp': [
+    { actionId: 'calc-dfp', zone: 'postes', entityId: 'dfp-eval', entityLabel: 'Déficit fonctionnel permanent', type: 'edit', fields: [
+      { key: 'referentiel', label: 'Référentiel', after: 'Cour d\'appel 2024' },
+      { key: 'age', label: 'Âge', after: '42 ans' },
+      { key: 'taux', label: 'Taux', after: '18%' },
+      { key: 'pointBase', label: 'Point', after: '1 500 €' },
+      { key: 'montant', label: 'Montant', before: '0 €', after: '27 000 €' },
+    ], timestamp: 61 },
+  ],
+  'calc-pep': [
+    { actionId: 'calc-pep', zone: 'postes', entityId: 'pep-eval', entityLabel: 'Préjudice esthétique permanent', type: 'edit', fields: [
+      { key: 'referentiel', label: 'Référentiel', after: 'Cour d\'appel 2024' },
+      { key: 'cotation', label: 'Cotation', after: '3/7' },
+      { key: 'montant', label: 'Montant', before: '0 €', after: '4 500 €' },
+    ], timestamp: 62 },
+  ],
+};
+
+/* ============================================================================
+ * PARAMETER PILL — SPEC
+ * ============================================================================
+ *
+ * A parameter pill is a compact, rounded-full chip displayed in a chiffrage
+ * settings row. It represents a single hypothesis/parameter (e.g. Revaloriser,
+ * Capitaliser, Base journalière). When an AI diff targets a parameter, the
+ * pill transforms to show the pending change inline, with embedded
+ * accept / reject buttons.
+ *
+ * ── ANATOMY ──────────────────────────────────────────────────────────────────
+ *
+ *  ┌─────────────────────────────────────────────────────────────────────┐
+ *  │  [◆]  ⊙  Label   Value / ~~old~~ → new          [ ✓ ] [ ✗ ]     │
+ *  └─────────────────────────────────────────────────────────────────────┘
+ *   diamond icon label   value content                accept  reject
+ *
+ *  • Diamond (◆): 6×6 rotated square. Only shown when a diff is pending.
+ *    Color encodes the diff TYPE (green / orange / red).
+ *  • Icon: CircleArrowUp, 14×14, always present.
+ *  • Label: parameter name, font-weight 500.
+ *  • Value content: plain text when no diff; strikethrough old → new when diff.
+ *  • Accept / Reject: 20×20 rounded-full circles, only when diff pending.
+ *
+ * ── COLOR MODEL ──────────────────────────────────────────────────────────────
+ *
+ *  Pill background/border = TARGET STATE of the parameter (where it's going):
+ *    • ON  → info (blue)   — bg #eef3fa, border #aabcd5, text #1e3a8a
+ *    • OFF → neutral (gray) — bg transparent, border #d6d3d1, text #78716c
+ *
+ *  Diamond color = DIFF TYPE (what kind of change):
+ *    • add    → green  #059669   (param was OFF, turning ON)
+ *    • edit   → orange #bd6c1a   (param stays ON, value changed)
+ *    • delete → red    #991b1b   (param was ON, turning OFF)
+ *
+ *  Summary table:
+ *  ┌──────────┬──────────────┬──────────────┬────────────────────────────────┐
+ *  │ Diff     │ Pill color   │ Diamond      │ Value content                  │
+ *  ├──────────┼──────────────┼──────────────┼────────────────────────────────┤
+ *  │ add      │ info (blue)  │ green ◆      │ new value(s)                   │
+ *  │ edit     │ info (blue)  │ orange ◆     │ ~~old~~ → new                  │
+ *  │ delete   │ neutral (gray)│ red ◆       │ ~~On~~ → Off                   │
+ *  │ (none)   │ info / neutral│ —           │ current value(s)               │
+ *  │ accepted │ info (blue)  │ —            │ accepted value (no buttons)     │
+ *  │ rejected │ info / neutral│ —           │ original value (no buttons)     │
+ *  └──────────┴──────────────┴──────────────┴────────────────────────────────┘
+ *
+ * ── ACCEPT / REJECT BUTTONS ─────────────────────────────────────────────────
+ *
+ *  Neutral by default to avoid "christmas tree" effect alongside colored pills.
+ *  • Rest: white bg, border #d6d3d1, icon #78716c (stone)
+ *  • Hover accept: bg #ecfdf5, border #a5c9b7 (subtle green hint)
+ *  • Hover reject: bg #fef2f2, border #cf9d9d (subtle red hint)
+ *  Same design used in artifact card diff rows for consistency.
+ *
+ * ── STATE TRANSITIONS ────────────────────────────────────────────────────────
+ *
+ *  On accept:
+ *    • Diff marked approved → diamond + buttons disappear
+ *    • add:    enabledParams[key] → true,  pill becomes blue with new value
+ *    • edit:   value updates to new,       pill stays blue
+ *    • delete: enabledParams[key] → false, pill becomes gray (OFF)
+ *
+ *  On reject:
+ *    • Diff marked rejected → diamond + buttons disappear
+ *    • Pill reverts to its original state (value + color unchanged)
+ *
+ * ── VALUE TYPES ──────────────────────────────────────────────────────────────
+ *
+ *  • Boolean toggle: "On" / "Off" (or label-only when off)
+ *  • Single select:  "IPC Annuel", "SMIC Horaire"
+ *  • Numeric:        "28 €/j"
+ *  • Multi-value:    "IPC Annuel, XX, XX ans" (concatenated)
+ *  • Multi-field diff: "~~IPC Mensuel~~ → Annuel, ~~62~~ → 64 ans"
+ *
+ * ── EDGE CASE: SUB-FIELD DELETION ────────────────────────────────────────────
+ *
+ *  When a parameter stays ON but one sub-field is removed (e.g. Capitaliser
+ *  keeps Barême but drops Fin arrérage), this is an edit (orange diamond)
+ *  on a blue pill. The deleted sub-field renders as strikethrough without
+ *  a replacement: "Barême IPC Annuel, ~~Fin arrérage 64 ans~~".
+ *
+ * ── PILL SCHEMES (5 variants) ────────────────────────────────────────────────
+ *
+ *  Used by pills AND UI kit specimens. Only info + neutral are used for
+ *  live pills; success / warning / destructive are reserved for badges
+ *  and future extensions.
+ *
+ * ── IMPLEMENTATION ───────────────────────────────────────────────────────────
+ *
+ *  Helper:       renderParamPill({ paramKey, label, values, enabled, onClick })
+ *  Diff lookup:  getParamDiff(paramKey) — finds matching pending diff
+ *  Wire format:  diff.paramKey must match enabledParams key
+ *  Pill shape:   rounded-full, px-3 py-1.5, text-xs font-medium, border
+ *  Diamond:      w-1.5 h-1.5, rotate(45deg), borderRadius 0.5px
+ *  Buttons:      w-5 h-5, rounded-full, Check/X icons w-3 h-3 strokeWidth 2.5
+ *
+ * ========================================================================= */
+const PILL_SCHEMES = {
+  info:        { bg: '#eef3fa', border: '#aabcd5', text: '#1e3a8a' },
+  neutral:     { bg: 'transparent', border: '#d6d3d1', text: '#78716c' },
+  success:     { bg: '#dcfce7', border: '#a7f3d0', text: '#064e3b' },
+  warning:     { bg: '#f9ecd6', border: '#eeb97e', text: '#855b31' },
+  destructive: { bg: 'transparent', border: '#fecaca', text: '#7f1d1d' },
+};
+const DIAMOND_COLORS = { add: '#059669', edit: '#bd6c1a', delete: '#991b1b' };
+
+/* ============================================================================
+ * TABLE ROW DIFF — SPEC
+ * ============================================================================
+ *
+ * Figma ref: node 1324:17669
+ *
+ * ── LEFT STRIP ───────────────────────────────────────────────────────────────
+ *
+ *  4px wide, absolute left edge, full row height.
+ *  Solid COLOR background.
+ *    • add    → green  #059669
+ *    • edit   → orange #bd6c1a
+ *    • delete → red    #991b1b
+ *
+ * ── ROW TYPES ────────────────────────────────────────────────────────────────
+ *
+ *  ADD:    Green strip. All values shown normally. White bg.
+ *  EDIT:   Orange strip. Changed cells stack old→new vertically:
+ *            • Old: 12px line-through #a8a29e (small, above)
+ *            • New: 14px medium #292524 (bold, below)
+ *          Unchanged cells render normally.
+ *  DELETE: Red strip. Dashed icon (white bg, #a8a29e border, 0.4 opacity).
+ *          All text: 14px line-through #a8a29e. NO row-level opacity.
+ *  MIX:    Orange strip (treated as edit). Individual cells can be:
+ *            • Edited (stacked old→new)
+ *            • Deleted (line-through, no replacement)
+ *            • Unchanged (normal)
+ *  NORMAL: No strip. Standard rendering.
+ *
+ * ── CELL-LEVEL DIFF (EDIT ROWS) ─────────────────────────────────────────────
+ *
+ *  Each cell checks `l.oldValues[field]` to determine if it changed.
+ *  If old value exists → render stacked: oldVal above, newVal below.
+ *  If no old value → render current value normally (unchanged cell).
+ *
+ *  Special cases:
+ *    • Badge diff: old badge with line-through (secondary bg) → new badge
+ *      (success bg). Example: ~~50%~~ → 100%
+ *    • Deleted cell in edit row: line-through #a8a29e, no new value.
+ *    • Reimbursement cell: shows the full "250€ · ⊙ 255€" pattern,
+ *      with old values stacked above.
+ *
+ * ── DOC ICON ─────────────────────────────────────────────────────────────────
+ *
+ *  Normal:  Blue bg (#DFE8F5), counter badge (#1e3a8a bg)
+ *  Empty:   Dashed border #e7e5e3, gray icon
+ *  Deleted: Dashed border #a8a29e, white bg, icon at 0.4 opacity
+ *
+ * ── ACCEPT / REJECT ──────────────────────────────────────────────────────────
+ *
+ *  20×20 rounded-full, neutral at rest (white bg, #d6d3d1 border).
+ *  Hover: accept → #ecfdf5 bg + #a5c9b7 border
+ *         reject → #fef2f2 bg + #cf9d9d border
+ *  Appear on row hover (opacity 0→1 transition).
+ *
+ * ========================================================================= */
+const ROW_DIFF_COLORS = { add: '#059669', edit: '#bd6c1a', delete: '#991b1b' };
+
+const ZONE_LABELS = { infos_dossier: 'Info dossier', postes: 'Postes', pieces: 'Pièces' };
+const posteIconMap = {
+  dsa: 'HeartPulse',       // Dépenses de santé → health
+  pgpa: 'Wallet',          // Pertes de gains → income/wallet
+  dft: 'Activity',         // Déficit fonctionnel temporaire → body function
+  fda: 'Receipt',          // Frais divers → expenses
+  dsf: 'HeartPulse',       // Dépenses de santé futures → health
+  pgpf: 'Wallet',          // Pertes de gains futurs → income
+  dfp: 'Brain',            // Déficit fonctionnel permanent → permanent impairment
+  ipp: 'Scale',            // Incidence professionnelle → balance/justice
+};
+
+const PIECE_TYPE_COLORS = {
+  'Expertise': 'bg-[#dfe8f5] text-[#1e3a8a]',
+  'Décision': 'bg-[#ede9fe] text-[#5b21b6]',
+  'Revenus': 'bg-[#dcfce7] text-[#166534]',
+  'Factures': 'bg-[#f9ecd6] text-[#855b31]',
+  'Médical': 'bg-[#dbeafe] text-[#1e40af]',
+  'Correspondance': 'bg-[#eeece6] text-[#44403c]',
+  'Administratif': 'bg-[#f1f5f9] text-[#475569]',
+};
+
+const PIECE_TYPE_OPTIONS = ['Expertise', 'Factures', 'Revenus', 'Décision', 'Médical', 'Correspondance', 'Administratif'];
+// eslint-disable-next-line no-unused-vars
+const _POSTES_DINTILHAC_ALL = ['DFT', 'DFP', 'DSA', 'DSF', 'PGPA', 'PGPF', 'SE', 'PE', 'PA', 'IP', 'PAS', 'AIPP'];
+
 export default function App() {
 
   // ========== LOCALSTORAGE PERSISTENCE ==========
-  const LS_GLOBAL = 'norma_global';
-  const LS_DOSSIER = 'norma_dossier_';
+  const LS_GLOBAL = 'plato_global';
+  const LS_DOSSIER = 'plato_dossier_';
   const lsSave = (key, data) => { try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) { console.warn('LS save:', e); } };
   const lsLoad = (key) => { try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null; } catch (e) { return null; } };
   const isInitialLoad = useRef(true);
 
   // ========== STATE ==========
-  const [currentPage, setCurrentPage] = useState('list'); // 'list' | 'dossier'
+  const [currentPage, setCurrentPage] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const page = params.get('page');
+    if (page === 'reasoning-demo') return 'reasoning-demo';
+    if (page === 'components') return 'components';
+    const hash = window.location.hash.split('&')[0].replace('#', '');
+    if (hash === 'reasoning-demo') return 'reasoning-demo';
+    if (hash === 'components') return 'components';
+    return 'list';
+  }); // 'list' | 'dossier' | 'components'
   const [activeDossierId, setActiveDossierId] = useState(null);
 
   // ========== LISTE DES DOSSIERS ==========
-  const [dossiers, setDossiers] = useState([
-    { id: 'dossier-1', reference: 'Dupont Jean', typeFait: 'Accident du travail', date: '16/09/2013', lastEditBy: 'Meghan R.', lastEditDate: '30/01/2026' },
-    { id: 'dossier-2', reference: 'Martin Sophie', typeFait: 'Accident de la route', date: '03/04/2021', lastEditBy: 'Meghan R.', lastEditDate: '28/01/2026' },
-    { id: 'dossier-3', reference: 'Bernard Pierre', typeFait: 'Agression', date: '12/11/2022', lastEditBy: 'Thomas L.', lastEditDate: '25/01/2026' },
-    { id: 'dossier-4', reference: 'Lefebvre Marie', typeFait: 'Erreur médicale', date: '08/07/2020', lastEditBy: 'Meghan R.', lastEditDate: '20/01/2026' },
-    { id: 'dossier-5', reference: 'Moreau Lucas', typeFait: 'Accident du travail', date: '22/02/2023', lastEditBy: 'Thomas L.', lastEditDate: '15/01/2026' },
-  ]);
+  const [dossiers, setDossiers] = useState([]);
 
-  const [navStack, setNavStack] = useState([
-    { id: 'dossier-1', type: 'dossier', title: 'Dossier Dupont', activeTab: 'détail' }
-  ]);
-  const [expandedCategories, setExpandedCategories] = useState(['patrimoniaux-temp', 'extra-patrimoniaux-temp', 'patrimoniaux-perm']);
+  const [navStack, setNavStack] = useState([]);
+  const [, setExpandedCategories] = useState(['patrimoniaux-temp', 'extra-patrimoniaux-temp', 'patrimoniaux-perm']);
   const [expandedSections, setExpandedSections] = useState(['pgpf-cl', 'pgpf-al']);
   const [editPanel, setEditPanel] = useState(null);
   const [editingPieceIds, setEditingPieceIds] = useState([]); // Pour tracker les pieceIds pendant l'édition d'une ligne
@@ -96,6 +848,7 @@ export default function App() {
   const [addModalTab, setAddModalTab] = useState('upload'); // 'upload' | 'pieces' | 'manual'
   const [showPreview, setShowPreview] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [pickerDragging, setPickerDragging] = useState(false);
   const [processing, setProcessing] = useState([]);
   const [searchPieces, setSearchPieces] = useState('');
   const [searchPostes, setSearchPostes] = useState('');
@@ -108,7 +861,128 @@ export default function App() {
   const [aiGenerating, setAiGenerating] = useState(null); // null | 'resume' | 'expertise'
   const [creationWizard, setCreationWizard] = useState(null); // null | { step: 'infos', formData: {...} } | { step: 'mode-chiffrage', formData: {...} }
 
+  // ========== DROP FIRST STATE ==========
+  const [dropModal, setDropModal] = useState(null); // null | { files: [...], rapportFileId: null|string, rapportDismissed: false }
+  const [dropFirstPieces, setDropFirstPieces] = useState([]); // array of { id, originalName, cleanName, type, date, postesLies, summary, extractedInfo, pages, status, sourceFile?, pageRange?, siblings?, poolRef }
+  const [dropFirstHasRapport, setDropFirstHasRapport] = useState(false);
+  const [dropFirstProcessingDone, setDropFirstProcessingDone] = useState(false);
+  const [infoDossierStreaming, setInfoDossierStreaming] = useState(null); // null | { active, fieldsRevealed: [], streamingField: null, streamingText: '' }
+  const [pieceOverviewPanel, setPieceOverviewPanel] = useState(null); // null | pieceId
+  const [piecesFilter, setPiecesFilter] = useState({ type: null, search: '' });
+  const [, setShowAddPiecesZone] = useState(false);
+  const [piecesTabDragOver, setPiecesTabDragOver] = useState(false);
+  const [reorderDrag, setReorderDrag] = useState(null); // { pieceId, ghostX, ghostY }
+  const [reorderDropIdx, setReorderDropIdx] = useState(null);
+  const [manualReorder, setManualReorder] = useState(false);
+  const [piecesSortMode, setPiecesSortMode] = useState('chrono'); // 'chrono' | 'manuel'
+  const [piecesManualOrder, setPiecesManualOrder] = useState(null);
+  const [piecesDragState, setPiecesDragState] = useState({ dragging: null, over: null });
+  const [piecesMoreMenu, setPiecesMoreMenu] = useState(false);
+  const [rapportBannerDismissed, setRapportBannerDismissed] = useState(false);
+  const [chatSidebarOpen, setChatSidebarOpen] = useState(true);
+  const [chatBlocked, setChatBlocked] = useState(false);
+  const [chatWidth, setChatWidth] = useState(408);
+  const chatResizing = useRef(false);
+  const [posteSearchOpen, setPosteSearchOpen] = useState(false);
+  const [posteSearchQuery, setPosteSearchQuery] = useState('');
+  const [editingPieceField, setEditingPieceField] = useState(null); // null | { pieceId, field }
+  const [toastMessage, setToastMessage] = useState(null); // null | string
+  const [activeDiffs, setActiveDiffs] = useState([]); // Array of diff events pushed by mock actions
+  // Rejected diffs stay visible (strikethrough + muted) for review
+  const [pickerOpen, setPickerOpen] = useState(null); // null | 'dft' | 'dsa' | 'pgpa-revenu-ref' | 'pgpa-revenu-percu' | 'pgpa-ij'
+  const [pickerSelected, setPickerSelected] = useState([]); // array of piece IDs (multi-select)
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [posteExtracting, setPosteExtracting] = useState(null); // null | { posteType, totalDocs, extractedCount, docIds: [] }
+  const processingTimeouts = useRef([]);
+  const [activeParamChip, setActiveParamChip] = useState(null); // which param chip config is expanded
+  const [enabledParams, setEnabledParams] = useState({ 'revaloriser': true, 'revaloriser-pgpa': true, 'capitaliser-pgpf': true, 'base-journaliere-dft': true, 'revaloriser-se': true, 'revaloriser-pep': true, 'revaloriser-dfp': true }); // toggle on/off per param
+  const [totalExpanded, setTotalExpanded] = useState({}); // { [posteId]: boolean }
+  const [dossierPostes, setDossierPostes] = useState(['dsa', 'pgpa', 'dft', 'pgpf', 'se', 'dfp', 'pep']); // IDs of postes added to this dossier
+  const [formPosteData, setFormPosteData] = useState({
+    se: { referentiel: 'cours-appel-2024', cotation: 4, montant: 15000 },
+    pep: { referentiel: 'cours-appel-2024', cotation: 3, montant: 4500 },
+    dfp: { referentiel: 'cours-appel-2024', age: 42, taux: 18, trancheAge: 'inferieure', trancheTaux: 'inferieure', pointBase: 1500, montant: 27000 },
+  });
+
+  // Shared style for all column/table headers — IBM Plex Mono, uppercase, small
+  const colHeaderStyle = { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em' };
+  // Section headers: DETAIL DU CALCUL, NOTES / ARGUMENTAIRE, JURISPRUDENCES
+  const sectionHeaderStyle = { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' };
+  // Serif amounts for card titles and totals
+  const serifAmountStyle = { fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '18px', letterSpacing: '-0.5px', fontWeight: 400 };
+  // Reusable card block class
+  const cardBlockClass = "bg-white rounded-lg border border-[#e7e5e3] overflow-visible shadow-[0_1px_2px_0_rgba(26,26,26,0.05)]";
+  // Total block class
+  const totalBlockClass = "bg-[#eeece6] border border-[#e7e5e3] rounded-lg shadow-[0_1px_2px_0_rgba(26,26,26,0.05)] p-4";
+
   const typesFaitGenerateur = ['Accident de la route', 'Accident du travail', 'Accident médical', 'Agression', 'Accident domestique', 'Autre'];
+
+  // ========== DIFF-AWARE PARAMETER PILL ==========
+  const getParamDiff = (paramKey) => activeDiffs.find(d => d.paramKey === paramKey && !d.approved && !d.rejected);
+
+  const renderParamPill = ({ paramKey, label, values, enabled, onClick }) => {
+    const diff = getParamDiff(paramKey);
+    const hasDiff = !!diff;
+    const diffType = diff?.type;
+
+    // Pill color = target state: add/edit → ON (blue), delete → OFF (gray)
+    // Diamond color encodes the diff type (green/orange/red)
+    const scheme = hasDiff
+      ? (diffType === 'delete' ? PILL_SCHEMES.neutral : PILL_SCHEMES.info)
+      : (enabled ? PILL_SCHEMES.info : PILL_SCHEMES.neutral);
+
+    // Build value display text
+    let valueContent = null;
+    if (hasDiff && diff.fields) {
+      const parts = diff.fields.map(f => {
+        if (f.before && f.after) return <span key={f.key}><span style={{ textDecoration: 'line-through', opacity: 0.6 }}>{f.before}</span> → {f.after}</span>;
+        if (f.after) return <span key={f.key}>{f.after}</span>;
+        if (f.before) return <span key={f.key} style={{ textDecoration: 'line-through', opacity: 0.6 }}>{f.before}</span>;
+        return null;
+      }).filter(Boolean);
+      valueContent = parts.length > 0 ? parts.reduce((acc, part, i) => i === 0 ? [part] : [...acc, <span key={`sep-${i}`}>, </span>, part], []) : null;
+    } else if (values) {
+      valueContent = <span style={{ fontWeight: 400 }}>{values}</span>;
+    }
+
+    const handleAccept = (e) => {
+      e.stopPropagation();
+      setActiveDiffs(prev => prev.filter(d => !(d.paramKey === paramKey && !d.approved && !d.rejected)));
+      // Update enabledParams: accept add → ON, accept delete → OFF
+      if (diffType === 'add') setEnabledParams(p => ({ ...p, [paramKey]: true }));
+      if (diffType === 'delete') setEnabledParams(p => ({ ...p, [paramKey]: false }));
+    };
+    const handleReject = (e) => {
+      e.stopPropagation();
+      setActiveDiffs(prev => prev.map(d => d.paramKey === paramKey && !d.approved && !d.rejected ? { ...d, rejected: true } : d));
+      // Reject keeps original state — no enabledParams change needed
+    };
+
+    return (
+      <button
+        onClick={onClick}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors"
+        style={{ background: scheme.bg, borderColor: scheme.border, color: scheme.text }}
+      >
+        {hasDiff && (
+          <span className="w-1.5 h-1.5 flex-shrink-0" style={{ background: DIAMOND_COLORS[diffType], transform: 'rotate(45deg)', borderRadius: '0.5px', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} />
+        )}
+        <CircleArrowUp className="w-3.5 h-3.5 flex-shrink-0" />
+        <span>{label}</span>
+        {valueContent && <span style={{ fontWeight: 400 }}>{valueContent}</span>}
+        {hasDiff && (
+          <span className="inline-flex items-center gap-1 ml-0.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+            <span className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)', cursor: 'pointer' }} onClick={handleAccept}>
+              <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+            </span>
+            <span className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)', cursor: 'pointer' }} onClick={handleReject}>
+              <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+            </span>
+          </span>
+        )}
+      </button>
+    );
+  };
 
   // ========== NOTES / ARGUMENTAIRE PAR POSTE ==========
   const [posteNotes, setPosteNotes] = useState({ dsa: '', dft: '', pgpa: '' });
@@ -133,6 +1007,28 @@ export default function App() {
     baseJournaliereDFT: 33,
     forfaitHoraireATPT: null,
   });
+
+  // ========== BARÈMES LIBRARY STATE ==========
+  const [baremesLibrary, setBaremesLibrary] = useState([...DEFAULT_BAREMES]);
+  const [baremeViewerOpen, setBaremeViewerOpen] = useState(null); // baremeId or null
+  const [baremeUploadFormOpen, setBaremeUploadFormOpen] = useState(false);
+  const [baremeUploadConfirmed, setBaremeUploadConfirmed] = useState(false);
+  const [baremeUploadData, setBaremeUploadData] = useState({ nom: '', type: 'bareme', notes: '', fileName: '' });
+  const [baremePopover, setBaremePopover] = useState(null); // null | string (popover id like 'se', 'pep', 'dfp', 'pgpf')
+  const [baremePopoverSearch, setBaremePopoverSearch] = useState('');
+
+  // Close barème popover on click outside
+  useEffect(() => {
+    if (!baremePopover) return;
+    const handleClick = (e) => {
+      // Check if click is inside a popover dropdown (identified by data attribute)
+      if (e.target.closest('[data-bareme-popover]')) return;
+      setBaremePopover(null);
+      setBaremePopoverSearch('');
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [baremePopover]);
 
   // ========== DOSSIER DATA ==========
   const [victimeData, setVictimeData] = useState({
@@ -280,9 +1176,38 @@ export default function App() {
     ]
   });
 
+  // Collapsed sections state for PGPA/PGPF cards (collapsed by default)
+  const [expandedCards, setExpandedCards] = useState({});
+  const isCardExpanded = (key) => !!expandedCards[key];
+  const toggleCard = (key) => setExpandedCards(prev => ({ ...prev, [key]: !prev[key] }));
+
   // ========== PGPF ==========
   const [pgpfData, setPgpfData] = useState({
-    periodes: {}
+    periodes: {
+      'pgpf-cl': {
+        label: 'Consolidation → Liquidation',
+        periode: { debut: '12/09/2024', fin: '15/01/2025', mois: 4 },
+        revenuRef: { total: 37800 },
+        revenusPercus: [
+          { id: 'pgpf-cl-percu-1', label: 'Salaire reprise mi-temps', periode: 'Oct - Déc 2024', montant: 4800, pieceIds: ['p-10'] },
+        ],
+        ijPercues: [
+          { id: 'pgpf-cl-ij-1', label: 'IJ Sécurité sociale', tiers: 'CPAM Gironde', periode: 'Sept - Déc 2024', montant: 3200, pieceIds: ['p-4'] },
+        ],
+      },
+      'pgpf-al': {
+        label: 'Après Liquidation (capitalisation)',
+        periode: { debut: '15/01/2025', fin: 'Viager' },
+        params: {
+          age: 42, perteGainAnnuelle: 12600, bareme: 'Gazette du Palais 2025 – 0,5%',
+          ageDernierArreage: 67, coefficient: 18.234, montantCapitalise: 229750,
+        },
+        tiersPayeurs: [
+          { id: 'pgpf-tp-1', label: 'CPAM Gironde', renteAnnuelle: 4800, montantCapitalise: 87523, modified: false },
+          { id: 'pgpf-tp-2', label: 'AG2R Prévoyance', renteAnnuelle: 2400, montantCapitalise: 43762, modified: true },
+        ],
+      },
+    }
   });
 
   // ========== DFT ==========
@@ -314,6 +1239,7 @@ export default function App() {
     victimesIndirectes: [], pieces: [], dsaLignes: [],
     pgpaData: { periode: { debut: '', fin: '', mois: 0 }, revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 0 }, revenusPercus: [], ijPercues: [] },
     pgpfData: { periodes: {} }, dftLignes: [],
+    dossierPostes: [], formPosteData: {},
   };
 
   const collectCurrentDossierData = () => ({
@@ -321,6 +1247,9 @@ export default function App() {
     dossierStatut, dossierRef, dossierIntitule, dossierDateOuverture, dossierAvocat, dossierNotes,
     resumeAffaire, commentaireExpertise, victimesIndirectes, pieces,
     dsaLignes, pgpaData, pgpfData, dftLignes,
+    dossierPostes, formPosteData,
+    dropFirstPieces: dropFirstPieces.map(p => ({ ...p, justCompleted: false })),
+    dropFirstHasRapport, dropFirstProcessingDone,
   });
 
   const loadDossierData = (dossierId) => {
@@ -347,6 +1276,20 @@ export default function App() {
     setPgpfData(data.pgpfData ?? EMPTY_DOSSIER.pgpfData);
     // Migration: fusionner anciens dfttLignes + dftpLignes si format legacy
     setDftLignes(data.dftLignes ?? [...(data.dfttLignes ?? []), ...(data.dftpLignes ?? [])]);
+    setDossierPostes(data.dossierPostes ?? ['dsa', 'pgpa', 'dft', 'pgpf', 'se', 'dfp', 'pep']);
+    setFormPosteData(data.formPosteData ?? {
+      se: { referentiel: 'cours-appel-2024', cotation: 4, montant: 15000 },
+      pep: { referentiel: 'cours-appel-2024', cotation: 3, montant: 4500 },
+      dfp: { referentiel: 'cours-appel-2024', age: 42, taux: 18, trancheAge: 'inferieure', trancheTaux: 'inferieure', pointBase: 1500, montant: 27000 },
+    });
+    // Drop-first state restoration
+    setDropFirstPieces(data.dropFirstPieces ?? []);
+    setDropFirstHasRapport(data.dropFirstHasRapport ?? false);
+    setDropFirstProcessingDone(data.dropFirstProcessingDone ?? false);
+    setInfoDossierStreaming(null);
+    setPieceOverviewPanel(null);
+    setPiecesFilter({ type: null, search: '' });
+    setRapportBannerDismissed(false);
   };
 
   const saveDossierData = (dossierId) => {
@@ -363,14 +1306,14 @@ export default function App() {
       setDossiers(savedGlobal.dossiers);
       setCurrentPage(savedGlobal.currentPage || 'list');
       setActiveDossierId(savedGlobal.activeDossierId);
-      if (savedGlobal.navStack) setNavStack(savedGlobal.navStack);
+      // Migration: rename 'détail' → 'info dossier' in saved navStack
+      if (savedGlobal.navStack) setNavStack(savedGlobal.navStack.map(n => ({ ...n, activeTab: n.activeTab === 'détail' || n.activeTab === 'info dossier' ? 'dossier' : n.activeTab })));
       if (savedGlobal.activeDossierId && savedGlobal.currentPage === 'dossier') {
         loadDossierData(savedGlobal.activeDossierId);
       }
     } else {
-      // First-ever load: seed dossier-1 mock data
-      lsSave(LS_DOSSIER + 'dossier-1', collectCurrentDossierData());
-      lsSave(LS_GLOBAL, { dossiers, activeDossierId: null, currentPage: 'list', navStack });
+      // First-ever load: start with empty list
+      lsSave(LS_GLOBAL, { dossiers: [], activeDossierId: null, currentPage: 'list', navStack: [] });
     }
     isInitialLoad.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -393,43 +1336,481 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dossiers, activeDossierId, currentPage, navStack]);
 
+  // ========== CHAT: proactive announcements after extraction ==========
+
+  // When file processing completes → chat announces docs extracted + thinking stepper
+  useEffect(() => {
+    if (dropFirstProcessingDone && !chatExtractionAnnounced.current && dropFirstPieces.length > 0) {
+      chatExtractionAnnounced.current = true;
+      // Thinking message already exists from handleDropFirstCreate — no new message needed
+    }
+  }, [dropFirstProcessingDone, dropFirstPieces]);
+
+  // When info streaming finishes → announce dossier filled + suggest postes with artifact cards
+  useEffect(() => {
+    if (infoDossierStreaming && !infoDossierStreaming.active && !chatPostesAnnounced.current) {
+      chatPostesAnnounced.current = true;
+      const detectedPostes = DROP_FIRST_POSTES_DETECTES;
+      const posteIds = detectedPostes.map(acronym => {
+        const found = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes)).find(p => (p.acronym || '').toUpperCase() === acronym.toUpperCase() || p.id.toUpperCase() === acronym.toUpperCase());
+        return found?.id;
+      }).filter(Boolean);
+
+      // Add detected postes to dossier (at 0€ — not calculated yet)
+      setDossierPostes(prev => {
+        const newIds = posteIds.filter(id => !prev.includes(id));
+        return newIds.length > 0 ? [...prev, ...newIds] : prev;
+      });
+
+      // Auto-switch to chiffrage tab after a short pause so user sees the transition
+      setTimeout(() => setActiveTab('chiffrage'), 800);
+
+      // Update the thinking stepper with extraction + postes steps, mark as done
+      setChatMessages(prev => {
+        const updated = prev.map(m => {
+          if (m._dropFirstThinking) {
+            return {
+              ...m,
+              label: 'Analyse terminée',
+              status: 'done',
+              done: true,
+              summary: `Analyse de ${(m.steps || []).length + 2} documents terminée`,
+              expanded: false,
+              steps: [
+                ...(m.steps || []),
+                { tool: 'extractInfoDossier', detail: 'Je remplis les informations du dossier', expandedText: 'Nom, prénom, date de naissance, profession, date de l\'accident' },
+                { tool: 'detectPostes', detail: `J'ai identifié ${detectedPostes.length} postes de préjudice`, expandedText: detectedPostes.join(', ') },
+              ],
+            };
+          }
+          return m;
+        });
+
+        // Push diff events for extraction (per-poste)
+        const posteDiffKeys = detectedPostes.map(acronym => `extraction-poste-${acronym.toLowerCase()}`);
+        setActiveDiffs(prev => [
+          ...prev,
+          ...MOCK_DIFF_STORE['extraction-info-dossier'],
+          ...posteDiffKeys.flatMap(key => MOCK_DIFF_STORE[key] || []),
+        ]);
+
+        // Build one artifact card per detected poste
+        const posteCards = detectedPostes.map(acronym => {
+          const posteId = acronym.toLowerCase();
+          const taxo = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes)).find(p => p.id === posteId);
+          return {
+            id: `poste-${posteId}`,
+            icon: 'Calculator',
+            zone: 'postes',
+            actionIds: [`extraction-poste-${posteId}`],
+            navigateTo: 'chiffrage',
+            posteLabel: taxo ? `${acronym} — ${taxo.label}` : acronym,
+          };
+        });
+
+        return [
+          ...updated,
+          {
+            type: 'ai-thinking',
+            status: 'done',
+            summary: `Analyse du dossier — ${detectedPostes.length} postes identifiés`,
+            counters: { add: detectedPostes.length, update: 1 },
+            steps: [
+              { type: 'read_documents', label: 'Analyse de 8 documents', status: 'done' },
+              { type: 'read_rapport', label: "Lecture du rapport d'expertise médicale", status: 'done' },
+              { type: 'extract_data', label: 'Extraction des informations du dossier', status: 'done', children: ['Identité', 'Date de naissance', 'N° dossier'] },
+              { type: 'verify_data', label: 'Vérification des données extraites', status: 'done' },
+              ...detectedPostes.map(acronym => ({
+                type: 'add_row', label: `Poste ${acronym} identifié`, status: 'done', poste: acronym,
+              })),
+              { type: 'update_row', label: 'Informations du dossier complétées', status: 'done', poste: 'Dossier' },
+            ],
+            expanded: false,
+          },
+          {
+            type: 'ai',
+            text: `J'ai analysé vos documents, rempli les informations du dossier et identifié ${detectedPostes.length} postes de préjudice à 0 €. Cliquez sur un poste pour lancer le calcul.`,
+          },
+        ];
+      });
+      setChatBlocked(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [infoDossierStreaming?.active]);
+
+  // ========== POSTE CALCULATION: triggered by user action ==========
+
+  // Poste-specific welcome messages
+  const posteWelcomeMap = {
+    dsa: { greeting: 'Bienvenue sur les Dépenses de Santé Actuelles !', analysis: 'Je vais regarder les factures et documents médicaux du dossier pour identifier les dépenses...', proposal: 'J\'ai trouvé 5 lignes de dépenses dans vos documents : hospitalisation, kinésithérapie, IRM, médicaments et consultation. Voulez-vous que je lance le calcul ?' },
+    dft: { greeting: 'Bienvenue sur le Déficit Fonctionnel Temporaire !', analysis: 'Je consulte le rapport d\'expertise pour identifier les périodes de déficit...', proposal: 'J\'ai identifié 7 périodes de DFT dans le rapport d\'expertise, allant de 100% (hospitalisation) à 15% (gêne résiduelle). Voulez-vous que je lance le calcul avec un forfait de 28 €/jour ?' },
+    pgpa: { greeting: 'Bienvenue sur les Pertes de Gains Professionnels Actuels !', analysis: 'Je vérifie les bulletins de salaire et attestations pour établir le revenu de référence...', proposal: 'J\'ai identifié un revenu de référence de ~37 800 €/an sur la base de 2 années de salaire + primes. Période d\'arrêt : 18 mois. Voulez-vous que je lance le calcul ?' },
+    pgpf: { greeting: 'Bienvenue sur les Pertes de Gains Professionnels Futurs !', analysis: 'Je consulte les données post-consolidation et les barèmes de capitalisation...', proposal: 'J\'ai identifié une période échue de 4 mois et une capitalisation viagère à calculer (barème Gazette du Palais 2025). Voulez-vous que je lance le calcul ?' },
+    se: { greeting: 'Bienvenue sur les Souffrances Endurées !', analysis: 'Je consulte le rapport d\'expertise pour la cotation...', proposal: 'L\'expert a retenu une cotation de 4/7. Selon le référentiel Cour d\'appel 2024, cela correspond à 12 000 - 18 000 €. Voulez-vous que je propose une évaluation ?' },
+    dfp: { greeting: 'Bienvenue sur le Déficit Fonctionnel Permanent !', analysis: 'Je consulte le rapport d\'expertise pour le taux et l\'âge à la consolidation...', proposal: 'Taux DFP retenu : 18%, âge à la consolidation : 42 ans. Selon le référentiel, le point est à 1 500 €. Voulez-vous que je lance le calcul ?' },
+    pep: { greeting: 'Bienvenue sur le Préjudice Esthétique Permanent !', analysis: 'Je consulte le rapport d\'expertise pour la cotation esthétique...', proposal: 'L\'expert a retenu une cotation de 3/7 (cicatrices + boiterie). Selon le référentiel Cour d\'appel 2024, fourchette de 3 000 - 6 000 €. Voulez-vous que je propose une évaluation ?' },
+  };
+
+  const posteDiscoveryToolMap = {
+    dsa: [
+      { tool: 'readDocument', detail: 'Je recherche les factures et justificatifs médicaux', expandedText: 'Factures de soins, ordonnances, notes d\'honoraires' },
+      { tool: 'extractMontants', detail: 'J\'ai trouvé 5 dépenses dans vos documents', expandedText: 'Hospitalisation, kinésithérapie, IRM, médicaments, consultation' },
+    ],
+    dft: [
+      { tool: 'readExpertise', detail: 'Je lis le rapport d\'expertise médicale', expandedText: 'Recherche des périodes de déficit fonctionnel' },
+      { tool: 'extractPeriods', detail: 'J\'ai identifié 7 périodes de déficit', expandedText: 'Hospitalisation, chirurgie, convalescence, rééducation...' },
+    ],
+    pgpa: [
+      { tool: 'readBulletins', detail: 'Je lis les bulletins de salaire et attestations', expandedText: 'Analyse des revenus sur les 2 dernières années' },
+      { tool: 'extractRevenus', detail: 'J\'ai établi le revenu de référence', expandedText: '~37 800 €/an sur la base de 2 années de salaire + primes' },
+    ],
+    pgpf: [
+      { tool: 'readExpertise', detail: 'Je recherche les données post-consolidation', expandedText: 'Séquelles, capacités résiduelles, impact professionnel' },
+      { tool: 'readBaremes', detail: 'Je consulte le barème Gazette du Palais 2025', expandedText: 'Recherche du coefficient de capitalisation adapté' },
+    ],
+    se: [
+      { tool: 'readExpertise', detail: 'Je lis la cotation des souffrances dans l\'expertise', expandedText: 'Évaluation par l\'expert des souffrances physiques et morales' },
+    ],
+    dfp: [
+      { tool: 'readExpertise', detail: 'Je lis le taux de DFP et l\'âge à la consolidation', expandedText: 'Données nécessaires pour appliquer le barème d\'indemnisation' },
+    ],
+    pep: [
+      { tool: 'readExpertise', detail: 'Je lis la cotation esthétique dans l\'expertise', expandedText: 'Évaluation des séquelles visibles par l\'expert' },
+    ],
+  };
+
+  // Handle the actual calculation (Phase 2: user clicked "Lancer le calcul")
+  const handlePosteCalculation = (posteId) => {
+    const taxo = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes)).find(p => p.id === posteId);
+    if (!taxo) return;
+    const posteName = taxo.acronym || posteId.toUpperCase();
+
+    // Clear any lingering timeouts
+    chatAnalysisTimeouts.current.forEach(t => clearTimeout(t));
+    chatAnalysisTimeouts.current = [];
+
+    // Push calculation thinking
+    setChatMessages(prev => [
+      ...prev,
+      { type: 'ai-thinking', label: `Je calcule le ${posteName}...`, steps: [], expanded: false, _posteCalcId: posteId },
+    ]);
+
+    const calcToolMap = {
+      dsa: [{ tool: 'calculDSA', detail: 'Je totalise les dépenses de santé', expandedText: 'Somme des montants restant à charge après remboursements' }],
+      dft: [{ tool: 'calculDFT', detail: 'J\'applique le forfait journalier de 28 € par période', expandedText: 'Montant pondéré selon le taux de déficit de chaque période' }],
+      pgpa: [{ tool: 'calculPGPA', detail: 'Je calcule la perte de revenus sur 18 mois d\'arrêt', expandedText: 'Revenu de référence moins les indemnités perçues (IJ, employeur)' }],
+      pgpf: [{ tool: 'calculCapitalisation', detail: 'Je capitalise la perte de revenus future', expandedText: 'Application du barème de capitalisation viagère Gazette du Palais' }],
+      se: [{ tool: 'calculSE', detail: 'J\'évalue les souffrances d\'après le référentiel', expandedText: 'Cotation 4/7 appliquée au barème de la Cour d\'appel 2024' }],
+      dfp: [{ tool: 'calculDFP', detail: 'Je calcule l\'indemnité selon le taux et l\'âge', expandedText: 'Valeur du point multipliée par le taux de déficit permanent' }],
+      pep: [{ tool: 'calculPEP', detail: 'J\'évalue le préjudice esthétique d\'après le référentiel', expandedText: 'Cotation 3/7 appliquée au barème de la Cour d\'appel 2024' }],
+    };
+
+    const calcTools = calcToolMap[posteId] || [{ tool: `calcul${posteName}`, detail: `J'évalue le ${posteName}`, expandedText: 'Calcul en cours...' }];
+
+    calcTools.forEach((toolData, idx) => {
+      const t = setTimeout(() => {
+        setChatMessages(prev => prev.map(m => {
+          if (m.type === 'ai-thinking' && m._posteCalcId === posteId) {
+            return { ...m, steps: [...(m.steps || []), toolData] };
+          }
+          return m;
+        }));
+      }, 400 + idx * 500);
+      chatAnalysisTimeouts.current.push(t);
+    });
+
+    // Final: populate data + notes + summary
+    const finalT = setTimeout(() => {
+      // ---- Populate mock data for empty postes ----
+      if (posteId === 'dsa' && dsaLignes.length === 0) {
+        setDsaLignes([
+          { id: `dsa-ai-${Date.now()}-1`, diffType: 'add', label: 'Hospitalisation CHU Bordeaux', type: 'Hospitalisation', date: '05/06/2022', montant: 4500, dejaRembourse: 4200, pieceIds: [] },
+          { id: `dsa-ai-${Date.now()}-2`, diffType: 'edit', label: 'Kinésithérapie (24 séances)', type: 'Soins', date: '15/07/2022', montant: 1280, dejaRembourse: 960, pieceIds: [], oldValues: { montant: 960, date: '12/07/2022' } },
+          { id: `dsa-ai-${Date.now()}-3`, diffType: 'add', label: 'IRM genou droit', type: 'Examen', date: '20/06/2022', montant: 320, dejaRembourse: 280, pieceIds: [] },
+          { id: `dsa-ai-${Date.now()}-4`, diffType: 'delete', label: 'Consultation Dr. Dupont (doublon)', type: 'Consultation', date: '12/06/2022', montant: 55, dejaRembourse: 25, pieceIds: [] },
+          { id: `dsa-ai-${Date.now()}-5`, diffType: 'add', label: 'Médicaments (antalgiques, anti-inflammatoires)', type: 'Pharmacie', date: '05/06/2022', montant: 87.50, dejaRembourse: 65, pieceIds: [] },
+        ]);
+      }
+
+      if (posteId === 'dft' && dftLignes.length === 0) {
+        const baseJ = chiffrageParams.baseJournaliereDFT || 28;
+        setDftLignes([
+          { id: `dft-ai-${Date.now()}-1`, diffType: 'add', label: 'Hospitalisation initiale', debut: '05/06/2022', fin: '12/06/2022', jours: 8, taux: 100, montant: Math.round(8 * baseJ), pieceIds: [] },
+          { id: `dft-ai-${Date.now()}-2`, diffType: 'add', label: 'Chirurgie + soins intensifs', debut: '13/06/2022', fin: '18/06/2022', jours: 6, taux: 100, montant: Math.round(6 * baseJ), pieceIds: [] },
+          { id: `dft-ai-${Date.now()}-3`, diffType: 'add', label: 'Alitement strict post-opératoire', debut: '19/06/2022', fin: '01/07/2022', jours: 13, taux: 100, montant: Math.round(13 * baseJ), pieceIds: [] },
+          { id: `dft-ai-${Date.now()}-4`, diffType: 'edit', label: 'Convalescence post-opératoire', debut: '02/07/2022', fin: '15/09/2022', jours: 76, taux: 50, montant: Math.round(76 * baseJ * 0.5), pieceIds: [], oldValues: { taux: 75, fin: '01/09/2022' } },
+          { id: `dft-ai-${Date.now()}-5`, diffType: 'add', label: 'Rééducation active intensive', debut: '16/09/2022', fin: '16/12/2022', jours: 92, taux: 40, montant: Math.round(92 * baseJ * 0.4), pieceIds: [] },
+          { id: `dft-ai-${Date.now()}-6`, diffType: 'delete', label: 'Rééducation d\'entretien (doublon)', debut: '17/12/2022', fin: '19/03/2023', jours: 92, taux: 25, montant: Math.round(92 * baseJ * 0.25), pieceIds: [] },
+          { id: `dft-ai-${Date.now()}-7`, diffType: 'add', label: 'Gêne résiduelle pré-consolidation', debut: '20/03/2023', fin: '15/01/2024', jours: 301, taux: 15, montant: Math.round(301 * baseJ * 0.15), pieceIds: [] },
+        ]);
+      }
+
+      if (posteId === 'pgpa' && pgpaData.revenuRef.lignes.length === 0) {
+        setPgpaData({
+          periode: { debut: '15/03/2023', fin: '12/09/2024', mois: 18 },
+          revenuRef: {
+            revalorisation: 'ipc-annuel',
+            coefficientPerteChance: 100,
+            lignes: [
+              { id: `pgpa-rev-${Date.now()}-1`, diffType: 'add', type: 'revenu', label: 'Salaire net 2022', annee: '2022', montant: 32400, revalorise: 33696, pieceIds: [] },
+              { id: `pgpa-rev-${Date.now()}-2`, diffType: 'edit', type: 'revenu', label: 'Salaire net 2021', annee: '2021', montant: 31200, revalorise: 33384, pieceIds: [], oldValues: { montant: 29800 } },
+              { id: `pgpa-rev-${Date.now()}-3`, diffType: 'delete', type: 'gain', label: 'Prime exceptionnelle 2021 (non récurrent)', annee: '2021', montant: 1500, revalorise: 1500, pieceIds: [] },
+              { id: `pgpa-rev-${Date.now()}-4`, diffType: 'add', type: 'gain', label: 'Prime annuelle 2022', annee: '2022', montant: 2400, revalorise: 2496, pieceIds: [] },
+            ],
+            total: 37800,
+          },
+          revenusPercus: [
+            { id: `pgpa-rp-${Date.now()}-1`, diffType: 'add', label: 'Maintien partiel salaire', tiers: 'Employeur', periode: 'Mars - Juin 2023', periodeDebut: '15/03/2023', periodeFin: '30/06/2023', jours: 108, montant: 8500, pieceIds: [] },
+          ],
+          ijPercues: [
+            { id: `pgpa-ij-${Date.now()}-1`, diffType: 'add', label: 'IJ Sécurité sociale', tiers: 'CPAM', periode: 'Mars 2023 - Sept 2024', periodeDebut: '15/03/2023', periodeFin: '12/09/2024', jours: 547, montantBrut: 12200, csgCrds: 550, montant: 11650, pieceIds: [] },
+            { id: `pgpa-ij-${Date.now()}-2`, diffType: 'add', label: 'IJ Prévoyance', tiers: 'AG2R', periode: 'Mars 2023 - Sept 2024', periodeDebut: '15/03/2023', periodeFin: '12/09/2024', jours: 547, montantBrut: 5100, csgCrds: 250, montant: 4850, pieceIds: [] },
+          ],
+        });
+      }
+
+      if (posteId === 'pgpf' && !pgpfData.periodes['pgpf-cl']) {
+        setPgpfData({
+          periodes: {
+            'pgpf-cl': {
+              periode: { debut: '12/09/2024', fin: '15/01/2025', mois: 4 },
+              revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 37800, syncPGPA: true },
+              revenusPercus: [
+                { id: `pgpf-rp-${Date.now()}-1`, diffType: 'add', label: 'Salaire reprise mi-temps', tiers: 'Employeur', periode: 'Sept 2024 - Jan 2025', periodeDebut: '12/09/2024', periodeFin: '15/01/2025', montant: 4800, pieceIds: [] },
+              ],
+              ijPercues: [
+                { id: `pgpf-ij-${Date.now()}-1`, diffType: 'add', label: 'IJ CPAM (mi-temps thérapeutique)', tiers: 'CPAM', periode: 'Sept 2024 - Jan 2025', periodeDebut: '12/09/2024', periodeFin: '15/01/2025', montant: 3200, pieceIds: [] },
+              ],
+            },
+            'pgpf-al': {
+              params: {
+                perteGainAnnuelle: 9450,
+                ageConsolidation: 42,
+                baremeCapitalisation: 'gazette-palais-2025-0.5',
+                coefficient: 24.5,
+                montantCapitalise: 231525,
+              },
+              tiersPayeurs: [
+                { id: `pgpf-tp-${Date.now()}-1`, label: 'Rente CPAM', tiers: 'CPAM', renteAnnuelle: 3600, coefficient: 24.5, montantCapitalise: 88200 },
+                { id: `pgpf-tp-${Date.now()}-2`, label: 'Rente prévoyance', tiers: 'AG2R', renteAnnuelle: 1800, coefficient: 24.5, montantCapitalise: 44100 },
+              ],
+            },
+          },
+        });
+      }
+
+      if (posteId === 'se' && (!formPosteData.se || formPosteData.se.montant === 0)) {
+        setFormPosteData(prev => ({ ...prev, se: { referentiel: 'cours-appel-2024', cotation: 4, montant: 15000 } }));
+      }
+      if (posteId === 'dfp' && (!formPosteData.dfp || formPosteData.dfp.montant === 0)) {
+        setFormPosteData(prev => ({ ...prev, dfp: { referentiel: 'cours-appel-2024', age: 42, taux: 18, trancheAge: 'inferieure', trancheTaux: 'inferieure', pointBase: 1500, montant: 27000 } }));
+      }
+      if (posteId === 'pep' && (!formPosteData.pep || formPosteData.pep.montant === 0)) {
+        setFormPosteData(prev => ({ ...prev, pep: { referentiel: 'cours-appel-2024', cotation: 3, montant: 4500 } }));
+      }
+
+      // ---- Draft argumentation notes ----
+      const mockNotes = {
+        dsa: `Au titre des dépenses de santé actuelles, la victime justifie des frais médicaux engagés suite à l'accident du 05/06/2022, comprenant l'hospitalisation initiale au CHU de Bordeaux (4 500 €), les séances de kinésithérapie prescrites (1 280 €), l'IRM de contrôle (320 €), les traitements médicamenteux (87,50 €) et les consultations spécialisées (55 €).\n\nAprès déduction des remboursements de la sécurité sociale et de la mutuelle, le reste à charge s'établit à 712,50 €. Il est demandé la prise en charge intégrale de ce solde au titre de l'indemnisation.`,
+        dft: `Le déficit fonctionnel temporaire s'apprécie au regard du rapport d'expertise du Dr. Leroy en date du 15/01/2024.\n\nLa victime a subi un DFT total (100%) durant les phases d'hospitalisation et d'alitement strict (27 jours), puis un DFT partiel décroissant : 50% pendant la convalescence (76 jours), 40% pendant la rééducation active (92 jours), 25% pendant la rééducation d'entretien (92 jours), et 15% pour la gêne résiduelle jusqu'à consolidation (301 jours).\n\nSur la base d'un forfait journalier de 28 €/jour, conforme à la jurisprudence récente de la Cour d'appel de Bordeaux (CA Bordeaux, 5ème ch., 12 mars 2024), l'indemnité totale au titre du DFT s'élève à 5 385 €.`,
+        pgpa: `La victime occupait un poste de cadre commercial avec un revenu annuel de référence de 37 800 € net, établi sur la moyenne des revenus 2021-2022 revalorisés selon l'indice IPC.\n\nDurant la période d'arrêt de travail (18 mois, du 15/03/2023 au 12/09/2024), la victime a perçu un maintien partiel de salaire par son employeur (8 500 €) ainsi que des indemnités journalières CPAM (11 650 €) et de prévoyance AG2R (4 850 €).\n\nLa perte de gains professionnels actuels nette s'établit à 31 700 € (revenu attendu) - 8 500 € (maintien) - 11 650 € (IJ CPAM) - 4 850 € (IJ prévoyance) = 6 700 €.`,
+        pgpf: `Postérieurement à la consolidation fixée au 12/09/2024, la victime conserve une incapacité partielle affectant sa capacité de gain.\n\nPour la période échue (consolidation → liquidation, 4 mois) : la victime a repris à mi-temps thérapeutique avec un salaire réduit de 4 800 € et des IJ CPAM complémentaires de 3 200 €, générant une perte nette.\n\nPour la période à échoir : la perte de gain annuelle est estimée à 9 450 €, capitalisée selon le barème de la Gazette du Palais 2025 (taux 0,5%), coefficient 24,5 pour un homme de 42 ans, soit un capital de 231 525 €.`,
+        se: `Les souffrances endurées sont évaluées à 4/7 au regard du rapport d'expertise, tenant compte des interventions chirurgicales, de la durée de la rééducation et de l'intensité des douleurs rapportées.\n\nSelon le référentiel indicatif de la Cour d'appel 2024, une cotation de 4/7 correspond à une fourchette de 12 000 à 18 000 €. Il est sollicité la somme de 15 000 € au titre de ce poste.`,
+        dfp: `Le déficit fonctionnel permanent est fixé à 18% par l'expert, tenant compte des séquelles de raideur articulaire, des douleurs résiduelles et de la boiterie légère.\n\nPour un homme de 42 ans à la date de consolidation, le point d'indemnisation est fixé à 1 500 € selon le référentiel de la Cour d'appel 2024 (tranche d'âge inférieure, tranche de taux inférieure).\n\nL'indemnité au titre du DFP s'établit à : 18 × 1 500 = 27 000 €.`,
+        pep: `Le préjudice esthétique permanent est évalué à 3/7 par l'expert, en raison des cicatrices chirurgicales au niveau du membre inférieur droit et de la boiterie résiduelle.\n\nSelon le référentiel indicatif de la Cour d'appel 2024, une cotation de 3/7 correspond à une fourchette de 3 000 à 6 000 €. Il est sollicité la somme de 4 500 € au titre de ce poste.`,
+      };
+
+      if (mockNotes[posteId]) {
+        setPosteNotes(prev => ({ ...prev, [posteId]: prev[posteId] || mockNotes[posteId] }));
+      }
+
+      // ---- Chat summary ----
+      const resultTexts = {
+        dsa: `DSA calculé : 6 242,50 €. 5 lignes de dépenses pré-remplies et argumentation rédigée.`,
+        dft: `DFT calculé : 5 385 €. 7 périodes renseignées, forfait 28 €/jour. Argumentation rédigée.`,
+        pgpa: `PGPA calculé : 6 700 €. Revenu de référence : 37 800 €/an, 18 mois d'arrêt, déduction IJ et maintien. Argumentation rédigée.`,
+        pgpf: `PGPF calculé. Période échue et capitalisation viagère renseignées. Barème Gazette du Palais 2025 appliqué. Notes rédigées.`,
+        se: `SE évalué à 15 000 € (cotation 4/7, référentiel Cour d'appel 2024). Argumentation rédigée.`,
+        dfp: `DFP évalué : 27 000 € (18% × 1 500 €/point). Argumentation rédigée.`,
+        pep: `PEP évalué à 4 500 € (cotation 3/7, référentiel Cour d'appel 2024). Argumentation rédigée.`,
+      };
+
+      // Push diff events for this calculation
+      const diffKey = `calc-${posteId}`;
+      if (MOCK_DIFF_STORE[diffKey]) {
+        setActiveDiffs(prev => [...prev, ...MOCK_DIFF_STORE[diffKey]]);
+      }
+
+      setChatMessages(prev => {
+        // Mark thinking block as done (keep it visible, collapsed)
+        const updated = prev.map(m => {
+          if (m.type === 'ai-thinking' && m._posteCalcId === posteId) {
+            return { ...m, status: 'done', expanded: false, summary: `Calcul ${posteName} terminé` };
+          }
+          return m;
+        });
+        return [
+          ...updated,
+          {
+            type: 'ai',
+            text: resultTexts[posteId] || `${posteName} calculé. Données et argumentation reportées.`,
+          },
+          {
+            type: 'artifact-cards',
+            cards: [{
+              id: `calc-${posteId}`,
+              icon: 'Calculator',
+              zone: 'postes',
+              actionIds: [diffKey],
+              navigateTo: 'chiffrage',
+            }],
+          },
+        ];
+      });
+    }, 400 + calcTools.length * 500 + 300);
+    chatAnalysisTimeouts.current.push(finalT);
+  };
+
+  // When user navigates to a poste → chat greets + analyzes docs → proposes (no calculation yet)
+  useEffect(() => {
+    const currentLevel = navStack[navStack.length - 1];
+    if (!currentLevel || currentLevel.type !== 'poste') return;
+    const posteId = currentLevel.id;
+    if (!posteId || chatAnalyzedPostes.current.has(posteId)) return;
+
+    // Only auto-analyze if postes have been announced (extraction flow completed)
+    if (!chatPostesAnnounced.current && chatMessages.length === 0) return;
+
+    chatAnalyzedPostes.current.add(posteId);
+
+    const tid = setTimeout(() => {
+      const taxo = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes)).find(p => p.id === posteId);
+      if (!taxo) return;
+      const posteName = taxo.acronym || posteId.toUpperCase();
+      const welcome = posteWelcomeMap[posteId] || { greeting: `Bienvenue sur le ${posteName} !`, analysis: 'Je consulte les documents du dossier...', proposal: `J'ai trouvé des éléments à calculer. Voulez-vous que je lance le calcul du ${posteName} ?` };
+      const discoveryTools = posteDiscoveryToolMap[posteId] || [{ tool: 'readDocument', detail: 'Je recherche les informations dans vos documents', expandedText: 'Analyse des pièces du dossier' }];
+
+      setChatSidebarOpen(true);
+
+      // Clear any lingering timeouts
+      chatAnalysisTimeouts.current.forEach(t => clearTimeout(t));
+      chatAnalysisTimeouts.current = [];
+
+      // Phase 1: Welcome message
+      setChatMessages(prev => [
+        ...prev,
+        { type: 'ai', text: welcome.greeting },
+      ]);
+
+      // Phase 2: Thinking — reading docs
+      const t1 = setTimeout(() => {
+        setChatMessages(prev => [
+          ...prev,
+          { type: 'ai-thinking', label: welcome.analysis, steps: [], expanded: false, _posteDiscoveryId: posteId },
+        ]);
+      }, 500);
+      chatAnalysisTimeouts.current.push(t1);
+
+      // Phase 2b: Add discovery steps progressively
+      discoveryTools.forEach((toolData, idx) => {
+        const t = setTimeout(() => {
+          setChatMessages(prev => prev.map(m => {
+            if (m.type === 'ai-thinking' && m._posteDiscoveryId === posteId) {
+              return { ...m, steps: [...(m.steps || []), toolData] };
+            }
+            return m;
+          }));
+        }, 800 + idx * 600);
+        chatAnalysisTimeouts.current.push(t);
+      });
+
+      // Phase 3: Mark thinking as done + proposal with action button
+      const proposalT = setTimeout(() => {
+        setChatMessages(prev => {
+          const updated = prev.map(m => {
+            if (m.type === 'ai-thinking' && m._posteDiscoveryId === posteId) {
+              return { ...m, status: 'done', expanded: false, summary: welcome.analysis };
+            }
+            return m;
+          });
+          return [
+            ...updated,
+            {
+              type: 'ai-proposal',
+              text: welcome.proposal,
+              posteId: posteId,
+              posteName: posteName,
+            },
+          ];
+        });
+      }, 800 + discoveryTools.length * 600 + 400);
+      chatAnalysisTimeouts.current.push(proposalT);
+    }, 400);
+
+    return () => clearTimeout(tid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navStack]);
+
   // ========== CALCULS ==========
-  const dsaTotal = dsaLignes.filter(l => l.status === 'validated').reduce((s, l) => s + (l.montant || 0), 0);
+  const dsaTotal = dsaLignes.reduce((s, l) => s + (l.montant || 0), 0);
   
   const pgpaRevPercusTotal = pgpaData.revenusPercus.reduce((s, l) => s + l.montant, 0);
   const pgpaIjTotal = pgpaData.ijPercues.reduce((s, l) => s + l.montant, 0);
   const pgpaTotal = pgpaData.revenuRef.total > 0 ? Math.round((pgpaData.revenuRef.total / 12) * pgpaData.periode.mois - pgpaRevPercusTotal - pgpaIjTotal) : 0;
   
-  const pgpfTotal = 0; // Sera calculé quand on aura des données
-  const pgpfClTotal = 0; // PGPF Consolidation -> Liquidation (échu)
-  const pgpfAlTotal = 0; // PGPF Après Liquidation (capitalisation)
+  const pgpfClPeriode = pgpfData.periodes['pgpf-cl'];
+  const pgpfAlPeriode = pgpfData.periodes['pgpf-al'];
+  const pgpfClTotal = pgpfClPeriode
+    ? Math.round((pgpfClPeriode.revenuRef.total / 12) * pgpfClPeriode.periode.mois)
+      - pgpfClPeriode.revenusPercus.reduce((s, l) => s + l.montant, 0)
+      - pgpfClPeriode.ijPercues.reduce((s, l) => s + l.montant, 0)
+    : 0;
+  const pgpfAlTotal = pgpfAlPeriode?.params?.montantCapitalise || 0;
+  const pgpfTotal = pgpfClTotal + pgpfAlTotal;
 
   const dftTotal = dftLignes.reduce((s, l) => s + l.montant, 0);
 
-  // Postes actifs = seulement ceux qui ont des données
-  const activePostes = [
-    dsaLignes.length > 0 && { id: 'dsa', title: 'DSA', fullTitle: 'Dépenses de Santé Actuelles', montant: dsaTotal, category: 'patrimoniaux-temp' },
-    pgpaData.revenuRef.lignes.length > 0 && { id: 'pgpa', title: 'PGPA', fullTitle: 'Pertes de Gains Professionnels Actuels', montant: pgpaTotal, category: 'patrimoniaux-temp' },
-    dftLignes.length > 0 && { id: 'dft', title: 'DFT', fullTitle: 'Déficit Fonctionnel Temporaire', montant: dftTotal, category: 'extra-patrimoniaux-temp' },
-    Object.keys(pgpfData.periodes).length > 0 && { id: 'pgpf', title: 'PGPF', fullTitle: 'Pertes de Gains Professionnels Futurs', montant: pgpfTotal, category: 'patrimoniaux-perm' }
-  ].filter(Boolean);
+  // Category mapping for Nomenclature Dintilhac
+  const CATEGORY_MAP = {
+    'vd-pat-temp': { id: 'patrimoniaux-temp', title: 'Préjudices Patrimoniaux Temporaires' },
+    'vd-expat-temp': { id: 'extra-patrimoniaux-temp', title: 'Préjudices Extra-Patrimoniaux Temporaires' },
+    'vd-pat-perm': { id: 'patrimoniaux-perm', title: 'Préjudices Patrimoniaux Permanents' },
+    'vd-expat-perm': { id: 'extra-patrimoniaux-perm', title: 'Préjudices Extra-Patrimoniaux Permanents' },
+    'vd-hors-conso': { id: 'hors-conso', title: 'Autres Préjudices Hors Consolidation' },
+    'vd-annexes': { id: 'annexes', title: 'Annexes' },
+    'vi-pat': { id: 'vi-pat', title: 'Préjudices Patrimoniaux (Victimes Indirectes)' },
+    'vi-expat': { id: 'vi-expat', title: 'Préjudices Extra-Patrimoniaux (Victimes Indirectes)' },
+  };
 
-  // Postes suggérés désactivés (non modélisés, affichage uniquement)
-  const disabledPostes = [
-    { id: 'atpt', title: 'ATPT', fullTitle: 'Assistance Tierce Personne Temporaire', montant: 8400, category: 'patrimoniaux-temp', disabled: true, pieceIds: ['p-5'] },
-    { id: 'pet', title: 'PET', fullTitle: 'Préjudice Esthétique Temporaire', montant: 2500, category: 'extra-patrimoniaux-temp', disabled: true, pieceIds: ['p-5'] },
-    { id: 'se', title: 'SE', fullTitle: 'Souffrances Endurées', montant: 15000, category: 'extra-patrimoniaux-temp', disabled: true, pieceIds: ['p-5'] },
-  ];
+  // Flatten taxonomy for lookups
+  const allTaxoPostes = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes.map(p => ({ ...p, categoryId: c.id }))));
 
-  const allPostes = [...activePostes, ...disabledPostes];
+  const getPosteMontant = (id) => {
+    if (id === 'dsa') return dsaTotal;
+    if (id === 'pgpa') return pgpaTotal;
+    if (id === 'dft') return dftTotal;
+    if (id === 'pgpf') return pgpfTotal;
+    return formPosteData[id]?.montant || 0;
+  };
 
-  const categories = [
-    { id: 'patrimoniaux-temp', title: 'Préjudices Patrimoniaux Temporaires', postes: allPostes.filter(p => p.category === 'patrimoniaux-temp') },
-    { id: 'extra-patrimoniaux-temp', title: 'Préjudices Extra-Patrimoniaux Temporaires', postes: allPostes.filter(p => p.category === 'extra-patrimoniaux-temp') },
-    { id: 'patrimoniaux-perm', title: 'Préjudices Patrimoniaux Permanents', postes: allPostes.filter(p => p.category === 'patrimoniaux-perm') }
-  ];
+  const allPostes = dossierPostes.map(id => {
+    const taxo = allTaxoPostes.find(p => p.id === id);
+    if (!taxo) return null;
+    const cat = CATEGORY_MAP[taxo.categoryId];
+    return {
+      id,
+      title: taxo.acronym || id.toUpperCase(),
+      fullTitle: taxo.label,
+      montant: getPosteMontant(id),
+      category: cat?.id || 'patrimoniaux-temp',
+    };
+  }).filter(Boolean);
 
-  const totalChiffrage = allPostes.filter(p => !p.disabled).reduce((s, p) => s + p.montant, 0);
+  const categories = Object.values(CATEGORY_MAP)
+    .map(cat => ({ ...cat, postes: allPostes.filter(p => p.category === cat.id) }))
+    .filter(cat => cat.postes.length > 0);
+
+  const totalChiffrage = allPostes.reduce((s, p) => s + p.montant, 0);
 
   // ========== HELPERS ==========
   const currentLevel = navStack[navStack.length - 1];
@@ -456,22 +1837,17 @@ export default function App() {
     })).filter(section => section.categories.length > 0);
   };
 
-  const getPosteMontant = (posteId) => {
-    const poste = allPostes.find(p => p.id === posteId);
-    return poste ? poste.montant : null;
-  };
-
   // ========== PIECES HELPERS ==========
   const getTypeColor = (type) => {
     const colors = {
-      'Facture': 'bg-blue-100 text-blue-700',
+      'Facture': 'bg-blue-100 text-[#1e3a8a]',
       'Bulletin': 'bg-green-100 text-green-700',
       'Attestation': 'bg-purple-100 text-purple-700',
       'Expertise': 'bg-amber-100 text-amber-700',
       'Imagerie': 'bg-pink-100 text-pink-700',
       'Ordonnance': 'bg-cyan-100 text-cyan-700'
     };
-    return colors[type] || 'bg-gray-100 text-gray-700';
+    return colors[type] || 'bg-[#F8F7F5] text-gray-700';
   };
 
   const getPieceUsage = (pieceId) => {
@@ -491,15 +1867,118 @@ export default function App() {
     });
   };
 
+  const getOrderedPieces = () => {
+    if (piecesSortMode === 'manuel' && piecesManualOrder) {
+      return piecesManualOrder.map(id => pieces.find(p => p.id === id)).filter(Boolean);
+    }
+    return sortPiecesByDate(pieces);
+  };
+
+  const initManualOrder = () => {
+    const chronoSorted = sortPiecesByDate(pieces);
+    setPiecesManualOrder(chronoSorted.map(p => p.id));
+  };
+
+  const copyBordereau = async () => {
+    const ordered = getOrderedPieces();
+    const text = ordered.map((p) => {
+      const label = p.intitule || p.nom.replace(/\.[^/.]+$/, '');
+      return `${label} [${p.date}]`;
+    }).join('\n');
+    await navigator.clipboard.writeText(text);
+    setToastMessage('Bordereau copié dans le presse-papiers');
+    setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  const downloadAllAsZip = async () => {
+    const ordered = getOrderedPieces();
+    const zip = new JSZip();
+    ordered.forEach((piece, i) => {
+      const prefix = String(i + 1).padStart(2, '0');
+      const filename = `${prefix} - ${piece.nom}`;
+      zip.file(filename, `[Placeholder] ${piece.intitule}\nDate: ${piece.date}\nType: ${piece.type}`);
+    });
+    const blob = await zip.generateAsync({ type: 'blob' });
+    saveAs(blob, 'bordereau-pieces.zip');
+  };
+
   // ========== PIECES LIST COMPONENT ==========
   const renderPiecesList = (piecesArray, showUploadZone = true) => {
-    const sortedPieces = sortPiecesByDate(piecesArray);
-    
+    const sortedPieces = getOrderedPieces();
+
     return (
-      <div className="space-y-4">
-        {/* Header avec upload */}
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500">{piecesArray.length} pièce{piecesArray.length > 1 ? 's' : ''}</span>
+      <div className="flex flex-col -mx-4 -mt-4">
+        {/* Sub-header bar — full width, edge-to-edge */}
+        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[#e7e5e3]">
+          {/* Sort toggle pill */}
+          <div className="flex items-center bg-[#eeece6] rounded-md p-0.5">
+            <button
+              onClick={() => { setPiecesSortMode('manuel'); if (!piecesManualOrder) initManualOrder(); }}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide rounded transition-all ${
+                piecesSortMode === 'manuel' ? 'bg-white text-[#292524] shadow-sm' : 'text-[#78716c] hover:text-[#44403c]'
+              }`}
+              style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+            >
+              <Hand className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Manuel
+            </button>
+            <button
+              onClick={() => setPiecesSortMode('chrono')}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide rounded transition-all ${
+                piecesSortMode === 'chrono' ? 'bg-white text-[#292524] shadow-sm' : 'text-[#78716c] hover:text-[#44403c]'
+              }`}
+              style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+            >
+              <Clock className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Chrono
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2.5 ml-auto">
+            <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#e7e5e3] rounded-lg shadow-sm text-sm text-[#78716c] cursor-pointer hover:border-[#d6d3d1]">
+              <ListFilter className="w-4 h-4" strokeWidth={1.5} />
+              <span>Tous types</span>
+              <ChevronDown className="w-4 h-4" strokeWidth={1.5} />
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#eeece6] rounded-md">
+              <Search className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+              <span className="text-sm text-[#78716c] opacity-70">Rechercher...</span>
+            </div>
+            <button
+              onClick={copyBordereau}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] shadow-sm transition-colors"
+            >
+              <Copy className="w-4 h-4" strokeWidth={1.5} />
+              Copier bordereau
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setPiecesMoreMenu(!piecesMoreMenu)}
+                className="flex items-center justify-center w-8 h-8 text-[#78716c] hover:text-[#44403c] hover:bg-[#f5f5f4] rounded-md transition-colors"
+              >
+                <MoreVertical className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+              {piecesMoreMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setPiecesMoreMenu(false)} />
+                  <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-[#e7e5e3] rounded-lg shadow-lg z-50 py-1">
+                    <button
+                      onClick={() => { downloadAllAsZip(); setPiecesMoreMenu(false); }}
+                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[#292524] hover:bg-[#fafaf9] transition-colors"
+                    >
+                      <Download className="w-4 h-4" strokeWidth={1.5} />
+                      Télécharger en ZIP
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Content container with padding */}
+        <div className="p-4">
+          {/* Drop zone */}
           {showUploadZone && (
             <div
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -514,7 +1993,7 @@ export default function App() {
                     nomOriginal: file.name,
                     intitule: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
                     date: new Date().toLocaleDateString('fr-FR'),
-                    type: file.name.toLowerCase().includes('facture') ? 'Facture' 
+                    type: file.name.toLowerCase().includes('facture') ? 'Facture'
                       : file.name.toLowerCase().includes('bulletin') ? 'Bulletin'
                       : file.name.toLowerCase().includes('ordo') ? 'Ordonnance'
                       : file.name.toLowerCase().includes('irm') || file.name.toLowerCase().includes('radio') ? 'Imagerie'
@@ -524,91 +2003,193 @@ export default function App() {
                   setPieces(prev => [...prev, newPiece]);
                 });
               }}
-              className={`flex items-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}`}
+              className={`mb-4 flex items-center justify-center gap-4 h-16 border border-dashed rounded-lg cursor-pointer transition-colors ${isDragging ? 'border-[#d6d3d1] bg-[#f5f5f4]' : 'border-[#d6d3d1] hover:border-[#a8a29e]'}`}
+              style={{ background: isDragging ? '#f5f5f4' : 'linear-gradient(to top, rgba(238,236,230,0) 50%, #f8f7f5 100%)' }}
             >
-              <Upload className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-600">Déposer des documents</span>
+              <Upload className="w-5 h-5 text-[#78716c]" strokeWidth={1.5} />
+              <span className="text-sm">
+                <span className="text-[#78716c]">Déposez ou </span>
+                <span className="font-medium text-[#1e3a8a]">cliquez</span>
+                <span className="text-[#78716c]"> pour ajouter de nouvelles pièces</span>
+              </span>
             </div>
           )}
-        </div>
-        
-        {/* Liste des pièces */}
-        <div className="bg-white rounded-lg border overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">N°</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Utilisé dans</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {sortedPieces.map((piece) => {
-                const globalIndex = pieces.findIndex(p => p.id === piece.id) + 1;
-                const usages = getPieceUsage(piece.id);
-                return (
-                  <tr 
-                    key={piece.id} 
-                    className="hover:bg-gray-50 cursor-pointer group"
-                    onClick={() => setEditPanel({ type: 'piece-detail', data: { ...piece, index: globalIndex, usages } })}
-                  >
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 text-gray-700 text-sm font-medium rounded group-hover:bg-blue-100 group-hover:text-blue-700">
-                        P{globalIndex}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                        <span className="font-medium text-gray-900">{piece.intitule || piece.nom.replace(/\.[^/.]+$/, '')}</span>
+
+          {/* Table */}
+          <div className="border border-[#e7e5e3] rounded-md overflow-hidden">
+            {/* Column headers */}
+            <div className="flex items-center bg-white border-b border-[#e7e5e3]">
+              <div className="w-[38px] h-10 shrink-0" />
+              <div className="w-[50px] shrink-0 px-3 py-3 text-center" style={colHeaderStyle}>N°</div>
+              <div className="flex-1 min-w-0 px-3 py-3" style={colHeaderStyle}>Nom du document</div>
+              <div className="w-[174px] shrink-0 px-3 py-3" style={colHeaderStyle}>Type</div>
+              <div className="w-[120px] shrink-0 px-3 py-3" style={colHeaderStyle}>Date</div>
+              <div className="w-[224px] shrink-0 px-3 py-3" style={colHeaderStyle}>Postes liés</div>
+              <div className="w-[44px] shrink-0" />
+            </div>
+
+            {/* Rows */}
+            {sortedPieces.map((piece, idx) => {
+              const displayIndex = idx + 1;
+              const usages = getPieceUsage(piece.id);
+              const isDragOver = piecesDragState.over === piece.id && piecesDragState.dragging !== piece.id;
+              return (
+                <div
+                  key={piece.id}
+                  draggable={piecesSortMode === 'manuel'}
+                  onDragStart={(e) => {
+                    if (piecesSortMode !== 'manuel') return;
+                    e.dataTransfer.effectAllowed = 'move';
+                    setPiecesDragState(prev => ({ ...prev, dragging: piece.id }));
+                  }}
+                  onDragOver={(e) => {
+                    if (piecesSortMode !== 'manuel') return;
+                    e.preventDefault();
+                    if (piecesDragState.over !== piece.id) {
+                      setPiecesDragState(prev => ({ ...prev, over: piece.id }));
+                    }
+                  }}
+                  onDragEnd={() => {
+                    if (piecesDragState.dragging && piecesDragState.over && piecesDragState.dragging !== piecesDragState.over) {
+                      setPiecesManualOrder(prev => {
+                        const arr = [...prev];
+                        const fromIdx = arr.indexOf(piecesDragState.dragging);
+                        const toIdx = arr.indexOf(piecesDragState.over);
+                        arr.splice(fromIdx, 1);
+                        arr.splice(toIdx, 0, piecesDragState.dragging);
+                        return arr;
+                      });
+                    }
+                    setPiecesDragState({ dragging: null, over: null });
+                  }}
+                  className={`flex items-center h-14 bg-white border-b border-[#e7e5e3] last:border-b-0 hover:bg-[#fafaf9] cursor-pointer group ${isDragOver ? 'border-t-2 border-t-[#93c5fd]' : ''} ${piecesDragState.dragging === piece.id ? 'opacity-40' : ''}`}
+                  onClick={() => setEditPanel({ type: 'piece-detail', data: { ...piece, index: displayIndex, usages } })}
+                >
+                  {/* Grip */}
+                  <div className={`w-[38px] shrink-0 flex items-center justify-center pl-3 ${piecesSortMode === 'manuel' ? 'cursor-grab' : ''}`} onClick={(e) => piecesSortMode === 'manuel' && e.stopPropagation()}>
+                    <GripVertical className={`w-3.5 h-3.5 text-[#d6d3d1] transition-opacity ${piecesSortMode === 'manuel' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} strokeWidth={1.5} />
+                  </div>
+                  {/* Number badge */}
+                  <div className="w-[50px] shrink-0 flex items-center justify-center pl-4 pr-3">
+                    <span className="inline-flex items-center justify-center w-[22px] h-[22px] bg-[#eeece6] text-[#78716c] text-xs font-semibold rounded-md">
+                      {displayIndex}
+                    </span>
+                  </div>
+                  {/* Document name */}
+                  <div className="flex-1 min-w-0 px-3">
+                    <span className="text-sm font-medium text-black truncate block">{piece.intitule || piece.nom.replace(/\.[^/.]+$/, '')}</span>
+                  </div>
+                  {/* Type badge */}
+                  <div className="w-[174px] shrink-0 px-3">
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md ${PIECE_TYPE_COLORS[piece.type] || 'bg-[#eeece6] text-[#44403c]'}`}>
+                      {piece.type}
+                      <ChevronDown className="w-3 h-3" strokeWidth={1.5} />
+                    </span>
+                  </div>
+                  {/* Date */}
+                  <div className="w-[120px] shrink-0 px-3">
+                    <span className="text-sm text-[#292524]">{piece.date || '—'}</span>
+                  </div>
+                  {/* Postes liés */}
+                  <div className="w-[224px] shrink-0 px-3">
+                    {usages.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 overflow-hidden">
+                        {usages.map(u => (
+                          <span key={u} className="px-2 py-0.5 text-xs font-medium text-[#44403c] bg-[#eeece6] rounded-md">{u}</span>
+                        ))}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getTypeColor(piece.type)}`}>
-                        {piece.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {usages.length > 0 ? (
-                        <div className="flex items-center gap-1">
-                          {usages.map(u => (
-                            <span key={u} className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">{u}</span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-400">Non utilisé</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    ) : (
+                      <span className="text-xs text-[#a8a29e]">—</span>
+                    )}
+                  </div>
+                  {/* Options */}
+                  <div className="w-[44px] shrink-0 flex items-center justify-end pr-4">
+                    <MoreVertical className="w-4 h-4 text-[#78716c] opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
   };
 
-  const tabsConfig = { dossier: ['Détail', 'Chiffrage', 'Pièces'], poste: [] };
-  const currentTabs = tabsConfig[currentLevel.type] || [];
-  const getSiblings = () => currentLevel.type === 'poste' ? allPostes.filter(p => p.id !== currentLevel.id && !p.disabled) : [];
+  const tabsConfig = { dossier: ['Dossier', 'Chiffrage', 'Pièces', 'Actes', 'JP'], poste: [] };
+  const currentTabs = currentLevel ? (tabsConfig[currentLevel.type] || []) : [];
+  const _getSiblings = () => currentLevel?.type === 'poste' ? allPostes.filter(p => p.id !== currentLevel.id && !p.disabled) : []; // eslint-disable-line no-unused-vars
 
   // ========== NAVIGATION ==========
   const navigateTo = (item) => setNavStack([...navStack, { ...item, type: item.type || 'poste', activeTab: tabsConfig[item.type]?.[0]?.toLowerCase() }]);
   const navigateToStackLevel = (index) => setNavStack(navStack.slice(0, index + 1));
-  const navigateToSibling = (sibling) => {
+  const _navigateToSibling = (sibling) => { // eslint-disable-line no-unused-vars
     const newStack = [...navStack];
     newStack[newStack.length - 1] = { ...sibling, type: 'poste' };
     setNavStack(newStack);
   };
   const setActiveTab = (tab) => {
     const newStack = [...navStack];
+    if (newStack.length === 0) return;
     newStack[newStack.length - 1].activeTab = tab.toLowerCase();
     setNavStack(newStack);
   };
-  const toggleCategory = (id) => setExpandedCategories(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+  const _toggleCategory = (id) => setExpandedCategories(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]); // eslint-disable-line no-unused-vars
   const toggleSection = (id) => setExpandedSections(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+
+  // ========== NAVIGATION ANCHORS ==========
+  const handleNavigateToZone = (zone, tabName) => {
+    // Pop back to dossier level if inside a poste, then switch tab
+    setNavStack(prev => {
+      const base = prev.length > 1 ? [prev[0]] : [...prev];
+      return base.map((n, ni) => ni === base.length - 1 ? { ...n, activeTab: tabName } : n);
+    });
+    setTimeout(() => {
+      const zoneEl = document.querySelector(`[data-zone-id="${zone}"]`);
+      if (zoneEl) {
+        zoneEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        zoneEl.classList.add('is-zone-highlighted');
+        setTimeout(() => zoneEl.classList.remove('is-zone-highlighted'), 3000);
+      }
+    }, 150);
+  };
+
+  const handleNavigateToEntity = (entityId, zone, tabName) => {
+    // For postes zone: navigate inside the poste page
+    if (zone === 'postes') {
+      const poste = allPostes.find(p => p.id === entityId);
+      if (poste) {
+        // Ensure we're at dossier level first, then drill in
+        setNavStack(prev => {
+          const base = prev.length > 1 ? [prev[0]] : [...prev];
+          const updated = base.map((n, ni) => ni === base.length - 1 ? { ...n, activeTab: 'chiffrage' } : n);
+          return [...updated, { ...poste, type: 'poste', activeTab: tabsConfig.poste?.[0]?.toLowerCase() }];
+        });
+        return;
+      }
+    }
+
+    // Pop back to dossier level if inside a poste, then switch tab and scroll
+    setNavStack(prev => {
+      const base = prev.length > 1 ? [prev[0]] : [...prev];
+      return base.map((n, ni) => ni === base.length - 1 ? { ...n, activeTab: tabName } : n);
+    });
+    setTimeout(() => {
+      const el = document.querySelector(`[data-entity-id="${entityId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('is-highlighted');
+        setTimeout(() => el.classList.remove('is-highlighted'), 3000);
+      } else {
+        // Entity not found by ID — fall back to zone-level navigation
+        const zoneEl = zone && document.querySelector(`[data-zone-id="${zone}"]`);
+        if (zoneEl) {
+          zoneEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          zoneEl.classList.add('is-zone-highlighted');
+          setTimeout(() => zoneEl.classList.remove('is-zone-highlighted'), 3000);
+        }
+      }
+    }, 150);
+  };
 
   // ========== DOCUMENT DETECTION HELPERS ==========
   const detectDocumentType = (fileName) => {
@@ -670,8 +2251,8 @@ export default function App() {
     };
   };
 
-  const handleStartExtraction = async () => {
-    const formData = {};
+  const _handleStartExtraction = async () => { // eslint-disable-line no-unused-vars
+    const _formData = {}; // eslint-disable-line no-unused-vars
     const uploadedFiles = [];
 
     // Utiliser les fichiers capturés au début (déjà avec types assignés)
@@ -719,16 +2300,16 @@ export default function App() {
           total: pgpa.revenuRef?.total || 0,
           lignes: [
             ...(pgpa.revenuRef?.lignes || []),
-            ...prev.revenuRef.lignes.filter(l => !l.status || l.status !== 'ai-suggested')
+            ...prev.revenuRef.lignes.filter(l => !l.status || !l.diffType)
           ]
         },
         revenusPercus: [
           ...(pgpa.revenusPercus || []),
-          ...prev.revenusPercus.filter(l => !l.status || l.status !== 'ai-suggested')
+          ...prev.revenusPercus.filter(l => !l.status || !l.diffType)
         ],
         ijPercues: [
           ...(pgpa.ijPercues || []),
-          ...prev.ijPercues.filter(l => !l.status || l.status !== 'ai-suggested')
+          ...prev.ijPercues.filter(l => !l.status || !l.diffType)
         ]
       }));
     }
@@ -793,8 +2374,7 @@ export default function App() {
           date: '15/03/2023',
           montant: 2850,
           tiers: 'CHU Bordeaux',
-          confidence: 94,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dsa-ai-${timestamp}-2`,
@@ -803,8 +2383,7 @@ export default function App() {
           date: '28/03/2023',
           montant: 4200,
           tiers: 'Clinique du Sport',
-          confidence: 91,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dsa-ai-${timestamp}-3`,
@@ -813,8 +2392,7 @@ export default function App() {
           date: '10/04/2023',
           montant: 60,
           tiers: 'Dr Leblanc',
-          confidence: 93,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dsa-ai-${timestamp}-4`,
@@ -823,8 +2401,7 @@ export default function App() {
           date: '2023-2024',
           montant: 1800,
           tiers: 'Cabinet Kiné Martin',
-          confidence: 88,
-          status: 'ai-suggested'
+          diffType: 'edit'
         },
         {
           id: `dsa-ai-${timestamp}-5`,
@@ -833,38 +2410,43 @@ export default function App() {
           date: '15/06/2023',
           montant: 380,
           tiers: 'Centre Imagerie Bordeaux',
-          confidence: 92,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dsa-ai-${timestamp}-6`,
+          label: 'Consultation doublon Dr Dupont',
+          type: 'Consultation',
+          date: '10/04/2023',
+          montant: 60,
+          tiers: 'Dr Dupont',
+          diffType: 'delete'
+        },
+        {
+          id: `dsa-ai-${timestamp}-7`,
           label: 'Médicaments anti-inflammatoires',
           type: 'Pharmacie',
           date: '03/2023 - 09/2024',
           montant: 245,
           tiers: 'Pharmacie des Lilas',
-          confidence: 78,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
-          id: `dsa-ai-${timestamp}-7`,
+          id: `dsa-ai-${timestamp}-8`,
           label: 'Attelle de genou post-opératoire',
           type: 'Appareillage',
           date: '30/03/2023',
           montant: 180,
           tiers: 'Orthopédie Plus',
-          confidence: 85,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
-          id: `dsa-ai-${timestamp}-8`,
+          id: `dsa-ai-${timestamp}-9`,
           label: 'Consultations Dr Martin (suivi)',
           type: 'Consultation',
           date: '2023-2024',
           montant: 300,
           tiers: 'Dr Martin',
-          confidence: 87,
-          status: 'ai-suggested'
+          diffType: 'add'
         }
       ],
 
@@ -878,8 +2460,7 @@ export default function App() {
           jours: 8,
           taux: 100,
           montant: 200,
-          confidence: 96,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dft-ai-${timestamp}-2`,
@@ -889,8 +2470,7 @@ export default function App() {
           jours: 6,
           taux: 100,
           montant: 150,
-          confidence: 94,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dft-ai-${timestamp}-3`,
@@ -900,8 +2480,7 @@ export default function App() {
           jours: 13,
           taux: 100,
           montant: 325,
-          confidence: 91,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dft-ai-${timestamp}-4`,
@@ -911,8 +2490,7 @@ export default function App() {
           jours: 76,
           taux: 50,
           montant: 950,
-          confidence: 89,
-          status: 'ai-suggested'
+          diffType: 'edit'
         },
         {
           id: `dft-ai-${timestamp}-5`,
@@ -922,19 +2500,17 @@ export default function App() {
           jours: 92,
           taux: 40,
           montant: 920,
-          confidence: 86,
-          status: 'ai-suggested'
+          diffType: 'add'
         },
         {
           id: `dft-ai-${timestamp}-6`,
-          label: 'Rééducation d\'entretien',
+          label: 'Rééducation d\'entretien (doublon)',
           debut: '01/10/2023',
           fin: '31/12/2023',
           jours: 92,
           taux: 25,
           montant: 575,
-          confidence: 84,
-          status: 'ai-suggested'
+          diffType: 'delete'
         },
         {
           id: `dft-ai-${timestamp}-7`,
@@ -944,8 +2520,7 @@ export default function App() {
           jours: 256,
           taux: 15,
           montant: 960,
-          confidence: 82,
-          status: 'ai-suggested'
+          diffType: 'add'
         }
       ],
 
@@ -956,7 +2531,7 @@ export default function App() {
         pointValue: 1580,
         montantTotal: 23700,
         confidence: 92,
-        status: 'ai-suggested'
+        diffType: 'add'
       },
 
       // PGPA (Pertes de Gains Professionnels Actuels)
@@ -980,7 +2555,7 @@ export default function App() {
               aRevaloriser: true,
               pieceIds: [],
               confidence: 91,
-              status: 'ai-suggested'
+              diffType: 'add'
             },
             {
               id: `pgpa-ai-rev-${timestamp}-2`,
@@ -992,10 +2567,22 @@ export default function App() {
               aRevaloriser: true,
               pieceIds: [],
               confidence: 88,
-              status: 'ai-suggested'
+              diffType: 'edit'
             },
             {
               id: `pgpa-ai-gain-${timestamp}-1`,
+              type: 'gain',
+              label: 'Prime exceptionnelle (non récurrent)',
+              annee: '2021',
+              montant: 1500,
+              revalorise: 1500,
+              aRevaloriser: false,
+              pieceIds: [],
+              confidence: 72,
+              diffType: 'delete'
+            },
+            {
+              id: `pgpa-ai-gain-${timestamp}-2`,
               type: 'gain',
               label: 'Prime annuelle',
               annee: '2022',
@@ -1004,10 +2591,10 @@ export default function App() {
               aRevaloriser: true,
               pieceIds: [],
               confidence: 85,
-              status: 'ai-suggested'
+              diffType: 'add'
             },
             {
-              id: `pgpa-ai-gain-${timestamp}-2`,
+              id: `pgpa-ai-gain-${timestamp}-3`,
               type: 'gain',
               label: 'Heures supplémentaires',
               annee: '2022',
@@ -1016,7 +2603,7 @@ export default function App() {
               aRevaloriser: true,
               pieceIds: [],
               confidence: 79,
-              status: 'ai-suggested'
+              diffType: 'add'
             }
           ]
         },
@@ -1032,7 +2619,7 @@ export default function App() {
             tiers: 'Employeur',
             pieceIds: [],
             confidence: 87,
-            status: 'ai-suggested'
+            diffType: 'add'
           }
         ],
         ijPercues: [
@@ -1049,7 +2636,7 @@ export default function App() {
             montant: 11650,
             pieceIds: [],
             confidence: 93,
-            status: 'ai-suggested'
+            diffType: 'add'
           },
           {
             id: `pgpa-ai-ij-${timestamp}-2`,
@@ -1064,7 +2651,7 @@ export default function App() {
             montant: 4850,
             pieceIds: [],
             confidence: 81,
-            status: 'ai-suggested'
+            diffType: 'add'
           }
         ]
       }
@@ -1140,6 +2727,13 @@ export default function App() {
     setDftLignes([]);
     setPgpaData({ periode: { debut: '', fin: '', mois: 0 }, revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 0 }, revenusPercus: [], ijPercues: [] });
     setPgpfData({ periodes: {} });
+
+    // Reset chat state for new dossier
+    setChatMessages([]);
+    setChatBlocked(false);
+    chatExtractionAnnounced.current = false;
+    chatPostesAnnounced.current = false;
+    chatAnalyzedPostes.current = new Set();
 
     setNavStack([{ id: newId, type: 'dossier', title: `${formData.nom} ${formData.prenom}`, activeTab }]);
     setActiveDossierId(newId);
@@ -1263,7 +2857,7 @@ export default function App() {
         const hasAllData = result.data?.label && result.data?.type && result.data?.date && result.data?.montant;
         setDsaLignes(prev => [{
           id: `dsa-${Date.now()}`,
-          status: result.status === 'error' ? 'error' : hasAllData ? 'ai-suggested' : 'pending',
+          diffType: result.status === 'error' ? undefined : hasAllData ? 'add' : undefined,
           fileName: file.name,
           pieceIds: [newPieceId],
           confidence: result.confidence,
@@ -1292,7 +2886,7 @@ export default function App() {
             lignes: [{
               id: `pgpa-rev-${Date.now()}`,
               type: mock.type,
-              status: 'ai-suggested',
+              diffType: 'add',
               label: mock.label,
               annee,
               montant: mock.montant,
@@ -1315,7 +2909,7 @@ export default function App() {
           ...prev,
           revenusPercus: [{
             id: `pgpa-percu-${Date.now()}`,
-            status: 'ai-suggested',
+            diffType: 'add',
             label: mock.label,
             periode: 'Mars - Juin 2023',
             periodeDebut: '15/03/2023',
@@ -1339,7 +2933,7 @@ export default function App() {
           ...prev,
           ijPercues: [{
             id: `pgpa-ij-${Date.now()}`,
-            status: 'ai-suggested',
+            diffType: 'add',
             label: mock.label,
             tiers: mock.tiers,
             periode: 'Mars 2023 - Sept 2024',
@@ -1367,7 +2961,7 @@ export default function App() {
         const baseJ = chiffrageParams.baseJournaliereDFT || 33;
         setDftLignes(prev => [{
           id: `dft-${Date.now()}`,
-          status: 'ai-suggested',
+          diffType: 'add',
           label: mock.label,
           debut: '15/03/2023',
           fin: (() => { const d = new Date(2023, 2, 15 + mock.jours); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })(),
@@ -1382,6 +2976,54 @@ export default function App() {
     }
   };
 
+  // ========== SMART ADD POSTE — shared handler for badge click + chat ==========
+  const handleSmartAddPoste = (posteId) => {
+    const taxo = allTaxoPostes.find(p => p.id === posteId);
+    if (!taxo) return;
+
+    // Add poste to dossier if not present
+    if (!dossierPostes.includes(posteId)) {
+      setDossierPostes(prev => [...prev, posteId]);
+    }
+
+    // Navigate to poste detail — the navStack useEffect will auto-trigger chat analysis
+    navigateTo({ id: posteId, title: taxo.acronym || posteId.toUpperCase(), fullTitle: taxo.label, type: 'poste', montant: 0 });
+    setChatSidebarOpen(true);
+  };
+
+  // ========== CHAT SEND — handles user messages + intent detection ==========
+  const handleChatSend = () => {
+    const text = chatInputValue.trim();
+    if (!text && stagedDocs.length === 0) return;
+
+    // Push user message
+    const userMsg = { type: 'user', text: text || 'Documents ajoutés', attachments: stagedDocs.length > 0 ? [...stagedDocs] : undefined };
+    setChatMessages(prev => [...prev, userMsg]);
+    setChatInputValue('');
+    setStagedDocs([]);
+
+    // Intent detection: look for poste acronyms in message
+    const upperText = text.toUpperCase();
+    const matched = allTaxoPostes.find(p => {
+      if (p.acronym && upperText.includes(p.acronym)) return true;
+      if (upperText.includes(p.id.toUpperCase())) return true;
+      return false;
+    });
+
+    if (matched) {
+      // Delay slightly so user message renders first
+      setTimeout(() => handleSmartAddPoste(matched.id), 300);
+    } else {
+      // Generic response
+      setTimeout(() => {
+        setChatMessages(prev => [...prev, {
+          type: 'ai',
+          text: "Je suis prêt à vous aider. Vous pouvez me demander de calculer un poste spécifique (ex: \"Calcule le DFT\") ou ajouter un poste depuis l'onglet Chiffrage.",
+        }]);
+      }, 500);
+    }
+  };
+
   const handleAddFromPiece = (piece, posteType) => {
     setShowAddModal(null);
     if (posteType === 'dsa') {
@@ -1389,7 +3031,7 @@ export default function App() {
       const hasAllData = result.data?.label && result.data?.type && result.data?.date && result.data?.montant;
       setDsaLignes(prev => [{
         id: `dsa-${Date.now()}`,
-        status: hasAllData ? 'ai-suggested' : 'pending',
+        diffType: hasAllData ? 'add' : undefined,
         fileName: piece.nom,
         pieceIds: [piece.id],
         confidence: result.confidence,
@@ -1418,7 +3060,7 @@ export default function App() {
           lignes: [{
             id: `pgpa-rev-${Date.now()}`,
             type: mock.type,
-            status: 'ai-suggested',
+            diffType: 'add',
             label: mock.label,
             annee,
             montant: mock.montant,
@@ -1442,7 +3084,7 @@ export default function App() {
         ...prev,
         revenusPercus: [{
           id: `pgpa-percu-${Date.now()}`,
-          status: 'ai-suggested',
+          diffType: 'add',
           label: mock.label,
           periode: 'Mars - Juin 2023',
           periodeDebut: '15/03/2023',
@@ -1467,7 +3109,7 @@ export default function App() {
         ...prev,
         ijPercues: [{
           id: `pgpa-ij-${Date.now()}`,
-          status: 'ai-suggested',
+          diffType: 'add',
           label: mock.label,
           tiers: mock.tiers,
           periode: 'Mars 2023 - Sept 2024',
@@ -1496,7 +3138,7 @@ export default function App() {
       const baseJ = chiffrageParams.baseJournaliereDFT || 33;
       setDftLignes(prev => [{
         id: `dft-${Date.now()}`,
-        status: 'ai-suggested',
+        diffType: 'add',
         label: mock.label,
         debut: '15/03/2023',
         fin: (() => { const d = new Date(2023, 2, 15 + mock.jours); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })(),
@@ -1508,6 +3150,67 @@ export default function App() {
       }, ...prev]);
       setPieces(prev => prev.map(p => p.id === piece.id ? { ...p, used: true } : p));
     }
+  };
+
+  // ========== DOCUMENT PICKER HELPERS ==========
+  const getRelevantPiecesForPoste = (posteId) => {
+    if (!posteId) return { suggested: [], others: [] };
+    const acronym = posteId.toUpperCase().replace(/-.*/, ''); // 'dft' → 'DFT', 'pgpa-revenu-ref' → 'PGPA'
+    const allDocs = dropFirstPieces.filter(p => p.status === 'done' || p.status === 'processing');
+    const suggested = allDocs.filter(p => p.postesLies?.includes(acronym));
+    const others = allDocs.filter(p => !p.postesLies?.includes(acronym));
+    return { suggested, others };
+  };
+
+  const handleAddMultipleFromPieces = (selectedIds, posteType) => {
+    setPickerOpen(null);
+    setPickerSelected([]);
+    setPickerSearch('');
+
+    // Build compatible piece objects
+    const piecesToExtract = selectedIds.map(pieceId => {
+      const dfPiece = dropFirstPieces.find(p => p.id === pieceId);
+      if (dfPiece) {
+        const compatPiece = {
+          id: dfPiece.id,
+          nom: dfPiece.cleanName || dfPiece.originalName,
+          nomOriginal: dfPiece.originalName,
+          intitule: dfPiece.cleanName,
+          date: dfPiece.date,
+          type: dfPiece.type,
+          used: false
+        };
+        setPieces(prev => {
+          if (prev.find(p => p.id === dfPiece.id)) return prev;
+          return [...prev, compatPiece];
+        });
+        return compatPiece;
+      }
+      return pieces.find(p => p.id === pieceId);
+    }).filter(Boolean);
+
+    if (piecesToExtract.length === 0) return;
+
+    // Start extraction progress
+    setPosteExtracting({ posteType, totalDocs: piecesToExtract.length, extractedCount: 0, docIds: selectedIds });
+
+    // Add lines one by one with staggered delays
+    piecesToExtract.forEach((piece, index) => {
+      const delay = 1200 + index * (1500 + Math.random() * 1500);
+      setTimeout(() => {
+        handleAddFromPiece(piece, posteType);
+        setPosteExtracting(prev => {
+          if (!prev) return null;
+          const newCount = prev.extractedCount + 1;
+          if (newCount >= prev.totalDocs) {
+            // Done — clear after a short delay
+            setTimeout(() => setPosteExtracting(null), 1500);
+            return { ...prev, extractedCount: newCount };
+          }
+          return { ...prev, extractedCount: newCount };
+        });
+      }, delay);
+    });
   };
 
   const handleAddManual = (posteType) => {
@@ -1550,12 +3253,100 @@ export default function App() {
       setDftLignes(prev => [newLigne, ...prev]);
       setEditingPieceIds([]);
       setSearchPiecesPanel('');
-      setEditPanel({ type: 'dft-ligne', data: newLigne });
+      setEditPanel({ type: 'dft-ligne', title: 'Éditer la dépense', data: newLigne });
     }
   };
 
-  const handleValidateLigne = (ligneId) => setDsaLignes(prev => prev.map(l => l.id === ligneId ? { ...l, status: 'validated' } : l));
+  const _handleValidateLigne = (ligneId) => setDsaLignes(prev => prev.map(l => l.id === ligneId ? { ...l, status: 'validated' } : l)); // eslint-disable-line no-unused-vars
   const handleRejectLigne = (ligneId) => setDsaLignes(prev => prev.filter(l => l.id !== ligneId));
+
+  // Approve a diff: accept the change and clear diffType so the row becomes "normal"
+  // For deletions: approving means removing the row (the deletion is accepted)
+  const handleApproveDiff = (ligneId, zone) => {
+    const clearDiff = (list) => list.map(l => l.id === ligneId ? { ...l, diffType: undefined } : l);
+    const removeLigne = (list) => list.filter(l => l.id !== ligneId);
+    const findInList = (list) => list.find(l => l.id === ligneId);
+
+    if (zone === 'dsa' || (!zone && findInList(dsaLignes))) {
+      const ligne = dsaLignes.find(l => l.id === ligneId);
+      if (ligne?.diffType === 'delete') setDsaLignes(prev => removeLigne(prev));
+      else setDsaLignes(prev => clearDiff(prev));
+    } else if (zone === 'dft' || (!zone && findInList(dftLignes))) {
+      const ligne = dftLignes.find(l => l.id === ligneId);
+      if (ligne?.diffType === 'delete') setDftLignes(prev => removeLigne(prev));
+      else setDftLignes(prev => clearDiff(prev));
+    } else if (zone === 'pgpa') {
+      setPgpaData(prev => {
+        const inRef = prev.revenuRef.lignes.find(l => l.id === ligneId);
+        if (inRef) {
+          return inRef.diffType === 'delete'
+            ? { ...prev, revenuRef: { ...prev.revenuRef, lignes: prev.revenuRef.lignes.filter(l => l.id !== ligneId) } }
+            : { ...prev, revenuRef: { ...prev.revenuRef, lignes: prev.revenuRef.lignes.map(l => l.id === ligneId ? { ...l, diffType: undefined } : l) } };
+        }
+        const inPercus = prev.revenusPercus.find(l => l.id === ligneId);
+        if (inPercus) {
+          return inPercus.diffType === 'delete'
+            ? { ...prev, revenusPercus: prev.revenusPercus.filter(l => l.id !== ligneId) }
+            : { ...prev, revenusPercus: prev.revenusPercus.map(l => l.id === ligneId ? { ...l, diffType: undefined } : l) };
+        }
+        return prev;
+      });
+    } else if (zone === 'infos_dossier') {
+      // For infos_dossier, approving means keeping the agent's "after" value (already set in state)
+      // Just mark as approved in activeDiffs below
+    }
+    // Remove from activeDiffs — accepted changes become the new baseline
+    setActiveDiffs(prev => prev.filter(d => d.entityId !== ligneId));
+  };
+
+  // Reject a diff: revert the change — for additions remove the row, for edits/deletes clear diffType
+  const handleRejectDiff = (ligneId, zone) => {
+    const clearDiff = (list) => list.map(l => l.id === ligneId ? { ...l, diffType: undefined } : l);
+    const removeLigne = (list) => list.filter(l => l.id !== ligneId);
+    const findInList = (list) => list.find(l => l.id === ligneId);
+
+    if (zone === 'dsa' || (!zone && findInList(dsaLignes))) {
+      const ligne = dsaLignes.find(l => l.id === ligneId);
+      if (ligne?.diffType === 'add') setDsaLignes(prev => removeLigne(prev));
+      else setDsaLignes(prev => clearDiff(prev));
+    } else if (zone === 'dft' || (!zone && findInList(dftLignes))) {
+      const ligne = dftLignes.find(l => l.id === ligneId);
+      if (ligne?.diffType === 'add') setDftLignes(prev => removeLigne(prev));
+      else setDftLignes(prev => clearDiff(prev));
+    } else if (zone === 'pgpa') {
+      setPgpaData(prev => {
+        const inRef = prev.revenuRef.lignes.find(l => l.id === ligneId);
+        if (inRef) {
+          return inRef.diffType === 'add'
+            ? { ...prev, revenuRef: { ...prev.revenuRef, lignes: prev.revenuRef.lignes.filter(l => l.id !== ligneId) } }
+            : { ...prev, revenuRef: { ...prev.revenuRef, lignes: prev.revenuRef.lignes.map(l => l.id === ligneId ? { ...l, diffType: undefined } : l) } };
+        }
+        const inPercus = prev.revenusPercus.find(l => l.id === ligneId);
+        if (inPercus) {
+          return inPercus.diffType === 'add'
+            ? { ...prev, revenusPercus: prev.revenusPercus.filter(l => l.id !== ligneId) }
+            : { ...prev, revenusPercus: prev.revenusPercus.map(l => l.id === ligneId ? { ...l, diffType: undefined } : l) };
+        }
+        return prev;
+      });
+    } else if (zone === 'infos_dossier') {
+      // For infos_dossier, rejecting means reverting the field to its "before" value
+      const diff = activeDiffs.find(d => d.entityId === ligneId && d.zone === 'infos_dossier' && !d.approved && !d.rejected);
+      if (diff) {
+        // Determine which state setter to use based on the field key
+        const victimeFields = ['nom', 'prenom', 'sexe', 'dateNaissance'];
+        const faitFields = ['typeFait', 'dateAccident', 'premiereConstatation', 'dateConsolidation'];
+        if (victimeFields.includes(ligneId)) {
+          setVictimeData(prev => ({ ...prev, [ligneId]: diff.before ?? '' }));
+        } else if (faitFields.includes(ligneId)) {
+          const stateKey = ligneId === 'typeFait' ? 'type' : ligneId;
+          setFaitGenerateur(prev => ({ ...prev, [stateKey]: diff.before ?? '' }));
+        }
+      }
+    }
+    // Also mark as rejected in activeDiffs
+    setActiveDiffs(prev => prev.map(d => d.entityId === ligneId ? { ...d, rejected: true } : d));
+  };
   const handleSaveLigne = (ligneId, data) => {
     setDsaLignes(prev => prev.map(l => l.id === ligneId ? { ...l, ...data, pieceIds: editingPieceIds, status: 'validated' } : l));
     setEditPanel(null);
@@ -1567,349 +3358,1068 @@ export default function App() {
   const openDsaEditPanel = (ligne) => {
     setEditingPieceIds(ligne.pieceIds || []);
     setSearchPiecesPanel('');
-    setEditPanel({ type: 'dsa-ligne', data: ligne });
+    setEditPanel({ type: 'dsa-ligne', title: 'Éditer la dépense', data: ligne });
   };
 
   // Helper pour ouvrir le panel d'édition PGPA avec initialisation des pieceIds
   const openPgpaEditPanel = (type, ligne) => {
     setEditingPieceIds(ligne.pieceIds || []);
     setSearchPiecesPanel('');
-    setEditPanel({ type, data: ligne });
+    const titles = { 'pgpa-revenu': 'Ajouter/Modifier une période de revenu', 'pgpa-revenu-percu': 'Ajouter/Modifier une période de revenu perçu', 'pgpa-ij': 'Ajouter/Modifier une perte de chance' };
+    setEditPanel({ type, title: titles[type] || 'Édition', data: ligne });
   };
 
-  // ========== SIDEBAR ==========
-  const renderSidebar = () => {
-    const icons = { dossier: Folder, poste: FileText };
-    
-    // Titre dynamique par niveau
-    const getItemTitle = (item) => {
-      if (item.type === 'dossier') {
-        const age = calcAge(victimeData.dateNaissance);
-        return `${victimeData.nom} ${victimeData.prenom} (${age})`;
-      }
-      return item.title;
-    };
-    
-    // Contexte par niveau - seulement ce qui n'est plus visible quand on descend
-    const getContextInfo = (item, index) => {
-      const isLast = index === navStack.length - 1;
-      
-      if (item.type === 'dossier') {
-        // Dates clés seulement si on n'est plus au niveau dossier
-        if (!isLast) {
-          return {
-            line1: `${faitGenerateur.dateAccident} → ${faitGenerateur.dateConsolidation}`
-          };
-        }
-        return null;
-      }
-      
-      if (item.type === 'poste') {
-        // Seulement si on descendrait plus bas (ex: périodes PGPF)
-        return null;
-      }
-      
-      return null;
-    };
-    
+  // ========== TOP BAR ==========
+  const renderTopBar = () => {
+    const dossierTabs = tabsConfig.dossier;
     return (
-      <div className="w-64 bg-white border-r border-zinc-200/60 flex flex-col h-full">
-        {/* Logo Norma - clic = retour liste dossiers */}
-        <button
-          onClick={backToList}
-          className="px-4 py-4 border-b border-zinc-200 hover:bg-zinc-50 transition-colors"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-[14px]">N</span>
-            </div>
-            <span className="font-semibold text-[16px] text-zinc-800">Norma</span>
-          </div>
-        </button>
-        
-        {/* Navigation Stack - Full width avec dividers */}
-        <div className="flex-1 overflow-y-auto">
-          {navStack.map((item, index) => {
-            const isLast = index === navStack.length - 1;
-            const hasSubSection = item.subSection;
-            
-            // === DOSSIER ===
-            if (item.type === 'dossier') {
+      <div className="w-full h-14 bg-white border-b border-stone-200/60 flex items-center justify-between px-4 flex-shrink-0 relative">
+        {/* Left: Home + victim name */}
+        <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
+          <button onClick={backToList} className="w-8 h-8 flex items-center justify-center bg-[#eeece6] rounded-[6px] hover:bg-[#e7e5e3] transition-colors flex-shrink-0">
+            <Folder className="w-4 h-4 text-[#44403c]" strokeWidth={1.5} />
+          </button>
+          <span className="truncate" style={{ fontFamily: "'RL Para Trial Central', Georgia, serif", fontSize: '16px', fontWeight: 500, color: '#292524', letterSpacing: '-0.3px' }}>
+            {victimeData.prenom} {victimeData.nom}
+          </span>
+        </div>
+
+        {/* Center: Tabs — absolutely centered so they never shift */}
+        <div className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 flex items-center pointer-events-none">
+          <div className="pointer-events-auto flex gap-1">
+          <div className="flex gap-1">
+            {dossierTabs.map(tab => {
+              const tabKey = tab.toLowerCase();
+              const isActive = currentLevel?.type === 'dossier'
+                ? currentLevel.activeTab === tabKey
+                : navStack[0]?.activeTab === tabKey;
+
+              // Diff diamond: check activeDiffs for pending diffs in this tab's zone
+              const tabZoneMap = { dossier: 'infos_dossier', chiffrage: 'postes', 'pièces': 'pieces' };
+              const tabZone = tabZoneMap[tabKey];
+              const zoneDiffs = tabZone ? activeDiffs.filter(d => d.zone === tabZone && !d.approved && !d.rejected) : [];
+              // Determine dominant diff type for color
+              const hasAdds = zoneDiffs.some(d => d.type === 'add');
+              const hasEdits = zoneDiffs.some(d => d.type === 'edit');
+              const hasDeletes = zoneDiffs.some(d => d.type === 'delete');
+              const diffDiamondColor = hasEdits ? ROW_DIFF_COLORS.edit : hasDeletes ? ROW_DIFF_COLORS.delete : hasAdds ? ROW_DIFF_COLORS.add : null;
+              const showDiffDiamond = zoneDiffs.length > 0;
+
+              // Legacy streaming dot (only if no diff diamond)
+              const hasExtracted = tab === 'Dossier' && infoDossierStreaming?.fieldsRevealed?.length > 0;
+              const showStreamingDot = hasExtracted && !isActive && !showDiffDiamond;
+
               return (
-                <div key={`${item.id}-${index}`} className="border-b border-zinc-200">
-                  <button 
-                    onClick={() => !isLast && navigateToStackLevel(index)}
-                    className={`w-full px-4 py-4 text-left transition-colors ${!isLast ? 'hover:bg-zinc-50 cursor-pointer' : ''}`}
-                  >
-                    {/* Avatar + Nom */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-[14px] font-medium text-zinc-600">
-                        {victimeData.prenom[0]}{victimeData.nom[0]}
-                      </div>
-                      <div>
-                        <div className="font-medium text-[14px] text-zinc-800">{victimeData.prenom} {victimeData.nom}</div>
-                        <div className="text-[12px] text-zinc-400">{calcAge(victimeData.dateNaissance)} ans · {victimeData.sexe}</div>
-                      </div>
-                    </div>
-                    {/* Dates */}
-                    <div className="mt-3 text-[12px] text-zinc-400 space-y-1">
-                      <div className="flex justify-between">
-                        <span>Accident</span>
-                        <span className="text-zinc-600">{faitGenerateur.dateAccident}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Consolidation</span>
-                        <span className="text-zinc-600">{faitGenerateur.dateConsolidation}</span>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              );
-            }
-            
-            // === POSTE ===
-            const Icon = icons[item.type] || FileText;
-            let montant = null;
-            if (item.type === 'poste') montant = item.montant || (item.id === 'pgpa' ? pgpaTotal : item.id === 'dsa' ? dsaTotal : 0);
-            
-            // Highlight seulement si c'est le dernier ET pas de sous-section
-            const isHighlighted = isLast && !hasSubSection;
-            
-            return (
-              <div key={`${item.id}-${index}`} className="border-b border-zinc-200">
-                <button 
+                <button
+                  key={tab}
                   onClick={() => {
-                    if (isLast && hasSubSection) {
-                      // Retour au sommaire PGPA
-                      setNavStack(prev => {
-                        const newStack = [...prev];
-                        delete newStack[newStack.length - 1].subSection;
-                        return [...newStack];
-                      });
-                    } else if (!isLast) {
-                      navigateToStackLevel(index);
+                    if (currentLevel?.type === 'poste') {
+                      navigateToStackLevel(0);
+                      setTimeout(() => setActiveTab(tab), 0);
+                    } else {
+                      setActiveTab(tab);
                     }
                   }}
-                  className={`w-full px-4 py-3 text-left transition-colors relative ${
-                    isHighlighted 
-                      ? 'bg-gradient-to-r from-zinc-100 to-zinc-50' 
-                      : !isLast || hasSubSection ? 'hover:bg-zinc-50 cursor-pointer' : ''
-                  }`}
+                  className={`px-4 py-3 text-body-medium relative transition-colors ${isActive ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}`}
                 >
-                  {/* Barre active à droite */}
-                  {isHighlighted && (
-                    <div className="absolute right-0 top-2 bottom-2 w-[3px] bg-zinc-800 rounded-full" />
-                  )}
-                  <div className="flex items-center gap-2.5">
-                    <Icon className="w-4 h-4 flex-shrink-0 text-zinc-400" strokeWidth={1.5} />
-                    <span className={`font-medium text-[14px] ${isHighlighted ? 'text-zinc-800' : 'text-zinc-700'}`}>
-                      {item.title}
-                    </span>
-                  </div>
-                  {montant !== null && montant > 0 && (
-                    <div className={`mt-1 ml-[26px] text-[13px] font-semibold tabular-nums ${isHighlighted ? 'text-zinc-600' : 'text-zinc-500'}`}>
-                      {fmt(montant)}
-                    </div>
-                  )}
+                  <span className="flex items-center gap-1.5">
+                    {showDiffDiamond && (
+                      <span className="inline-flex items-center justify-center w-3 h-3 flex-shrink-0">
+                        <span className="w-[6px] h-[6px] flex-shrink-0" style={{
+                          background: diffDiamondColor,
+                          transform: 'rotate(45deg)',
+                          borderRadius: '0.5px',
+                          border: '1px solid rgba(0,0,0,0.1)',
+                          boxShadow: `0 0 0 3px ${diffDiamondColor}20, 0 1px 2px 0 rgba(26,26,26,0.05)`,
+                        }} />
+                      </span>
+                    )}
+                    {tab}
+                    {showStreamingDot && <span className="w-1.5 h-1.5 animate-pulse-scale" style={{ background: '#4a9168', transform: 'rotate(45deg)' }} />}
+                  </span>
+                  {isActive && <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-stone-800 rounded-full" />}
                 </button>
-                
-                {/* Sous-sections PGPA */}
-                {item.id === 'pgpa' && isLast && hasSubSection && (
-                  <div className="px-4 pb-3 space-y-0.5">
-                    {[
-                      { id: 'revenus-ref', label: 'Revenus de référence' },
-                      { id: 'revenus-percus', label: 'Revenus perçus' },
-                      { id: 'ij', label: 'Indemnités journalières' }
-                    ].map(sub => {
-                      const isSubActive = item.subSection === sub.id;
+              );
+            })}
+          </div>
+        </div></div>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2 justify-end">
+          {/* Chiffrage CTAs removed from header — now in content page */}
+          <div className="w-px h-5 bg-[#e7e5e3]" />
+          {chatSidebarOpen ? (
+            <button
+              onClick={() => setChatSidebarOpen(false)}
+              className="p-1.5 hover:bg-stone-100 rounded-lg transition-colors"
+              title="Masquer le chat"
+            >
+              <PanelRightClose className="w-5 h-5 text-stone-500" strokeWidth={1.5} />
+            </button>
+          ) : (
+            <button
+              onClick={() => setChatSidebarOpen(true)}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all hover:shadow-md"
+              title="Ouvrir Plato Assistant"
+              style={{
+                border: '1px solid #aabcd5',
+                boxShadow: '0px 1px 2px 0px rgba(0,0,0,0.05)',
+                backgroundImage: `url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 36' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'><rect x='0' y='0' height='100%25' width='100%25' fill='url(%23grad)' opacity='0.2'/><defs><radialGradient id='grad' gradientUnits='userSpaceOnUse' cx='0' cy='0' r='10' gradientTransform='matrix(0 -3.29 7.6 -0.48 100 18)'><stop stop-color='rgba(185,112,63,1)' offset='0'/><stop stop-color='rgba(203,148,111,0.75)' offset='0.25'/><stop stop-color='rgba(220,183,159,0.5)' offset='0.5'/><stop stop-color='rgba(255,255,255,0)' offset='1'/></radialGradient></defs></svg>"), linear-gradient(90deg, #f8f7f5 0%, #f8f7f5 100%)`,
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                <rect width="16" height="16" rx="3" fill="#E8713A" />
+                <path d="M4.5 11V5.5H7.25C7.75 5.5 8.15 5.65 8.45 5.95C8.75 6.25 8.9 6.6 8.9 7.05C8.9 7.5 8.75 7.85 8.45 8.15C8.15 8.45 7.75 8.6 7.25 8.6H5.8V11H4.5ZM5.8 7.5H7.1C7.3 7.5 7.45 7.45 7.55 7.35C7.65 7.25 7.7 7.1 7.7 6.95C7.7 6.8 7.65 6.65 7.55 6.55C7.45 6.45 7.3 6.4 7.1 6.4H5.8V7.5Z" fill="white" />
+              </svg>
+              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '12px', color: '#50443e', whiteSpace: 'nowrap' }}>
+                PLATO ASSISTANT
+              </span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // ========== CHAT SIDEBAR ==========
+  const handleChatResizeStart = (e) => {
+    e.preventDefault();
+    chatResizing.current = true;
+    const startX = e.clientX;
+    const startWidth = chatWidth;
+    const onMove = (ev) => {
+      const delta = startX - ev.clientX;
+      setChatWidth(Math.min(640, Math.max(300, startWidth + delta)));
+    };
+    const onUp = () => {
+      chatResizing.current = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+
+  // Plato logo icon (orange P) — reusable
+  const PlatoIcon = ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+      <rect width="16" height="16" rx="3" fill="#E8713A" />
+      <path d="M4.5 11V5.5H7.25C7.75 5.5 8.15 5.65 8.45 5.95C8.75 6.25 8.9 6.6 8.9 7.05C8.9 7.5 8.75 7.85 8.45 8.15C8.15 8.45 7.75 8.6 7.25 8.6H5.8V11H4.5ZM5.8 7.5H7.1C7.3 7.5 7.45 7.45 7.55 7.35C7.65 7.25 7.7 7.1 7.7 6.95C7.7 6.8 7.65 6.65 7.55 6.55C7.45 6.45 7.3 6.4 7.1 6.4H5.8V7.5Z" fill="white" />
+    </svg>
+  );
+
+  // PlatoDotGrid is now imported from ./components/ReasoningStepper
+
+  // Chat state
+  const [chatInputValue, setChatInputValue] = useState('');
+  const [chatInputFocused, setChatInputFocused] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [expandedArtifacts, setExpandedArtifacts] = useState({});
+  const [stagedDocs, setStagedDocs] = useState([]);
+  const chatAnalysisTimeouts = useRef([]);
+  const chatExtractionAnnounced = useRef(false);
+  const chatPostesAnnounced = useRef(false);
+  const chatScrollRef = useRef(null);
+  const prevChatCountRef = useRef(0);
+  const chatAnalyzedPostes = useRef(new Set()); // track which postes chat has already analyzed
+
+  // Auto-scroll chat only when new messages are added
+  useEffect(() => {
+    if (chatMessages.length > prevChatCountRef.current && chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+    prevChatCountRef.current = chatMessages.length;
+  }, [chatMessages.length]);
+
+  const renderChatSidebar = () => {
+    const hasContent = chatInputValue.trim().length > 0 || stagedDocs.length > 0;
+
+    return (
+      <>
+        {/* Draggable resize handle */}
+        <div
+          className="w-[6px] flex-shrink-0 cursor-col-resize group relative border-l border-r border-[#e7e5e3]"
+          style={{ backgroundColor: '#F8F7F5' }}
+          onMouseDown={handleChatResizeStart}
+        >
+          <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-stone-300/30 transition-colors" />
+        </div>
+        <div className="flex-shrink-0 flex flex-col h-full" style={{ width: chatWidth, backgroundColor: '#F8F7F5' }}>
+          {/* Header — Badge */}
+          <div className="px-4 h-12 border-b flex items-center gap-2.5 flex-shrink-0" style={{ borderColor: '#e7e5e3' }}>
+            <PlatoIcon />
+            <span className="flex-1" style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '12px', color: '#78716c', lineHeight: '32px' }}>
+              PLATO MASTER
+            </span>
+          </div>
+
+          {/* Chat messages area */}
+          <div
+            className="flex-1 overflow-y-auto p-5 flex flex-col gap-2.5"
+            style={{ backgroundColor: '#F8F7F5' }}
+            ref={chatScrollRef}
+          >
+            {chatMessages.length === 0 && (
+              <div className="flex flex-col items-center justify-center flex-1 py-12 px-6">
+                <PlatoIcon />
+                <p style={{ fontSize: 14, color: '#a8a29e', textAlign: 'center', marginTop: 12, lineHeight: '18px' }}>
+                  Ajoutez un poste depuis l'onglet Chiffrage ou demandez-moi directement de calculer un préjudice.
+                </p>
+              </div>
+            )}
+            {chatMessages.map((msg, i) => {
+              // User message bubble
+              if (msg.type === 'user') {
+                return (
+                  <div key={i} className="flex flex-col items-end pb-4" style={{ paddingLeft: 32 }}>
+                    <div
+                      className="w-full"
+                      style={{
+                        backgroundColor: '#292524',
+                        borderRadius: 6,
+                        padding: '10px 12px',
+                        boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <p style={{ fontSize: 14, lineHeight: '20px', color: 'white', margin: 0 }}>{msg.text}</p>
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {msg.attachments.map((doc, di) => (
+                            <span key={di} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-white/10 text-white/80">
+                              <FileText className="w-3 h-3" />{doc.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', boxShadow: 'inset 0px -5px 8px 0px rgba(255,255,255,0.12)', pointerEvents: 'none' }} />
+                    </div>
+                  </div>
+                );
+              }
+
+              // AI thinking status — collapsible stepper
+              if (msg.type === 'ai-thinking') {
+                return (
+                  <ReasoningStepper
+                    key={i}
+                    steps={msg.steps || []}
+                    label={msg.label}
+                    status={msg.status || (msg.done ? 'done' : 'streaming')}
+                    summary={msg.summary}
+                    counters={msg.counters}
+                    expanded={!!msg.expanded}
+                    onToggle={() => setChatMessages(prev => prev.map((m, mi) => mi === i ? { ...m, expanded: !m.expanded } : m))}
+                  />
+                );
+              }
+
+              // Tool call chip (collapsed)
+              if (msg.type === 'tool-call') {
+                return (
+                  <div key={i} className="flex items-center gap-2 py-0.5" style={{ paddingRight: 20 }}>
+                    <div
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer hover:bg-emerald-100/80 transition-colors"
+                      style={{ backgroundColor: '#ecfdf5', border: '1px solid #d1fae5' }}
+                      onClick={() => {
+                        setChatMessages(prev => prev.map((m, mi) => mi === i ? { ...m, expanded: !m.expanded } : m));
+                      }}
+                    >
+                      <div className="w-1.5 h-1.5" style={{ background: '#34d399', transform: 'rotate(45deg)' }} />
+                      <span style={{ fontSize: 11, fontWeight: 500, color: '#065f46', fontFamily: "'IBM Plex Mono', monospace" }}>{msg.tool}</span>
+                      {msg.detail && <span style={{ fontSize: 11, color: '#047857' }}>— {msg.detail}</span>}
+                    </div>
+                    {msg.expanded && msg.expandedText && (
+                      <span style={{ fontSize: 12, color: '#78716c' }}>{msg.expandedText}</span>
+                    )}
+                  </div>
+                );
+              }
+
+              // Upload CTA (agent asks for documents)
+              if (msg.type === 'upload-cta') {
+                return (
+                  <div key={i} className="flex flex-col gap-2 items-start pb-3" style={{ paddingRight: 20 }}>
+                    <p style={{ fontSize: 14, lineHeight: '20px', color: '#292524', margin: 0 }}>{msg.text}</p>
+                    <button
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-stone-100"
+                      style={{ backgroundColor: '#f5f5f4', color: '#44403c', border: '1px solid #e7e5e3' }}
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      Ajouter des pièces
+                    </button>
+                  </div>
+                );
+              }
+
+              // Artifact cards (diff-aware, one per poste, ghost expand/collapse)
+              if (msg.type === 'artifact-cards') {
+                const iconMap = {
+                  FileText: FileText, Calculator: Calculator, ClipboardList: ClipboardList,
+                  HeartPulse: HeartPulse, Wallet: Wallet, Activity: Activity,
+                  Receipt: Receipt, Scale: Scale, Brain: Brain, ShieldCheck: ShieldCheck,
+                  Landmark: Landmark, Scissors: Scissors, Settings: Settings,
+                  User: User, Paperclip: Paperclip,
+                };
+                const getDiffsForCard = (card) => card.actionIds ? activeDiffs.filter(d => card.actionIds.includes(d.actionId) && d.zone === card.zone) : [];
+                const getDiffSummary = (diffs) => {
+                  const pending = diffs.filter(d => !d.approved && !d.rejected);
+                  return {
+                    adds: pending.filter(d => d.type === 'add').length,
+                    edits: pending.filter(d => d.type === 'edit').length,
+                    deletes: pending.filter(d => d.type === 'delete').length,
+                  };
+                };
+                // Group cards by zone for dividers between subgroups
+                const zoneGroups = [];
+                let currentZone = null;
+                msg.cards.forEach(card => {
+                  if (card.zone !== currentZone) {
+                    zoneGroups.push([]);
+                    currentZone = card.zone;
+                  }
+                  zoneGroups[zoneGroups.length - 1].push(card);
+                });
+
+                return (
+                  <div key={i} className="flex flex-col gap-2 pb-3 w-full" style={{ paddingRight: 20 }}>
+                    {zoneGroups.map((group, gi) => (
+                      <React.Fragment key={gi}>
+                        {gi > 0 && <div style={{ height: 1, background: '#e7e5e3', margin: '4px 0' }} />}
+                        {group.map(card => {
+                      const CardIcon = iconMap[card.icon] || FileText;
+                      const isExpanded = expandedArtifacts[card.id];
+                      const diffs = getDiffsForCard(card);
+                      const summary = getDiffSummary(diffs);
+                      const hasDiffs = diffs.length > 0;
+                      const cardTitle = card.posteLabel || ZONE_LABELS[card.zone] || card.title || card.zone;
+                      // Build subtitle chips from diff counts
+                      const diffChips = [];
+                      if (summary.adds > 0) diffChips.push({ icon: Plus, count: summary.adds, color: ROW_DIFF_COLORS.add });
+                      if (summary.edits > 0) diffChips.push({ icon: Pencil, count: summary.edits, color: ROW_DIFF_COLORS.edit });
+                      if (summary.deletes > 0) diffChips.push({ icon: Trash2, count: summary.deletes, color: ROW_DIFF_COLORS.delete });
+                      const subtitleText = card.subtitle || '';
+                      const allResolved = diffs.length > 0 && diffs.every(d => d.approved || d.rejected);
+                      const approvedCount = diffs.filter(d => d.approved).length;
+                      const rejectedCount = diffs.filter(d => d.rejected).length;
+                      const resolutionType = allResolved ? (rejectedCount === 0 ? 'all-approved' : approvedCount === 0 ? 'all-rejected' : 'mixed') : null;
+
                       return (
-                        <button
-                          key={sub.id}
-                          onClick={() => {
-                            setNavStack(prev => {
-                              const newStack = [...prev];
-                              newStack[newStack.length - 1] = { ...newStack[newStack.length - 1], subSection: sub.id };
-                              return newStack;
-                            });
-                          }}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors relative ${
-                            isSubActive
-                              ? 'bg-gradient-to-r from-zinc-100 to-zinc-50 font-medium text-zinc-800'
-                              : 'text-zinc-500 hover:bg-zinc-100'
-                          }`}
+                        <div
+                          key={card.id}
+                          className="group/card rounded-lg border border-[#e7e5e3] transition-all duration-300 hover:border-[#d6d3d1] bg-white overflow-hidden"
+                          style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -2px 4px rgba(0,0,0,0.03)', opacity: allResolved ? 0.85 : 1, transition: 'opacity 0.3s ease' }}
                         >
-                          {isSubActive && (
-                            <div className="absolute right-1 top-1 bottom-1 w-[3px] bg-zinc-800 rounded-full" />
+                          {/* Header row — click to navigate to zone */}
+                          <div
+                            className="flex items-stretch cursor-pointer select-none group/header"
+                            onClick={() => handleNavigateToZone(card.zone, card.navigateTo)}
+                          >
+                            <div
+                              className="w-10 flex items-center justify-center flex-shrink-0"
+                              style={{ background: allResolved ? (resolutionType === 'all-approved' ? '#ecfdf5' : resolutionType === 'all-rejected' ? '#fef2f2' : '#f5f5f4') : '#f5f5f4' }}
+                            >
+                              <CardIcon className="w-3.5 h-3.5" style={{ color: allResolved ? (resolutionType === 'all-approved' ? ROW_DIFF_COLORS.add : resolutionType === 'all-rejected' ? ROW_DIFF_COLORS.delete : '#78716c') : '#78716c' }} />
+                            </div>
+                            <div className="flex items-center gap-3 flex-1 min-w-0" style={{ padding: '12px 14px 12px 12px' }}>
+                            <div className="flex-1 min-w-0">
+                              <div className="group-hover/header:underline" style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '18px', textDecorationColor: '#d6d3d1' }}>{cardTitle}</div>
+                              {allResolved ? (
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, lineHeight: '14px', color: resolutionType === 'all-approved' ? ROW_DIFF_COLORS.add : resolutionType === 'all-rejected' ? ROW_DIFF_COLORS.delete : '#78716c' }}>
+                                    {resolutionType === 'all-approved' ? 'Tout accepté' : resolutionType === 'all-rejected' ? 'Tout rejeté' : `${approvedCount}/${diffs.length} accepté${approvedCount > 1 ? 's' : ''}`}
+                                  </span>
+                                </div>
+                              ) : diffChips.length > 0 ? (
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  {diffChips.map((chip, ci) => {
+                                    const ChipIcon = chip.icon;
+                                    return (
+                                      <span key={ci} className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: chip.color, fontWeight: 500, lineHeight: '14px' }}>
+                                        <ChipIcon className="w-2.5 h-2.5" strokeWidth={2.5} />{chip.count}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              ) : subtitleText ? (
+                                <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', lineHeight: '16px' }}>{subtitleText}</div>
+                              ) : null}
+                            </div>
+                            {/* Expand/collapse toggle — stops propagation so it doesn't navigate */}
+                            {hasDiffs ? (
+                              <button
+                                className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0 transition-colors hover:bg-[#e7e5e3]"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedArtifacts(prev => ({ ...prev, [card.id]: !prev[card.id] }));
+                                }}
+                                title={isExpanded ? 'Masquer les détails' : 'Voir les détails'}
+                              >
+                                <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" style={{ color: '#78716c', transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' }} />
+                              </button>
+                            ) : null}
+                            </div>
+                          </div>
+
+                          {/* Expanded diff rows — remain visible for review after resolution */}
+                          {isExpanded && hasDiffs && (
+                            <div style={{ borderTop: '1px solid #f0efed' }}>
+                              {diffs.map((diff, di) => {
+                                const dotColor = ROW_DIFF_COLORS[diff.type] || ROW_DIFF_COLORS.edit;
+                                // Multi-field rendering
+                                if (diff.fields && diff.fields.length > 0) {
+                                  return (
+                                    <div
+                                      key={di}
+                                      className={`group/diff cursor-pointer transition-colors ${diff.approved ? 'diff-row-accepted' : diff.rejected ? 'diff-row-rejected' : 'hover:bg-[#fafaf9]'}`}
+                                      style={{ padding: '8px 14px', fontSize: 12, lineHeight: '18px', borderBottom: di < diffs.length - 1 ? '1px solid #f0efed' : 'none' }}
+                                      onClick={() => handleNavigateToEntity(diff.entityId, card.zone, card.navigateTo)}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        {diff.approved
+                                          ? <Check className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.add }} strokeWidth={3} />
+                                          : diff.rejected
+                                            ? (diff.type === 'delete'
+                                              ? <RotateCcw className="w-2.5 h-2.5 flex-shrink-0" style={{ color: '#a8a29e' }} strokeWidth={2.5} />
+                                              : <X className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.delete }} strokeWidth={3} />)
+                                            : <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dotColor, transform: 'rotate(45deg)' }} />
+                                        }
+                                        <span style={{ color: (diff.approved || diff.rejected) ? '#a8a29e' : diff.type === 'delete' ? '#a8a29e' : '#44403c', fontWeight: 500, flex: 1, textDecoration: (diff.type === 'delete' && !diff.rejected) || (diff.rejected && diff.type !== 'delete') ? 'line-through' : 'none' }}>{diff.entityLabel}</span>
+                                        {!diff.approved && !diff.rejected && (
+                                          <span className="flex items-center gap-1.5 opacity-0 group-hover/diff:opacity-100 transition-opacity flex-shrink-0">
+                                            <button
+                                              className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#ecfdf5] hover:border-[#a5c9b7]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                                              onClick={(e) => { e.stopPropagation(); setActiveDiffs(prev => prev.filter(d => !(d.entityId === diff.entityId && d.actionId === diff.actionId))); }}
+                                              title="Approuver"
+                                            >
+                                              <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                                            </button>
+                                            <button
+                                              className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#fef2f2] hover:border-[#cf9d9d]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                                              onClick={(e) => { e.stopPropagation(); setActiveDiffs(prev => prev.map(d => d.entityId === diff.entityId && d.actionId === diff.actionId ? { ...d, rejected: true } : d)); }}
+                                              title="Rejeter"
+                                            >
+                                              <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                                            </button>
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 items-center" style={{ paddingLeft: 14 }}>
+                                        {diff.fields.map((f, fi) => {
+                                          const badgeStyle = f.badge ? { display: 'inline-flex', alignItems: 'center', padding: '1px 6px', borderRadius: 6, fontSize: 11, fontWeight: 500, lineHeight: '16px', ...(f.badge === 'success' ? { background: '#cce6d9', color: '#064e3b' } : { background: '#eeece6', color: '#44403c' }) } : null;
+                                          const renderVal = (val, style) => f.badge
+                                            ? <span style={{ ...badgeStyle, ...style }}>{val}</span>
+                                            : <span style={style}>{val}</span>;
+                                          return (
+                                          <span key={fi} className="inline-flex items-center gap-1" style={{ fontSize: 12, color: (diff.approved || diff.rejected) ? '#a8a29e' : '#78716c', lineHeight: '16px' }}>
+                                            <span style={{ color: '#a8a29e' }}>{f.label}:</span>{' '}
+                                            {diff.rejected ? (
+                                              diff.type === 'delete' ? (
+                                                renderVal(f.before || f.after, { color: '#78716c' })
+                                              ) : diff.type === 'add' ? (
+                                                <>{f.after && renderVal(f.after, { textDecoration: 'line-through', color: '#a8a29e', opacity: f.badge ? 0.5 : 1 })}</>
+                                              ) : (<>
+                                                {f.after && renderVal(f.after, { textDecoration: 'line-through', color: '#a8a29e', opacity: f.badge ? 0.5 : 1 })}
+                                                {f.before && <span style={{ color: '#a8a29e' }}> → </span>}
+                                                {f.before && renderVal(f.before, { color: '#78716c' })}
+                                              </>)
+                                            ) : (<>
+                                              {f.before && renderVal(f.before, { textDecoration: 'line-through', color: '#a8a29e', opacity: f.badge ? 0.5 : 1 })}
+                                              {f.before && f.after && <span style={{ color: '#a8a29e' }}> → </span>}
+                                              {f.after && renderVal(f.after, f.badge ? {} : { color: diff.approved ? '#a8a29e' : '#44403c', fontWeight: 500 })}
+                                            </>)}
+                                            {/* Hypothese peels */}
+                                            {f.variants && f.variants.length > 1 && !diff.approved && !diff.rejected && (
+                                              <span className="inline-flex items-center gap-1 ml-1.5">
+                                                {f.variants.map((v, vi) => (
+                                                  <span key={vi} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ fontSize: 10, fontWeight: 500, background: vi === 0 ? '#eef3fa' : '#f5f5f4', border: `1px solid ${vi === 0 ? '#aabcd5' : '#e7e5e3'}`, color: vi === 0 ? '#1e3a8a' : '#78716c', boxShadow: vi === 0 ? '0 1px 2px rgba(0,0,0,0.06)' : 'none' }}>
+                                                    <CircleArrowUp className="w-2.5 h-2.5" />{v.source}: {v.value}
+                                                  </span>
+                                                ))}
+                                              </span>
+                                            )}
+                                          </span>
+                                        ); })}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                // Legacy single-value rendering
+                                return (
+                                  <div
+                                    key={di}
+                                    className={`group/diff flex items-center gap-2 cursor-pointer transition-colors ${diff.approved ? 'diff-row-accepted' : diff.rejected ? 'diff-row-rejected' : 'hover:bg-[#fafaf9]'}`}
+                                    style={{ padding: '8px 14px', fontSize: 12, lineHeight: '18px', borderBottom: di < diffs.length - 1 ? '1px solid #f0efed' : 'none' }}
+                                    onClick={() => handleNavigateToEntity(diff.entityId, card.zone, card.navigateTo)}
+                                  >
+                                    {diff.approved
+                                      ? <Check className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.add }} strokeWidth={3} />
+                                      : diff.rejected
+                                        ? <X className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.delete }} strokeWidth={3} />
+                                        : <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dotColor, transform: 'rotate(45deg)' }} />
+                                    }
+                                    <span style={{ color: (diff.approved || diff.rejected) ? '#a8a29e' : '#78716c', fontWeight: 500, flexShrink: 0, textDecoration: (diff.type === 'delete' && !diff.rejected) || (diff.rejected && diff.type !== 'delete') ? 'line-through' : 'none' }}>{diff.entityLabel}</span>
+                                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                      {diff.rejected ? (
+                                        diff.type === 'delete' ? (
+                                          <span className="truncate" style={{ color: '#78716c' }}>{diff.before || diff.after}</span>
+                                        ) : diff.type === 'add' ? (
+                                          <span className="truncate" style={{ color: '#a8a29e', textDecoration: 'line-through' }}>{diff.after}</span>
+                                        ) : (<>
+                                          <span className="truncate" style={{ color: '#a8a29e', textDecoration: 'line-through' }}>{diff.after}</span>
+                                          {diff.before && <><span style={{ color: '#a8a29e' }}>→</span><span className="truncate" style={{ color: '#78716c' }}>{diff.before}</span></>}
+                                        </>)
+                                      ) : (<>
+                                        {diff.before && <span className="truncate" style={{ color: '#a8a29e', textDecoration: 'line-through' }}>{diff.before}</span>}
+                                        {diff.before && <span style={{ color: '#a8a29e' }}>→</span>}
+                                        <span className="truncate" style={{ color: diff.approved ? '#a8a29e' : '#292524', fontWeight: 500 }}>{diff.after}</span>
+                                      </>)}
+                                    </div>
+                                    {!diff.approved && !diff.rejected && (
+                                      <span className="flex items-center gap-1.5 opacity-0 group-hover/diff:opacity-100 transition-opacity flex-shrink-0">
+                                        <button className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#ecfdf5] hover:border-[#a5c9b7]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} onClick={(e) => { e.stopPropagation(); setActiveDiffs(prev => prev.filter(d => !(d.entityId === diff.entityId && d.actionId === diff.actionId))); }} title="Approuver">
+                                          <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                                        </button>
+                                        <button className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#fef2f2] hover:border-[#cf9d9d]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} onClick={(e) => { e.stopPropagation(); setActiveDiffs(prev => prev.map(d => d.entityId === diff.entityId && d.actionId === diff.actionId ? { ...d, rejected: true } : d)); }} title="Rejeter">
+                                          <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                                        </button>
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
                           )}
-                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isSubActive ? 'bg-zinc-800' : 'bg-zinc-300'}`} />
-                          <span>{sub.label}</span>
-                        </button>
+
+                          {/* Footer — bulk actions (hidden once all resolved) */}
+                          {hasDiffs && !allResolved && (
+                            <div style={{ borderTop: '1px solid #f0efed' }} className="flex items-center">
+                              {/* Accept all */}
+                              <button
+                                className="flex-1 flex items-center justify-center gap-1.5 py-2 transition-colors hover:bg-[#fafaf9]"
+                                style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveDiffs(prev => prev.filter(d => !(card.actionIds?.includes(d.actionId) && d.zone === card.zone)));
+                                }}
+                                title="Accepter tous les changements"
+                              >
+                                <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                                Tout accepter
+                              </button>
+                              <div style={{ width: 1, height: 16, background: '#e7e5e3' }} />
+                              {/* Reject all */}
+                              <button
+                                className="flex-1 flex items-center justify-center gap-1.5 py-2 transition-colors hover:bg-[#fafaf9]"
+                                style={{ fontSize: 12, fontWeight: 500, color: '#a8a29e' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveDiffs(prev => prev.map(d => {
+                                    if (card.actionIds?.includes(d.actionId) && d.zone === card.zone) return { ...d, rejected: true };
+                                    return d;
+                                  }));
+                                }}
+                                title="Annuler tous les changements"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                Tout annuler
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          
-          {/* Paramètres du poste */}
-          {currentLevel.type === 'poste' && (
-            <div className="px-4 py-3 border-b border-zinc-200">
-              <div className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-2">
-                Paramètres
-              </div>
-              <div className="space-y-2">
-                {currentLevel.id === 'dsa' && (
-                  <div>
-                    <label className="block text-[12px] text-zinc-500 mb-1">Revalorisation</label>
-                    <select 
-                      defaultValue="ipc-annuel"
-                      className="w-full px-2.5 py-1.5 text-[13px] border border-zinc-200 rounded-md bg-white"
-                    >
-                      <option value="ipc-annuel">IPC annuel</option>
-                      <option value="ipc-mensuel">IPC mensuel</option>
-                      <option value="aucune">Aucune</option>
-                    </select>
-                  </div>
-                )}
-                {currentLevel.id === 'pgpa' && (
-                  <div>
-                    <label className="block text-[12px] text-zinc-500 mb-1">Revalorisation</label>
-                    <select 
-                      value={pgpaData.revenuRef.revalorisation}
-                      onChange={(e) => setPgpaData(prev => ({ 
-                        ...prev, 
-                        revenuRef: { ...prev.revenuRef, revalorisation: e.target.value } 
-                      }))}
-                      className="w-full px-2.5 py-1.5 text-[13px] border border-zinc-200 rounded-md bg-white"
-                    >
-                      <option value="ipc-annuel">IPC annuel</option>
-                      <option value="smic-horaire">SMIC horaire</option>
-                      <option value="aucune">Aucune</option>
-                    </select>
-                  </div>
-                )}
-                {currentLevel.id === 'dft' && (
-                  <div>
-                    <label className="block text-[12px] text-zinc-500 mb-1">Base journalière</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        value={chiffrageParams.baseJournaliereDFT}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setChiffrageParams(prev => ({ ...prev, baseJournaliereDFT: val }));
-                        }}
-                        className="w-full px-2.5 py-1.5 pr-10 text-[13px] border border-zinc-200 rounded-md"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-zinc-400">€/j</span>
-                    </div>
-                    <p className="text-[11px] text-zinc-400 mt-1">Utilisée par défaut pour chaque ligne</p>
-                  </div>
-                )}
-                {/* Notes / Argumentaire */}
-                {(currentLevel.id === 'dsa' || currentLevel.id === 'dft' || currentLevel.id === 'pgpa') && (
-                  <div className="mt-3">
-                    <label className="block text-[12px] text-zinc-500 mb-1">Notes / Argumentaire</label>
-                    <textarea
-                      value={posteNotes[currentLevel.id] || ''}
-                      onChange={(e) => setPosteNotes(prev => ({ ...prev, [currentLevel.id]: e.target.value }))}
-                      rows={3}
-                      className="w-full px-2.5 py-1.5 text-[13px] border border-zinc-200 rounded-md resize-none"
-                      placeholder="Notes sur ce poste..."
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          
-          {/* Taxonomie des postes */}
-          {currentLevel.type === 'dossier' && currentLevel.activeTab === 'chiffrage' && (
-            <div className="px-4 py-3 border-t border-zinc-200">
-              <div className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-2">Postes</div>
-
-              {/* Search */}
-              <div className="relative mb-3">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
-                <input type="text" value={searchPostes} onChange={(e) => setSearchPostes(e.target.value)}
-                  placeholder="Rechercher un poste..."
-                  className="w-full pl-8 pr-7 py-1.5 text-[12px] border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
-                {searchPostes && (
-                  <button onClick={() => setSearchPostes('')} className="absolute right-2 top-1/2 -translate-y-1/2">
-                    <X className="w-3 h-3 text-zinc-400" />
-                  </button>
-                )}
-              </div>
-
-              {/* Taxonomy */}
-              {(() => {
-                const filtered = getFilteredTaxonomy();
-                if (filtered.length === 0) return <p className="text-[12px] text-zinc-400 text-center py-4">Aucun poste trouvé</p>;
-                return (
-                  <div className="space-y-3">
-                    {filtered.map(section => (
-                      <div key={section.section}>
-                        <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">{section.section}</div>
-                        <div className="space-y-0.5">
-                          {section.categories.map(cat => {
-                            const isExpanded = expandedTaxoCategories.includes(cat.id) || searchPostes.trim() !== '';
-                            const sorted = [...cat.postes.filter(p => p.enabled), ...cat.postes.filter(p => !p.enabled)];
-                            return (
-                              <div key={cat.id}>
-                                <button onClick={() => setExpandedTaxoCategories(prev => prev.includes(cat.id) ? prev.filter(id => id !== cat.id) : [...prev, cat.id])}
-                                  className="w-full flex items-center gap-1.5 py-1.5 text-[11px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors">
-                                  {isExpanded ? <ChevronDown className="w-3 h-3 flex-shrink-0" strokeWidth={2} /> : <ChevronRight className="w-3 h-3 flex-shrink-0" strokeWidth={2} />}
-                                  <span className="truncate text-left">{cat.title}</span>
-                                </button>
-                                {isExpanded && (
-                                  <div className="ml-4 space-y-0.5">
-                                    {sorted.map(p => {
-                                      const montant = getPosteMontant(p.id);
-                                      if (p.enabled) {
-                                        return (
-                                          <button key={p.id} onClick={() => navigateTo({ id: p.id, title: p.acronym, fullTitle: p.label, type: 'poste', montant: montant || 0 })}
-                                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors hover:bg-zinc-100 group">
-                                            {p.acronym && <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold bg-zinc-100 text-zinc-700 rounded flex-shrink-0 group-hover:bg-zinc-200">{p.acronym}</span>}
-                                            <span className="text-[12px] text-zinc-700 truncate flex-1">{p.label}</span>
-                                            {montant != null && montant > 0 && <span className="text-[11px] font-medium text-zinc-500 tabular-nums flex-shrink-0">{fmt(montant)}</span>}
-                                          </button>
-                                        );
-                                      }
-                                      return (
-                                        <div key={p.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-default">
-                                          <span className="text-[12px] text-zinc-300 truncate">{p.label}</span>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
+                      </React.Fragment>
                     ))}
                   </div>
                 );
-              })()}
+              }
+
+              // AI proposal — agent proposes, user validates
+              if (msg.type === 'ai-proposal') {
+                return (
+                  <div key={i} className="flex flex-col gap-3 items-start pb-4" style={{ paddingRight: 20 }}>
+                    <p style={{ fontSize: 14, lineHeight: '20px', color: '#292524', margin: 0 }}>{msg.text}</p>
+                    <button
+                      onClick={() => {
+                        // Replace proposal with confirmed message
+                        setChatMessages(prev => prev.map((m, mi) => mi === i ? { type: 'ai', text: msg.text } : m));
+                        // Trigger calculation
+                        handlePosteCalculation(msg.posteId);
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
+                      style={{ backgroundColor: '#292524', color: 'white', boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Lancer le calcul {msg.posteName}
+                    </button>
+                  </div>
+                );
+              }
+
+              // AI response with thinking steps
+              if (msg.type === 'ai') {
+                return (
+                  <div key={i} className="flex flex-col gap-3 items-start pb-4" style={{ paddingRight: 20 }}>
+                    {msg.thinkingLabel && (
+                      <div className="flex flex-col gap-1.5 w-full">
+                        <div className="flex items-center gap-3" style={{ paddingRight: 20 }}>
+                          <p style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'pre', margin: 0 }}>
+                            {msg.thinkingLabel}{'  >'}
+                          </p>
+                        </div>
+                        {msg.text && <p style={{ fontSize: 14, lineHeight: '20px', color: '#292524', margin: 0 }}>{msg.text}</p>}
+                      </div>
+                    )}
+                    {!msg.thinkingLabel && msg.text && (
+                      <p style={{ fontSize: 14, lineHeight: '20px', color: '#292524', margin: 0 }}>{msg.text}</p>
+                    )}
+
+                    {/* Action icons */}
+                    <div className="flex items-center gap-2.5">
+                      <button className="p-0 bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100 transition-opacity">
+                        <Copy className="w-3.5 h-3.5 text-[#78716c]" />
+                      </button>
+                      <button className="p-0 bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100 transition-opacity">
+                        <ThumbsUp className="w-3.5 h-3.5 text-[#78716c]" />
+                      </button>
+                      <button className="p-0 bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100 transition-opacity">
+                        <ThumbsDown className="w-3.5 h-3.5 text-[#78716c]" />
+                      </button>
+                      <button className="p-0 bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100 transition-opacity">
+                        <RotateCcw className="w-3.5 h-3.5 text-[#78716c]" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })}
+          </div>
+
+          {/* Bottom input — Chat Input component */}
+          <div
+            className="px-3 pb-3 flex-shrink-0"
+            style={{ backgroundColor: '#F8F7F5' }}
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const files = Array.from(e.dataTransfer.files);
+              if (files.length > 0) {
+                setStagedDocs(prev => [...prev, ...files.map(f => ({ name: f.name, size: f.size }))]);
+              }
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                borderRadius: 2,
+                border: hasContent ? '2px solid #aabcd5' : '2px solid white',
+                boxShadow: hasContent
+                  ? '0px 0px 0px 0px transparent, 0px 4px 6px -4px rgba(26,26,26,0.05), 0px 8px 10px -1px rgba(26,26,26,0.05)'
+                  : '0px 0px 0px 1px #d6d3d1, 0px 4px 6px -4px rgba(26,26,26,0.05), 0px 8px 10px -1px rgba(26,26,26,0.05)',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {/* Staged document chips */}
+              {stagedDocs.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 px-3 pt-2.5">
+                  {stagedDocs.map((doc, di) => (
+                    <span key={di} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium" style={{ backgroundColor: '#f5f5f4', color: '#44403c', border: '1px solid #e7e5e3' }}>
+                      <FileText className="w-3 h-3 text-[#78716c]" />
+                      {doc.name}
+                      <button onClick={() => setStagedDocs(prev => prev.filter((_, i) => i !== di))} className="ml-0.5 hover:text-red-500 transition-colors">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              {/* Blocked indicator */}
+              {chatBlocked && (
+                <div className="flex items-center gap-2 px-3 py-1.5" style={{ borderBottom: '1px solid #e7e5e3' }}>
+                  <ThinkingDots />
+                  <span style={{ fontSize: 11, color: '#a8a29e' }}>Plato analyse vos documents...</span>
+                </div>
+              )}
+              {/* Text area */}
+              <div style={{ padding: '12px 12px 32px 12px' }}>
+                <textarea
+                  className="w-full text-[14px] resize-none focus:outline-none"
+                  style={{ color: chatInputValue ? '#11181c' : '#78716c', lineHeight: '20px', minHeight: 20, maxHeight: 120, opacity: chatBlocked ? 0.5 : 1, cursor: chatBlocked ? 'not-allowed' : undefined }}
+                  placeholder={chatBlocked ? 'Plato analyse vos documents...' : 'Demander à Plato Master de calculer, rechercher des JP, rédiger des actes...'}
+                  value={chatInputValue}
+                  onChange={(e) => { if (!chatBlocked) setChatInputValue(e.target.value); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!chatBlocked) handleChatSend(); } }}
+                  onFocus={() => setChatInputFocused(true)}
+                  onBlur={() => setChatInputFocused(false)}
+                  rows={1}
+                  disabled={chatBlocked}
+                />
+              </div>
+
+              {/* Bottom bar with actions */}
+              <div
+                className="flex items-center justify-between px-3 py-3"
+                style={{
+                  background: (hasContent && !chatBlocked) ? 'linear-gradient(to bottom, white 44.66%, #eeece6 100%)' : 'transparent',
+                }}
+              >
+                <div className="flex items-center gap-0.5">
+                  <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors" disabled={chatBlocked} style={{ opacity: chatBlocked ? 0.4 : 1 }}>
+                    <Paperclip className="w-4 h-4 text-[#78716c]" />
+                  </button>
+                  <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors" disabled={chatBlocked} style={{ opacity: chatBlocked ? 0.4 : 1 }}>
+                    <Lightbulb className="w-4 h-4 text-[#78716c]" />
+                  </button>
+                </div>
+                <button
+                  className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
+                  style={{
+                    backgroundColor: (hasContent && !chatBlocked) ? '#b9703f' : '#eeece6',
+                    boxShadow: (hasContent && !chatBlocked) ? '0px 1px 2px 0px rgba(26,26,26,0.05)' : 'none',
+                    opacity: (hasContent && !chatBlocked) ? 1 : 0.5,
+                    cursor: (hasContent && !chatBlocked) ? 'pointer' : 'default',
+                  }}
+                  onClick={(hasContent && !chatBlocked) ? handleChatSend : undefined}
+                >
+                  <ArrowUp className="w-4 h-4" style={{ color: (hasContent && !chatBlocked) ? 'white' : '#78716c' }} />
+                </button>
+              </div>
             </div>
-          )}
+          </div>
         </div>
-        
-        {/* User section - bottom */}
-        <div className="border-t border-zinc-200 px-4 py-3">
-          <button className="w-full flex items-center gap-3 p-2 -m-2 rounded-lg hover:bg-zinc-50 transition-colors">
-            <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-[12px] font-medium text-zinc-600">
-              JD
+      </>
+    );
+  };
+
+  // ========== CONTENT SUB-HEADER ==========
+  const renderContentSubHeader = () => {
+    if (!currentLevel) return null;
+
+    // Poste level: back arrow + badge + title + amount + CTA
+    if (currentLevel.type === 'poste' && !currentLevel.subSection) {
+      const posteAmounts = { dsa: dsaTotal, pgpa: pgpaTotal, dft: dftTotal };
+      const posteAmount = posteAmounts[currentLevel.id] || 0;
+      const isRevalActive = enabledParams['revaloriser'];
+      return (
+        <div className="border-b border-[#e7e5e3] bg-white flex-shrink-0">
+          <div className="h-[52px] px-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button onClick={() => navigateToStackLevel(navStack.length - 2)} className="p-1 hover:bg-stone-100 rounded transition-colors">
+                <ChevronRight className="w-4 h-4 rotate-180 text-[#a8a29e]" strokeWidth={1.5} />
+              </button>
+              <span className="inline-flex items-center px-2 py-0.5 text-caption-medium font-semibold border border-[#e7e5e3] text-[#292524] rounded-[6px]">
+                {currentLevel.title}
+              </span>
+              <span className="text-[14px] font-medium text-[#292524]">{currentLevel.fullTitle || currentLevel.title}</span>
             </div>
-            <div className="flex-1 text-left">
-              <div className="text-[13px] font-medium text-zinc-700">Jean Durand</div>
-              <div className="text-[11px] text-zinc-400">Avocat</div>
+            <div className="flex items-center gap-3">
+              <span style={serifAmountStyle} className="text-[#292524]">{fmt(posteAmount)}</span>
+              <div className="w-px h-5 bg-[#e7e5e3]" />
+              <button onClick={() => setShowExportModal(true)} className="h-8 flex items-center gap-2 px-4 text-[14px] font-medium text-white bg-[#292524] rounded-lg hover:bg-[#44403c] transition-colors" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                Copier chiffrage
+              </button>
             </div>
-            <Settings className="w-4 h-4 text-zinc-400" strokeWidth={1.5} />
-          </button>
+          </div>
         </div>
+      );
+    }
+
+    // PGPA sub-section: back to PGPA summary
+    if (currentLevel.subSection) {
+      const subLabels = { 'revenus-ref': 'Revenus de référence', 'revenus-percus': 'Revenus perçus sur la période', 'ij': 'Indemnités journalières' };
+      return (
+        <div className="border-b border-[#e7e5e3] bg-white flex-shrink-0">
+          <div className="h-[52px] px-4 flex items-center gap-3">
+            <button onClick={() => {
+              setNavStack(prev => {
+                const newStack = [...prev];
+                delete newStack[newStack.length - 1].subSection;
+                return [...newStack];
+              });
+            }} className="p-1 hover:bg-stone-100 rounded transition-colors">
+              <ChevronRight className="w-4 h-4 rotate-180 text-[#a8a29e]" strokeWidth={1.5} />
+            </button>
+            <span className="inline-flex items-center px-2 py-0.5 text-caption-medium font-semibold border border-[#e7e5e3] text-[#292524] rounded-[6px]">
+              {currentLevel.title}
+            </span>
+            <span className="text-[14px] font-medium text-[#292524]">{subLabels[currentLevel.subSection] || currentLevel.subSection}</span>
+          </div>
+        </div>
+      );
+    }
+
+    // Dossier level chiffrage: CTAs moved to top bar
+
+    return null;
+  };
+
+  // ========== INLINE DOCUMENT PICKER (embedded in empty states) ==========
+  const renderInlineDocPicker = (posteType, { icon: Icon, title, description, expectedDocs }) => {
+    const { suggested, others } = getRelevantPiecesForPoste(posteType);
+    const allDocs = [...suggested, ...others];
+    const searchedDocs = pickerSearch && pickerOpen === posteType
+      ? allDocs.filter(d => (d.cleanName || d.originalName || '').toLowerCase().includes(pickerSearch.toLowerCase()))
+      : allDocs;
+    const selectedSet = new Set(pickerSelected);
+    const filteredDocs = [...searchedDocs].sort((a, b) => {
+      const aProcessing = a.status === 'processing' ? 0 : 1;
+      const bProcessing = b.status === 'processing' ? 0 : 1;
+      if (aProcessing !== bProcessing) return aProcessing - bProcessing;
+      const aSelected = selectedSet.has(a.id) ? 0 : 1;
+      const bSelected = selectedSet.has(b.id) ? 0 : 1;
+      return aSelected - bSelected;
+    });
+    const toggleSelect = (id) => {
+      setPickerSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+      if (pickerOpen !== posteType) setPickerOpen(posteType);
+    };
+
+    // Add files to pool + auto-select, process in background
+    const handlePickerAddFiles = (fileList) => {
+      const acronym = posteType.toUpperCase().replace(/-.*/, '');
+      const typesByPoste = {
+        DFT: ['Expertise', 'Médical', 'Médical'],
+        DSA: ['Factures', 'Factures', 'Médical'],
+        PGPA: ['Revenus', 'Revenus', 'Administratif'],
+      };
+      const cleanNames = {
+        Expertise: (n) => `Rapport d'expertise — ${n}`,
+        Médical: (n) => `Certificat médical — ${n}`,
+        Factures: (n) => `Facture — ${n}`,
+        Revenus: (n) => `Justificatif de revenus — ${n}`,
+        Administratif: (n) => `Document administratif — ${n}`,
+      };
+      const newIds = [];
+      for (const file of Array.from(fileList)) {
+        const newId = `df-upload-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        newIds.push(newId);
+        const rawName = file.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+        setDropFirstPieces(prev => [...prev, {
+          id: newId,
+          originalName: file.name,
+          cleanName: rawName,
+          type: null,
+          date: new Date().toISOString().split('T')[0],
+          postesLies: [acronym],
+          status: 'processing',
+          pages: null,
+          splits: null,
+          summary: null,
+          extractedInfo: null,
+        }]);
+        // Simulate background categorization
+        const delay = 4000 + Math.random() * 3000;
+        setTimeout(() => {
+          const types = typesByPoste[acronym] || ['Document'];
+          const detectedType = types[Math.floor(Math.random() * types.length)];
+          const cleanFn = cleanNames[detectedType] || ((n) => n);
+          const pageCount = Math.floor(Math.random() * 20) + 1;
+          setDropFirstPieces(prev => prev.map(p => p.id === newId ? {
+            ...p,
+            status: 'done',
+            type: detectedType,
+            cleanName: cleanFn(rawName),
+            pages: pageCount,
+          } : p));
+        }, delay);
+      }
+      setPickerSelected(prev => [...prev, ...newIds]);
+      if (pickerOpen !== posteType) setPickerOpen(posteType);
+    };
+
+    const DocRow = ({ doc, index }) => {
+      const isSelected = pickerSelected.includes(doc.id);
+      const isProcessing = doc.status === 'processing';
+
+      if (isProcessing) {
+        return (
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-[7px]">
+            <span className="w-4 h-4 flex items-center justify-center flex-shrink-0 opacity-0">
+              <span className="w-4 h-4 rounded border border-[#e7e5e3] bg-white" />
+            </span>
+            <span className="w-[22px] h-[22px] flex items-center justify-center flex-shrink-0">
+              <span className="w-4 h-4 border-[1.5px] border-[#78716c] border-t-transparent rounded-full animate-spin" />
+            </span>
+            <span className="text-sm italic text-[#292524] opacity-40 truncate">{doc.originalName}</span>
+          </div>
+        );
+      }
+
+      return (
+        <div
+          onClick={() => toggleSelect(doc.id)}
+          className={`flex items-center justify-between px-3 py-2.5 rounded-[7px] group transition-colors cursor-pointer ${
+            isSelected ? 'bg-[#eeece6] border border-[#d6d3d1]' : 'hover:bg-[#f8f7f5]'
+          }`}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Checkbox */}
+            <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-colors shadow-[0_1px_2px_0_rgba(26,26,26,0.05)] ${
+              isSelected ? 'bg-[#292524]' : 'bg-white border border-[#e7e5e3]'
+            }`}>
+              {isSelected && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+            </div>
+            {/* Doc number badge */}
+            <span className="w-[22px] h-[22px] flex items-center justify-center flex-shrink-0 bg-[#eeece6] rounded-md text-xs font-semibold text-[#78716c]">{index + 1}</span>
+            {/* Doc name */}
+            <span className={`text-sm truncate ${isSelected ? 'font-medium text-[#292524]' : 'text-[#292524]'}`}>{doc.cleanName || doc.originalName}</span>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+            <span className={`inline-flex items-center px-2 py-1 text-xs font-medium leading-4 rounded-md whitespace-nowrap ${PIECE_TYPE_COLORS[doc.type] || 'bg-[#dfe8f5] text-[#1e3a8a]'}`}>
+              {doc.type}
+            </span>
+          </div>
+        </div>
+      );
+    };
+
+    const hasSelection = pickerSelected.length > 0 && pickerOpen === posteType;
+
+    const posteLabels = {
+      dsa: 'dépenses de santé',
+      dft: 'déficits fonctionnels temporaires',
+      pgpa: 'préjudices',
+    };
+    const manualLabels = {
+      dsa: 'Ajouter une dépense manuellement',
+      dft: 'Ajouter une période manuellement',
+      pgpa: 'Ajouter un préjudice manuellement',
+    };
+
+    return (
+      <div
+        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setPickerDragging(true); }}
+        onDragLeave={(e) => { e.preventDefault(); if (!e.currentTarget.contains(e.relatedTarget)) setPickerDragging(false); }}
+        onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setPickerDragging(false); handlePickerAddFiles(e.dataTransfer.files); }}
+        className={`rounded-lg border border-dashed overflow-hidden transition-colors flex-1 flex flex-col ${pickerDragging ? 'border-[#a8a29e] border-2' : 'border-[#d6d3d1]'}`}
+      >
+        {pickerDragging ? (
+          <div className="flex items-center justify-center p-4 h-full">
+            <div className="flex-1 flex flex-col items-center justify-center gap-8 p-8 rounded-lg h-full" style={{ background: 'linear-gradient(to top, rgba(238,236,230,0) 57%, #eeece6 100%)' }}>
+              <div className="w-14 h-14 rounded-full bg-[#eeece6] border border-[#d6d3d1] flex items-center justify-center shadow-[0_1px_2px_0_rgba(26,26,26,0.05)]">
+                <ArrowDownCircle className="w-6 h-6 text-[#292524]" />
+              </div>
+              <div className="flex flex-col items-center gap-2 text-center max-w-[576px]">
+                <h3 className="text-xl font-medium text-[#292524] tracking-[-0.6px] leading-7">Déposez vos documents ici !</h3>
+                <p className="text-sm text-[#78716c] leading-5">Les documents seront analysés automatiquement pour créer les lignes correspondantes</p>
+              </div>
+            </div>
+          </div>
+        ) : allDocs.length > 0 ? (
+          /* ===== Doc-available state (start/doc-available variant) ===== */
+          <div className="flex flex-col items-center justify-center p-8 gap-8">
+            <div className="flex flex-col items-center gap-2 text-center max-w-[576px] w-full">
+              <h3 className="text-xl font-medium text-[#292524] tracking-[-0.6px] leading-7">
+                Commencer à calculer ce poste à partir de documents
+              </h3>
+              <p className="text-sm text-[#78716c] leading-5">{description}</p>
+            </div>
+
+            <div className="flex flex-col gap-4 items-start w-[500px] max-w-full">
+              {/* Search + upload */}
+              <div className="flex items-center gap-3 w-full">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#78716c]" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher..."
+                    value={pickerOpen === posteType ? pickerSearch : ''}
+                    onChange={(e) => { setPickerSearch(e.target.value); if (pickerOpen !== posteType) setPickerOpen(posteType); }}
+                    className="w-full pl-9 pr-3 py-2 h-10 border border-[#e7e5e3] rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200 shadow-[0_1px_2px_0_rgba(26,26,26,0.05)]"
+                  />
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); document.getElementById(`picker-file-${posteType}`).click(); }}
+                  className="flex items-center gap-2 px-4 py-2 h-10 bg-[#eeece6] rounded-lg text-sm font-medium text-[#44403c] hover:bg-[#e7e5e3] transition-colors whitespace-nowrap"
+                >
+                  <Upload className="w-4 h-4" /> Ajouter des docs
+                </button>
+                <input type="file" id={`picker-file-${posteType}`} multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handlePickerAddFiles(e.target.files); e.target.value = ''; } }} />
+              </div>
+
+              {/* Suggested label */}
+              {suggested.length > 0 && (
+                <div className="px-1.5">
+                  <span className="text-xs font-medium text-[#78716c]">Documents suggérés pour ce poste</span>
+                </div>
+              )}
+
+              {/* Doc list */}
+              <div className="flex flex-col gap-1 w-full max-h-[280px] overflow-y-auto px-1.5">
+                {filteredDocs.map((doc, i) => <DocRow key={doc.id} doc={doc} index={i} />)}
+              </div>
+
+              {filteredDocs.length === 0 && pickerSearch && (
+                <p className="text-sm text-[#78716c] text-center py-4 w-full">Aucun document trouvé</p>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-col items-center gap-3 w-[500px] max-w-full">
+              <button
+                onClick={() => handleAddMultipleFromPieces(pickerSelected, posteType)}
+                disabled={!hasSelection}
+                className={`flex items-center justify-center gap-2 w-full h-10 px-6 py-2 rounded-lg text-sm font-medium transition-colors shadow-[0_1px_2px_0_rgba(26,26,26,0.05)] ${
+                  hasSelection ? 'bg-[#292524] text-white hover:bg-[#44403c]' : 'bg-[#eeece6] text-[#a8a29e] cursor-not-allowed'
+                }`}
+              >
+                Commencer à calculer{hasSelection ? ` (${pickerSelected.length} pièce${pickerSelected.length > 1 ? 's' : ''})` : ''}
+              </button>
+              <button onClick={() => handleAddManual(posteType)} className="flex items-center gap-2 h-9 text-sm font-medium text-[#78716c] hover:text-[#44403c] transition-colors">
+                <Edit3 className="w-4 h-4" /> Commencer manuellement
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* ===== Empty state (tables-empty/default variant) ===== */
+          <div className="flex items-center justify-center p-1.5">
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 py-6 rounded-lg" style={{ background: 'linear-gradient(to top, rgba(238,236,230,0) 50%, #f8f7f5 100%)' }}>
+              <Upload className="w-5 h-5 text-[#78716c]" />
+
+              <div className="flex flex-col items-center gap-1 text-center max-w-[512px] w-full">
+                <p className="text-sm font-medium text-[#44403c] leading-5">
+                  Déposez ou{' '}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); document.getElementById(`picker-file-${posteType}-empty`).click(); }}
+                    className="underline text-[#1e3a8a] font-medium cursor-pointer"
+                  >parcourez</button>
+                  {' '}pour ajouter les justificatifs de {posteLabels[posteType] || '...'}
+                </p>
+                <p className="text-sm text-[#78716c] leading-5">{description}</p>
+              </div>
+              <input type="file" id={`picker-file-${posteType}-empty`} multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handlePickerAddFiles(e.target.files); e.target.value = ''; } }} />
+
+              {/* Expected doc type badges */}
+              <div className="flex flex-wrap justify-center gap-3">
+                {expectedDocs.map(doc => (
+                  <span key={doc} className="inline-flex items-center px-2 py-1 bg-[#eeece6] text-[#44403c] text-xs font-medium leading-4 rounded-md whitespace-nowrap">{doc}</span>
+                ))}
+              </div>
+
+              {/* OU divider + manual link */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex items-center justify-center gap-3">
+                  <div className="h-px w-20 bg-[#d6d3d1]" />
+                  <span className="text-xs font-medium text-[#78716c]">OU</span>
+                  <div className="h-px w-20 bg-[#d6d3d1]" />
+                </div>
+                <button onClick={() => handleAddManual(posteType)} className="flex items-center gap-2 h-9 text-sm font-medium text-[#1e3a8a] hover:text-[#1e3a8a]/80 transition-colors">
+                  <Edit3 className="w-4 h-4" /> {manualLabels[posteType] || 'Ajouter manuellement'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -1925,8 +4435,8 @@ export default function App() {
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
           <div className="px-6 py-4 border-b flex items-center justify-between">
-            <h3 className="font-semibold text-lg">Ajouter une dépense</h3>
-            <button onClick={() => setShowAddModal(null)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
+            <h3 className="text-heading-md">Ajouter une dépense</h3>
+            <button onClick={() => setShowAddModal(null)} className="p-1 hover:bg-[#F8F7F5] rounded"><X className="w-5 h-5" /></button>
           </div>
           
           {/* Tabs */}
@@ -1937,7 +4447,7 @@ export default function App() {
               { id: 'manual', label: 'Saisie manuelle', icon: Edit3 }
             ].map(tab => (
               <button key={tab.id} onClick={() => setAddModalTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium ${addModalTab === tab.id ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-500 hover:text-gray-700'}`}>
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-body-medium ${addModalTab === tab.id ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-[#78716c] hover:text-gray-700'}`}>
                 <tab.icon className="w-4 h-4" />{tab.label}
               </button>
             ))}
@@ -1953,14 +4463,14 @@ export default function App() {
                   onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, showAddModal); }}
                   className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}
                 >
-                  <Upload className={`w-10 h-10 mx-auto mb-3 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
-                  <p className="text-gray-600 mb-3">Glissez vos documents ici</p>
+                  <Upload className={`w-10 h-10 mx-auto mb-3 ${isDragging ? 'text-blue-500' : 'text-[#a8a29e]'}`} />
+                  <p className="text-[#78716c] mb-3">Glissez vos documents ici</p>
                   <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => e.target.files && handleUploadFiles(e.target.files, showAddModal)} className="hidden" id="upload-input" />
-                  <label htmlFor="upload-input" className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg cursor-pointer hover:bg-blue-700">Parcourir</label>
+                  <label htmlFor="upload-input" className="px-4 py-2 bg-blue-600 text-white text-body rounded-lg cursor-pointer hover:bg-blue-700">Parcourir</label>
                 </div>
                 <div className="mt-4 flex items-center gap-2 p-3 bg-amber-50 rounded-lg">
                   <Sparkles className="w-5 h-5 text-amber-600" />
-                  <span className="text-sm text-amber-800">L'IA extraira automatiquement les informations</span>
+                  <span className="text-body text-amber-800">L'IA extraira automatiquement les informations</span>
                 </div>
               </div>
             )}
@@ -1969,19 +4479,19 @@ export default function App() {
             {addModalTab === 'pieces' && (
               <div>
                 <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a8a29e]" />
                   <input type="text" value={searchPieces} onChange={(e) => setSearchPieces(e.target.value)} placeholder="Rechercher une pièce..." className="w-full pl-10 pr-4 py-2 border rounded-lg" />
                 </div>
                 <div className="max-h-64 overflow-y-auto space-y-2">
                   {filteredPieces.length === 0 ? (
-                    <p className="text-center text-gray-500 py-4">Aucune pièce disponible</p>
+                    <p className="text-center text-[#78716c] py-4">Aucune pièce disponible</p>
                   ) : filteredPieces.map(p => (
                     <button key={p.id} onClick={() => handleAddFromPiece(p, showAddModal)}
-                      className="w-full flex items-center gap-3 p-3 border rounded-lg hover:border-blue-400 hover:bg-blue-50 text-left">
-                      <FileText className="w-8 h-8 text-gray-400" />
+                      className="w-full flex items-center gap-3 p-3 border rounded-lg hover:border-blue-400 hover:bg-[#eef3fa] text-left">
+                      <FileText className="w-8 h-8 text-[#a8a29e]" />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{p.nom}</div>
-                        <div className="text-xs text-gray-500">{p.type} • {p.date}</div>
+                        <div className="text-caption text-[#78716c]">{p.type} • {p.date}</div>
                       </div>
                       <Plus className="w-5 h-5 text-blue-600" />
                     </button>
@@ -1993,8 +4503,8 @@ export default function App() {
             {/* Saisie manuelle */}
             {addModalTab === 'manual' && (
               <div className="text-center py-6">
-                <FileQuestion className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                <p className="text-gray-600 mb-4">Créer une ligne sans document associé</p>
+                <FileQuestion className="w-12 h-12 mx-auto mb-3 text-[#a8a29e]" />
+                <p className="text-[#78716c] mb-4">Créer une ligne sans document associé</p>
                 <button onClick={() => handleAddManual(showAddModal)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                   Créer une ligne manuelle
                 </button>
@@ -2010,384 +4520,262 @@ export default function App() {
   // Helper pour les styles de formulaire
   const FormSection = ({ title, children, noBorder }) => (
     <div className={`${noBorder ? '' : 'pb-6 mb-6 border-b border-zinc-100'}`}>
-      {title && <h4 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-4">{title}</h4>}
+      {title && <h4 className="text-caption-medium font-semibold text-[#a8a29e] uppercase tracking-wider mb-4">{title}</h4>}
       {children}
     </div>
   );
   
   const FormField = ({ label, children, hint, className = '' }) => (
     <div className={className}>
-      {label && <label className="block text-[13px] font-medium text-zinc-700 mb-2">{label}</label>}
+      {label && <label className="block text-body-medium text-[#44403c] mb-2">{label}</label>}
       {children}
-      {hint && <p className="mt-1.5 text-[11px] text-zinc-400">{hint}</p>}
+      {hint && <p className="mt-1.5 text-caption text-[#a8a29e]">{hint}</p>}
     </div>
   );
   
-  const inputClass = "w-full px-3.5 py-2.5 text-[14px] border border-zinc-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-zinc-100 focus:border-zinc-400 transition-colors";
-  const selectClass = "w-full px-3.5 py-2.5 text-[14px] border border-zinc-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-zinc-100 focus:border-zinc-400 transition-colors appearance-none";
+  const inputClass = "w-full px-3.5 py-2.5 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-zinc-100 focus:border-zinc-400 transition-colors";
+  const selectClass = "w-full px-3.5 py-2.5 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-zinc-100 focus:border-zinc-400 transition-colors appearance-none";
 
   const renderEditPanel = () => {
     if (!editPanel) return null;
     const data = editPanel.data;
     const isPieceDetail = editPanel.type === 'piece-detail';
-    const panelWidth = isPieceDetail ? 'w-[900px]' : (showPreview ? 'w-[1000px]' : 'w-[480px]');
-    
+
     return (
-      <div className="fixed inset-0 bg-black/50 flex justify-end z-50" onClick={() => { setEditPanel(null); setShowPreview(false); }}>
-        <div 
-          className={`bg-white h-full shadow-2xl flex flex-col transition-all duration-300 ${panelWidth}`}
-          onClick={(e) => e.stopPropagation()}
+      <>
+        {/* Draggable resize handle */}
+        <div
+          className="w-[6px] flex-shrink-0 cursor-col-resize group relative border-l border-r border-[#e7e5e3]"
+          style={{ backgroundColor: '#F8F7F5' }}
+          onMouseDown={handleChatResizeStart}
         >
-          {/* Header - Clean */}
-          <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-white">
-            <div className="flex items-center gap-3">
-              {isPieceDetail && <span className="px-2.5 py-1 bg-zinc-800 text-white text-[11px] font-medium rounded">P{data.index}</span>}
-              <h3 className="text-[15px] font-semibold text-zinc-800">{isPieceDetail ? (data.intitule || data.nom) : (editPanel.title || 'Édition')}</h3>
-              {data?.status === 'ai-suggested' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[11px] font-medium rounded-full">
-                  <Sparkles className="w-3 h-3" />AI suggested
+          <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-stone-300/30 transition-colors" />
+        </div>
+        <div className="flex-shrink-0 flex flex-col h-full bg-white" style={{ width: chatWidth }}>
+          {/* Header */}
+          <div className="px-4 h-12 border-b flex items-center justify-between flex-shrink-0" style={{ borderColor: '#e7e5e3' }}>
+            <div className="flex items-center gap-2 min-w-0">
+              {isPieceDetail && <span className="px-2 py-0.5 bg-zinc-800 text-white text-caption-medium rounded flex-shrink-0">P{data.index}</span>}
+              <h3 className="text-body-medium text-[#292524] truncate">{isPieceDetail ? (data.intitule || data.nom) : (editPanel.title || 'Édition')}</h3>
+              {data?.diffType && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-caption-medium rounded-full flex-shrink-0" style={{
+                  background: data.diffType === 'add' ? '#dcfce7' : data.diffType === 'edit' ? '#fff7ed' : '#fef2f2',
+                  color: ROW_DIFF_COLORS[data.diffType] || '#bd6c1a',
+                }}>
+                  {data.diffType === 'add' ? 'Ajout' : data.diffType === 'edit' ? 'Modif.' : 'Suppr.'}
                 </span>
               )}
             </div>
-            <button onClick={() => { setEditPanel(null); setShowPreview(false); }} className="p-2 hover:bg-zinc-100 rounded-lg transition-colors">
-              <X className="w-5 h-5 text-zinc-400" />
+            <button onClick={() => { setEditPanel(null); setShowPreview(false); }} className="p-1.5 hover:bg-[#eeece6] rounded-lg transition-colors flex-shrink-0">
+              <X className="w-4 h-4 text-[#a8a29e]" />
             </button>
           </div>
-          
+
           {/* Content */}
-          <div className="flex-1 flex overflow-hidden bg-zinc-50/30">
-            {/* Preview for DSA */}
-            {showPreview && data.fileName && !isPieceDetail && (
-              <div className="w-[500px] border-r bg-zinc-900 flex flex-col flex-shrink-0">
-                <div className="px-4 py-3 border-b border-zinc-700 flex items-center justify-between">
-                  <span className="text-[13px] text-zinc-300 truncate">{data.fileName}</span>
-                  <button onClick={() => setShowPreview(false)} className="p-1 hover:bg-zinc-700 rounded text-zinc-400"><X className="w-4 h-4" /></button>
-                </div>
-                <div className="flex-1 p-6 flex items-center justify-center">
-                  <div className="bg-white rounded-lg shadow-xl w-full max-w-sm aspect-[210/297] p-6 flex flex-col">
-                    <div className="text-[11px] text-zinc-400 mb-4">DOCUMENT</div>
-                    <div className="h-3 bg-zinc-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-zinc-200 rounded w-1/2 mb-4"></div>
-                    <div className="flex-1 space-y-2">
-                      <div className="h-2 bg-zinc-100 rounded w-full"></div>
-                      <div className="h-2 bg-zinc-100 rounded w-5/6"></div>
-                      <div className="h-2 bg-zinc-100 rounded w-4/6"></div>
-                    </div>
-                    <div className="mt-auto pt-4 border-t flex justify-between text-[13px]">
-                      <span className="text-zinc-500">Total</span>
-                      <span className="font-bold">{data.montant ? fmt(data.montant) : '—'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}}
-            
-            {/* Form */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto px-5 py-5">
                 {/* DSA Ligne - Panel systémique */}
                 {editPanel.type === 'dsa-ligne' && (() => {
-                  // Helper pour le style des champs extraits par IA
+                  // Diff helpers
+                  const diffColor = data.diffType ? ROW_DIFF_COLORS[data.diffType] : null;
+                  const diffLabel = data.diffType === 'add' ? 'Ligne ajoutée par l\'agent' : data.diffType === 'edit' ? 'Ligne modifiée par l\'agent' : data.diffType === 'delete' ? 'Ligne supprimée par l\'agent' : null;
+                  const diffBg = data.diffType === 'add' ? '#f0fdf4' : data.diffType === 'edit' ? '#fff7ed' : data.diffType === 'delete' ? '#fef2f2' : null;
+                  const diffBorder = data.diffType === 'add' ? '#bbf7d0' : data.diffType === 'edit' ? '#fed7aa' : data.diffType === 'delete' ? '#fecaca' : null;
+                  const ov = data.oldValues || {};
+                  const hasDiff = (key) => data.diffType === 'edit' && ov[key] != null;
+                  const isDeleted = data.diffType === 'delete';
+
+                  // IA extraction helpers
                   const isIaExtracted = data.confidence != null;
                   const needsValidation = data.status === 'pending';
                   const iaFieldClass = (fieldValue) => {
                     if (!isIaExtracted) return '';
-
                     if (fieldValue == null || fieldValue === '') return 'border-amber-400 bg-amber-50/50';
                     return '';
                   };
-                  
+
                   return (
-                    <>
+                    <div className="space-y-5" style={isDeleted ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>
+                      {/* Diff banner */}
+                      {diffColor && (
+                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: diffBg, border: `1px solid ${diffBorder}` }}>
+                          <div className="w-1.5 h-1.5" style={{ background: diffColor, transform: 'rotate(45deg)' }} />
+                          <span style={{ fontSize: 12, fontWeight: 500, color: diffColor }}>{diffLabel}</span>
+                        </div>
+                      )}
                       {/* Bandeau IA si extraction */}
-                      {isIaExtracted && (
-                        <div className={`flex items-center gap-3 p-4 rounded-xl ${
+                      {isIaExtracted && !diffColor && (
+                        <div className={`flex items-center gap-3 p-3 rounded-lg ${
                           data.confidence >= 80 ? 'bg-emerald-50 border border-emerald-200' : 'bg-amber-50 border border-amber-200'
                         }`}>
-                          <Sparkles className={`w-5 h-5 ${data.confidence >= 80 ? 'text-emerald-600' : 'text-amber-600'}`} />
+                          <Sparkles className={`w-4 h-4 ${data.confidence >= 80 ? 'text-emerald-600' : 'text-amber-600'}`} />
                           <div className="flex-1">
-                            <span className={`text-[13px] font-medium ${data.confidence >= 80 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                            <span className={`text-caption-medium ${data.confidence >= 80 ? 'text-emerald-700' : 'text-amber-700'}`}>
                               Extraction IA • Confiance {data.confidence}%
                             </span>
                             {needsValidation && (
-                              <p className="text-xs text-amber-600 mt-0.5">Vérifiez les champs surlignés</p>
+                              <p className="text-caption text-amber-600 mt-0.5">Vérifiez les champs surlignés</p>
                             )}
                           </div>
-                          {data.status === 'ai-suggested' && (
-                            <span className="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded">Suggestion IA</span>
-                          )}
                         </div>
                       )}
-                      
-                      {/* Section Pièces justificatives */}
+
+                      {/* Libellé dépense */}
                       <div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label className="text-body-medium text-[#292524]">Libellé dépense</label>
+                          {(data.diffType === 'add' || hasDiff('label')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />}
+                        </div>
+                        <input
+                          type="text"
+                          defaultValue={data.label || ''}
+                          id="edit-label"
+                          placeholder="Nom de la dépense"
+                          className={`w-full px-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)] ${iaFieldClass(data.label)}`}
+                          style={{ boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                        />
+                        {hasDiff('label') && <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Ancien : {ov.label}</p>}
+                      </div>
+
+                      {/* Pièces justificatives */}
+                      <div>
+                        <label className="text-caption text-[#78716c] mb-1.5 block">Ajouter des pièces justificatives</label>
+                        {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
+                          <div className="relative mb-2">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />
+                            <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
+                              className="w-full pl-9 pr-7 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white placeholder:text-[#a8a29e] focus:outline-none focus:ring-1 focus:ring-[#a8a29e]" />
+                            {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2.5 top-1/2 -translate-y-1/2"><X className="w-3.5 h-3.5 text-[#a8a29e]" /></button>}
+                          </div>
+                        )}
+                        {searchPiecesPanel && (
+                          <div className="max-h-32 overflow-y-auto space-y-1 mb-2">
+                            {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
+                              <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-left text-body bg-white border border-[#e7e5e3] rounded-lg hover:bg-[#f5f5f4] transition-colors">
+                                <span className="w-6 h-6 bg-[#eeece6] text-[#44403c] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
+                                <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
+                                <span className="text-caption text-[#a8a29e]">{piece.type}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <div className="border border-dashed border-[#d6d3d1] rounded-lg p-3 flex items-center justify-center gap-2 text-body text-[#78716c] hover:bg-[#f5f5f4] cursor-pointer transition-colors"
+                          onClick={() => document.getElementById('panel-piece-upload').click()}>
+                          <Upload className="w-4 h-4" />
+                          <span>Déposez ou <span className="text-[#E8713A] font-medium">cliquez</span> pour ajouter un justificatif</span>
+                        </div>
+                        <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                          onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
                         {editingPieceIds.length > 0 && (
-                          <div className="space-y-2 mb-3">
+                          <div className="mt-2">
                             {editingPieceIds.map(pid => {
                               const piece = getPiece(pid);
                               return piece ? (
-                                <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
-                                  <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{piece.intitule || piece.nom}</p>
-                                    <p className="text-xs text-gray-500">{piece.type}</p>
+                                <div key={pid} className="flex items-center gap-3 px-3 h-12 group hover:bg-[#f5f5f4] transition-colors">
+                                  <span className="w-6 h-6 bg-[#eeece6] text-[#44403c] text-counter font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
+                                  <span className="text-body text-[#292524] truncate flex-1">{piece.intitule || piece.nom}</span>
+                                  <span className="text-caption text-[#a8a29e] flex-shrink-0">{piece.type}</span>
+                                  <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                    <button onClick={() => setShowPreview(!showPreview)} className="p-1 text-[#78716c] hover:text-[#292524]"><Eye className="w-4 h-4" /></button>
+                                    <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1 text-[#78716c] hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                                   </div>
-                                  <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"><Eye className="w-4 h-4" /></button>
-                                  <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
                                 </div>
                               ) : null;
                             })}
                           </div>
                         )}
-                        <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
-                          {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
-                            <div>
-                              <div className="relative mb-2">
-                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
-                                <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
-                                  className="w-full pl-8 pr-7 py-1.5 text-[12px] border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
-                                {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-zinc-400" /></button>}
-                              </div>
-                              <div className="max-h-32 overflow-y-auto space-y-1">
-                                {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
-                                  <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
-                                    className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                                    <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
-                                    <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
-                                    <span className="text-xs text-gray-400">{piece.type}</span>
-                                    <Plus className="w-4 h-4 text-blue-600" />
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-                            onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
-                          <button onClick={() => document.getElementById('panel-piece-upload').click()}
-                            className="w-full flex items-center justify-center gap-2 p-2 text-sm text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
-                            <Upload className="w-4 h-4" />
-                            Ajouter un document
-                          </button>
-                        </div>
                       </div>
 
-                      {/* Section Informations */}
+                      {/* Date de la dépense */}
                       <div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Informations</h4>
-                        
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-sm font-medium text-gray-700">Libellé</label>
-                            <input 
-                              type="text" 
-                              defaultValue={data.label || ''} 
-                              id="edit-label" 
-                              placeholder="Ex: Consultation Dr. Martin" 
-                              className={`mt-1 w-full px-3 py-2 border rounded-lg ${iaFieldClass(data.label)}`}
-                            />
-                          </div>
-                          
-                          <div>
-                            <label className="text-sm font-medium text-gray-700">Description de l'acte</label>
-                            <textarea 
-                              defaultValue={data.description || ''} 
-                              id="edit-description" 
-                              rows={2}
-                              placeholder="Description détaillée (optionnel)"
-                              className="mt-1 w-full px-3 py-2 border rounded-lg resize-none"
-                            />
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-sm font-medium text-gray-700">Type de dépense</label>
-                              <select 
-                                defaultValue={data.type || ''} 
-                                id="edit-type" 
-                                className={`mt-1 w-full px-3 py-2 border rounded-lg ${iaFieldClass(data.type)}`}
-                              >
-                                <option value="">Sélectionner...</option>
-                                <option>Hospitalisation</option>
-                                <option>Consultation</option>
-                                <option>Rééducation</option>
-                                <option>Pharmacie</option>
-                                <option>Imagerie</option>
-                                <option>Appareillage</option>
-                                <option>Transport</option>
-                                <option>Autre</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium text-gray-700">Tiers / Prestataire</label>
-                              <input 
-                                type="text" 
-                                defaultValue={data.tiers || ''} 
-                                id="edit-tiers" 
-                                placeholder="Ex: CHU Bordeaux" 
-                                className="mt-1 w-full px-3 py-2 border rounded-lg"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Section Dates */}
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Dates</h4>
-                        <div className="space-y-3">
-                          {/* Toggle Ponctuelle / Période */}
-                          <div>
-                            <label className="text-sm font-medium text-gray-700">Type de dépense</label>
-                            <select
-                              id="edit-date-type"
-                              defaultValue={data.isPeriodique ? 'periode' : 'ponctuelle'}
-                              className="mt-1 w-full px-3 py-2 border rounded-lg"
-                              onChange={(e) => {
-                                document.getElementById('dsa-periode-fields').style.display = e.target.value === 'periode' ? 'block' : 'none';
-                                document.getElementById('dsa-ponctuelle-label').textContent = e.target.value === 'periode' ? 'Date de début' : 'Date de la dépense';
-                              }}
-                            >
-                              <option value="ponctuelle">Ponctuelle</option>
-                              <option value="periode">Période</option>
-                            </select>
-                          </div>
-
-                          {/* Date principale (toujours visible) */}
-                          <div>
-                            <label id="dsa-ponctuelle-label" className="text-sm font-medium text-gray-700">
-                              {data.isPeriodique ? 'Date de début' : 'Date de la dépense'}
-                            </label>
-                            <div className="relative mt-1">
-                              <input type="text" defaultValue={data.date || ''} id="edit-date"
-                                placeholder="JJ/MM/AAAA" maxLength={10}
-                                onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
-                                className={`w-full px-3 py-2 pr-9 border rounded-lg ${iaFieldClass(data.date)}`}
-                              />
-                              <input type="date" id="edit-date-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'edit-date')} />
-                              <button type="button" onClick={() => openDatePicker('edit-date')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
-                            </div>
-                          </div>
-
-                          {/* Champs période (masqués si ponctuelle) */}
-                          <div id="dsa-periode-fields" style={{ display: data.isPeriodique ? 'block' : 'none' }}>
-                            <div className="space-y-3">
-                              <div>
-                                <label className="text-sm font-medium text-gray-700">Date de fin</label>
-                                <div className="relative mt-1">
-                                  <input type="text" defaultValue={data.dateFin || ''} id="edit-date-fin"
-                                    placeholder="JJ/MM/AAAA" maxLength={10}
-                                    onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
-                                    className="w-full px-3 py-2 pr-9 border rounded-lg"
-                                  />
-                                  <input type="date" id="edit-date-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'edit-date-fin')} />
-                                  <button type="button" onClick={() => openDatePicker('edit-date-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
-                                </div>
-                              </div>
-
-                              {/* Durée calculée (read-only, comme DFT) */}
-                              <div className="p-2.5 bg-blue-50 rounded-lg flex items-center justify-between">
-                                <span className="text-xs text-blue-700">Durée calculée</span>
-                                <span className="text-sm font-semibold text-blue-900">
-                                  {calcDaysBetween(data.date, data.dateFin) || '—'} jours
-                                </span>
-                              </div>
-
-                              {/* Périodicité */}
-                              <div>
-                                <label className="text-sm font-medium text-gray-700">Périodicité</label>
-                                <select defaultValue={data.periodicite || ''} id="edit-periodicite"
-                                  className="mt-1 w-full px-3 py-2 border rounded-lg">
-                                  <option value="">—</option>
-                                  <option>Quotidien</option>
-                                  <option>Hebdomadaire</option>
-                                  <option>Mensuel</option>
-                                  <option>Annuel</option>
-                                </select>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Section Montants */}
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Montants</h4>
-                        
-                        <div className="space-y-3">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input 
-                              type="checkbox" 
-                              defaultChecked={data.aRevalo || false}
-                              id="edit-revalo"
-                              className="rounded text-blue-600"
-                            />
-                            <span className="text-sm">À revaloriser</span>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label id="dsa-ponctuelle-label" className="text-body-medium text-[#292524]">
+                            {data.isPeriodique ? 'Date de début' : 'Date de la dépense'}
                           </label>
-                          
-                          <div className="grid grid-cols-2 gap-3">
+                          {(data.diffType === 'add' || hasDiff('date')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />}
+                        </div>
+                        <div className="relative">
+                          <input type="text" defaultValue={data.date || ''} id="edit-date"
+                            placeholder="JJ/MM/AAAA" maxLength={10}
+                            onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
+                            className={`w-full px-3 py-2 pr-9 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)] ${iaFieldClass(data.date)}`}
+                            style={{ boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                          />
+                          <input type="date" id="edit-date-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'edit-date')} />
+                          <button type="button" onClick={() => openDatePicker('edit-date')} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-[#f5f5f4] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
+                        </div>
+                        {hasDiff('date') && <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Ancien : {ov.date}</p>}
+                        {/* Champs période (masqués si ponctuelle) */}
+                        <div id="dsa-periode-fields" style={{ display: data.isPeriodique ? 'block' : 'none' }}>
+                          <div className="mt-3 space-y-3">
                             <div>
-                              <label className="text-sm font-medium text-gray-700">Montant unitaire</label>
-                              <div className="mt-1 relative">
-                                <input 
-                                  type="number" 
-                                  step="0.01" 
-                                  defaultValue={data.montantUnitaire ?? ''} 
-                                  id="edit-montant-unitaire" 
-                                  placeholder="0.00" 
-                                  className="w-full px-3 py-2 pr-8 border rounded-lg"
+                              <label className="text-caption text-[#78716c] mb-1.5 block">Date de fin</label>
+                              <div className="relative">
+                                <input type="text" defaultValue={data.dateFin || ''} id="edit-date-fin"
+                                  placeholder="JJ/MM/AAAA" maxLength={10}
+                                  onChange={(e) => { e.target.value = formatDateInput(e.target.value); }}
+                                  className="w-full px-3 py-2 pr-9 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e]"
                                 />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
+                                <input type="date" id="edit-date-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'edit-date-fin')} />
+                                <button type="button" onClick={() => openDatePicker('edit-date-fin')} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-[#f5f5f4] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                               </div>
                             </div>
-                            <div>
-                              <label className="text-sm font-medium text-gray-700">Montant total</label>
-                              <div className="mt-1 relative">
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  defaultValue={data.montant ?? ''}
-                                  id="edit-montant"
-                                  readOnly
-                                  className="w-full px-3 py-2 pr-8 border rounded-lg bg-zinc-50 text-zinc-500 cursor-default"
-                                />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-sm font-medium text-gray-700">Déjà remboursé</label>
-                              <div className="mt-1 relative">
-                                <input 
-                                  type="number" 
-                                  step="0.01" 
-                                  defaultValue={data.dejaRembourse || 0} 
-                                  id="edit-rembourse" 
-                                  className="w-full px-3 py-2 pr-8 border rounded-lg"
-                                />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
-                              </div>
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium text-gray-700">Reste à charge retenu</label>
-                              <div className="mt-1 relative">
-                                <input 
-                                  type="number" 
-                                  step="0.01" 
-                                  defaultValue={data.resteAChargeRetenu ?? ((data.montant || 0) - (data.dejaRembourse || 0))} 
-                                  id="edit-reste-charge" 
-                                  className="w-full px-3 py-2 pr-8 border rounded-lg bg-gray-50 font-medium"
-                                />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
-                              </div>
-                              <p className="mt-1 text-xs text-gray-500">Revalorisé s'il y a lieu</p>
+                            <div className="text-caption text-[#78716c] italic">
+                              Durée : {calcDaysBetween(data.date, data.dateFin) || '—'} jours
                             </div>
                           </div>
                         </div>
                       </div>
-                    </>
+
+                      {/* Montant dépense */}
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label className="text-body-medium text-[#292524]">Montant dépense</label>
+                          {(data.diffType === 'add' || hasDiff('montant')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />}
+                        </div>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#78716c]" style={{ fontSize: 14 }}>€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            defaultValue={data.montant ?? ''}
+                            id="edit-montant"
+                            placeholder="0"
+                            className={`w-full pl-8 pr-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)] ${iaFieldClass(data.montant)}`}
+                            style={{ boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                          />
+                        </div>
+                        {hasDiff('montant') && <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Ancien : {ov.montant} €</p>}
+                      </div>
+
+                      {/* Reste à charge */}
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label className="text-body-medium text-[#292524]">Reste à charge</label>
+                          {(data.diffType === 'add' || hasDiff('dejaRembourse')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />}
+                        </div>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#78716c]" style={{ fontSize: 14 }}>€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            defaultValue={data.dejaRembourse || 0}
+                            id="edit-rembourse"
+                            placeholder="0"
+                            className="w-full pl-8 pr-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#a8a29e]"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Hidden fields to preserve data */}
+                      <input type="hidden" id="edit-type" value={data.type || 'Autre'} />
+                      <input type="hidden" id="edit-tiers" value={data.tiers || ''} />
+                      <input type="hidden" id="edit-date-type" value={data.isPeriodique ? 'periode' : 'ponctuelle'} />
+                      <input type="hidden" id="edit-montant-unitaire" value={data.montantUnitaire ?? ''} />
+                      <input type="hidden" id="edit-reste-charge" value={data.resteAChargeRetenu ?? ((data.montant || 0) - (data.dejaRembourse || 0))} />
+                      <input type="hidden" id="edit-revalo" value={data.aRevalo ? 'true' : 'false'} />
+                    </div>
                   );
                 })()}
                 
@@ -2397,17 +4785,17 @@ export default function App() {
                     {/* Left: Preview */}
                     <div className="w-1/2 bg-gray-900 rounded-lg flex items-center justify-center p-6">
                       <div className="bg-white rounded-lg shadow-xl w-full max-w-[280px] aspect-[3/4] p-6 flex flex-col">
-                        <div className="text-xs text-gray-400 mb-3 uppercase tracking-wide">{data.type}</div>
+                        <div className="text-caption text-[#a8a29e] mb-3 uppercase tracking-wide">{data.type}</div>
                         <div className="h-3 bg-gray-200 rounded w-3/4 mb-2"></div>
                         <div className="h-3 bg-gray-200 rounded w-1/2 mb-6"></div>
                         <div className="flex-1 space-y-2">
-                          <div className="h-2 bg-gray-100 rounded w-full"></div>
-                          <div className="h-2 bg-gray-100 rounded w-5/6"></div>
-                          <div className="h-2 bg-gray-100 rounded w-4/6"></div>
-                          <div className="h-2 bg-gray-100 rounded w-full"></div>
-                          <div className="h-2 bg-gray-100 rounded w-3/4"></div>
+                          <div className="h-2 bg-[#F8F7F5] rounded w-full"></div>
+                          <div className="h-2 bg-[#F8F7F5] rounded w-5/6"></div>
+                          <div className="h-2 bg-[#F8F7F5] rounded w-4/6"></div>
+                          <div className="h-2 bg-[#F8F7F5] rounded w-full"></div>
+                          <div className="h-2 bg-[#F8F7F5] rounded w-3/4"></div>
                         </div>
-                        <div className="mt-4 pt-4 border-t text-xs text-gray-400">
+                        <div className="mt-4 pt-4 border-t text-caption text-[#a8a29e]">
                           {data.date}
                         </div>
                       </div>
@@ -2416,7 +4804,7 @@ export default function App() {
                     {/* Right: Details */}
                     <div className="w-1/2 space-y-4">
                       <div>
-                        <label className="text-sm font-medium text-gray-700">Intitulé</label>
+                        <label className="text-body-medium text-gray-700">Intitulé</label>
                         <input
                           id="piece-intitule"
                           type="text"
@@ -2427,15 +4815,15 @@ export default function App() {
                       </div>
 
                       <div>
-                        <label className="text-sm font-medium text-gray-700">Nom du fichier original</label>
-                        <div className="mt-1 px-3 py-2 bg-gray-50 rounded-lg text-sm text-gray-600 truncate">
+                        <label className="text-body-medium text-gray-700">Nom du fichier original</label>
+                        <div className="mt-1 px-3 py-2 bg-[#F8F7F5] rounded-lg text-body text-[#78716c] truncate">
                           {data.nomOriginal || data.nom}
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-sm font-medium text-gray-700">Type</label>
+                          <label className="text-body-medium text-gray-700">Type</label>
                           <select id="piece-type" defaultValue={data.type} className="mt-1 w-full px-3 py-2 border rounded-lg">
                             <option>Facture</option>
                             <option>Bulletin</option>
@@ -2450,39 +4838,39 @@ export default function App() {
 
                       {/* Utilisations */}
                       <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Utilisé dans</label>
+                        <label className="text-body-medium text-gray-700 mb-2 block">Utilisé dans</label>
                         {data.usages && data.usages.length > 0 ? (
                           <div className="space-y-2">
                             {data.usages.includes('DSA') && (
                               <div className="flex items-center justify-between p-2.5 bg-blue-50 rounded-lg">
                                 <div className="flex items-center gap-2">
                                   <FileText className="w-4 h-4 text-blue-600" />
-                                  <span className="text-sm font-medium text-blue-800">DSA</span>
+                                  <span className="text-body-medium text-blue-800">DSA</span>
                                 </div>
-                                <span className="text-xs text-blue-600">Liquidation</span>
+                                <span className="text-caption text-blue-600">Liquidation</span>
                               </div>
                             )}
                             {data.usages.includes('PGPA') && (
                               <div className="flex items-center justify-between p-2.5 bg-green-50 rounded-lg">
                                 <div className="flex items-center gap-2">
                                   <FileText className="w-4 h-4 text-green-600" />
-                                  <span className="text-sm font-medium text-green-800">PGPA</span>
+                                  <span className="text-body-medium text-green-800">PGPA</span>
                                 </div>
-                                <span className="text-xs text-green-600">Liquidation</span>
+                                <span className="text-caption text-green-600">Liquidation</span>
                               </div>
                             )}
                             {data.usages.includes('DFT') && (
                               <div className="flex items-center justify-between p-2.5 bg-amber-50 rounded-lg">
                                 <div className="flex items-center gap-2">
                                   <FileText className="w-4 h-4 text-amber-600" />
-                                  <span className="text-sm font-medium text-amber-800">DFT</span>
+                                  <span className="text-body-medium text-amber-800">DFT</span>
                                 </div>
-                                <span className="text-xs text-amber-600">Liquidation</span>
+                                <span className="text-caption text-amber-600">Liquidation</span>
                               </div>
                             )}
                           </div>
                         ) : (
-                          <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-500 text-center">
+                          <div className="p-3 bg-[#F8F7F5] rounded-lg text-body text-[#78716c] text-center">
                             Cette pièce n'est utilisée dans aucun poste
                           </div>
                         )}
@@ -2517,7 +4905,7 @@ export default function App() {
                           <div className="relative">
                             <input type="text" id="victime-naissance" defaultValue={victimeData.dateNaissance} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                             <input type="date" id="victime-naissance-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'victime-naissance')} />
-                            <button type="button" onClick={() => openDatePicker('victime-naissance')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            <button type="button" onClick={() => openDatePicker('victime-naissance')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                           </div>
                         </FormField>
                       </div>
@@ -2528,7 +4916,7 @@ export default function App() {
                         <div className="relative">
                           <input type="text" id="victime-deces" defaultValue={victimeData.dateDeces || ''} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                           <input type="date" id="victime-deces-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'victime-deces')} />
-                          <button type="button" onClick={() => openDatePicker('victime-deces')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                          <button type="button" onClick={() => openDatePicker('victime-deces')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                         </div>
                       </FormField>
                     </FormSection>
@@ -2557,21 +4945,21 @@ export default function App() {
                           <div className="relative">
                             <input type="text" id="fait-date-accident" defaultValue={faitGenerateur.dateAccident} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                             <input type="date" id="fait-date-accident-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'fait-date-accident')} />
-                            <button type="button" onClick={() => openDatePicker('fait-date-accident')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            <button type="button" onClick={() => openDatePicker('fait-date-accident')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                           </div>
                         </FormField>
                         <FormField label="Date première constatation">
                           <div className="relative">
                             <input type="text" id="fait-date-constat" defaultValue={faitGenerateur.datePremiereConstatation} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                             <input type="date" id="fait-date-constat-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'fait-date-constat')} />
-                            <button type="button" onClick={() => openDatePicker('fait-date-constat')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            <button type="button" onClick={() => openDatePicker('fait-date-constat')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                           </div>
                         </FormField>
                         <FormField label="Date de consolidation">
                           <div className="relative">
                             <input type="text" id="fait-date-conso" defaultValue={faitGenerateur.dateConsolidation} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                             <input type="date" id="fait-date-conso-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'fait-date-conso')} />
-                            <button type="button" onClick={() => openDatePicker('fait-date-conso')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            <button type="button" onClick={() => openDatePicker('fait-date-conso')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                           </div>
                         </FormField>
                       </div>
@@ -2612,44 +5000,44 @@ export default function App() {
                 {editPanel.type === 'victime-indirecte' && (
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Identité</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Identité</h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-sm font-medium text-gray-700">Nom</label>
+                          <label className="text-body-medium text-gray-700">Nom</label>
                           <input type="text" id="vi-nom" defaultValue={data?.nom || ''} className="mt-1 w-full px-3 py-2 border rounded-lg" />
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-700">Prénom</label>
+                          <label className="text-body-medium text-gray-700">Prénom</label>
                           <input type="text" id="vi-prenom" defaultValue={data?.prenom || ''} className="mt-1 w-full px-3 py-2 border rounded-lg" />
                         </div>
                       </div>
                     </div>
                     
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">État civil</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">État civil</h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-sm font-medium text-gray-700">Sexe</label>
+                          <label className="text-body-medium text-gray-700">Sexe</label>
                           <select id="vi-sexe" defaultValue={data?.sexe || 'Homme'} className="mt-1 w-full px-3 py-2 border rounded-lg">
                             <option>Homme</option>
                             <option>Femme</option>
                           </select>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-700">Date de naissance</label>
+                          <label className="text-body-medium text-gray-700">Date de naissance</label>
                           <div className="relative mt-1">
                             <input type="text" id="vi-naissance" defaultValue={data?.dateNaissance || ''} className="w-full px-3 py-2 pr-9 border rounded-lg" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                             <input type="date" id="vi-naissance-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'vi-naissance')} />
-                            <button type="button" onClick={() => openDatePicker('vi-naissance')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            <button type="button" onClick={() => openDatePicker('vi-naissance')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                           </div>
                         </div>
                       </div>
                     </div>
                     
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Lien avec la victime</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Lien avec la victime</h4>
                       <div>
-                        <label className="text-sm font-medium text-gray-700">Type de lien</label>
+                        <label className="text-body-medium text-gray-700">Type de lien</label>
                         <select id="vi-lien" defaultValue={data?.lien || 'Conjoint'} className="mt-1 w-full px-3 py-2 border rounded-lg">
                           <option>Époux</option>
                           <option>Épouse</option>
@@ -2698,7 +5086,7 @@ export default function App() {
                         <div className="relative">
                           <input type="text" id="dossier-date-ouverture" defaultValue={dossierDateOuverture} className={`${inputClass} pr-9`} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
                           <input type="date" id="dossier-date-ouverture-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'dossier-date-ouverture')} />
-                          <button type="button" onClick={() => openDatePicker('dossier-date-ouverture')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                          <button type="button" onClick={() => openDatePicker('dossier-date-ouverture')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                         </div>
                       </FormField>
                     </FormSection>
@@ -2723,45 +5111,62 @@ export default function App() {
                 {/* ========== PANELS PGPA ========== */}
                 
                 {/* Panel PGPA - Revenu de référence */}
-                {editPanel.type === 'pgpa-revenu' && (
-                  <div className="space-y-6">
+                {editPanel.type === 'pgpa-revenu' && (() => {
+                  const pgpaRevDiffColor = data.diffType ? ROW_DIFF_COLORS[data.diffType] : null;
+                  const pgpaRevDiffLabel = data.diffType === 'add' ? 'Ligne ajoutée par l\'agent' : data.diffType === 'edit' ? 'Ligne modifiée par l\'agent' : data.diffType === 'delete' ? 'Ligne supprimée par l\'agent' : null;
+                  const pgpaRevDiffBg = data.diffType === 'add' ? '#f0fdf4' : data.diffType === 'edit' ? '#fff7ed' : '#fef2f2';
+                  const pgpaRevDiffBorder = data.diffType === 'add' ? '#bbf7d0' : data.diffType === 'edit' ? '#fed7aa' : '#fecaca';
+                  const pgpaRevOv = data.oldValues || {};
+                  const pgpaRevHasDiff = (key) => data.diffType === 'edit' && pgpaRevOv[key] != null;
+                  const pgpaRevInputCls = "w-full px-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)]";
+                  const pgpaRevInputShadow = { boxShadow: '0 1px 2px rgba(26,26,26,0.05)' };
+                  const pgpaRevDescP = (text) => <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Ancien : {text}</p>;
+                  return (
+                  <div className="space-y-6" style={data.diffType === 'delete' ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>
+                    {pgpaRevDiffColor && (
+                      <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: pgpaRevDiffBg, border: `1px solid ${pgpaRevDiffBorder}` }}>
+                        <div className="w-1.5 h-1.5" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />
+                        <span style={{ fontSize: 12, fontWeight: 500, color: pgpaRevDiffColor }}>{pgpaRevDiffLabel}</span>
+                      </div>
+                    )}
+
                     {/* Section Pièces justificatives */}
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Pièces justificatives</h4>
                       {editingPieceIds.length > 0 && (
                         <div className="space-y-2 mb-3">
                           {editingPieceIds.map(pid => {
                             const piece = getPiece(pid);
                             return piece ? (
-                              <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
-                                <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
+                              <div key={pid} className="flex items-center gap-3 p-2.5 bg-[#F8F7F5] rounded-lg border group">
+                                <span className="w-8 h-8 bg-blue-100 text-[#1e3a8a] text-caption-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">{piece.intitule || piece.nom}</p>
-                                  <p className="text-xs text-gray-500">{piece.type}</p>
+                                  <p className="text-body-medium truncate">{piece.intitule || piece.nom}</p>
+                                  <p className="text-caption text-[#78716c]">{piece.type}</p>
                                 </div>
-                                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"><Eye className="w-4 h-4" /></button>
-                                <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
+                                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-[#a8a29e] hover:text-blue-600 hover:bg-[#eef3fa] rounded"><Eye className="w-4 h-4" /></button>
+                                <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-[#a8a29e] hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
                               </div>
                             ) : null;
                           })}
                         </div>
                       )}
-                      <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
+                      <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-[#F8F7F5]/50">
                         {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
                           <div>
                             <div className="relative mb-2">
-                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />
                               <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
-                                className="w-full pl-8 pr-7 py-1.5 text-[12px] border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
-                              {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-zinc-400" /></button>}
+                                className="w-full pl-8 pr-7 py-1.5 text-caption border border-[#e7e5e3] rounded-md bg-white placeholder:text-[#a8a29e] focus:outline-none focus:ring-1 focus:ring-zinc-300" />
+                              {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-[#a8a29e]" /></button>}
                             </div>
                             <div className="max-h-32 overflow-y-auto space-y-1">
                               {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
                                 <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
-                                  className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                                  <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
+                                  className="w-full flex items-center gap-2 p-2 text-left text-body bg-white border rounded hover:bg-[#eef3fa] hover:border-blue-300 transition-colors">
+                                  <span className="w-6 h-6 bg-blue-100 text-[#1e3a8a] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
                                   <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
-                                  <span className="text-xs text-gray-400">{piece.type}</span>
+                                  <span className="text-caption text-[#a8a29e]">{piece.type}</span>
                                   <Plus className="w-4 h-4 text-blue-600" />
                                 </button>
                               ))}
@@ -2771,7 +5176,7 @@ export default function App() {
                         <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
                           onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
                         <button onClick={() => document.getElementById('panel-piece-upload').click()}
-                          className="w-full flex items-center justify-center gap-2 p-2 text-sm text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
+                          className="w-full flex items-center justify-center gap-2 p-2 text-body text-[#78716c] bg-white border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] hover:border-zinc-300 transition-colors">
                           <Upload className="w-4 h-4" />
                           Ajouter un document
                         </button>
@@ -2780,119 +5185,160 @@ export default function App() {
 
                     {/* Section Informations */}
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Informations</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Informations</h4>
                       <div className="space-y-4">
                         <div>
-                          <label className="text-sm font-medium text-gray-700">Type</label>
-                          <select id="pgpa-revenu-type" defaultValue={data.type || 'revenu'} className="mt-1 w-full px-3 py-2 border rounded-lg">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Type</label>
+                            {(data.diffType === 'add' || pgpaRevHasDiff('type')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />}
+                          </div>
+                          <select id="pgpa-revenu-type" defaultValue={data.type || 'revenu'} className={pgpaRevInputCls} style={pgpaRevInputShadow}>
                             <option value="revenu">Revenu professionnel</option>
                             <option value="gain">Gain supplémentaire (prime, indemnité...)</option>
                           </select>
+                          {pgpaRevHasDiff('type') && pgpaRevDescP(pgpaRevOv.type)}
                         </div>
 
                         <div>
-                          <label className="text-sm font-medium text-gray-700">Intitulé</label>
-                          <input id="pgpa-revenu-label" type="text" defaultValue={data.label || ''} placeholder="Ex: Salaire net imposable" className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Intitulé</label>
+                            {(data.diffType === 'add' || pgpaRevHasDiff('label')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />}
+                          </div>
+                          <input id="pgpa-revenu-label" type="text" defaultValue={data.label || ''} placeholder="Ex: Salaire net imposable" className={pgpaRevInputCls} style={pgpaRevInputShadow} />
+                          {pgpaRevHasDiff('label') && pgpaRevDescP(pgpaRevOv.label)}
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Année</label>
-                            <input id="pgpa-revenu-annee" type="text" defaultValue={data.annee || ''} placeholder="2022" className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Année</label>
+                              {(data.diffType === 'add' || pgpaRevHasDiff('annee')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />}
+                            </div>
+                            <input id="pgpa-revenu-annee" type="text" defaultValue={data.annee || ''} placeholder="2022" className={pgpaRevInputCls} style={pgpaRevInputShadow} />
+                            {pgpaRevHasDiff('annee') && pgpaRevDescP(pgpaRevOv.annee)}
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Unité de temps</label>
-                            <select id="pgpa-revenu-unite" defaultValue={data.unite || 'annuel'} className="mt-1 w-full px-3 py-2 border rounded-lg">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Unité de temps</label>
+                              {(data.diffType === 'add' || pgpaRevHasDiff('unite')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />}
+                            </div>
+                            <select id="pgpa-revenu-unite" defaultValue={data.unite || 'annuel'} className={pgpaRevInputCls} style={pgpaRevInputShadow}>
                               <option value="annuel">Annuel</option>
                               <option value="mensuel">Mensuel</option>
                               <option value="journalier">Journalier</option>
                             </select>
+                            {pgpaRevHasDiff('unite') && pgpaRevDescP(pgpaRevOv.unite)}
                           </div>
                         </div>
 
                         <div>
-                          <label className="text-sm font-medium text-gray-700">Commentaire</label>
-                          <textarea id="pgpa-revenu-commentaire" rows={2} defaultValue={data.commentaire || ''} placeholder="Informations complémentaires..." className="mt-1 w-full px-3 py-2 border rounded-lg resize-none" />
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Commentaire</label>
+                          </div>
+                          <textarea id="pgpa-revenu-commentaire" rows={2} defaultValue={data.commentaire || ''} placeholder="Informations complémentaires..." className={`${pgpaRevInputCls} resize-none`} style={pgpaRevInputShadow} />
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Section Montants */}
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Montants</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Montants</h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Revenu net payé</label>
-                            <div className="mt-1 relative">
-                              <input id="pgpa-revenu-montant" type="number" step="0.01" defaultValue={data.montant || ''} readOnly className="w-full px-3 py-2 pr-8 border rounded-lg bg-zinc-50 text-zinc-500 cursor-default" />
-                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Revenu net payé</label>
+                              {(data.diffType === 'add' || pgpaRevHasDiff('montant')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />}
                             </div>
+                            <div className="relative">
+                              <input id="pgpa-revenu-montant" type="number" step="0.01" defaultValue={data.montant || ''} readOnly className={`${pgpaRevInputCls} pr-8 bg-[#F8F7F5] text-[#78716c] cursor-default`} style={pgpaRevInputShadow} />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
+                            </div>
+                            {pgpaRevHasDiff('montant') && pgpaRevDescP(`${pgpaRevOv.montant} €`)}
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Montant revalorisé</label>
-                            <div className="mt-1 relative">
-                              <input id="pgpa-revenu-revalorise" type="number" step="0.01" defaultValue={data.revalorise || ''} className="w-full px-3 py-2 pr-8 border rounded-lg bg-gray-50 font-medium" readOnly />
-                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Montant revalorisé</label>
                             </div>
-                            <p className="mt-1 text-xs text-gray-500">Calculé automatiquement selon le barème</p>
+                            <div className="relative">
+                              <input id="pgpa-revenu-revalorise" type="number" step="0.01" defaultValue={data.revalorise || ''} className={`${pgpaRevInputCls} pr-8 bg-[#F8F7F5] font-medium`} style={pgpaRevInputShadow} readOnly />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
+                            </div>
+                            <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Calculé automatiquement selon le barème</p>
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                        <div className="flex items-center justify-between p-3 bg-[#F8F7F5] rounded-lg border">
                           <div className="flex items-center gap-3">
                             <input type="checkbox" id="pgpa-revenu-revalo-checkbox" defaultChecked={data.aRevaloriser !== false} className="rounded text-blue-600" />
-                            <label htmlFor="pgpa-revenu-revalo-checkbox" className="text-sm font-medium text-gray-700">Appliquer la revalorisation</label>
+                            <label htmlFor="pgpa-revenu-revalo-checkbox" className="text-body-medium text-[#292524]">Appliquer la revalorisation</label>
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-body text-[#78716c]">
                             {pgpaData.revenuRef.revalorisation === 'ipc-annuel' ? 'IPC annuel' : pgpaData.revenuRef.revalorisation === 'smic-horaire' ? 'SMIC horaire' : 'Aucune'} · Quotient : <span className="font-medium">1.04</span>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                )}
+                  );})()}
                 
                 {/* Panel PGPA - Revenu perçu période */}
-                {editPanel.type === 'pgpa-revenu-percu' && (
-                  <div className="space-y-6">
+                {editPanel.type === 'pgpa-revenu-percu' && (() => {
+                  const prcDiffColor = data.diffType ? ROW_DIFF_COLORS[data.diffType] : null;
+                  const prcDiffLabel = data.diffType === 'add' ? 'Ligne ajoutée par l\'agent' : data.diffType === 'edit' ? 'Ligne modifiée par l\'agent' : data.diffType === 'delete' ? 'Ligne supprimée par l\'agent' : null;
+                  const prcDiffBg = data.diffType === 'add' ? '#f0fdf4' : data.diffType === 'edit' ? '#fff7ed' : '#fef2f2';
+                  const prcDiffBorder = data.diffType === 'add' ? '#bbf7d0' : data.diffType === 'edit' ? '#fed7aa' : '#fecaca';
+                  const prcOv = data.oldValues || {};
+                  const prcHasDiff = (key) => data.diffType === 'edit' && prcOv[key] != null;
+                  const prcInputCls = "w-full px-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)]";
+                  const prcInputShadow = { boxShadow: '0 1px 2px rgba(26,26,26,0.05)' };
+                  const prcDescP = (text) => <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Ancien : {text}</p>;
+                  return (
+                  <div className="space-y-6" style={data.diffType === 'delete' ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>
+                    {prcDiffColor && (
+                      <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: prcDiffBg, border: `1px solid ${prcDiffBorder}` }}>
+                        <div className="w-1.5 h-1.5" style={{ background: prcDiffColor, transform: 'rotate(45deg)' }} />
+                        <span style={{ fontSize: 12, fontWeight: 500, color: prcDiffColor }}>{prcDiffLabel}</span>
+                      </div>
+                    )}
+
                     {/* Section Pièces justificatives */}
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Pièces justificatives</h4>
                       {editingPieceIds.length > 0 && (
                         <div className="space-y-2 mb-3">
                           {editingPieceIds.map(pid => {
                             const piece = getPiece(pid);
                             return piece ? (
-                              <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
-                                <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
+                              <div key={pid} className="flex items-center gap-3 p-2.5 bg-[#F8F7F5] rounded-lg border group">
+                                <span className="w-8 h-8 bg-blue-100 text-[#1e3a8a] text-caption-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">{piece.intitule || piece.nom}</p>
-                                  <p className="text-xs text-gray-500">{piece.type}</p>
+                                  <p className="text-body-medium truncate">{piece.intitule || piece.nom}</p>
+                                  <p className="text-caption text-[#78716c]">{piece.type}</p>
                                 </div>
-                                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"><Eye className="w-4 h-4" /></button>
-                                <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
+                                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-[#a8a29e] hover:text-blue-600 hover:bg-[#eef3fa] rounded"><Eye className="w-4 h-4" /></button>
+                                <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-[#a8a29e] hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
                               </div>
                             ) : null;
                           })}
                         </div>
                       )}
-                      <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
+                      <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-[#F8F7F5]/50">
                         {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
                           <div>
                             <div className="relative mb-2">
-                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />
                               <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
-                                className="w-full pl-8 pr-7 py-1.5 text-[12px] border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
-                              {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-zinc-400" /></button>}
+                                className="w-full pl-8 pr-7 py-1.5 text-caption border border-[#e7e5e3] rounded-md bg-white placeholder:text-[#a8a29e] focus:outline-none focus:ring-1 focus:ring-zinc-300" />
+                              {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-[#a8a29e]" /></button>}
                             </div>
                             <div className="max-h-32 overflow-y-auto space-y-1">
                               {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
                                 <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
-                                  className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                                  <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
+                                  className="w-full flex items-center gap-2 p-2 text-left text-body bg-white border rounded hover:bg-[#eef3fa] hover:border-blue-300 transition-colors">
+                                  <span className="w-6 h-6 bg-blue-100 text-[#1e3a8a] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
                                   <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
-                                  <span className="text-xs text-gray-400">{piece.type}</span>
+                                  <span className="text-caption text-[#a8a29e]">{piece.type}</span>
                                   <Plus className="w-4 h-4 text-blue-600" />
                                 </button>
                               ))}
@@ -2902,7 +5348,7 @@ export default function App() {
                         <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
                           onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
                         <button onClick={() => document.getElementById('panel-piece-upload').click()}
-                          className="w-full flex items-center justify-center gap-2 p-2 text-sm text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
+                          className="w-full flex items-center justify-center gap-2 p-2 text-body text-[#78716c] bg-white border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] hover:border-zinc-300 transition-colors">
                           <Upload className="w-4 h-4" />
                           Ajouter un document
                         </button>
@@ -2911,136 +5357,179 @@ export default function App() {
 
                     {/* Section Informations */}
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Informations</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Informations</h4>
                       <div className="space-y-4">
                         <div>
-                          <label className="text-sm font-medium text-gray-700">Intitulé</label>
-                          <input id="pgpa-percu-label" type="text" defaultValue={data.label || ''} placeholder="Ex: Maintien de salaire partiel" className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Intitulé</label>
+                            {(data.diffType === 'add' || prcHasDiff('label')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: prcDiffColor, transform: 'rotate(45deg)' }} />}
+                          </div>
+                          <input id="pgpa-percu-label" type="text" defaultValue={data.label || ''} placeholder="Ex: Maintien de salaire partiel" className={prcInputCls} style={prcInputShadow} />
+                          {prcHasDiff('label') && prcDescP(prcOv.label)}
                         </div>
 
                         <div>
-                          <label className="text-sm font-medium text-gray-700">Organisme / Tiers</label>
-                          <input id="pgpa-percu-tiers" type="text" defaultValue={data.tiers || ''} placeholder="Ex: Employeur, Prévoyance..." className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Organisme / Tiers</label>
+                            {(data.diffType === 'add' || prcHasDiff('tiers')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: prcDiffColor, transform: 'rotate(45deg)' }} />}
+                          </div>
+                          <input id="pgpa-percu-tiers" type="text" defaultValue={data.tiers || ''} placeholder="Ex: Employeur, Prévoyance..." className={prcInputCls} style={prcInputShadow} />
+                          {prcHasDiff('tiers') && prcDescP(prcOv.tiers)}
                         </div>
 
                         <div>
-                          <label className="text-sm font-medium text-gray-700">Commentaire</label>
-                          <textarea id="pgpa-percu-commentaire" rows={2} defaultValue={data.commentaire || ''} placeholder="Informations complémentaires..." className="mt-1 w-full px-3 py-2 border rounded-lg resize-none" />
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Commentaire</label>
+                          </div>
+                          <textarea id="pgpa-percu-commentaire" rows={2} defaultValue={data.commentaire || ''} placeholder="Informations complémentaires..." className={`${prcInputCls} resize-none`} style={prcInputShadow} />
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Section Période */}
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Période</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Période</h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Date de début</label>
-                            <div className="relative mt-1">
-                              <input id="pgpa-percu-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
-                              <input type="date" id="pgpa-percu-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-percu-debut')} />
-                              <button type="button" onClick={() => openDatePicker('pgpa-percu-debut')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Date de début</label>
+                              {(data.diffType === 'add' || prcHasDiff('periodeDebut')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: prcDiffColor, transform: 'rotate(45deg)' }} />}
                             </div>
+                            <div className="relative">
+                              <input id="pgpa-percu-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className={`${prcInputCls} pr-9`} style={prcInputShadow} />
+                              <input type="date" id="pgpa-percu-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-percu-debut')} />
+                              <button type="button" onClick={() => openDatePicker('pgpa-percu-debut')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
+                            </div>
+                            {prcHasDiff('periodeDebut') && prcDescP(prcOv.periodeDebut)}
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Date de fin</label>
-                            <div className="relative mt-1">
-                              <input id="pgpa-percu-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
-                              <input type="date" id="pgpa-percu-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-percu-fin')} />
-                              <button type="button" onClick={() => openDatePicker('pgpa-percu-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Date de fin</label>
+                              {(data.diffType === 'add' || prcHasDiff('periodeFin')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: prcDiffColor, transform: 'rotate(45deg)' }} />}
                             </div>
+                            <div className="relative">
+                              <input id="pgpa-percu-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className={`${prcInputCls} pr-9`} style={prcInputShadow} />
+                              <input type="date" id="pgpa-percu-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-percu-fin')} />
+                              <button type="button" onClick={() => openDatePicker('pgpa-percu-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
+                            </div>
+                            {prcHasDiff('periodeFin') && prcDescP(prcOv.periodeFin)}
                           </div>
                         </div>
 
                         <div className="p-3 bg-blue-50 rounded-lg flex items-center justify-between">
-                          <span className="text-sm text-blue-700">Durée calculée</span>
+                          <span className="text-body text-[#1e3a8a]">Durée calculée</span>
                           <span className="font-semibold text-blue-900">{data.dureeJours || '—'} jours</span>
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Section Montants */}
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Montants</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Montants</h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Revenu perçu net</label>
-                            <div className="mt-1 relative">
-                              <input id="pgpa-percu-montant" type="number" step="0.01" defaultValue={data.montant || ''} readOnly className="w-full px-3 py-2 pr-8 border rounded-lg bg-zinc-50 text-zinc-500 cursor-default" />
-                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Revenu perçu net</label>
+                              {(data.diffType === 'add' || prcHasDiff('montant')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: prcDiffColor, transform: 'rotate(45deg)' }} />}
                             </div>
+                            <div className="relative">
+                              <input id="pgpa-percu-montant" type="number" step="0.01" defaultValue={data.montant || ''} readOnly className={`${prcInputCls} pr-8 bg-[#F8F7F5] text-[#78716c] cursor-default`} style={prcInputShadow} />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
+                            </div>
+                            {prcHasDiff('montant') && prcDescP(`${prcOv.montant} €`)}
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Unité de temps</label>
-                            <select id="pgpa-percu-unite" defaultValue={data.unite || 'total'} className="mt-1 w-full px-3 py-2 border rounded-lg">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Unité de temps</label>
+                              {(data.diffType === 'add' || prcHasDiff('unite')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: prcDiffColor, transform: 'rotate(45deg)' }} />}
+                            </div>
+                            <select id="pgpa-percu-unite" defaultValue={data.unite || 'total'} className={prcInputCls} style={prcInputShadow}>
                               <option value="total">Total période</option>
                               <option value="mensuel">Par mois</option>
                               <option value="journalier">Par jour</option>
                             </select>
+                            {prcHasDiff('unite') && prcDescP(prcOv.unite)}
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                        <div className="flex items-center justify-between p-3 bg-[#F8F7F5] rounded-lg border">
                           <div className="flex items-center gap-3">
                             <input type="checkbox" id="pgpa-percu-no-revalo" defaultChecked={data.noRevalo || false} className="rounded text-blue-600" />
-                            <label htmlFor="pgpa-percu-no-revalo" className="text-sm font-medium text-gray-700">Montant à ne pas revaloriser</label>
+                            <label htmlFor="pgpa-percu-no-revalo" className="text-body-medium text-[#292524]">Montant à ne pas revaloriser</label>
                           </div>
                         </div>
-                        
+
                         <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-amber-800">Perte de gains sur la période</span>
+                            <span className="text-body text-amber-800">Perte de gains sur la période</span>
                             <span className="font-semibold text-amber-900">{fmt(data.perteGains || 0)}</span>
                           </div>
-                          <p className="text-xs text-amber-600 mt-1">Revenu de référence − Revenu perçu</p>
+                          <p className="text-caption text-amber-600 mt-1">Revenu de référence − Revenu perçu</p>
                         </div>
                       </div>
                     </div>
                   </div>
-                )}
+                  );})()}
                 
                 {/* Panel PGPA - Indemnités journalières */}
-                {editPanel.type === 'pgpa-ij' && (
-                  <div className="space-y-6">
+                {editPanel.type === 'pgpa-ij' && (() => {
+                  const ijDiffColor = data.diffType ? ROW_DIFF_COLORS[data.diffType] : null;
+                  const ijDiffLabel = data.diffType === 'add' ? 'Ligne ajoutée par l\'agent' : data.diffType === 'edit' ? 'Ligne modifiée par l\'agent' : data.diffType === 'delete' ? 'Ligne supprimée par l\'agent' : null;
+                  const ijDiffBg = data.diffType === 'add' ? '#f0fdf4' : data.diffType === 'edit' ? '#fff7ed' : '#fef2f2';
+                  const ijDiffBorder = data.diffType === 'add' ? '#bbf7d0' : data.diffType === 'edit' ? '#fed7aa' : '#fecaca';
+                  const ijOv = data.oldValues || {};
+                  const ijHasDiff = (key) => data.diffType === 'edit' && ijOv[key] != null;
+                  const ijInputCls = "w-full px-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)]";
+                  const ijInputShadow = { boxShadow: '0 1px 2px rgba(26,26,26,0.05)' };
+                  const ijDescP = (text) => <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Ancien : {text}</p>;
+                  return (
+                  <div className="space-y-6" style={data.diffType === 'delete' ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>
+                    {ijDiffColor && (
+                      <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: ijDiffBg, border: `1px solid ${ijDiffBorder}` }}>
+                        <div className="w-1.5 h-1.5" style={{ background: ijDiffColor, transform: 'rotate(45deg)' }} />
+                        <span style={{ fontSize: 12, fontWeight: 500, color: ijDiffColor }}>{ijDiffLabel}</span>
+                      </div>
+                    )}
+
                     {/* Section Pièces justificatives */}
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Pièces justificatives</h4>
                       {editingPieceIds.length > 0 && (
                         <div className="space-y-2 mb-3">
                           {editingPieceIds.map(pid => {
                             const piece = getPiece(pid);
                             return piece ? (
-                              <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
-                                <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
+                              <div key={pid} className="flex items-center gap-3 p-2.5 bg-[#F8F7F5] rounded-lg border group">
+                                <span className="w-8 h-8 bg-blue-100 text-[#1e3a8a] text-caption-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">{piece.intitule || piece.nom}</p>
-                                  <p className="text-xs text-gray-500">{piece.type}</p>
+                                  <p className="text-body-medium truncate">{piece.intitule || piece.nom}</p>
+                                  <p className="text-caption text-[#78716c]">{piece.type}</p>
                                 </div>
-                                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"><Eye className="w-4 h-4" /></button>
-                                <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
+                                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-[#a8a29e] hover:text-blue-600 hover:bg-[#eef3fa] rounded"><Eye className="w-4 h-4" /></button>
+                                <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-[#a8a29e] hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
                               </div>
                             ) : null;
                           })}
                         </div>
                       )}
-                      <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
+                      <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-[#F8F7F5]/50">
                         {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
                           <div>
                             <div className="relative mb-2">
-                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />
                               <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
-                                className="w-full pl-8 pr-7 py-1.5 text-[12px] border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
-                              {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-zinc-400" /></button>}
+                                className="w-full pl-8 pr-7 py-1.5 text-caption border border-[#e7e5e3] rounded-md bg-white placeholder:text-[#a8a29e] focus:outline-none focus:ring-1 focus:ring-zinc-300" />
+                              {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-[#a8a29e]" /></button>}
                             </div>
                             <div className="max-h-32 overflow-y-auto space-y-1">
                               {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
                                 <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
-                                  className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                                  <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
+                                  className="w-full flex items-center gap-2 p-2 text-left text-body bg-white border rounded hover:bg-[#eef3fa] hover:border-blue-300 transition-colors">
+                                  <span className="w-6 h-6 bg-blue-100 text-[#1e3a8a] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
                                   <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
-                                  <span className="text-xs text-gray-400">{piece.type}</span>
+                                  <span className="text-caption text-[#a8a29e]">{piece.type}</span>
                                   <Plus className="w-4 h-4 text-blue-600" />
                                 </button>
                               ))}
@@ -3050,7 +5539,7 @@ export default function App() {
                         <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
                           onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
                         <button onClick={() => document.getElementById('panel-piece-upload').click()}
-                          className="w-full flex items-center justify-center gap-2 p-2 text-sm text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
+                          className="w-full flex items-center justify-center gap-2 p-2 text-body text-[#78716c] bg-white border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] hover:border-zinc-300 transition-colors">
                           <Upload className="w-4 h-4" />
                           Ajouter un document
                         </button>
@@ -3059,256 +5548,348 @@ export default function App() {
 
                     {/* Section Tiers payeur */}
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Tiers payeur</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Tiers payeur</h4>
                       <div className="space-y-4">
                         <div>
-                          <label className="text-sm font-medium text-gray-700">Organisme</label>
-                          <select id="pgpa-ij-tiers" defaultValue={data.tiers || ''} className="mt-1 w-full px-3 py-2 border rounded-lg">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Organisme</label>
+                            {(data.diffType === 'add' || ijHasDiff('tiers')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: ijDiffColor, transform: 'rotate(45deg)' }} />}
+                          </div>
+                          <select id="pgpa-ij-tiers" defaultValue={data.tiers || ''} className={ijInputCls} style={ijInputShadow}>
                             <option value="">— Sélectionner —</option>
                             {chiffrageParams.tiersPayeurs.map((t, i) => (
                               <option key={i} value={t}>{t}</option>
                             ))}
                             <option value="autre">Autre...</option>
                           </select>
+                          {ijHasDiff('tiers') && ijDescP(ijOv.tiers)}
                         </div>
 
                         <div>
-                          <label className="text-sm font-medium text-gray-700">Libellé / Description</label>
-                          <input id="pgpa-ij-label" type="text" defaultValue={data.label || ''} placeholder="Ex: IJ Sécurité sociale" className="mt-1 w-full px-3 py-2 border rounded-lg" />
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Libellé / Description</label>
+                            {(data.diffType === 'add' || ijHasDiff('label')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: ijDiffColor, transform: 'rotate(45deg)' }} />}
+                          </div>
+                          <input id="pgpa-ij-label" type="text" defaultValue={data.label || ''} placeholder="Ex: IJ Sécurité sociale" className={ijInputCls} style={ijInputShadow} />
+                          {ijHasDiff('label') && ijDescP(ijOv.label)}
                         </div>
 
                         <div>
-                          <label className="text-sm font-medium text-gray-700">Commentaire</label>
-                          <textarea id="pgpa-ij-commentaire" rows={2} defaultValue={data.commentaire || ''} placeholder="Informations complémentaires..." className="mt-1 w-full px-3 py-2 border rounded-lg resize-none" />
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <label className="text-body-medium text-[#292524]">Commentaire</label>
+                          </div>
+                          <textarea id="pgpa-ij-commentaire" rows={2} defaultValue={data.commentaire || ''} placeholder="Informations complémentaires..." className={`${ijInputCls} resize-none`} style={ijInputShadow} />
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Section Période d'arrêt */}
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Période d'arrêt de travail</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Période d'arrêt de travail</h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Date de début</label>
-                            <div className="relative mt-1">
-                              <input id="pgpa-ij-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
-                              <input type="date" id="pgpa-ij-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-ij-debut')} />
-                              <button type="button" onClick={() => openDatePicker('pgpa-ij-debut')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Date de début</label>
+                              {(data.diffType === 'add' || ijHasDiff('periodeDebut')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: ijDiffColor, transform: 'rotate(45deg)' }} />}
                             </div>
+                            <div className="relative">
+                              <input id="pgpa-ij-debut" type="text" defaultValue={data.periodeDebut || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className={`${ijInputCls} pr-9`} style={ijInputShadow} />
+                              <input type="date" id="pgpa-ij-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-ij-debut')} />
+                              <button type="button" onClick={() => openDatePicker('pgpa-ij-debut')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
+                            </div>
+                            {ijHasDiff('periodeDebut') && ijDescP(ijOv.periodeDebut)}
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Date de fin</label>
-                            <div className="relative mt-1">
-                              <input id="pgpa-ij-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className="w-full px-3 py-2 pr-9 border rounded-lg" />
-                              <input type="date" id="pgpa-ij-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-ij-fin')} />
-                              <button type="button" onClick={() => openDatePicker('pgpa-ij-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Date de fin</label>
+                              {(data.diffType === 'add' || ijHasDiff('periodeFin')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: ijDiffColor, transform: 'rotate(45deg)' }} />}
                             </div>
+                            <div className="relative">
+                              <input id="pgpa-ij-fin" type="text" defaultValue={data.periodeFin || ''} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} className={`${ijInputCls} pr-9`} style={ijInputShadow} />
+                              <input type="date" id="pgpa-ij-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'pgpa-ij-fin')} />
+                              <button type="button" onClick={() => openDatePicker('pgpa-ij-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
+                            </div>
+                            {ijHasDiff('periodeFin') && ijDescP(ijOv.periodeFin)}
                           </div>
                         </div>
 
                         <div className="p-3 bg-blue-50 rounded-lg flex items-center justify-between">
-                          <span className="text-sm text-blue-700">Durée calculée</span>
+                          <span className="text-body text-[#1e3a8a]">Durée calculée</span>
                           <span className="font-semibold text-blue-900">{data.jours || '—'} jours</span>
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Section Montants */}
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Montants</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Montants</h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Indemnité brute perçue</label>
-                            <div className="mt-1 relative">
-                              <input id="pgpa-ij-brut" type="number" step="0.01" defaultValue={data.montantBrut || ''} placeholder="0.00" className="w-full px-3 py-2 pr-8 border rounded-lg" />
-                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">Indemnité brute perçue</label>
+                              {(data.diffType === 'add' || ijHasDiff('montantBrut')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: ijDiffColor, transform: 'rotate(45deg)' }} />}
                             </div>
+                            <div className="relative">
+                              <input id="pgpa-ij-brut" type="number" step="0.01" defaultValue={data.montantBrut || ''} placeholder="0.00" className={`${ijInputCls} pr-8`} style={ijInputShadow} />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
+                            </div>
+                            {ijHasDiff('montantBrut') && ijDescP(`${ijOv.montantBrut} €`)}
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-700">CSG-CRDS</label>
-                            <div className="mt-1 relative">
-                              <input id="pgpa-ij-csg" type="number" step="0.01" defaultValue={data.csgCrds || ''} placeholder="0.00" className="w-full px-3 py-2 pr-8 border rounded-lg" />
-                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <label className="text-body-medium text-[#292524]">CSG-CRDS</label>
+                              {(data.diffType === 'add' || ijHasDiff('csgCrds')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: ijDiffColor, transform: 'rotate(45deg)' }} />}
                             </div>
+                            <div className="relative">
+                              <input id="pgpa-ij-csg" type="number" step="0.01" defaultValue={data.csgCrds || ''} placeholder="0.00" className={`${ijInputCls} pr-8`} style={ijInputShadow} />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
+                            </div>
+                            {ijHasDiff('csgCrds') && ijDescP(`${ijOv.csgCrds} €`)}
                           </div>
                         </div>
-                        
+
                         <div className="p-3 bg-green-50 rounded-lg border border-green-200">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-green-800">Indemnité nette perçue</span>
+                            <span className="text-body text-green-800">Indemnité nette perçue</span>
                             <span className="font-semibold text-green-900">{fmt(data.montant || 0)}</span>
                           </div>
-                          <p className="text-xs text-green-600 mt-1">Brut − CSG-CRDS</p>
+                          <p className="text-caption text-green-600 mt-1">Brut − CSG-CRDS</p>
                         </div>
-                        
+
                         <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-purple-800">Créance du tiers payeur</span>
+                            <span className="text-body-medium text-purple-800">Créance du tiers payeur</span>
                             <span className="font-bold text-purple-900">{fmt(data.montant || 0)}</span>
                           </div>
-                          <p className="text-xs text-purple-600">Ce montant sera déduit de l'indemnité victime et versé directement au tiers payeur</p>
+                          <p className="text-caption text-purple-600">Ce montant sera déduit de l'indemnité victime et versé directement au tiers payeur</p>
                         </div>
                       </div>
                     </div>
                   </div>
-                )}
+                  );})()}
 
                 {/* Panel DFT */}
-                {editPanel.type === 'dft-ligne' && (
-                  <>
-                    {data?.status === 'ai-suggested' && data?.confidence && (
-                      <div className="flex items-center gap-3 p-4 rounded-xl bg-indigo-50 border border-indigo-200 mb-4">
-                        <Sparkles className="w-5 h-5 text-indigo-600" />
-                        <span className="text-[13px] font-medium text-indigo-700">Suggestion IA · Confiance {data.confidence}%</span>
+                {editPanel.type === 'dft-ligne' && (() => {
+                  const dftDiffColor = data.diffType ? ROW_DIFF_COLORS[data.diffType] : null;
+                  const dftDiffLabel = data.diffType === 'add' ? 'Ligne ajoutée par l\'agent' : data.diffType === 'edit' ? 'Ligne modifiée par l\'agent' : data.diffType === 'delete' ? 'Ligne supprimée par l\'agent' : null;
+                  const dftDiffBg = data.diffType === 'add' ? '#f0fdf4' : data.diffType === 'edit' ? '#fff7ed' : '#fef2f2';
+                  const dftDiffBorder = data.diffType === 'add' ? '#bbf7d0' : data.diffType === 'edit' ? '#fed7aa' : '#fecaca';
+                  const dftOv = data.oldValues || {};
+                  const dftHasDiff = (key) => data.diffType === 'edit' && dftOv[key] != null;
+                  const inputShadow = { boxShadow: '0 1px 2px rgba(26,26,26,0.05)' };
+                  const inputCls = "w-full px-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)]";
+                  const descP = (text) => <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Ancien : {text}</p>;
+                  return (
+                  <div className="space-y-5" style={data.diffType === 'delete' ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>
+                    {dftDiffColor && (
+                      <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: dftDiffBg, border: `1px solid ${dftDiffBorder}` }}>
+                        <div className="w-1.5 h-1.5" style={{ background: dftDiffColor, transform: 'rotate(45deg)' }} />
+                        <span style={{ fontSize: 12, fontWeight: 500, color: dftDiffColor }}>{dftDiffLabel}</span>
                       </div>
                     )}
-                    <div className="space-y-6">
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Pièces justificatives</h4>
 
-                        {editingPieceIds.length > 0 && (
-                          <div className="space-y-2 mb-3">
-                            {editingPieceIds.map(pid => {
-                              const piece = getPiece(pid);
-                              return piece ? (
-                                <div key={pid} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border group">
-                                  <span className="w-8 h-8 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center justify-center flex-shrink-0">
-                                    {getPieceLabel(pid)}
-                                  </span>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">Rapport d'expertise</p>
-                                    <p className="text-xs text-gray-500">{piece.type}</p>
-                                  </div>
-                                  <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded">
-                                    <Eye className="w-4 h-4" />
-                                  </button>
-                                  <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100">
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
+                    {/* Libellé dépense */}
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <label className="text-body-medium text-[#292524]">Libellé dépense</label>
+                        {(data.diffType === 'add' || dftHasDiff('label')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dftDiffColor, transform: 'rotate(45deg)' }} />}
+                      </div>
+                      <input type="text" id="dft-label" defaultValue={data.label || ''} placeholder="Nom de la période"
+                        className={inputCls} style={inputShadow} />
+                      {dftHasDiff('label') && descP(dftOv.label)}
+                    </div>
+
+                    {/* Pièces justificatives */}
+                    <div>
+                      <label className="text-caption text-[#78716c] mb-1.5 block">Ajouter des pièces justificatives</label>
+                      {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
+                        <div className="relative mb-2">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />
+                          <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
+                            className="w-full pl-9 pr-7 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white placeholder:text-[#a8a29e] focus:outline-none focus:ring-1 focus:ring-[#a8a29e]" />
+                          {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2.5 top-1/2 -translate-y-1/2"><X className="w-3.5 h-3.5 text-[#a8a29e]" /></button>}
+                        </div>
+                      )}
+                      {searchPiecesPanel && (
+                        <div className="max-h-32 overflow-y-auto space-y-1 mb-2">
+                          {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
+                            <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-left text-body bg-white border border-[#e7e5e3] rounded-lg hover:bg-[#f5f5f4] transition-colors">
+                              <span className="w-6 h-6 bg-[#eeece6] text-[#44403c] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
+                              <span className="truncate flex-1">{piece.intitule || piece.nom}</span>
+                              <span className="text-caption text-[#a8a29e]">{piece.type}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div className="border border-dashed border-[#d6d3d1] rounded-lg p-3 flex items-center justify-center gap-2 text-body text-[#78716c] hover:bg-[#f5f5f4] cursor-pointer transition-colors"
+                        onClick={() => document.getElementById('panel-piece-upload').click()}>
+                        <Upload className="w-4 h-4" />
+                        <span>Déposez ou <span className="text-[#E8713A] font-medium">cliquez</span> pour ajouter un justificatif</span>
+                      </div>
+                      <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                        onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
+                      {editingPieceIds.length > 0 && (
+                        <div className="mt-2">
+                          {editingPieceIds.map(pid => {
+                            const piece = getPiece(pid);
+                            return piece ? (
+                              <div key={pid} className="flex items-center gap-3 px-3 h-12 group hover:bg-[#f5f5f4] transition-colors">
+                                <span className="w-6 h-6 bg-[#eeece6] text-[#44403c] text-counter font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
+                                <span className="text-body text-[#292524] truncate flex-1">{piece.intitule || piece.nom}</span>
+                                <span className="text-caption text-[#a8a29e] flex-shrink-0">{piece.type}</span>
+                                <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                  <button onClick={() => setShowPreview(!showPreview)} className="p-1 text-[#78716c] hover:text-[#292524]"><Eye className="w-4 h-4" /></button>
+                                  <button onClick={() => setEditingPieceIds(prev => prev.filter(id => id !== pid))} className="p-1 text-[#78716c] hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                                 </div>
-                              ) : null;
-                            })}
-                          </div>
-                        )}
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                      )}
+                    </div>
 
-                        <div className="border-2 border-dashed rounded-lg p-3 space-y-3 bg-gray-50/50">
-                          {pieces.filter(p => !editingPieceIds.includes(p.id)).length > 0 && (
-                            <div>
-                              <div className="relative mb-2">
-                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" strokeWidth={1.5} />
-                                <input type="text" value={searchPiecesPanel} onChange={(e) => setSearchPiecesPanel(e.target.value)} placeholder="Rechercher une pièce..."
-                                  className="w-full pl-8 pr-7 py-1.5 text-[12px] border border-zinc-200 rounded-md bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300" />
-                                {searchPiecesPanel && <button onClick={() => setSearchPiecesPanel('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-zinc-400" /></button>}
-                              </div>
-                              <div className="max-h-32 overflow-y-auto space-y-1">
-                                {pieces.filter(p => !editingPieceIds.includes(p.id)).filter(p => !searchPiecesPanel.trim() || (p.intitule || p.nom || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase()) || (p.type || '').toLowerCase().includes(searchPiecesPanel.trim().toLowerCase())).map(piece => (
-                                  <button key={piece.id} onClick={() => { setEditingPieceIds(prev => [...prev, piece.id]); setSearchPiecesPanel(''); }}
-                                    className="w-full flex items-center gap-2 p-2 text-left text-sm bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                                    <span className="w-6 h-6 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(piece.id)}</span>
-                                    <span className="truncate flex-1">Rapport d'expertise</span>
-                                    <span className="text-xs text-gray-400">{piece.type}</span>
-                                    <Plus className="w-4 h-4 text-blue-600" />
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          <input type="file" id="panel-piece-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-                            onChange={(e) => { if (e.target.files?.length) { handleUploadPieceForPanel(e.target.files); e.target.value = ''; } }} />
-                          <button onClick={() => document.getElementById('panel-piece-upload').click()}
-                            className="w-full flex items-center justify-center gap-2 p-2 text-sm text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
-                            <Upload className="w-4 h-4" />
-                            Ajouter un document
-                          </button>
+                    {/* Dates side by side */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label className="text-body-medium text-[#292524]">Date de début</label>
+                          {(data.diffType === 'add' || dftHasDiff('debut')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dftDiffColor, transform: 'rotate(45deg)' }} />}
                         </div>
+                        <div className="relative">
+                          <input type="text" id="dft-debut" defaultValue={data.debut} className={`${inputCls} pr-9`} style={inputShadow} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                          <input type="date" id="dft-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'dft-debut')} />
+                          <button type="button" onClick={() => openDatePicker('dft-debut')} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-[#f5f5f4] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
+                        </div>
+                        {dftHasDiff('debut') && descP(dftOv.debut)}
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Période</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div><label className="block text-xs text-gray-500 mb-1">Date début</label><div className="relative"><input type="text" id="dft-debut" defaultValue={data.debut} className="w-full px-3 py-2 pr-9 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} /><input type="date" id="dft-debut-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'dft-debut')} /><button type="button" onClick={() => openDatePicker('dft-debut')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button></div></div>
-                          <div><label className="block text-xs text-gray-500 mb-1">Date fin</label><div className="relative"><input type="text" id="dft-fin" defaultValue={data.fin} className="w-full px-3 py-2 pr-9 border rounded-lg text-sm" placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} /><input type="date" id="dft-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'dft-fin')} /><button type="button" onClick={() => openDatePicker('dft-fin')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button></div></div>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label className="text-body-medium text-[#292524]">Date de fin</label>
+                          {(data.diffType === 'add' || dftHasDiff('fin')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dftDiffColor, transform: 'rotate(45deg)' }} />}
                         </div>
-                        <div className="mt-3 p-2.5 bg-blue-50 rounded-lg flex items-center justify-between">
-                          <span className="text-xs text-blue-700">Durée calculée</span>
-                          <span className="text-sm font-semibold text-blue-900">{data.jours || '—'} jours</span>
+                        <div className="relative">
+                          <input type="text" id="dft-fin" defaultValue={data.fin} className={`${inputCls} pr-9`} style={inputShadow} placeholder="JJ/MM/AAAA" maxLength={10} onChange={(e) => { e.target.value = formatDateInput(e.target.value); }} />
+                          <input type="date" id="dft-fin-picker" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => handleDatePick(e, 'dft-fin')} />
+                          <button type="button" onClick={() => openDatePicker('dft-fin')} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-[#f5f5f4] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                         </div>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Paramètres</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div><label className="block text-xs text-gray-500 mb-1">Taux DFT</label><div className="relative"><input type="number" id="dft-taux" defaultValue={data.taux || 100} min={0} max={100} className="w-full px-3 py-2 pr-8 border rounded-lg text-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">%</span></div></div>
-                          <div><label className="block text-xs text-gray-500 mb-1">Base journalière</label><div className="relative"><input type="number" id="dft-base" defaultValue={chiffrageParams.baseJournaliereDFT || 33} className="w-full px-3 py-2 pr-10 border rounded-lg text-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">€/j</span></div></div>
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 pb-2 border-b">Contenu</h4>
-                        <div><label className="block text-xs text-gray-500 mb-1">Libellé</label><input type="text" id="dft-label" defaultValue={data.label || ''} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
-                        <div className="mt-3"><label className="block text-xs text-gray-500 mb-1">Commentaire</label><textarea id="dft-commentaire" defaultValue={data.commentaire || ''} rows={3} className="w-full px-3 py-2 border rounded-lg text-sm resize-none" /></div>
+                        {dftHasDiff('fin') && descP(dftOv.fin)}
                       </div>
                     </div>
-                  </>
-                )}
+                    <div className="text-caption text-[#78716c] italic -mt-3">
+                      Durée : {data.jours || '—'} jours
+                    </div>
+
+                    {/* Base journalière + % DFT side by side */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label className="text-body-medium text-[#292524]">Base journalière</label>
+                          {(data.diffType === 'add' || dftHasDiff('base')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dftDiffColor, transform: 'rotate(45deg)' }} />}
+                        </div>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
+                          <input type="number" id="dft-base" defaultValue={chiffrageParams.baseJournaliereDFT || 33}
+                            className={`${inputCls} pl-8`} style={inputShadow} />
+                        </div>
+                        {dftHasDiff('base') && descP(`${dftOv.base} €`)}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <label className="text-body-medium text-[#292524]">% de DFT</label>
+                          {(data.diffType === 'add' || dftHasDiff('taux')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dftDiffColor, transform: 'rotate(45deg)' }} />}
+                        </div>
+                        <div className="relative">
+                          <input type="number" id="dft-taux" defaultValue={data.taux || 100} min={0} max={100}
+                            className={`${inputCls} pr-8`} style={inputShadow} />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">%</span>
+                        </div>
+                        {dftHasDiff('taux') && descP(`${dftOv.taux}%`)}
+                      </div>
+                    </div>
+
+                    {/* Commentaire hidden */}
+                    <input type="hidden" id="dft-commentaire" value={data.commentaire || ''} />
+                  </div>
+                  );})()}
 
               </div>
 
-              {/* Bandeau Montant calculé — sticky entre scroll et action bar */}
+              {/* Charge Details — Figma style */}
               {editPanel.type === 'dsa-ligne' && (
-                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
-                  <div>
-                    <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
-                    <p className="text-[11px] text-zinc-400">Calculé automatiquement à partir des champs ci-dessus</p>
+                <div className="border-t border-[#e7e5e3] bg-[#fafaf9]">
+                  <div className="px-5 py-4 space-y-1.5">
+                    <div className="flex justify-between text-body">
+                      <span className="text-[#44403c]">Montant dépense</span>
+                      <span className="tabular-nums text-[#292524] font-medium">{fmt(data.montant || 0)}</span>
+                    </div>
+                    <div className="flex justify-between text-body">
+                      <span className="text-[#44403c]">Reste à charge</span>
+                      <span className="tabular-nums text-[#292524] font-medium">{fmt((data.montant || 0) - (data.dejaRembourse || 0))}</span>
+                    </div>
+                    {data.aRevalo && (
+                      <div className="flex justify-between text-body">
+                        <div className="flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5 text-[#E8713A]" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                          <span className="text-[#44403c]">Revalorisation</span>
+                          <span className="text-caption text-[#a8a29e]">IPC Annuel · 1,08</span>
+                        </div>
+                        <span className="tabular-nums text-[#292524] font-medium">{fmt(((data.montant || 0) - (data.dejaRembourse || 0)) * 0.08)}</span>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
+                  <div className="mx-5 border-t border-[#e7e5e3]" />
+                  <div className="px-5 py-3 flex justify-between items-center">
+                    <span className="text-body-medium text-[#292524]">Total indemnisable</span>
+                    <span className="text-lg font-bold text-[#292524] tabular-nums">{fmt(data.montant || 0)}</span>
+                  </div>
                 </div>
               )}
               {editPanel.type === 'pgpa-revenu' && (
-                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
-                  <div>
-                    <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
-                    <p className="text-[11px] text-zinc-400">Calculé automatiquement à partir des champs ci-dessus</p>
+                <div className="border-t border-[#e7e5e3] bg-[#fafaf9]">
+                  <div className="px-5 py-3 flex justify-between items-center">
+                    <span className="text-body-medium text-[#292524]">Revenu de référence</span>
+                    <span className="text-lg font-bold text-[#292524] tabular-nums">{fmt(data.montant || 0)}</span>
                   </div>
-                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
                 </div>
               )}
               {editPanel.type === 'pgpa-revenu-percu' && (
-                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
-                  <div>
-                    <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
-                    <p className="text-[11px] text-zinc-400">Calculé automatiquement à partir des champs ci-dessus</p>
+                <div className="border-t border-[#e7e5e3] bg-[#fafaf9]">
+                  <div className="px-5 py-3 flex justify-between items-center">
+                    <span className="text-body-medium text-[#292524]">Revenu net perçu</span>
+                    <span className="text-lg font-bold text-[#292524] tabular-nums">{fmt(data.montant || 0)}</span>
                   </div>
-                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
                 </div>
               )}
               {editPanel.type === 'pgpa-ij' && (
-                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
-                  <div>
-                    <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
-                    <p className="text-[11px] text-zinc-400">Indemnité nette (brut − CSG-CRDS)</p>
+                <div className="border-t border-[#e7e5e3] bg-[#fafaf9]">
+                  <div className="px-5 py-3 flex justify-between items-center">
+                    <span className="text-body-medium text-[#292524]">Total IJ net</span>
+                    <span className="text-lg font-bold text-[#292524] tabular-nums">{fmt(data.montant || 0)}</span>
                   </div>
-                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
                 </div>
               )}
               {editPanel.type === 'dft-ligne' && (
-                <div className="px-5 py-3 border-t bg-zinc-50 flex items-center justify-between">
-                  <div>
-                    <span className="text-sm font-medium text-zinc-600">Montant calculé</span>
-                    <p className="text-[11px] text-zinc-400">{data.jours || 0}j × {data.taux || 100}% × {chiffrageParams.baseJournaliereDFT || 33} €/j</p>
+                <div className="border-t border-[#e7e5e3] bg-[#fafaf9]">
+                  <div className="px-5 py-3 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="text-body-medium text-[#292524]">Total indemnisable</span>
+                      <span className="text-caption px-1.5 py-0.5 bg-[#eeece6] text-[#78716c] rounded">{data.jours || 0}j</span>
+                    </div>
+                    <span className="text-lg font-bold text-[#292524] tabular-nums">{fmt(data.montant || 0)}</span>
                   </div>
-                  <span className="text-lg font-bold text-zinc-900 tabular-nums">{fmt(data.montant || 0)}</span>
                 </div>
               )}
 
-              {/* Footer */}
+              {/* Footer actions */}
               {editPanel.type === 'dsa-ligne' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
-                  <button onClick={() => { handleRejectLigne(data.id); setEditPanel(null); }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
-                    <Trash2 className="w-4 h-4" />Supprimer
+                <div className="px-5 py-4 flex justify-between">
+                  <button onClick={() => { handleRejectLigne(data.id); setEditPanel(null); }} className="px-4 py-2 text-[#c45555] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                    Supprimer
                   </button>
-                  <div className="flex gap-2">
-                    <button onClick={() => { setEditPanel(null); setShowPreview(false); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
-                    <button onClick={() => {
+                  <button onClick={() => {
                       const isPeriode = document.getElementById('edit-date-type')?.value === 'periode';
                       const dateVal = document.getElementById('edit-date')?.value || '';
                       const dateFinVal = isPeriode ? (document.getElementById('edit-date-fin')?.value || '') : '';
@@ -3325,44 +5906,40 @@ export default function App() {
                         tiers: document.getElementById('edit-tiers')?.value || '',
                         dejaRembourse: parseFloat(document.getElementById('edit-rembourse')?.value) || 0
                       });
-                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
-                  </div>
+                    }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                 </div>
               )}
               {editPanel.type === 'piece-detail' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
-                  <button onClick={() => {
-                    // Supprimer la pièce
-                    setPieces(prev => prev.filter(p => p.id !== data.id));
-                    // Supprimer aussi les références dans les lignes DSA, PGPA, etc.
-                    setDsaLignes(prev => prev.map(l => ({
-                      ...l,
-                      pieceIds: l.pieceIds?.filter(pid => pid !== data.id) || []
-                    })));
-                    setPgpaData(prev => ({
-                      ...prev,
-                      revenuRef: {
-                        ...prev.revenuRef,
-                        lignes: prev.revenuRef.lignes.map(l => ({
+                <div className="px-5 py-4 flex flex-col gap-3">
+                  <div className="flex justify-between">
+                    <button onClick={() => {
+                      setPieces(prev => prev.filter(p => p.id !== data.id));
+                      setDsaLignes(prev => prev.map(l => ({
+                        ...l,
+                        pieceIds: l.pieceIds?.filter(pid => pid !== data.id) || []
+                      })));
+                      setPgpaData(prev => ({
+                        ...prev,
+                        revenuRef: {
+                          ...prev.revenuRef,
+                          lignes: prev.revenuRef.lignes.map(l => ({
+                            ...l,
+                            pieceIds: l.pieceIds?.filter(pid => pid !== data.id) || []
+                          }))
+                        },
+                        revenusPercus: prev.revenusPercus.map(l => ({
+                          ...l,
+                          pieceIds: l.pieceIds?.filter(pid => pid !== data.id) || []
+                        })),
+                        ijPercues: prev.ijPercues.map(l => ({
                           ...l,
                           pieceIds: l.pieceIds?.filter(pid => pid !== data.id) || []
                         }))
-                      },
-                      revenusPercus: prev.revenusPercus.map(l => ({
-                        ...l,
-                        pieceIds: l.pieceIds?.filter(pid => pid !== data.id) || []
-                      })),
-                      ijPercues: prev.ijPercues.map(l => ({
-                        ...l,
-                        pieceIds: l.pieceIds?.filter(pid => pid !== data.id) || []
-                      }))
-                    }));
-                    setEditPanel(null);
-                  }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
-                    <Trash2 className="w-4 h-4" />Supprimer
-                  </button>
-                  <div className="flex gap-2">
-                    <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                      }));
+                      setEditPanel(null);
+                    }} className="px-4 py-2 text-[#c45555] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                      Supprimer
+                    </button>
                     <button onClick={() => {
                       const updatedPiece = {
                         ...data,
@@ -3372,13 +5949,13 @@ export default function App() {
                       };
                       setPieces(prev => prev.map(p => p.id === data.id ? updatedPiece : p));
                       setEditPanel(null);
-                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                    }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                   </div>
                 </div>
               )}
               {(editPanel.type === 'victime' || editPanel.type === 'fait-generateur') && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-end gap-2">
-                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                <div className="px-5 py-4 flex justify-end gap-2">
+                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                   <button onClick={() => {
                     if (editPanel.type === 'victime') {
                       setVictimeData({
@@ -3398,20 +5975,20 @@ export default function App() {
                       });
                     }
                     setEditPanel(null);
-                  }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                  }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                 </div>
               )}
               {editPanel.type === 'dossier-expertise' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-end gap-2">
-                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                <div className="px-5 py-4 flex justify-end gap-2">
+                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                   <button onClick={() => {
                     setCommentaireExpertise(document.getElementById('proc-commentaire')?.value || '');
                     setEditPanel(null);
-                  }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                  }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                 </div>
               )}
               {editPanel.type === 'victime-indirecte' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
+                <div className="px-5 py-4 flex justify-between">
                   {data && (
                     <button onClick={() => {
                       setVictimesIndirectes(prev => prev.filter(vi => vi.id !== data.id));
@@ -3422,7 +5999,7 @@ export default function App() {
                   )}
                   {!data && <div />}
                   <div className="flex gap-2">
-                    <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                    <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                     <button onClick={() => {
                       const newVi = {
                         id: data?.id || `vi-${Date.now()}`,
@@ -3438,14 +6015,14 @@ export default function App() {
                         setVictimesIndirectes(prev => [...prev, newVi]);
                       }
                       setEditPanel(null);
-                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                    }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                   </div>
                 </div>
               )}
               {/* Panel nouvelle-procedure supprimé */}
               {editPanel.type === 'dossier-edit' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-end gap-2">
-                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                <div className="px-5 py-4 flex justify-end gap-2">
+                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                   <button onClick={() => {
                     setDossierRef(document.getElementById('dossier-ref')?.value || dossierRef);
                     setDossierIntitule(document.getElementById('dossier-intitule')?.value || dossierIntitule);
@@ -3454,14 +6031,14 @@ export default function App() {
                     setDossierAvocat(document.getElementById('dossier-avocat')?.value || dossierAvocat);
                     setDossierNotes(document.getElementById('dossier-notes')?.value || '');
                     setEditPanel(null);
-                  }} className="px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700">Enregistrer</button>
+                  }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                 </div>
               )}
               {/* ========== PANELS PGPA ========== */}
 
               {/* Panel PGPA Revenu de référence */}
               {editPanel.type === 'pgpa-revenu' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
+                <div className="px-5 py-4 flex justify-between">
                   <button onClick={() => {
                     setPgpaData(prev => ({
                       ...prev,
@@ -3472,11 +6049,11 @@ export default function App() {
                     }));
                     setEditPanel(null);
                     setEditingPieceIds([]);
-                  }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
-                    <Trash2 className="w-4 h-4" />Supprimer
+                  }} className="px-4 py-2 text-[#c45555] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                    Supprimer
                   </button>
                   <div className="flex gap-2">
-                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                     <button onClick={() => {
                       const updatedLigne = {
                         ...data,
@@ -3499,14 +6076,14 @@ export default function App() {
                       }));
                       setEditPanel(null);
                       setEditingPieceIds([]);
-                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                    }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                   </div>
                 </div>
               )}
 
               {/* Panel PGPA Revenu perçu période */}
               {editPanel.type === 'pgpa-revenu-percu' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
+                <div className="px-5 py-4 flex justify-between">
                   <button onClick={() => {
                     setPgpaData(prev => ({
                       ...prev,
@@ -3514,11 +6091,11 @@ export default function App() {
                     }));
                     setEditPanel(null);
                     setEditingPieceIds([]);
-                  }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
-                    <Trash2 className="w-4 h-4" />Supprimer
+                  }} className="px-4 py-2 text-[#c45555] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                    Supprimer
                   </button>
                   <div className="flex gap-2">
-                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                     <button onClick={() => {
                       const debutVal = document.getElementById('pgpa-percu-debut')?.value || data.periodeDebut;
                       const finVal = document.getElementById('pgpa-percu-fin')?.value || data.periodeFin;
@@ -3542,14 +6119,14 @@ export default function App() {
                       }));
                       setEditPanel(null);
                       setEditingPieceIds([]);
-                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                    }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                   </div>
                 </div>
               )}
 
               {/* Panel PGPA Indemnités journalières */}
               {editPanel.type === 'pgpa-ij' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
+                <div className="px-5 py-4 flex justify-between">
                   <button onClick={() => {
                     setPgpaData(prev => ({
                       ...prev,
@@ -3557,11 +6134,11 @@ export default function App() {
                     }));
                     setEditPanel(null);
                     setEditingPieceIds([]);
-                  }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
-                    <Trash2 className="w-4 h-4" />Supprimer
+                  }} className="px-4 py-2 text-[#c45555] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                    Supprimer
                   </button>
                   <div className="flex gap-2">
-                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                     <button onClick={() => {
                       const montantBrut = parseFloat(document.getElementById('pgpa-ij-brut')?.value) || 0;
                       const csgCrds = parseFloat(document.getElementById('pgpa-ij-csg')?.value) || 0;
@@ -3587,22 +6164,22 @@ export default function App() {
                       }));
                       setEditPanel(null);
                       setEditingPieceIds([]);
-                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                    }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                   </div>
                 </div>
               )}
 
               {/* Panel DFT Footer */}
               {editPanel.type === 'dft-ligne' && (
-                <div className="px-5 py-4 border-t bg-gray-50 flex justify-between">
+                <div className="px-5 py-4 flex justify-between">
                   <button onClick={() => {
                     setDftLignes(prev => prev.filter(l => l.id !== data.id));
                     setEditPanel(null); setEditingPieceIds([]);
-                  }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
-                    <Trash2 className="w-4 h-4" />Supprimer
+                  }} className="px-4 py-2 text-[#c45555] border border-[#fecaca] bg-white hover:bg-[#fef2f2] rounded-lg text-body-medium transition-colors">
+                    Supprimer
                   </button>
                   <div className="flex gap-2">
-                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg">Annuler</button>
+                    <button onClick={() => { setEditPanel(null); setEditingPieceIds([]); }} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                     <button onClick={() => {
                       const debutVal = document.getElementById('dft-debut')?.value || data.debut;
                       const finVal = document.getElementById('dft-fin')?.value || data.fin;
@@ -3622,14 +6199,13 @@ export default function App() {
                       };
                       setDftLignes(prev => prev.map(l => l.id === data.id ? updatedLigne : l));
                       setEditPanel(null); setEditingPieceIds([]);
-                    }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                    }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                   </div>
                 </div>
               )}
-            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   };
 
@@ -3641,42 +6217,18 @@ export default function App() {
     return false;
   };
 
-  // Statut effectif d'une ligne
-  const getLigneStatus = (ligne) => {
-    if (ligne.status === 'ai-suggested' || ligne.status === 'suggested') return 'suggested';
-    return 'normal';
-  };
+  // Diff color for a line
+  const getDiffColor = (ligne) => ligne.diffType ? ROW_DIFF_COLORS[ligne.diffType] : null;
 
   // ========== DSA LIGNE COMPONENT ==========
-  const renderDsaLigne = (ligne) => {
-    const status = getLigneStatus(ligne);
-    const isError = ligne.status === 'error';
+  const _renderDsaLigne = (ligne) => { // eslint-disable-line no-unused-vars
+    const diffColor = getDiffColor(ligne);
     const pieceCount = ligne.pieceIds?.length || 0;
 
-    if (isError) {
-      return (
-        <div key={ligne.id} className="relative flex items-center p-3 bg-red-50 group">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-              <X className="w-3 h-3 text-red-500" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-red-900 truncate">{ligne.fileName}</div>
-              <div className="text-xs text-red-600">{ligne.error}</div>
-            </div>
-          </div>
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-l from-red-50 via-red-50 to-transparent pl-6 pr-1">
-            <button onClick={() => openDsaEditPanel({ ...ligne, label: '', type: '', date: '', montant: null })} className="px-2.5 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 shadow-sm">Compléter</button>
-            <button onClick={() => handleRejectLigne(ligne.id)} className="p-1.5 text-red-500 bg-white hover:bg-red-100 rounded shadow-sm border border-red-200"><X className="w-3.5 h-3.5" /></button>
-          </div>
-        </div>
-      );
-    }
-
-    // Icône de statut
-    const StatusIcon = () => {
-      if (status === 'suggested') return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-      return null;
+    // Diff indicator dot
+    const DiffIndicator = () => {
+      if (!diffColor) return null;
+      return <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />;
     };
 
     // Indicateur pièces avec tooltip
@@ -3687,20 +6239,20 @@ export default function App() {
           <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
             <FileText className="w-3.5 h-3.5" />
             {pieceCount > 1 && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-counter font-bold rounded-full flex items-center justify-center">
                 {pieceCount}
               </span>
             )}
           </span>
-          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
-            <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
+          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-[#e7e5e3] rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
+            <div className="text-counter text-[#a8a29e] uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
             <div className="space-y-1">
               {ligne.pieceIds?.map(pid => {
                 const piece = getPiece(pid);
                 return (
-                  <div key={pid} className="flex items-center gap-2 text-xs">
-                    <span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
-                    <span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span>
+                  <div key={pid} className="flex items-center gap-2 text-caption">
+                    <span className="w-5 h-5 bg-blue-100 text-[#1e3a8a] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
+                    <span className="truncate text-[#44403c]">{piece?.intitule || piece?.nom || 'Document'}</span>
                   </div>
                 );
               })}
@@ -3711,24 +6263,25 @@ export default function App() {
     };
 
     return (
-      <div key={ligne.id} className="relative flex items-center p-3 hover:bg-zinc-50 group transition-colors">
+      <div key={ligne.id} className="relative flex items-center p-3 hover:bg-[#fafaf9] group transition-colors">
+        {diffColor && <div className="absolute inset-0 pointer-events-none rounded-[inherit]" style={{ boxShadow: `inset 2px 0 0 0 ${diffColor}` }} />}
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <StatusIcon />
+          <DiffIndicator />
           <PieceIndicator />
           <div className="min-w-0">
-            <div className="text-sm font-medium text-zinc-800 truncate">{ligne.label || 'Sans libellé'}</div>
-            <div className="text-xs text-zinc-400">{ligne.date || '—'} • {ligne.type || '—'}</div>
+            <div className="text-body-medium text-[#292524] truncate">{ligne.label || 'Sans libellé'}</div>
+            <div className="text-caption text-[#a8a29e]">{ligne.date || '—'} • {ligne.type || '—'}</div>
           </div>
         </div>
 
         {/* Montant - PRIORITAIRE */}
-        <span className="text-sm font-semibold text-zinc-900 tabular-nums min-w-[90px] text-right flex-shrink-0">
+        <span className="text-body-medium font-semibold text-[#292524] tabular-nums min-w-[90px] text-right flex-shrink-0">
           {ligne.montant != null ? fmt(ligne.montant) : '— €'}
         </span>
 
         {/* Actions en overlay au hover - minimaliste */}
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => handleRejectLigne(ligne.id)} className="p-1.5 text-zinc-400 hover:text-zinc-600 transition-colors" title="Supprimer">
+          <button onClick={() => handleRejectLigne(ligne.id)} className="p-1.5 text-[#a8a29e] hover:text-[#78716c] transition-colors" title="Supprimer">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -3738,13 +6291,13 @@ export default function App() {
 
   // ========== PGPA/PGPF LIGNE COMPONENT ==========
   const renderPGLigne = (ligne, { onEdit, onDelete, showTiers = true, showPeriode = true, onValidate }) => {
-    const isSuggested = ligne.status === 'ai-suggested' || ligne.status === 'suggested';
+    const diffColor = getDiffColor(ligne);
     const pieceCount = ligne.pieceIds?.length || 0;
 
-    // Icône de statut - harmonisé
-    const StatusIcon = () => {
-      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-      return null;
+    // Diff indicator dot
+    const DiffIndicator = () => {
+      if (!diffColor) return null;
+      return <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />;
     };
 
     // Indicateur pièces avec tooltip
@@ -3755,20 +6308,20 @@ export default function App() {
           <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
             <FileText className="w-3.5 h-3.5" />
             {pieceCount > 1 && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-counter font-bold rounded-full flex items-center justify-center">
                 {pieceCount}
               </span>
             )}
           </span>
-          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
-            <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
+          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-[#e7e5e3] rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
+            <div className="text-counter text-[#a8a29e] uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
             <div className="space-y-1">
               {ligne.pieceIds?.map(pid => {
                 const piece = getPiece(pid);
                 return (
-                  <div key={pid} className="flex items-center gap-2 text-xs">
-                    <span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
-                    <span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span>
+                  <div key={pid} className="flex items-center gap-2 text-caption">
+                    <span className="w-5 h-5 bg-blue-100 text-[#1e3a8a] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span>
+                    <span className="truncate text-[#44403c]">{piece?.intitule || piece?.nom || 'Document'}</span>
                   </div>
                 );
               })}
@@ -3788,25 +6341,26 @@ export default function App() {
     };
 
     return (
-      <div key={ligne.id} className="relative flex items-center p-3 hover:bg-zinc-50 group transition-colors">
+      <div key={ligne.id} className="relative flex items-center p-3 hover:bg-[#fafaf9] group transition-colors">
+        {diffColor && <div className="absolute inset-0 pointer-events-none rounded-[inherit]" style={{ boxShadow: `inset 2px 0 0 0 ${diffColor}` }} />}
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <StatusIcon />
+          <DiffIndicator />
           <PieceIndicator />
           <div className="min-w-0">
-            <div className="text-sm font-medium text-zinc-800 truncate">{ligne.label || 'Sans libellé'}</div>
-            <div className="text-xs text-zinc-400">{getSecondaryText() || '—'}</div>
+            <div className="text-body-medium text-[#292524] truncate">{ligne.label || 'Sans libellé'}</div>
+            <div className="text-caption text-[#a8a29e]">{getSecondaryText() || '—'}</div>
           </div>
         </div>
 
         {/* Montant - PRIORITAIRE */}
-        <span className="text-sm font-semibold text-zinc-900 tabular-nums min-w-[90px] text-right flex-shrink-0">
+        <span className="text-body-medium font-semibold text-[#292524] tabular-nums min-w-[90px] text-right flex-shrink-0">
           {fmt(ligne.montant || ligne.revalorise || 0)}
         </span>
 
         {/* Actions en overlay au hover - minimaliste */}
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {onDelete && (
-            <button onClick={() => onDelete(ligne)} className="p-1.5 text-zinc-400 hover:text-zinc-600 transition-colors" title="Supprimer">
+            <button onClick={() => onDelete(ligne)} className="p-1.5 text-[#a8a29e] hover:text-[#78716c] transition-colors" title="Supprimer">
               <X className="w-4 h-4" />
             </button>
           )}
@@ -3822,44 +6376,290 @@ export default function App() {
   const renderContent = () => {
     // DOSSIER
     if (currentLevel.type === 'dossier') {
-      if (currentLevel.activeTab === 'détail') {
+      if (currentLevel.activeTab === 'dossier') {
+        // Drop-First Info Dossier (new layout with streaming)
+        if (dropFirstPieces.length > 0) {
+          const streaming = infoDossierStreaming;
+          const isStreaming = streaming?.active;
+          const revealed = streaming?.fieldsRevealed || [];
+          const streamingField = streaming?.streamingField;
+          const streamingText = streaming?.streamingText || '';
+
+          const isRevealed = (key) => revealed.includes(key);
+          const isCurrentlyStreaming = (key) => streamingField === key;
+
+          const fieldClass = (key) => {
+            if (isCurrentlyStreaming(key)) return 'animate-field-glow transition-all duration-300';
+            if (isRevealed(key)) return 'transition-all duration-500';
+            return '';
+          };
+          const fieldBorderStyle = () => ({});
+
+          const rapportPiece = dropFirstPieces.find(p => p.isRapport);
+          const rapportName = rapportPiece?.cleanName || rapportPiece?.originalName || 'Rapport d\'expertise';
+
+          const renderField = (key, label, value, isLongText = false) => {
+            const hasValue = isRevealed(key) && value;
+            const isActive = isCurrentlyStreaming(key);
+
+            // Diff awareness: look up pending diff for this field
+            const pendingDiff = activeDiffs.find(d => d.entityId === key && d.zone === 'infos_dossier' && !d.approved && !d.rejected);
+            const approvedDiff = activeDiffs.find(d => d.entityId === key && d.zone === 'infos_dossier' && d.approved);
+            const rejectedDiff = activeDiffs.find(d => d.entityId === key && d.zone === 'infos_dossier' && d.rejected);
+            const diffColor = pendingDiff ? ROW_DIFF_COLORS[pendingDiff.type === 'edit' ? 'edit' : pendingDiff.type === 'delete' ? 'delete' : 'add'] : null;
+
+            return (
+              <div
+                className={`${fieldClass(key)} group/field relative`}
+                style={{
+                  ...fieldBorderStyle(key),
+                  ...(pendingDiff ? { paddingLeft: 8, borderRadius: 3 } : {}),
+                }}
+                key={key}
+                data-entity-id={key}
+              >
+                <div className="text-caption-medium text-[#78716c] mb-1 flex items-center gap-1">
+                  {label}
+                  {pendingDiff && (
+                    <span className="inline-block w-1.5 h-1.5" style={{ background: diffColor, transform: 'rotate(45deg)' }} />
+                  )}
+                  {isRevealed(key) && !pendingDiff && (
+                    <span className="relative group">
+                      <span className="inline-block w-1.5 h-1.5 cursor-help" style={{ background: '#4a9168', transform: 'rotate(45deg)' }} />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20 pointer-events-none">
+                        <div className="bg-zinc-800 text-white rounded-lg px-3 py-2 shadow-lg w-[220px]">
+                          <p className="text-caption text-[#a8a29e] mb-1">Extrait depuis</p>
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-3.5 h-3.5 text-[#86efac] flex-shrink-0" />
+                            <span className="text-caption-medium text-white truncate">{rapportName}</span>
+                          </div>
+                        </div>
+                        <div className="w-2 h-2 bg-zinc-800 rotate-45 mx-auto -mt-1"></div>
+                      </div>
+                    </span>
+                  )}
+                </div>
+
+                {/* Diff: show before/after values */}
+                {pendingDiff ? (
+                  <div>
+                    {pendingDiff.before != null && (
+                      <div style={{ fontSize: 12, lineHeight: '16px', color: '#9CA3AF', opacity: 0.5, textDecoration: 'line-through' }}>
+                        {pendingDiff.before}
+                      </div>
+                    )}
+                    {pendingDiff.type !== 'delete' && pendingDiff.after != null && (
+                      <div style={{ fontSize: 14, lineHeight: '20px', fontWeight: 500, color: '#292524' }}>
+                        {pendingDiff.after}
+                      </div>
+                    )}
+                    {pendingDiff.type === 'delete' && (
+                      <div style={{ fontSize: 14, lineHeight: '20px', color: '#9CA3AF', textDecoration: 'line-through' }}>
+                        {pendingDiff.before}
+                      </div>
+                    )}
+                  </div>
+                ) : rejectedDiff ? (
+                  <div>
+                    <div style={{ fontSize: 12, lineHeight: '16px', color: '#9CA3AF', opacity: 0.5, textDecoration: 'line-through' }}>
+                      {rejectedDiff.after}
+                    </div>
+                    <div className="text-body text-[#292524]">
+                      {rejectedDiff.before || value || <span className="italic text-[#d6d3d1]">Non renseigné</span>}
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`text-body ${hasValue || isActive ? 'text-[#292524]' : 'text-[#d6d3d1]'} ${isLongText ? 'leading-relaxed' : ''}`}>
+                    {isActive ? (
+                      <span>{streamingText}<span className="inline-block w-0.5 h-4 animate-pulse ml-0.5 align-middle" style={{ background: '#4a9168' }}></span></span>
+                    ) : hasValue ? (
+                      value
+                    ) : (
+                      <span className="italic">Non renseigné</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Accept/Reject buttons on hover */}
+                {pendingDiff && (
+                  <span className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover/field:opacity-100 transition-opacity z-10">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleApproveDiff(key, 'infos_dossier'); }}
+                      className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors"
+                      style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                      title="Approuver"
+                    >
+                      <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRejectDiff(key, 'infos_dossier'); }}
+                      className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors"
+                      style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                      title="Rejeter"
+                    >
+                      <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                    </button>
+                  </span>
+                )}
+              </div>
+            );
+          };
+
+          // Track B: CTA banner (no rapport, not dismissed)
+          const showRapportCTA = !dropFirstHasRapport && !rapportBannerDismissed && !isStreaming;
+
+          const handleAddRapportLater = (files) => {
+            const fileList = Array.from(files);
+            if (fileList.length === 0) return;
+            setRapportBannerDismissed(true);
+            setDropFirstHasRapport(true);
+            // Add to pieces table
+            const poolEntry = DROP_FIRST_DOCUMENT_POOL[0]; // Expertise entry
+            const newItem = {
+              id: `dfp-rapport-${Date.now()}`, originalName: fileList[0].name,
+              cleanName: null, type: null, date: null, postesLies: [], summary: null,
+              extractedInfo: null, pages: null, status: 'pending', poolRef: poolEntry,
+              sourceFile: null, pageRange: null, siblings: null,
+              fakeSize: (Math.random() * 4 + 0.5).toFixed(1) + ' Mo', isRapport: true,
+            };
+            setDropFirstPieces(prev => [...prev, newItem]);
+            setDropFirstProcessingDone(false);
+            setTimeout(() => startProcessingSimulation([newItem], false), 300);
+            // Start streaming
+            setTimeout(() => startInfoDossierStreaming(), 1500);
+          };
+
+          return (
+            <div className="space-y-4" data-zone-id="infos_dossier">
+              {/* Track B: Add rapport CTA */}
+              {showRapportCTA && (
+                <div className="banner banner-minimal banner-ai">
+                  <div className="banner-body">
+                    <Sparkles className="w-4 h-4 banner-icon flex-shrink-0" fill="currentColor" />
+                    <p className="banner-title">Pour remplir automatiquement les informations du dossier, <span className="underline cursor-pointer" onClick={() => document.getElementById('rapport-later-input')?.click()}>ajoutez un rapport d'expertise</span>. <span className="banner-btn-ghost cursor-pointer" onClick={() => setRapportBannerDismissed(true)}>Ignorer</span></p>
+                    <input id="rapport-later-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" className="hidden" onChange={e => handleAddRapportLater(e.target.files)} />
+                  </div>
+                </div>
+              )}
+
+              {/* Streaming in-progress banner */}
+              {isStreaming && (
+                <div className="banner banner-minimal banner-ai">
+                  <div className="banner-body">
+                    <Loader2 className="w-4 h-4 banner-icon animate-spin" />
+                    <span className="banner-title">Extraction en cours depuis le rapport d'expertise...</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Section: Victime */}
+              <div className="bg-white rounded-[5px] border border-[#e7e5e3] shadow-sm overflow-hidden">
+                <div className="flex items-center gap-2.5 px-3 py-3.5 border-b border-[#e7e5e3] bg-white">
+                  <User className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+                  <span className="text-[11px] font-medium text-[#78716c] uppercase tracking-wider" style={colHeaderStyle}>Victime</span>
+                </div>
+                <div className="flex border-b border-[#e7e5e3]">
+                  <div className="flex-1 px-5 py-4 space-y-1">
+                    {renderField('nom', 'Nom', victimeData.nom)}
+                  </div>
+                  <div className="flex-1 px-5 py-4 space-y-1">
+                    {renderField('prenom', 'Prénom', victimeData.prenom)}
+                  </div>
+                </div>
+                <div className="flex border-b border-[#e7e5e3]">
+                  <div className="flex-1 px-5 py-4 space-y-1">
+                    {renderField('sexe', 'Sexe', victimeData.sexe)}
+                  </div>
+                  <div className="flex-1 px-5 py-4 space-y-1">
+                    {renderField('dateNaissance', 'Date de naissance',
+                      victimeData.dateNaissance
+                        ? <span className="flex items-center gap-2">{victimeData.dateNaissance}{calcAge(victimeData.dateNaissance) && <><span className="w-1 h-1 rounded-full bg-[#d9d9d9]"></span><span className="text-body text-[#78716c]">{calcAge(victimeData.dateNaissance)} ans</span></>}</span>
+                        : null
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Section: Fait générateur */}
+              <div className="bg-white rounded-[5px] border border-[#e7e5e3] shadow-sm overflow-hidden">
+                <div className="flex items-center gap-2.5 px-3 py-3.5 border-b border-[#e7e5e3] bg-white">
+                  <AlertTriangle className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+                  <span className="text-[11px] font-medium text-[#78716c] uppercase tracking-wider" style={colHeaderStyle}>Fait générateur</span>
+                </div>
+                <div className="flex border-b border-[#e7e5e3]">
+                  <div className="flex-1 px-5 py-4 space-y-1">
+                    {renderField('typeFait', 'Type', faitGenerateur.type)}
+                  </div>
+                  <div className="flex-1 px-5 py-4 space-y-1">
+                    {renderField('dateAccident', 'Date du fait générateur', faitGenerateur.dateAccident)}
+                  </div>
+                </div>
+                <div className="flex border-b border-[#e7e5e3]">
+                  <div className="flex-1 px-5 py-4 space-y-1">
+                    {renderField('premiereConstatation', 'Date du fait générateur', faitGenerateur.datePremiereConstatation || faitGenerateur.dateAccident)}
+                  </div>
+                  <div className="flex-1 px-5 py-4 space-y-1">
+                    {renderField('dateConsolidation', 'Consolidation', faitGenerateur.dateConsolidation)}
+                  </div>
+                </div>
+                <div className="px-5 py-4 space-y-1">
+                  {renderField('resume', 'Résumé des faits', faitGenerateur.resume || resumeAffaire, true)}
+                </div>
+              </div>
+
+              {/* Section: Faits et procédure */}
+              <div className="bg-white rounded-[5px] border border-[#e7e5e3] shadow-sm overflow-hidden">
+                <div className="flex items-center gap-2.5 px-3 py-3.5 border-b border-[#e7e5e3] bg-white">
+                  <Activity className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+                  <span className="text-[11px] font-medium text-[#78716c] uppercase tracking-wider" style={colHeaderStyle}>Faits et procédure</span>
+                </div>
+                <div className="px-5 py-4 min-h-[92px]">
+                  {renderField('commentaire', 'Commentaire d\'expertise', commentaireExpertise, true)}
+                </div>
+              </div>
+
+            </div>
+          );
+        }
+
+        // Legacy Info Dossier (existing form-based layout)
         return (
           <div className="grid grid-cols-3 gap-4 items-start">
             {/* Colonne gauche */}
             <div className="col-span-2 space-y-4">
               {/* Infos Victime */}
-              <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
+              <div className="bg-white rounded-lg border border-[#e7e5e3]/60 shadow-sm">
                 <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-zinc-400">
+                  <div className="flex items-center gap-2 text-[#a8a29e]">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                     </svg>
-                    <span className="text-[13px] font-medium">Informations victime</span>
+                    <span className="text-body-medium">Informations victime</span>
                   </div>
-                  <button onClick={() => setEditPanel({ type: 'victime', title: 'Informations victime' })} className="p-1 text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
+                  <button onClick={() => setEditPanel({ type: 'victime', title: 'Informations victime' })} className="p-1 text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#eeece6] rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
                 </div>
                 <div className="p-4">
                   <div className="grid grid-cols-2 gap-x-8 gap-y-3">
                     <div>
-                      <div className="text-[12px] text-zinc-400 mb-0.5">Nom</div>
-                      <div className="text-[14px] text-zinc-700">{victimeData.nom}</div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Nom</div>
+                      <div className="text-body text-[#44403c]">{victimeData.nom}</div>
                     </div>
                     <div>
-                      <div className="text-[12px] text-zinc-400 mb-0.5">Prénom</div>
-                      <div className="text-[14px] text-zinc-700">{victimeData.prenom}</div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Prénom</div>
+                      <div className="text-body text-[#44403c]">{victimeData.prenom}</div>
                     </div>
                     <div>
-                      <div className="text-[12px] text-zinc-400 mb-0.5">Sexe</div>
-                      <div className="text-[14px] text-zinc-700">{victimeData.sexe}</div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Sexe</div>
+                      <div className="text-body text-[#44403c]">{victimeData.sexe}</div>
                     </div>
                     <div>
-                      <div className="text-[12px] text-zinc-400 mb-0.5">Date de naissance</div>
-                      <div className="text-[14px] text-zinc-700">{victimeData.dateNaissance} <span className="text-zinc-400">({calcAge(victimeData.dateNaissance)} ans)</span></div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Date de naissance</div>
+                      <div className="text-body text-[#44403c]">{victimeData.dateNaissance} <span className="text-[#a8a29e]">({calcAge(victimeData.dateNaissance)} ans)</span></div>
                     </div>
                     {victimeData.dateDeces && (
                       <div>
-                        <div className="text-[12px] text-zinc-400 mb-0.5">Date de décès</div>
-                        <div className="text-[14px] text-zinc-700">{victimeData.dateDeces} <span className="text-zinc-400">({calcAge(victimeData.dateNaissance, victimeData.dateDeces)} ans)</span></div>
+                        <div className="text-caption text-[#a8a29e] mb-0.5">Date de décès</div>
+                        <div className="text-body text-[#44403c]">{victimeData.dateDeces} <span className="text-[#a8a29e]">({calcAge(victimeData.dateNaissance, victimeData.dateDeces)} ans)</span></div>
                       </div>
                     )}
                   </div>
@@ -3867,43 +6667,43 @@ export default function App() {
               </div>
 
               {/* Infos Accident */}
-              <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
+              <div className="bg-white rounded-lg border border-[#e7e5e3]/60 shadow-sm">
                 <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-zinc-400">
+                  <div className="flex items-center gap-2 text-[#a8a29e]">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                     </svg>
-                    <span className="text-[13px] font-medium">Fait générateur</span>
+                    <span className="text-body-medium">Fait générateur</span>
                   </div>
-                  <button onClick={() => setEditPanel({ type: 'fait-generateur', title: 'Fait générateur' })} className="p-1 text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
+                  <button onClick={() => setEditPanel({ type: 'fait-generateur', title: 'Fait générateur' })} className="p-1 text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#eeece6] rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
                 </div>
                 <div className="p-4">
                   <div className="grid grid-cols-2 gap-x-8 gap-y-3 mb-4">
                     <div>
-                      <div className="text-[12px] text-zinc-400 mb-0.5">Type</div>
-                      <div className="text-[14px] text-zinc-700">{faitGenerateur.type}</div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Type</div>
+                      <div className="text-body text-[#44403c]">{faitGenerateur.type}</div>
                     </div>
                     <div>
-                      <div className="text-[12px] text-zinc-400 mb-0.5">Date de l'accident</div>
-                      <div className="text-[14px] text-zinc-700">{faitGenerateur.dateAccident}</div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Date de l'accident</div>
+                      <div className="text-body text-[#44403c]">{faitGenerateur.dateAccident}</div>
                     </div>
                     <div>
-                      <div className="text-[12px] text-zinc-400 mb-0.5">Première constatation</div>
-                      <div className="text-[14px] text-zinc-700">{faitGenerateur.datePremiereConstatation}</div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Première constatation</div>
+                      <div className="text-body text-[#44403c]">{faitGenerateur.datePremiereConstatation}</div>
                     </div>
                     <div>
-                      <div className="text-[12px] text-zinc-400 mb-0.5">Consolidation</div>
-                      <div className="text-[14px] text-zinc-700">{faitGenerateur.dateConsolidation}</div>
+                      <div className="text-caption text-[#a8a29e] mb-0.5">Consolidation</div>
+                      <div className="text-body text-[#44403c]">{faitGenerateur.dateConsolidation}</div>
                     </div>
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <div className="text-[12px] text-zinc-400">Résumé des faits</div>
+                      <div className="text-caption text-[#a8a29e]">Résumé des faits</div>
                       {!faitGenerateur.resume && (
                         <button
                           onClick={handleGenerateResume}
                           disabled={aiGenerating === 'resume'}
-                          className="flex items-center gap-1 text-[11px] font-medium text-violet-500 hover:text-violet-700 transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1 text-caption-medium text-violet-500 hover:text-violet-700 transition-colors disabled:opacity-50"
                         >
                           {aiGenerating === 'resume' ? (
                             <><Loader2 className="w-3 h-3 animate-spin" strokeWidth={2} />Génération...</>
@@ -3913,33 +6713,33 @@ export default function App() {
                         </button>
                       )}
                     </div>
-                    <div className="text-[14px] text-zinc-600 leading-relaxed">
-                      {faitGenerateur.resume || <span className="text-zinc-300 italic">Aucun résumé renseigné.</span>}
+                    <div className="text-body text-[#78716c] leading-relaxed">
+                      {faitGenerateur.resume || <span className="text-[#d6d3d1] italic">Aucun résumé renseigné.</span>}
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Commentaire d'expertise */}
-              <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
+              <div className="bg-white rounded-lg border border-[#e7e5e3]/60 shadow-sm">
                 <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-zinc-400">
+                  <div className="flex items-center gap-2 text-[#a8a29e]">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
                     </svg>
-                    <span className="text-[13px] font-medium">Commentaire d'expertise</span>
+                    <span className="text-body-medium">Commentaire d'expertise</span>
                   </div>
-                  <button onClick={() => setEditPanel({ type: 'dossier-expertise', title: "Commentaire d'expertise" })} className="p-1 text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
+                  <button onClick={() => setEditPanel({ type: 'dossier-expertise', title: "Commentaire d'expertise" })} className="p-1 text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#eeece6] rounded transition-colors"><Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
                 </div>
                 <div className="p-4">
-                  <div className="text-[14px] text-zinc-600 leading-relaxed">
-                    {commentaireExpertise || <span className="text-zinc-300 italic">Aucun commentaire d'expertise renseigné.</span>}
+                  <div className="text-body text-[#78716c] leading-relaxed">
+                    {commentaireExpertise || <span className="text-[#d6d3d1] italic">Aucun commentaire d'expertise renseigné.</span>}
                   </div>
                   {!commentaireExpertise && (
                     <button
                       onClick={handleGenerateExpertise}
                       disabled={aiGenerating === 'expertise'}
-                      className="mt-3 flex items-center gap-1.5 text-[12px] font-medium text-violet-500 hover:text-violet-700 transition-colors disabled:opacity-50"
+                      className="mt-3 flex items-center gap-1.5 text-caption-medium text-violet-500 hover:text-violet-700 transition-colors disabled:opacity-50"
                     >
                       {aiGenerating === 'expertise' ? (
                         <><Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} />Génération en cours...</>
@@ -3952,37 +6752,37 @@ export default function App() {
               </div>
 
               {/* Victimes indirectes */}
-              <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
+              <div className="bg-white rounded-lg border border-[#e7e5e3]/60 shadow-sm">
                 <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-zinc-400">
+                  <div className="flex items-center gap-2 text-[#a8a29e]">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
                     </svg>
-                    <span className="text-[13px] font-medium">Victimes indirectes</span>
+                    <span className="text-body-medium">Victimes indirectes</span>
                   </div>
                   <button
                     onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Nouvelle victime indirecte', data: null })}
-                    className="flex items-center gap-1 px-2 py-1 text-[12px] text-zinc-500 hover:bg-zinc-100 rounded transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 text-caption text-[#78716c] hover:bg-[#eeece6] rounded transition-colors"
                   >
                     <Plus className="w-3 h-3" strokeWidth={1.5} />Ajouter
                   </button>
                 </div>
                 {victimesIndirectes.length > 0 ? (
-                  <div className="divide-y divide-zinc-100">
+                  <div className="divide-y divide-[#e7e5e3]">
                     {victimesIndirectes.map(vi => (
-                      <div key={vi.id} className="flex items-center justify-between p-3 hover:bg-zinc-50 group transition-colors">
+                      <div key={vi.id} className="flex items-center justify-between p-3 hover:bg-[#fafaf9] group transition-colors">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-[12px] text-zinc-500 font-medium">
+                          <div className="w-8 h-8 rounded-full bg-[#eeece6] flex items-center justify-center text-caption text-[#78716c] font-medium">
                             {vi.prenom[0]}{vi.nom[0]}
                           </div>
                           <div>
-                            <div className="text-[14px] text-zinc-700">{vi.prenom} {vi.nom}</div>
-                            <div className="text-[12px] text-zinc-400">{vi.lien} • {calcAge(vi.dateNaissance)} ans</div>
+                            <div className="text-body text-[#44403c]">{vi.prenom} {vi.nom}</div>
+                            <div className="text-caption text-[#a8a29e]">{vi.lien} • {calcAge(vi.dateNaissance)} ans</div>
                           </div>
                         </div>
                         <button
                           onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Modifier victime indirecte', data: vi })}
-                          className="p-1 text-zinc-300 hover:text-zinc-500 rounded opacity-0 group-hover:opacity-100 transition-all"
+                          className="p-1 text-[#d6d3d1] hover:text-[#78716c] rounded opacity-0 group-hover:opacity-100 transition-all"
                         >
                           <Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} />
                         </button>
@@ -3991,7 +6791,7 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="p-4 text-center">
-                    <div className="text-[13px] text-zinc-400">Aucune victime indirecte</div>
+                    <div className="text-body text-[#a8a29e]">Aucune victime indirecte</div>
                   </div>
                 )}
               </div>
@@ -3999,15 +6799,15 @@ export default function App() {
 
             {/* Colonne droite — Encart Chiffrage (sticky) */}
             <div className="col-span-1 sticky top-0">
-              <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm">
+              <div className="bg-white rounded-lg border border-[#e7e5e3]/60 shadow-sm">
                 <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-zinc-400">
+                  <div className="flex items-center gap-2 text-[#a8a29e]">
                     <Calculator className="w-4 h-4" strokeWidth={1.5} />
-                    <span className="text-[13px] font-medium">Chiffrage</span>
+                    <span className="text-body-medium">Chiffrage</span>
                   </div>
                   <button
                     onClick={() => setActiveTab('Chiffrage')}
-                    className="flex items-center gap-1 text-[12px] text-zinc-400 hover:text-zinc-600 transition-colors"
+                    className="flex items-center gap-1 text-caption text-[#a8a29e] hover:text-[#78716c] transition-colors"
                   >
                     Voir le détail
                     <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
@@ -4015,11 +6815,11 @@ export default function App() {
                 </div>
                 <div className="p-5">
                   <div className="text-center">
-                    <div className="text-[36px] font-semibold text-zinc-800 tabular-nums leading-none">{fmt(totalChiffrage)}</div>
-                    <div className="text-[13px] text-zinc-400 mt-1.5">{allPostes.filter(p => !p.disabled).length} postes de préjudice chiffrés</div>
+                    <div className="text-[36px] font-semibold text-[#292524] tabular-nums leading-none">{fmt(totalChiffrage)}</div>
+                    <div className="text-body text-[#a8a29e] mt-1.5">{allPostes.filter(p => !p.disabled).length} postes de préjudice chiffrés</div>
                     <button
                       onClick={() => setActiveTab('Chiffrage')}
-                      className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-800 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-700 transition-colors"
+                      className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-800 text-white text-body-medium rounded-lg hover:bg-zinc-700 transition-colors"
                     >
                       Voir le chiffrage
                       <ChevronRight className="w-4 h-4" strokeWidth={2} />
@@ -4032,27 +6832,8 @@ export default function App() {
         );
       }
       if (currentLevel.activeTab === 'chiffrage') {
-        // ========== CALCUL STATUT POSTE ==========
-        const getPosteStatus = (posteId) => {
-          let lignes = [];
-          if (posteId === 'dsa') lignes = dsaLignes;
-          else if (posteId === 'dft') lignes = dftLignes;
-          else if (posteId === 'pgpa') {
-            lignes = [
-              ...pgpaData.revenuRef.lignes,
-              ...pgpaData.revenusPercus,
-              ...pgpaData.ijPercues
-            ];
-          }
-          if (lignes.length === 0) return 'validated';
-          const allSuggested = lignes.every(l => l.status === 'ai-suggested' || l.status === 'suggested');
-          const allValidated = lignes.every(l => l.status === 'validated' && !isLigneIncomplete(l));
-          if (allSuggested) return 'suggested';
-          if (allValidated) return 'validated';
-          return 'in_progress';
-        };
-
-        const getPosteAiReasoning = () => null;
+        // eslint-disable-next-line no-unused-vars
+        const _getPosteAiReasoning = () => null;
 
         // UI de progression pendant l'extraction
         if (extractionState && extractionState.phase !== 'done') {
@@ -4073,13 +6854,13 @@ export default function App() {
                   style={{ background: 'conic-gradient(from 0deg, #71717a, #a1a1aa, #71717a, transparent 70%)' }}
                 />
                 <div className="absolute inset-[3px] rounded-full bg-white flex items-center justify-center">
-                  <Sparkles className="w-8 h-8 text-zinc-600 animate-pulse" />
+                  <Sparkles className="w-8 h-8 text-[#78716c] animate-pulse" />
                 </div>
               </div>
-              <h2 className="text-lg font-semibold text-zinc-800 mb-1 tracking-tight">
+              <h2 className="text-heading-md text-[#292524] mb-1 tracking-tight">
                 {extractionPhases[currentPhaseIndex]?.label || 'Analyse'} en cours...
               </h2>
-              <p className="text-sm text-zinc-500 mb-8">L'IA analyse vos documents</p>
+              <p className="text-body text-[#78716c] mb-8">L'IA analyse vos documents</p>
               <div className="flex items-center gap-1 mb-8">
                 {extractionPhases.map((phase, i) => {
                   const Icon = phase.icon;
@@ -4087,18 +6868,18 @@ export default function App() {
                   const isDone = i < currentPhaseIndex;
                   return (
                     <div key={phase.key} className="flex items-center">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-500 ${isDone ? 'bg-zinc-200' : isActive ? 'bg-zinc-200 scale-110' : 'bg-zinc-100'}`}>
-                        {isDone ? <Check className="w-4 h-4 text-zinc-600 animate-bounce-in" /> : <Icon className={`w-4 h-4 transition-colors duration-300 ${isActive ? 'text-zinc-700' : 'text-zinc-400'}`} />}
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-500 ${isDone ? 'bg-zinc-200' : isActive ? 'bg-zinc-200 scale-110' : 'bg-[#eeece6]'}`}>
+                        {isDone ? <Check className="w-4 h-4 text-[#78716c] animate-bounce-in" /> : <Icon className={`w-4 h-4 transition-colors duration-300 ${isActive ? 'text-[#44403c]' : 'text-[#a8a29e]'}`} />}
                       </div>
                       {i < extractionPhases.length - 1 && <div className={`w-3 h-0.5 mx-0.5 transition-colors duration-500 ${isDone ? 'bg-zinc-400' : 'bg-zinc-200'}`} />}
                     </div>
                   );
                 })}
               </div>
-              <div className="w-56 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                <div className="h-full bg-zinc-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${extractionState.progress}%` }} />
+              <div className="w-56 h-1.5 bg-[#eeece6] rounded-full overflow-hidden">
+                <div className="h-full bg-[#F8F7F5]0 rounded-full transition-all duration-700 ease-out" style={{ width: `${extractionState.progress}%` }} />
               </div>
-              <p className="text-xs text-zinc-400 mt-3">{extractionState.progress}%</p>
+              <p className="text-caption text-[#a8a29e] mt-3">{extractionState.progress}%</p>
             </div>
           );
         }
@@ -4108,138 +6889,207 @@ export default function App() {
           return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 animate-fade-up">
               <div className="text-center max-w-sm">
-                <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-zinc-100 flex items-center justify-center">
-                  <ClipboardList className="w-6 h-6 text-zinc-400" />
+                <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-[#eeece6] flex items-center justify-center">
+                  <ClipboardList className="w-6 h-6 text-[#a8a29e]" />
                 </div>
-                <h2 className="text-lg font-semibold text-zinc-800 mb-2">Aucun poste de préjudice</h2>
-                <p className="text-sm text-zinc-500 mb-6">Sélectionnez un poste dans le menu latéral pour commencer le chiffrage.</p>
+                <h2 className="text-lg font-semibold text-[#292524] mb-2">Aucun poste de préjudice</h2>
+                <p className="text-body text-[#78716c] mb-6">Sélectionnez un poste dans le menu latéral pour commencer le chiffrage.</p>
               </div>
             </div>
           );
         }
 
-        const pgpaAiCount = pgpaData.revenuRef.lignes.filter(l => l.status === 'ai-suggested').length +
-          pgpaData.revenusPercus.filter(l => l.status === 'ai-suggested').length +
-          pgpaData.ijPercues.filter(l => l.status === 'ai-suggested').length;
+        const pgpaAiCount = pgpaData.revenuRef.lignes.filter(l => !!l.diffType).length +
+          pgpaData.revenusPercus.filter(l => !!l.diffType).length +
+          pgpaData.ijPercues.filter(l => !!l.diffType).length;
 
-        const hasAiSuggestions =
-          dsaLignes.some(l => l.status === 'ai-suggested') ||
-          dftLignes.some(l => l.status === 'ai-suggested') ||
+        const _hasAiSuggestions = // eslint-disable-line no-unused-vars
+          dsaLignes.some(l => !!l.diffType) ||
+          dftLignes.some(l => !!l.diffType) ||
           pgpaAiCount > 0;
 
-        const aiSuggestedCount =
-          dsaLignes.filter(l => l.status === 'ai-suggested').length +
-          dftLignes.filter(l => l.status === 'ai-suggested').length +
+        const _aiSuggestedCount = // eslint-disable-line no-unused-vars
+          dsaLignes.filter(l => !!l.diffType).length +
+          dftLignes.filter(l => !!l.diffType).length +
           pgpaAiCount;
 
+        // Compute summary totals
+        const totalDepenses = allPostes.reduce((s, p) => s + (p.montant || 0), 0);
+        const totalTiers = 0; // placeholder
+        const totalIndem = totalDepenses - totalTiers;
+
         return (
-          <>
-            {/* Liste des postes */}
-            <div className="bg-white rounded-lg border border-zinc-200/60 shadow-sm overflow-hidden">
-              {categories.filter(cat => cat.postes.length > 0).map((cat, catIndex) => (
-                <div key={cat.id}>
-                  <div className={`px-4 py-2 bg-zinc-50/50 border-b border-zinc-100 ${catIndex > 0 ? 'border-t' : ''}`}>
-                    <span className="text-[12px] text-zinc-400">{cat.title}</span>
+          <div className="space-y-6" data-zone-id="postes">
+            {/* Summary pills + actions row */}
+            <div className="flex items-center gap-3 px-px">
+              <div className="h-9 px-3 flex items-center gap-2.5 border border-[#d6d3d1] rounded-lg whitespace-nowrap">
+                <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c', letterSpacing: 0.12, lineHeight: '16px' }}>Dépenses</span>
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#44403c', lineHeight: '20px' }}>{fmt(totalDepenses)}</span>
+              </div>
+              <div className="h-9 px-3 flex items-center gap-2.5 border border-[#d6d3d1] rounded-lg whitespace-nowrap">
+                <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c', letterSpacing: 0.12, lineHeight: '16px' }}>Tiers payeurs</span>
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#44403c', lineHeight: '20px' }}>{fmt(totalTiers)}</span>
+              </div>
+              <div className="h-9 px-3 flex items-center gap-2 border border-[#e7e5e3] rounded-lg whitespace-nowrap" style={{ backgroundColor: '#eeece6' }}>
+                <span style={{ fontSize: 12, fontWeight: 400, color: '#292524', letterSpacing: 0.12, lineHeight: '16px' }}>Indem. totale</span>
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(totalIndem)}</span>
+              </div>
+              <div className="flex-1" />
+              <button
+                className="h-9 px-3 flex items-center gap-2 border border-[#d6d3d1] rounded-lg whitespace-nowrap hover:bg-stone-50 transition-colors"
+                style={{ fontSize: 14, fontWeight: 500, color: '#44403c' }}
+              >
+                <Download className="w-3.5 h-3.5 text-[#78716c]" />
+                Exporter
+              </button>
+              <button
+                className="h-9 px-3 flex items-center gap-2 rounded-lg whitespace-nowrap hover:opacity-90 transition-opacity"
+                style={{ fontSize: 14, fontWeight: 500, color: 'white', backgroundColor: '#292524' }}
+                onClick={() => setPosteSearchOpen(true)}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Ajouter un poste
+              </button>
+            </div>
+
+            {/* Category table sections */}
+            <div className="space-y-6">
+              {categories.filter(cat => cat.postes.length > 0).map((cat) => (
+                <div key={cat.id} className="border border-[#e7e5e3] rounded-xl overflow-hidden" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                  {/* Category header */}
+                  <div className="h-10 px-4 flex items-center border-b border-[#e7e5e3]" style={{ backgroundColor: '#f8f7f5' }}>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{cat.title}</span>
                   </div>
-                  <div className="divide-y divide-zinc-100">
-                    {cat.postes.map(p => {
-                      const status = getPosteStatus(p.id);
-                      const aiReasoning = getPosteAiReasoning(p.id) || {
-                        dsa: "Identifié à partir des factures et frais médicaux détectés dans vos documents",
-                        pgpa: "Calculé sur la base de l'arrêt de travail et des revenus identifiés",
-                        dft: "Périodes d'incapacité temporaire identifiées dans le rapport d'expertise",
-                        pet: "Préjudice esthétique temporaire identifié dans le rapport d'expertise médicale (cicatrices, appareillage)",
-                        atpt: "Besoin d'assistance tierce personne identifié pendant la période de convalescence",
-                        se: "Souffrances endurées évaluées à 4/7 par l'expert dans le rapport d'expertise"
-                      }[p.id];
-                      const isAiPoste = status === 'suggested' || status === 'in_progress';
-                      const PosteStatusIcon = () => {
-                        if (status === 'suggested') return <span className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Poste suggéré par l'IA"><Sparkles className="w-3 h-3 text-indigo-500" /></span>;
-                        if (status === 'in_progress') return <span className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center" title="En cours de validation"><Loader2 className="w-3 h-3 text-amber-500" /></span>;
-                        return <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center" title="Validé"><Check className="w-3 h-3 text-emerald-500" /></span>;
-                      };
-                      if (p.disabled) {
-                        return (
-                          <div key={p.id} className="relative group">
-                            <div className="w-full flex items-center justify-between px-4 py-3 opacity-50 cursor-default">
-                              <div className="flex items-center gap-3">
-                                <span className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Poste suggéré par l'IA"><Sparkles className="w-3 h-3 text-indigo-500" /></span>
-                                <span className="text-[13px] font-medium w-12 text-zinc-400">{p.title}</span>
-                                <span className="text-[13px] text-zinc-700">{p.fullTitle}</span>
-                                {aiReasoning && (
-                                  <span className="relative cursor-help">
-                                    <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                                    <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 w-64 p-2.5 bg-zinc-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30 pointer-events-none">
-                                      <span className="flex items-start gap-2">
-                                        <Sparkles className="w-3 h-3 text-indigo-400 flex-shrink-0 mt-0.5" />
-                                        <span className="text-zinc-300 leading-relaxed">{aiReasoning}</span>
-                                      </span>
-                                      <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-zinc-900" />
-                                    </span>
-                                  </span>
-                                )}
-                                <span className="text-[10px] font-medium text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-full">Bientôt</span>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <span className="text-[14px] font-semibold text-zinc-900 tabular-nums">{fmt(p.montant)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-                      return (
-                        <div key={p.id} className="relative group">
-                          <button onClick={() => navigateTo(p)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-zinc-50 transition-colors">
-                            <div className="flex items-center gap-3">
-                              <PosteStatusIcon />
-                              <span className="text-[13px] font-medium w-12 text-zinc-400">{p.title}</span>
-                              <span className="text-[13px] text-zinc-700">{p.fullTitle}</span>
-                              {status !== 'validated' && aiReasoning && (
-                                <span className="relative cursor-help">
-                                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                                  <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 w-64 p-2.5 bg-zinc-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30 pointer-events-none">
-                                    <span className="flex items-start gap-2">
-                                      <Sparkles className="w-3 h-3 text-indigo-400 flex-shrink-0 mt-0.5" />
-                                      <span className="text-zinc-300 leading-relaxed">{aiReasoning}</span>
-                                    </span>
-                                    <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-zinc-900" />
-                                  </span>
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="text-[14px] font-semibold text-zinc-900 tabular-nums">{fmt(p.montant)}</span>
-                              <ChevronRight className="w-4 h-4 text-zinc-300" strokeWidth={1.5} />
-                            </div>
-                          </button>
+                  {/* Column headers */}
+                  <div className="flex items-center h-10 bg-white border-b border-[#e7e5e3]">
+                    <div className="flex-1 px-4">
+                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Nom du poste</span>
+                    </div>
+                    <div className="w-[140px] px-3 text-right">
+                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Total</span>
+                    </div>
+                    <div className="w-[140px] px-3 text-right">
+                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Tiers</span>
+                    </div>
+                    <div className="w-[160px] px-3 text-right">
+                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Indemnisation victime</span>
+                    </div>
+                    <div className="w-11" />
+                  </div>
+                  {/* Data rows */}
+                  {cat.postes.map((p, pIdx) => {
+                    const isLast = pIdx === cat.postes.length - 1;
+                    return (
+                      <button
+                        key={p.id}
+                        data-entity-id={p.id}
+                        onClick={() => navigateTo(p)}
+                        className={`w-full flex items-center h-14 bg-white hover:bg-[#fafaf9] transition-colors ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}
+                      >
+                        {/* Acronym */}
+                        <div className="pl-4 pr-1 w-[52px] flex items-center">
+                          <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{p.title}</span>
                         </div>
-                      );
-                    })}
-                  </div>
+                        {/* Full name */}
+                        <div className="flex-1 px-3 flex items-center min-w-0">
+                          <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{p.fullTitle}</span>
+                        </div>
+                        {/* Total column */}
+                        <div className="w-[140px] px-3 flex items-center justify-end">
+                          {p.montant > 0 ? (
+                            <span style={{ fontSize: 14, fontWeight: 400, color: '#78716c', lineHeight: '20px' }}>{fmt(p.montant)}</span>
+                          ) : (
+                            <span style={{ fontSize: 14, fontWeight: 400, color: '#78716c', lineHeight: '20px' }}>&mdash;</span>
+                          )}
+                        </div>
+                        {/* Tiers column */}
+                        <div className="w-[140px] px-3 flex items-center justify-end">
+                          <span style={{ fontSize: 14, fontWeight: 400, color: '#78716c', lineHeight: '20px' }}>&mdash;</span>
+                        </div>
+                        {/* Indemnisation victime column */}
+                        <div className="w-[160px] px-3 flex flex-col items-end justify-center">
+                          <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(p.montant)}</span>
+                        </div>
+                        {/* Chevron + ellipsis */}
+                        <div className="w-11 pr-4 pl-3 flex items-center justify-end">
+                          <MoreVertical className="w-4 h-4 text-[#a8a29e] opacity-0 group-hover:opacity-100" />
+                          <ChevronRight className="w-4 h-4 text-[#d6d3d1]" strokeWidth={1.5} />
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               ))}
             </div>
 
-            {/* Spacer pour le bandeau sticky */}
-            <div className="h-28" />
-
-            {/* Bandeau sticky full width */}
-            <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-zinc-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-30">
-              <div className="flex items-center justify-between px-8 py-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center">
-                    <Calculator className="w-5 h-5 text-zinc-500" strokeWidth={1.5} />
+            {/* Poste Search Command Palette */}
+            {posteSearchOpen && (
+              <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]" onClick={() => setPosteSearchOpen(false)}>
+                <div className="absolute inset-0 bg-black/30" />
+                <div className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+                  {/* Search input */}
+                  <div className="flex items-center gap-3 px-4 py-3 border-b border-stone-100">
+                    <Search className="w-4 h-4 text-stone-400 flex-shrink-0" strokeWidth={1.5} />
+                    <input
+                      type="text"
+                      value={posteSearchQuery}
+                      onChange={(e) => setPosteSearchQuery(e.target.value)}
+                      placeholder="Rechercher un poste de préjudice..."
+                      className="flex-1 text-body text-stone-700 placeholder:text-stone-400 outline-none bg-transparent"
+                      autoFocus
+                    />
+                    {posteSearchQuery && (
+                      <button onClick={() => setPosteSearchQuery('')} className="p-0.5 hover:bg-stone-100 rounded">
+                        <X className="w-3.5 h-3.5 text-stone-400" />
+                      </button>
+                    )}
                   </div>
-                  <div>
-                    <div className="text-[14px] font-medium text-zinc-700">Total du chiffrage</div>
-                    <div className="text-[12px] text-zinc-400">{allPostes.filter(p => !p.disabled).length} postes · {categories.filter(c => c.postes.length > 0).length} catégories</div>
+                  {/* Results */}
+                  <div className="max-h-[50vh] overflow-y-auto py-2">
+                    {(() => {
+                      const q = posteSearchQuery.trim().toLowerCase();
+                      const allTaxoPostes = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes.map(p => ({ ...p, categoryTitle: c.title }))));
+                      const filtered = q
+                        ? allTaxoPostes.filter(p => p.label.toLowerCase().includes(q) || (p.acronym && p.acronym.toLowerCase().includes(q)))
+                        : allTaxoPostes;
+                      const alreadyEnabled = allPostes.map(p => p.id);
+                      if (filtered.length === 0) return <p className="px-4 py-6 text-center text-body text-stone-400">Aucun poste trouvé</p>;
+                      let lastCat = '';
+                      return filtered.map(p => {
+                        const isEnabled = alreadyEnabled.includes(p.id);
+                        const showCat = p.categoryTitle !== lastCat;
+                        lastCat = p.categoryTitle;
+                        return (
+                          <div key={p.id}>
+                            {showCat && <div className="px-4 pt-3 pb-1" style={colHeaderStyle}>{p.categoryTitle}</div>}
+                            <button
+                              onClick={() => {
+                                if (!isEnabled) {
+                                  handleSmartAddPoste(p.id);
+                                } else {
+                                  const existing = allPostes.find(ep => ep.id === p.id);
+                                  if (existing) navigateTo(existing);
+                                }
+                                setPosteSearchOpen(false);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-stone-50 transition-colors text-left"
+                            >
+                              {p.acronym && (
+                                <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-counter font-semibold bg-stone-100 text-stone-600 rounded min-w-[36px] text-center">
+                                  {p.acronym}
+                                </span>
+                              )}
+                              <span className="flex-1 text-body text-stone-700">{p.label}</span>
+                              {isEnabled && <span className="text-counter text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded-full">Actif</span>}
+                            </button>
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[40px] font-bold text-zinc-900 tabular-nums tracking-tight leading-none">{fmt(totalChiffrage)}</div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Panel Paramètres Chiffrage */}
             {showChiffrageParams && (
@@ -4247,50 +7097,77 @@ export default function App() {
                 <div className="absolute inset-0 bg-black/30" onClick={() => setShowChiffrageParams(false)} />
                 <div className="relative w-full max-w-md bg-white shadow-xl flex flex-col">
                   <div className="flex items-center justify-between px-5 py-3 border-b">
-                    <h2 className="text-sm font-semibold">Paramètres du chiffrage</h2>
-                    <button onClick={() => setShowChiffrageParams(false)} className="p-1 hover:bg-gray-100 rounded"><X className="w-4 h-4" /></button>
+                    <h2 className="text-body-medium font-semibold">Paramètres du chiffrage</h2>
+                    <button onClick={() => setShowChiffrageParams(false)} className="p-1 hover:bg-[#F8F7F5] rounded"><X className="w-4 h-4" /></button>
                   </div>
                   <div className="flex-1 overflow-y-auto p-6 space-y-8">
                     <div>
                       <div className="flex items-center gap-2 mb-4">
-                        <h3 className="font-semibold text-gray-900">Fraction indemnisable des préjudices</h3>
-                        <button className="text-gray-400 hover:text-gray-600"><HelpCircle className="w-4 h-4" /></button>
+                        <h3 className="font-semibold text-[#292524]">Fraction indemnisable des préjudices</h3>
+                        <button className="text-[#a8a29e] hover:text-[#78716c]"><HelpCircle className="w-4 h-4" /></button>
                       </div>
                       <div className="space-y-3">
                         <input type="range" min="0" max="100" value={chiffrageParams.fractionIndemnisable}
                           onChange={(e) => setChiffrageParams(prev => ({ ...prev, fractionIndemnisable: parseInt(e.target.value) }))} className="w-full" />
-                        <div className="flex items-center justify-between text-xs text-gray-500">
+                        <div className="flex items-center justify-between text-caption text-[#78716c]">
                           <span>0</span><span>1/4</span><span>1/3</span><span>1/2</span><span>2/3</span><span>3/4</span><span>1</span>
                         </div>
-                        <div className="flex justify-end"><div className="px-3 py-1.5 border rounded-lg text-sm font-medium">{chiffrageParams.fractionIndemnisable} %</div></div>
+                        <div className="flex justify-end"><div className="px-3 py-1.5 border rounded-lg text-body-medium">{chiffrageParams.fractionIndemnisable} %</div></div>
                       </div>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-4">Tiers payeurs</h3>
+                      <h3 className="font-semibold text-[#292524] mb-4">Tiers payeurs</h3>
                       <div className="space-y-2">
                         {chiffrageParams.tiersPayeurs.map((tiers, idx) => (
                           <div key={idx} className="flex items-center gap-2">
-                            <label className="text-xs text-gray-500 w-12">Nom *</label>
-                            <input type="text" value={tiers} onChange={(e) => { const newTiers = [...chiffrageParams.tiersPayeurs]; newTiers[idx] = e.target.value; setChiffrageParams(prev => ({ ...prev, tiersPayeurs: newTiers })); }} className="flex-1 px-3 py-2 border rounded-lg text-sm" />
-                            <button onClick={() => { const newTiers = chiffrageParams.tiersPayeurs.filter((_, i) => i !== idx); setChiffrageParams(prev => ({ ...prev, tiersPayeurs: newTiers })); }} className="p-2 text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                            <label className="text-caption text-[#78716c] w-12">Nom *</label>
+                            <input type="text" value={tiers} onChange={(e) => { const newTiers = [...chiffrageParams.tiersPayeurs]; newTiers[idx] = e.target.value; setChiffrageParams(prev => ({ ...prev, tiersPayeurs: newTiers })); }} className="flex-1 px-3 py-2 border rounded-lg text-body" />
+                            <button onClick={() => { const newTiers = chiffrageParams.tiersPayeurs.filter((_, i) => i !== idx); setChiffrageParams(prev => ({ ...prev, tiersPayeurs: newTiers })); }} className="p-2 text-[#a8a29e] hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         ))}
-                        <button onClick={() => setChiffrageParams(prev => ({ ...prev, tiersPayeurs: [...prev.tiersPayeurs, ''] }))} className="text-sm text-blue-600 hover:text-blue-700 font-medium">+ Ajouter un tiers payeur</button>
+                        <button onClick={() => setChiffrageParams(prev => ({ ...prev, tiersPayeurs: [...prev.tiersPayeurs, ''] }))} className="text-body text-blue-600 hover:text-[#1e3a8a] font-medium">+ Ajouter un tiers payeur</button>
                       </div>
                     </div>
                   </div>
                   <div className="px-5 py-3 border-t flex justify-end gap-2">
-                    <button onClick={() => setShowChiffrageParams(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Fermer</button>
-                    <button onClick={() => setShowChiffrageParams(false)} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Enregistrer</button>
+                    <button onClick={() => setShowChiffrageParams(false)} className="px-4 py-2 text-body text-[#78716c] hover:bg-[#F8F7F5] rounded-lg">Fermer</button>
+                    <button onClick={() => setShowChiffrageParams(false)} className="px-4 py-2 text-body-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Enregistrer</button>
                   </div>
                 </div>
               </div>
             )}
-          </>
+          </div>
         );
       }
       if (currentLevel.activeTab === 'pièces') {
+        if (dropFirstPieces.length > 0) return renderDropFirstPiecesTab();
         return renderPiecesList(pieces, true);
+      }
+
+      // Actes tab placeholder
+      if (currentLevel.activeTab === 'actes') {
+        return (
+          <div className="flex-1 flex items-center justify-center py-20">
+            <div className="text-center">
+              <ClipboardList className="w-10 h-10 text-stone-300 mx-auto mb-3" strokeWidth={1.5} />
+              <p className="text-body-medium text-stone-500">Actes de procédure</p>
+              <p className="text-caption text-stone-400 mt-1">Bientôt disponible</p>
+            </div>
+          </div>
+        );
+      }
+
+      // JP tab placeholder
+      if (currentLevel.activeTab === 'jp') {
+        return (
+          <div className="flex-1 flex items-center justify-center py-20">
+            <div className="text-center">
+              <Landmark className="w-10 h-10 text-stone-300 mx-auto mb-3" strokeWidth={1.5} />
+              <p className="text-body-medium text-stone-500">Jurisprudences</p>
+              <p className="text-caption text-stone-400 mt-1">Bientôt disponible</p>
+            </div>
+          </div>
+        );
       }
     }
 
@@ -4298,393 +7175,333 @@ export default function App() {
     // ========== DSA ==========
     if (currentLevel.id === 'dsa') {
       const allLignes = [...dsaLignes].sort((a, b) => {
-        if (a.status !== 'validated' && b.status === 'validated') return -1;
-        if (a.status === 'validated' && b.status !== 'validated') return 1;
+        // Sort diff lines first, then non-diff
+        if (a.diffType && !b.diffType) return -1;
+        if (!a.diffType && b.diffType) return 1;
         return 0;
       });
-      const hasContent = dsaLignes.length > 0 || processing.length > 0;
-      
-      // Pièces filtrées pour la recherche (non utilisées)
-      const filteredPiecesForSearch = pieces.filter(p => 
-        !p.used && (p.intitule || p.nom).toLowerCase().includes(searchPieces.toLowerCase())
-      );
-      
       // Calculs DSA
-      const totalMontant = dsaLignes.filter(l => l.status === 'validated').reduce((s, l) => s + (l.montant || 0), 0);
-      const totalRembourse = dsaLignes.filter(l => l.status === 'validated').reduce((s, l) => s + (l.dejaRembourse || 0), 0);
+      const totalMontant = dsaLignes.reduce((s, l) => s + (l.montant || 0), 0);
+      const totalRembourse = dsaLignes.reduce((s, l) => s + (l.dejaRembourse || 0), 0);
       const totalResteACharge = totalMontant - totalRembourse;
-      const partTiersPayeur = totalRembourse;
       const indemniteVictime = totalResteACharge;
       
       return (
-        <div className="space-y-4 pb-32">
+        <div className={`${dsaLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dsa') && !chatAnalyzedPostes.current.has('dsa') ? 'h-full flex flex-col' : ''}`}>
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+
+          {/* Param chips block */}
+          <div className={cardBlockClass}>
+            <div className="flex items-center gap-3 px-4 h-[52px]">
+              <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                <Settings className="w-3.5 h-3.5 text-[#78716c]" />
+              </div>
+              {renderParamPill({
+                paramKey: 'revaloriser',
+                label: 'Revaloriser',
+                values: 'IPC Annuel',
+                enabled: enabledParams['revaloriser'],
+                onClick: () => setActiveParamChip(activeParamChip === 'revaloriser' ? null : 'revaloriser'),
+              })}
+            </div>
+            {activeParamChip === 'revaloriser' && (
+              <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+                <div className="flex items-center gap-3">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={enabledParams['revaloriser']} onChange={() => setEnabledParams(p => ({ ...p, 'revaloriser': !p['revaloriser'] }))} className="sr-only peer" />
+                    <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                  </label>
+                  <div className="w-px h-4 bg-[#e7e5e3]" />
+                  <span className="text-xs font-medium text-[#78716c]">Indice</span>
+                  <select className="text-xs font-medium text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-2.5 py-1.5">
+                    <option>IPC Annuel</option>
+                    <option>IPC Mensuel</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Empty state DSA */}
-          {dsaLignes.length === 0 && processing.length === 0 && (
+          {dsaLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dsa') && !chatAnalyzedPostes.current.has('dsa') && renderInlineDocPicker('dsa', {
+            icon: Receipt,
+            title: 'Ajoutez vos justificatifs pour créer vos lignes de dépenses',
+            description: 'Déposez un ou plusieurs documents. Plato lit, extrait et structure les informations pour chaque ligne.',
+            expectedDocs: ['Factures médicales', 'Ordonnances', 'Justificatifs de pharmacie', 'Facture hospitalisation']
+          })}
+
+          {/* Card Block: Dépenses de santé */}
+          {(dsaLignes.length > 0 || processing.length > 0 || (posteExtracting && posteExtracting.posteType === 'dsa') || chatAnalyzedPostes.current.has('dsa')) && (
+          <div className={cardBlockClass}>
+            {/* Title Row */}
+            <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                  <Receipt className="w-3.5 h-3.5 text-[#78716c]" />
+                </div>
+                <span className="text-[14px] font-medium text-[#292524]">Dépenses de santé actuelles</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span style={serifAmountStyle} className="text-[#292524]">{fmt(totalMontant)}</span>
+                <ChevronDown className="w-4 h-4 text-[#78716c]" />
+              </div>
+            </div>
+            {/* Header — dashed drop zone + buttons */}
             <div
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
               onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dsa'); }}
-              className={`bg-white rounded-lg border-2 border-dashed overflow-hidden transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50/50' : 'border-zinc-200'}`}
+              className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white"
             >
-              <div className="px-8 py-12 text-center">
+              <div className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg transition-colors ${isDragging ? 'border-[#a8a29e] bg-[#f5f5f4]' : 'border-[#d6d3d1]'}`}>
                 {isDragging ? (
-                  <>
-                    <Upload className="w-10 h-10 text-emerald-500 mx-auto mb-4" />
-                    <h3 className="text-[15px] font-semibold text-emerald-700 mb-1">Déposez vos documents ici</h3>
-                    <p className="text-[13px] text-emerald-600">Les fichiers seront analysés automatiquement</p>
-                  </>
+                  <><ArrowDown className="w-4 h-4 text-[#78716c] flex-shrink-0" /><span className="text-body text-[#44403c]">Déposez vos documents ici</span></>
                 ) : (
-                  <>
-                    <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
-                      <Receipt className="w-7 h-7 text-zinc-400" />
-                    </div>
-                    <h3 className="text-[15px] font-semibold text-zinc-800 mb-1.5">Aucune dépense de santé</h3>
-                    <p className="text-[13px] text-zinc-400 mb-6 max-w-sm mx-auto">Commencez par ajouter des justificatifs ou créez une ligne manuellement.</p>
-
-                    <div className="flex items-center justify-center gap-3 mb-8">
-                      <button onClick={() => document.getElementById('dsa-file-input-empty').click()} className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors">
-                        <Upload className="w-4 h-4" /> Ajouter des documents
-                      </button>
-                      <button onClick={() => handleAddManual('dsa')} className="flex items-center gap-2 px-4 py-2.5 border border-zinc-200 text-zinc-700 text-[13px] font-medium rounded-lg hover:bg-zinc-50 transition-colors">
-                        <Edit3 className="w-4 h-4" /> Créer une dépense manuellement
-                      </button>
-                    </div>
-                    <input type="file" id="dsa-file-input-empty" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dsa'); e.target.value = ''; } }} />
-
-                    <div className="border-t border-zinc-100 pt-5">
-                      <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-3">Documents attendus</p>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {['Factures médicales', 'Ordonnances', 'Justificatifs de médicaments', 'Autres justificatifs de dépenses'].map(doc => (
-                          <span key={doc} className="px-2.5 py-1 bg-zinc-50 text-[12px] text-zinc-500 rounded-md border border-zinc-100">{doc}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </>
+                  <><Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" /><span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer" onClick={() => document.getElementById('dsa-header-upload')?.click()}>cliquez</span> pour ajouter un justificatif</span></>
                 )}
+                <input type="file" id="dsa-header-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dsa'); e.target.value = ''; } }} />
               </div>
-            </div>
-          )}
-
-          {/* Table des dépenses avec zone d'ajout intégrée */}
-          {(dsaLignes.length > 0 || processing.length > 0) && (
-          <div className="bg-white rounded-lg border border-zinc-200/60 overflow-hidden">
-            {/* Zone d'ajout - only when lines exist */}
-            {dsaLignes.length > 0 && (
-            <div
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setIsDragging(false);
-                handleUploadFiles(e.dataTransfer.files, 'dsa');
-              }}
-              className={`px-4 py-3 border-b transition-colors ${
-                isDragging ? 'bg-emerald-50 border-emerald-200' : 'bg-zinc-50/50'
-              }`}
-            >
-              {/* Input file caché */}
-              <input
-                type="file"
-                id="dsa-file-input"
-                multiple
-                accept=".pdf,.jpg,.jpeg,.png"
-                className="hidden"
-                onChange={(e) => {
-                  if (e.target.files?.length) {
-                    handleUploadFiles(e.target.files, 'dsa');
-                    e.target.value = '';
-                  }
-                }}
-              />
-
-              <div className="flex items-center gap-4">
-                {/* Drop zone compacte - cliquable */}
-                <div
-                  onClick={() => document.getElementById('dsa-file-input').click()}
-                  className={`flex items-center gap-3 px-4 py-2.5 border-2 border-dashed rounded-lg flex-1 transition-all cursor-pointer ${
-                    isDragging
-                      ? 'border-emerald-400 bg-emerald-50'
-                      : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'
-                  }`}
-                >
-                  <Upload className={`w-5 h-5 ${isDragging ? 'text-emerald-600' : 'text-zinc-400'}`} strokeWidth={1.5} />
-                  <span className={`text-[13px] ${isDragging ? 'text-emerald-700 font-medium' : 'text-zinc-500'}`}>
-                    {isDragging ? 'Relâchez pour ajouter' : 'Déposez ou cliquez pour ajouter un justificatif'}
-                  </span>
-                </div>
-
-                {/* Recherche pièce */}
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                  <input
-                    type="text"
-                    placeholder="Rechercher une pièce existante..."
-                    value={searchPieces}
-                    onChange={(e) => setSearchPieces(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 border border-zinc-200 rounded-lg text-[13px] bg-white focus:outline-none focus:ring-2 focus:ring-zinc-300"
-                  />
-
-                  {searchPieces && (
-                    <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white rounded-lg border shadow-lg max-h-48 overflow-y-auto">
-                      {filteredPiecesForSearch.length === 0 ? (
-                        <p className="text-center text-zinc-500 py-3 text-[13px]">Aucune pièce</p>
-                      ) : (
-                        <div className="py-1">
-                          {filteredPiecesForSearch.map(p => (
-                            <button
-                              key={p.id}
-                              onClick={() => { handleAddFromPiece(p, 'dsa'); setSearchPieces(''); }}
-                              className="w-full flex items-center gap-3 px-3 py-2 hover:bg-zinc-50 text-left"
-                            >
-                              <span className="w-6 h-6 bg-zinc-100 text-zinc-600 text-[11px] font-medium rounded flex items-center justify-center">
-                                P{pieces.findIndex(x => x.id === p.id) + 1}
-                              </span>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium truncate">{p.intitule || p.nom}</div>
-                                <div className="text-xs text-gray-500">{p.type}</div>
-                              </div>
-                              <Plus className="w-4 h-4 text-blue-600" />
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Saisie manuelle */}
-                <button
-                  onClick={() => handleAddManual('dsa')}
-                  className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors whitespace-nowrap"
-                >
-                  Ajouter une dépense
+              {dropFirstPieces.filter(p => p.status === 'done').length > 0 && (
+                <button onClick={() => setPickerOpen('dsa')} className="flex items-center gap-2 px-4 h-9 bg-[#eeece6] text-[#44403c] text-body-medium rounded-lg hover:bg-[#e7e5e3] transition-colors flex-shrink-0">
+                  Extraire depuis un doc. existant
+                  <ChevronDown className="w-4 h-4" />
                 </button>
-              </div>
+              )}
+              <button onClick={() => handleAddManual('dsa')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a] flex-shrink-0 whitespace-nowrap">
+                <Plus className="w-4 h-4" /> Ajouter une dépense
+              </button>
             </div>
-            )}
-            
-            {/* Processing - Version sobre */}
-            {processing.length > 0 && (
-              <div className="border-b border-zinc-100">
-                {processing.map((p, index) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center gap-3 px-4 py-3 bg-zinc-50 animate-fade-up"
-                    style={{ animationDelay: `${index * 80}ms` }}
-                  >
-                    {/* Cercle de progression SVG sobre */}
-                    <div className="relative w-9 h-9 flex-shrink-0">
-                      <svg className="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
-                        <circle
-                          cx="18" cy="18" r="14"
-                          fill="none"
-                          stroke="#e4e4e7"
-                          strokeWidth="2.5"
-                        />
-                        <circle
-                          cx="18" cy="18" r="14"
-                          fill="none"
-                          stroke="#71717a"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeDasharray="88"
-                          strokeDashoffset={p.phase === 'upload' ? '44' : '0'}
-                          className="transition-all duration-1000 ease-out"
-                        />
-                      </svg>
-                      {/* Icône centrale */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        {p.phase === 'upload' ? (
-                          <Upload className="w-3.5 h-3.5 text-zinc-500" />
-                        ) : (
-                          <Sparkles className="w-3.5 h-3.5 text-zinc-600 animate-pulse" />
-                        )}
-                      </div>
-                    </div>
 
-                    {/* Texte */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-zinc-700 truncate">{p.name}</p>
-                      <p className="text-xs text-zinc-400">
-                        {p.phase === 'upload' ? 'Téléchargement...' : 'Extraction IA...'}
-                      </p>
-                    </div>
-
-                    {/* Shimmer bar sobre */}
-                    <div className="w-16 h-1 bg-zinc-200 rounded-full overflow-hidden flex-shrink-0">
-                      <div className="w-full h-full animate-shimmer bg-gradient-to-r from-transparent via-zinc-300 to-transparent" />
-                    </div>
+            {/* Extraction progress row */}
+            {posteExtracting && posteExtracting.posteType === 'dsa' && (
+              <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#e7e5e3]" style={{ background: 'linear-gradient(to right, #f8f7f5, white 15%)' }}>
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-5 h-5 text-[#292524] animate-spin" />
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-body-medium text-[#292524]">{posteExtracting.totalDocs} document{posteExtracting.totalDocs > 1 ? 's' : ''}</span>
+                    <span className="text-caption text-[#78716c]">Extraction en cours…</span>
                   </div>
-                ))}
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-[70px] h-1 bg-[#eeece6] rounded-full overflow-hidden">
+                    <div className="h-full bg-[#292524] rounded-full transition-all duration-500" style={{ width: `${(posteExtracting.extractedCount / posteExtracting.totalDocs) * 100}%` }} />
+                  </div>
+                  <span className="text-counter text-[#78716c]">{posteExtracting.extractedCount}/{posteExtracting.totalDocs}</span>
+                </div>
               </div>
             )}
-            
+
             {/* Header table */}
             {allLignes.length > 0 && (
               <>
-                <div className="flex items-center px-4 py-2 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  <div className="w-10 flex-shrink-0"></div>
-                  <div className="w-12 flex-shrink-0">Pièce</div>
-                  <div className="flex-1 min-w-0">Intitulé</div>
-                  <div className="w-24 text-right flex-shrink-0">Date</div>
-                  <div className="w-28 text-right flex-shrink-0">Montant</div>
+                <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
+                  <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
+                  <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
+                  <div className="flex-1 min-w-0 px-3 text-right" style={colHeaderStyle}>Date</div>
+                  <div className="w-[254px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant</div>
+                  <div className="flex-1 min-w-0 px-2 text-right" style={colHeaderStyle}>Reste à charge</div>
                 </div>
 
                 {/* Lignes */}
-                <div className="divide-y">
-                  {allLignes.map(l => {
-                    const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                    const isError = l.status === 'error';
-                    const pieceCount = l.pieceIds?.length || 0;
+                {allLignes.map(l => {
+                  const diffColor = l.diffType ? ROW_DIFF_COLORS[l.diffType] : null;
+                  const pieceCount = l.pieceIds?.length || 0;
+                  const isDeleted = l.diffType === 'delete';
+                  const isEdited = l.diffType === 'edit';
+                  const old = l.oldValues || {};
 
-                    const StatusIcon = () => {
-                      if (isSuggested) return (
-                        <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA">
-                          <Sparkles className="w-3 h-3 text-indigo-500" />
-                        </div>
-                      );
-                      return null;
-                    };
+                  return (
+                    <div
+                      key={l.id}
+                      onClick={() => openDsaEditPanel(l)}
+                      className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                    >
+                      {/* Left strip — 4px solid, diff-colored */}
+                      {diffColor && <div className="absolute left-0 top-0 bottom-0 w-1 pointer-events-none" style={{ background: diffColor }} />}
 
-                    // Composant indicateur pièces avec tooltip
-                    const PieceIndicator = () => {
-                      if (pieceCount === 0) {
-                        return (
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200">
+                      {/* Doc indicator */}
+                      <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
+                        {isDeleted ? (
+                          <span className="inline-flex items-center justify-center w-7 h-7 bg-white rounded-md border border-dashed border-[#a8a29e]" style={{ opacity: 0.4 }}>
+                            <FileText className="w-3.5 h-3.5 text-[#a8a29e]" />
+                          </span>
+                        ) : pieceCount > 0 ? (
+                          <div className="relative group/piece">
+                            <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
+                              <FileText className="w-4 h-4 text-[#2563eb]" />
+                              <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#1e3a8a] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceCount}</span>
+                            </span>
+                            <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-[#e7e5e3] rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
+                              <div className="text-counter text-[#78716c] uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
+                              <div className="space-y-1">
+                                {l.pieceIds?.map(pid => {
+                                  const piece = getPiece(pid);
+                                  return <div key={pid} className="flex items-center gap-2 text-caption"><span className="w-5 h-5 bg-blue-100 text-[#1e3a8a] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-[#292524]">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]">
                             <FileText className="w-3.5 h-3.5" />
                           </span>
-                        );
-                      }
-                      return (
-                        <div className="relative group/piece">
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
-                            <FileText className="w-3.5 h-3.5" />
-                            {pieceCount > 1 && (
-                              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                                {pieceCount}
-                              </span>
-                            )}
-                          </span>
-                          {/* Tooltip avec liste des pièces */}
-                          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
-                            <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
-                            <div className="space-y-1">
-                              {l.pieceIds?.map(pid => {
-                                const piece = getPiece(pid);
-                                return (
-                                  <div key={pid} className="flex items-center gap-2 text-xs">
-                                    <span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">
-                                      {getPieceLabel(pid)}
-                                    </span>
-                                    <span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
-                          </div>
-                        </div>
-                      );
-                    };
-
-                    return (
-                      <div
-                        key={l.id}
-                        onClick={() => openDsaEditPanel(l)}
-                        className={`
-                          relative flex items-center px-4 py-3 group cursor-pointer transition-colors
-                          ${isSuggested
-                            ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50'
-                            : 'hover:bg-zinc-50'
-                          }
-                        `}
-                      >
-                        {/* Statut */}
-                        <div className="w-10 flex-shrink-0"><StatusIcon /></div>
-
-                        {/* Pièces */}
-                        <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
-
-                        {/* Intitulé + type */}
-                        <div className="flex-1 min-w-0 pr-4">
-                          <div className="text-sm font-medium truncate text-zinc-800">
-                            {l.label || 'Sans libellé'}
-                          </div>
-                          {(l.type || l.tiers) && (
-                            <div className="text-xs text-zinc-400 truncate">
-                              {l.type}{l.tiers && ` • ${l.tiers}`}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Date */}
-                        <div className="w-24 text-right text-sm text-zinc-500 flex-shrink-0">
-                          {l.date || '—'}
-                        </div>
-
-                        {/* Montant - PRIORITAIRE */}
-                        <div className="w-28 text-right flex-shrink-0">
-                          <span className="text-sm font-semibold tabular-nums text-zinc-900">
-                            {l.montant != null ? fmt(l.montant) : '— €'}
-                          </span>
-                        </div>
-
-                        {/* Actions en overlay au hover - minimaliste */}
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleRejectLigne(l.id); }}
-                            className="p-1.5 text-zinc-400 hover:text-zinc-600 transition-colors"
-                            title="Supprimer"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
+
+                      {/* Libellé */}
+                      <div className="flex-1 min-w-0 px-3">
+                        {isEdited && old.label ? (
+                          <div className="flex flex-col">
+                            <span style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through', letterSpacing: '0.12px' }} className="truncate block">{old.label}</span>
+                            <span className="text-body-medium truncate block" style={{ color: '#292524' }}>{l.label || 'Sans libellé'}</span>
+                          </div>
+                        ) : (
+                          <span className="text-body-medium truncate block" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{l.label || 'Sans libellé'}</span>
+                        )}
+                      </div>
+
+                      {/* Date */}
+                      <div className="flex-1 min-w-0 px-3 text-right">
+                        {isEdited && old.date ? (
+                          <div className="flex flex-col items-end">
+                            <span style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through', letterSpacing: '0.12px' }}>{old.date}</span>
+                            <span className="text-body-medium" style={{ color: '#292524' }}>{l.date}</span>
+                          </div>
+                        ) : (
+                          <span className="text-body" style={{ color: isDeleted ? '#a8a29e' : '#78716c', textDecoration: isDeleted ? 'line-through' : 'none' }}>{l.date || '—'}</span>
+                        )}
+                      </div>
+
+                      {/* Montant */}
+                      <div className="w-[254px] px-3 text-right flex-shrink-0">
+                        {isEdited && old.montant != null ? (
+                          <div className="flex flex-col items-end">
+                            <span style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through', letterSpacing: '0.12px' }}>{fmt(old.montant)}</span>
+                            <span className="text-body-medium" style={{ color: '#292524' }}>{fmt(l.montant)}</span>
+                          </div>
+                        ) : l.montant != null ? (
+                          <span className="text-body" style={{ color: isDeleted ? '#a8a29e' : '#44403c', textDecoration: isDeleted ? 'line-through' : 'none' }}>{fmt(l.montant)}</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#f9ecd6] rounded-md text-caption-medium text-[#855b31]">
+                            <AlertCircle className="w-3 h-3" /> Compléter
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Reste à charge */}
+                      <div className="flex-1 min-w-0 px-2 text-right">
+                        {isEdited && old.montant != null ? (
+                          <div className="flex flex-col items-end">
+                            <span style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through', letterSpacing: '0.12px' }}>{fmt((old.montant || 0) - (old.dejaRembourse ?? l.dejaRembourse ?? 0))}</span>
+                            <span className="text-body-medium" style={{ color: '#292524' }}>{fmt((l.montant || 0) - (l.dejaRembourse || 0))}</span>
+                          </div>
+                        ) : l.montant != null ? (
+                          <span className="text-body-medium" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{fmt((l.montant || 0) - (l.dejaRembourse || 0))}</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#f9ecd6] rounded-md text-caption-medium text-[#855b31]">
+                            <AlertCircle className="w-3 h-3" /> Compléter
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Actions — overlapping the table right edge */}
+                      {l.diffType ? (
+                        <span className="absolute right-[-20px] top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleApproveDiff(l.id, 'dsa'); }}
+                            className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors"
+                            style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                            title="Approuver"
+                          >
+                            <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleRejectDiff(l.id, 'dsa'); }}
+                            className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors"
+                            style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                            title="Rejeter"
+                          >
+                            <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleRejectLigne(l.id); }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </>
             )}
-            
+
           </div>
           )}
 
-          {/* Bandeau sticky totaux - Pattern ticket de caisse */}
-          <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
-            <div className="flex items-start justify-between px-6 py-5">
-              {/* Repère visuel gauche */}
-              <div className="flex items-center gap-2 text-gray-400 pt-1">
-                <Calculator className="w-5 h-5" />
-                <span className="text-sm font-medium">Récapitulatif</span>
+          {/* Total Block */}
+          {dsaLignes.length > 0 && (
+          <div className={totalBlockClass}>
+            <button onClick={() => setTotalExpanded(prev => ({...prev, dsa: !prev.dsa}))} className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                  <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                </div>
+                <span className="text-[14px] font-medium text-[#292524]">Total</span>
               </div>
-              
-              {/* Ticket aligné à droite */}
-              <div className="text-right min-w-[240px]">
-                {/* Lignes intermédiaires - discrètes, espacées */}
+              <div className="flex items-center gap-3">
+                <span style={serifAmountStyle} className="text-[#292524]">{fmt(indemniteVictime)}</span>
+                <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded.dsa ? 'rotate-90' : ''}`} />
+              </div>
+            </button>
+            {totalExpanded.dsa && (
+              <>
+                <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm text-gray-500">
-                    <span>Total des dépenses</span>
-                    <span className="tabular-nums font-medium ml-8">{fmt(totalMontant)}</span>
-                  </div>
-                  {totalRembourse > 0 && (
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <span>Remboursé par tiers</span>
-                      <span className="tabular-nums font-medium ml-8">− {fmt(totalRembourse)}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Total dépenses</span><span className="text-[14px] text-[#292524]">{fmt(totalMontant)}</span></div>
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Total remboursé</span><span className="text-[14px] text-[#292524]">− {fmt(totalRembourse)}</span></div>
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Reste à charge</span><span className="text-[14px] text-[#292524]">{fmt(totalResteACharge)}</span></div>
                 </div>
-                
-                {/* Séparateur */}
-                <div className="border-t border-zinc-200 my-3" />
-                
-                {/* Résultat final - highlight subtil */}
-                <div className="flex items-center justify-between py-2 px-3 -mx-3 rounded" style={{ backgroundColor: '#F5F5F0' }}>
-                  <span className="font-semibold text-zinc-700">Indemnité victime</span>
-                  <span className="text-xl font-bold text-zinc-900 tabular-nums">{fmt(indemniteVictime)}</span>
-                </div>
+              </>
+            )}
+          </div>
+          )}
+
+              </div>{/* end space-y-4 */}
+            </div>{/* end p-4 */}
+          </div>{/* end CALCUL section */}
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
               </div>
+              <textarea
+                value={posteNotes.dsa || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, dsa: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
             </div>
           </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
+            </div>
+          </div>
+
         </div>
       );
     }
@@ -4698,693 +7515,304 @@ export default function App() {
       const ijPercuesTotal = pgpaIjTotal;
       const perteDeGains = Math.round(revenuRefMensuel * pgpaData.periode.mois) - revenusPercusTotal;
       const indemniteVictimePGPA = perteDeGains - ijPercuesTotal;
-      
-      // Si on est dans une sous-section
-      if (currentLevel.subSection) {
-        const subSection = currentLevel.subSection;
-        
-        // ===== REVENUS DE RÉFÉRENCE =====
-        if (subSection === 'revenus-ref') {
-          const revenus = pgpaData.revenuRef.lignes.filter(l => l.type === 'revenu');
-          const gains = pgpaData.revenuRef.lignes.filter(l => l.type === 'gain');
-          const totalRevenus = revenus.reduce((s, l) => s + l.revalorise, 0);
-          const totalRevenusAvant = revenus.reduce((s, l) => s + (l.montant || 0), 0);
-          const totalGains = gains.reduce((s, l) => s + l.revalorise, 0);
-          const totalGainsAvant = gains.reduce((s, l) => s + (l.montant || 0), 0);
-          const moyenneAnnuelle = totalRevenus + totalGains;
-          
-          return (
-            <div className="space-y-4 pb-32">
-              {/* Empty state revenus de référence */}
-              {pgpaData.revenuRef.lignes.length === 0 && (
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-ref'); }}
-                  className={`bg-white rounded-lg border-2 border-dashed overflow-hidden transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50/50' : 'border-zinc-200'}`}
-                >
-                  <div className="px-8 py-12 text-center">
-                    {isDragging ? (
-                      <>
-                        <Upload className="w-10 h-10 text-emerald-500 mx-auto mb-4" />
-                        <h3 className="text-[15px] font-semibold text-emerald-700 mb-1">Déposez vos documents ici</h3>
-                        <p className="text-[13px] text-emerald-600">Les fichiers seront analysés automatiquement</p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
-                          <FileSpreadsheet className="w-7 h-7 text-zinc-400" />
-                        </div>
-                        <h3 className="text-[15px] font-semibold text-zinc-800 mb-1.5">Aucun revenu de référence</h3>
-                        <p className="text-[13px] text-zinc-400 mb-6 max-w-sm mx-auto">Ajoutez les justificatifs de revenus ou créez une ligne manuellement.</p>
 
-                        <div className="flex items-center justify-center gap-3 mb-8">
-                          <button onClick={() => document.getElementById('pgpa-revref-file-input-empty').click()} className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors">
-                            <Upload className="w-4 h-4" /> Ajouter des documents
-                          </button>
-                          <button onClick={() => handleAddManual('pgpa-revenu-ref')} className="flex items-center gap-2 px-4 py-2.5 border border-zinc-200 text-zinc-700 text-[13px] font-medium rounded-lg hover:bg-zinc-50 transition-colors">
-                            <Edit3 className="w-4 h-4" /> Créer une ligne manuellement
-                          </button>
-                        </div>
-                        <input type="file" id="pgpa-revref-file-input-empty" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-ref'); e.target.value = ''; } }} />
-
-                        <div className="border-t border-zinc-100 pt-5">
-                          <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-3">Documents attendus</p>
-                          <div className="flex flex-wrap justify-center gap-2">
-                            {['Bulletins de salaire', 'Attestations employeur', "Avis d'imposition", 'Bilans comptables'].map(doc => (
-                              <span key={doc} className="px-2.5 py-1 bg-zinc-50 text-[12px] text-zinc-500 rounded-md border border-zinc-100">{doc}</span>
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Table avec zone d'ajout */}
-              {pgpaData.revenuRef.lignes.length > 0 && (
-              <div className="bg-white rounded-lg border overflow-hidden">
-                {/* Zone d'ajout */}
-                <div
-                  onDragOver={(e) => { e.preventDefault(); }}
-                  onDrop={(e) => { e.preventDefault(); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-ref'); }}
-                  className="px-4 py-3 border-b bg-gray-50"
-                >
-                  <input type="file" id="pgpa-revref-file-input" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-ref'); e.target.value = ''; } }} />
-                  <div className="flex items-center gap-4">
-                    <div
-                      onClick={() => document.getElementById('pgpa-revref-file-input').click()}
-                      className="flex items-center gap-3 px-3 py-2 border-2 border-dashed rounded-lg flex-1 hover:border-gray-400 cursor-pointer"
-                    >
-                      <Upload className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-500">Déposez bulletins de salaire, avis d'imposition...</span>
-                    </div>
-                    <button onClick={() => handleAddManual('pgpa-revenu-ref')} className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg whitespace-nowrap">
-                      Ajouter un revenu
-                    </button>
-                  </div>
-                </div>
-
-                {/* Section REVENUS */}
-                <div className="px-4 py-2 bg-gray-100 border-b">
-                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Revenus professionnels</span>
-                </div>
-                
-                <div className="flex items-center px-4 py-2 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  <div className="w-10 flex-shrink-0">Statut</div>
-                  <div className="w-12 flex-shrink-0">Pièce</div>
-                  <div className="flex-1">Intitulé</div>
-                  <div className="w-20 text-right">Année</div>
-                  <div className="w-24 text-right">Montant</div>
-                  <div className="w-28 text-right">Revalorisé</div>
-                </div>
-
-                <div className="divide-y">
-                  {revenus.map(l => {
-                    const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                    const pieceCount = l.pieceIds?.length || 0;
-
-                    const StatusIcon = () => {
-                      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-                      return null;
-                    };
-
-                    const PieceIndicator = () => {
-                      if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
-                      return (
-                        <div className="relative group/piece">
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
-                            <FileText className="w-3.5 h-3.5" />
-                            {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
-                          </span>
-                          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
-                            <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
-                            <div className="space-y-1">
-                              {l.pieceIds?.map(pid => {
-                                const piece = getPiece(pid);
-                                return <div key={pid} className="flex items-center gap-2 text-xs"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
-                              })}
-                            </div>
-                            <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
-                          </div>
-                        </div>
-                      );
-                    };
-
-                    return (
-                      <div
-                        key={l.id}
-                        onClick={() => openPgpaEditPanel('pgpa-revenu', l)}
-                        className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}
-                      >
-                        <div className="w-10 flex-shrink-0"><StatusIcon /></div>
-                        <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
-                        <div className="flex-1 min-w-0 pr-4 text-sm font-medium truncate text-zinc-800">{l.label || 'Sans libellé'}</div>
-                        <div className="w-20 text-right text-sm text-zinc-500 flex-shrink-0">{l.annee}</div>
-                        <div className="w-24 text-right text-sm tabular-nums text-zinc-500 flex-shrink-0">{fmt(l.montant)}</div>
-                        <div className="w-28 text-right flex-shrink-0">
-                          <span className="font-semibold tabular-nums text-zinc-900">{fmt(l.revalorise)}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {revenus.length === 0 && (
-                    <div className="px-4 py-6 text-center text-gray-500 text-sm">Aucun revenu enregistré</div>
-                  )}
-                </div>
-
-                {/* Sous-total revenus */}
-                <div className="px-4 py-2 border-t bg-gray-50 flex justify-between items-center">
-                  {pgpaData.revenuRef.revalorisation !== 'aucune' && <span className="text-[11px] text-zinc-400">Avant revalorisation : {fmt(totalRevenusAvant)}</span>}
-                  <span className="text-sm text-gray-600 ml-auto">Moyenne annuelle{pgpaData.revenuRef.revalorisation !== 'aucune' ? ' (revalorisée)' : ''} : <span className="font-semibold tabular-nums">{fmt(totalRevenus)}</span></span>
-                </div>
-
-                {/* Section GAINS */}
-                <div className="px-4 py-2 bg-gray-100 border-t border-b">
-                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Gains supplémentaires (primes, indemnités, etc.)</span>
-                </div>
-
-                <div className="divide-y">
-                  {gains.map(l => {
-                    const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                    const pieceCount = l.pieceIds?.length || 0;
-
-                    const StatusIcon = () => {
-                      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-                      return null;
-                    };
-
-                    const PieceIndicator = () => {
-                      if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
-                      return (
-                        <div className="relative group/piece">
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
-                            <FileText className="w-3.5 h-3.5" />
-                            {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
-                          </span>
-                          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
-                            <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
-                            <div className="space-y-1">
-                              {l.pieceIds?.map(pid => {
-                                const piece = getPiece(pid);
-                                return <div key={pid} className="flex items-center gap-2 text-xs"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
-                              })}
-                            </div>
-                            <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
-                          </div>
-                        </div>
-                      );
-                    };
-
-                    return (
-                      <div
-                        key={l.id}
-                        onClick={() => openPgpaEditPanel('pgpa-revenu', l)}
-                        className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}
-                      >
-                        <div className="w-10 flex-shrink-0"><StatusIcon /></div>
-                        <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
-                        <div className="flex-1 min-w-0 pr-4 text-sm font-medium truncate text-zinc-800">{l.label || 'Sans libellé'}</div>
-                        <div className="w-20 text-right text-sm text-zinc-500 flex-shrink-0">{l.annee}</div>
-                        <div className="w-24 text-right text-sm tabular-nums text-zinc-500 flex-shrink-0">{fmt(l.montant)}</div>
-                        <div className="w-28 text-right flex-shrink-0">
-                          <span className="font-semibold tabular-nums text-zinc-900">{fmt(l.revalorise)}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {gains.length === 0 && (
-                    <div className="px-4 py-6 text-center text-gray-500 text-sm">Aucun gain enregistré</div>
-                  )}
-                </div>
-                
-                {/* Sous-total gains */}
-                <div className="px-4 py-2 border-t bg-gray-50 flex justify-between items-center">
-                  {pgpaData.revenuRef.revalorisation !== 'aucune' && <span className="text-[11px] text-zinc-400">Avant revalorisation : {fmt(totalGainsAvant)}</span>}
-                  <span className="text-sm text-gray-600 ml-auto">Indemnité annuelle moyenne{pgpaData.revenuRef.revalorisation !== 'aucune' ? ' (revalorisée)' : ''} : <span className="font-semibold tabular-nums">{fmt(totalGains)}</span></span>
-                </div>
-              </div>
-              )}
-
-              {/* Bandeau ticket */}
-              <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
-                <div className="flex items-start justify-between px-6 py-5">
-                  <div className="flex items-center gap-2 text-gray-400 pt-1">
-                    <Calculator className="w-5 h-5" />
-                    <span className="text-sm font-medium">Récapitulatif</span>
-                  </div>
-                  <div className="text-right min-w-[280px]">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <span>Revenus professionnels</span>
-                        <span className="tabular-nums font-medium ml-8">{fmt(totalRevenus)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <span>Gains supplémentaires</span>
-                        <span className="tabular-nums font-medium ml-8">{fmt(totalGains)}</span>
-                      </div>
-                    </div>
-                    <div className="border-t border-gray-200 my-4" />
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-gray-900">Revenu de référence</span>
-                      <span className="text-2xl font-bold text-gray-900 tabular-nums ml-8">{fmt(moyenneAnnuelle)}/an</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        }
-        
-        // ===== REVENUS PERÇUS =====
-        if (subSection === 'revenus-percus') {
-          return (
-            <div className="space-y-4 pb-32">
-              {/* Empty state revenus perçus */}
-              {pgpaData.revenusPercus.length === 0 && (
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-percu'); }}
-                  className={`bg-white rounded-lg border-2 border-dashed overflow-hidden transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50/50' : 'border-zinc-200'}`}
-                >
-                  <div className="px-8 py-12 text-center">
-                    {isDragging ? (
-                      <>
-                        <Upload className="w-10 h-10 text-emerald-500 mx-auto mb-4" />
-                        <h3 className="text-[15px] font-semibold text-emerald-700 mb-1">Déposez vos documents ici</h3>
-                        <p className="text-[13px] text-emerald-600">Les fichiers seront analysés automatiquement</p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
-                          <FileSpreadsheet className="w-7 h-7 text-zinc-400" />
-                        </div>
-                        <h3 className="text-[15px] font-semibold text-zinc-800 mb-1.5">Aucun revenu perçu sur la période</h3>
-                        <p className="text-[13px] text-zinc-400 mb-6 max-w-sm mx-auto">Ajoutez les justificatifs de revenus perçus pendant l'arrêt ou créez une ligne.</p>
-
-                        <div className="flex items-center justify-center gap-3 mb-8">
-                          <button onClick={() => document.getElementById('pgpa-revpercu-file-input-empty').click()} className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors">
-                            <Upload className="w-4 h-4" /> Ajouter des documents
-                          </button>
-                          <button onClick={() => handleAddManual('pgpa-revenu-percu')} className="flex items-center gap-2 px-4 py-2.5 border border-zinc-200 text-zinc-700 text-[13px] font-medium rounded-lg hover:bg-zinc-50 transition-colors">
-                            <Edit3 className="w-4 h-4" /> Créer une ligne manuellement
-                          </button>
-                        </div>
-                        <input type="file" id="pgpa-revpercu-file-input-empty" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-percu'); e.target.value = ''; } }} />
-
-                        <div className="border-t border-zinc-100 pt-5">
-                          <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-3">Documents attendus</p>
-                          <div className="flex flex-wrap justify-center gap-2">
-                            {['Bulletins de salaire (période accident)', 'Relevés de revenus', 'Attestations employeur'].map(doc => (
-                              <span key={doc} className="px-2.5 py-1 bg-zinc-50 text-[12px] text-zinc-500 rounded-md border border-zinc-100">{doc}</span>
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Table avec zone d'ajout */}
-              {pgpaData.revenusPercus.length > 0 && (
-              <div className="bg-white rounded-lg border overflow-hidden">
-                <div
-                  onDragOver={(e) => { e.preventDefault(); }}
-                  onDrop={(e) => { e.preventDefault(); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-percu'); }}
-                  className="px-4 py-3 border-b bg-gray-50"
-                >
-                  <input type="file" id="pgpa-revpercu-file-input" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-percu'); e.target.value = ''; } }} />
-                  <div className="flex items-center gap-4">
-                    <div
-                      onClick={() => document.getElementById('pgpa-revpercu-file-input').click()}
-                      className="flex items-center gap-3 px-3 py-2 border-2 border-dashed rounded-lg flex-1 hover:border-gray-400 cursor-pointer"
-                    >
-                      <Upload className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-500">Déposez bulletins pendant arrêt, attestations employeur...</span>
-                    </div>
-                    <button onClick={() => handleAddManual('pgpa-revenu-percu')} className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg whitespace-nowrap">
-                      Ajouter un revenu
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center px-4 py-2 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  <div className="w-10 flex-shrink-0">Statut</div>
-                  <div className="w-12 flex-shrink-0">Pièce</div>
-                  <div className="flex-1">Intitulé</div>
-                  <div className="w-28">Période</div>
-                  <div className="w-16 text-right">Durée</div>
-                  <div className="w-28 text-right">Montant</div>
-                </div>
-
-                <div className="divide-y">
-                  {pgpaData.revenusPercus.map(l => {
-                    const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                    const pieceCount = l.pieceIds?.length || 0;
-
-                    const StatusIcon = () => {
-                      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-                      return null;
-                    };
-
-                    const PieceIndicator = () => {
-                      if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
-                      return (
-                        <div className="relative group/piece">
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
-                            <FileText className="w-3.5 h-3.5" />
-                            {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
-                          </span>
-                          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
-                            <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
-                            <div className="space-y-1">
-                              {l.pieceIds?.map(pid => {
-                                const piece = getPiece(pid);
-                                return <div key={pid} className="flex items-center gap-2 text-xs"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
-                              })}
-                            </div>
-                            <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
-                          </div>
-                        </div>
-                      );
-                    };
-
-                    return (
-                      <div
-                        key={l.id}
-                        onClick={() => openPgpaEditPanel('pgpa-revenu-percu', l)}
-                        className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}
-                      >
-                        <div className="w-10 flex-shrink-0"><StatusIcon /></div>
-                        <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
-                        <div className="flex-1 min-w-0 pr-4">
-                          <div className="text-sm font-medium text-zinc-800 truncate">{l.label || 'Sans libellé'}</div>
-                          <div className="text-xs text-zinc-500">{l.tiers}</div>
-                        </div>
-                        <div className="w-28 text-sm text-zinc-500 flex-shrink-0">{l.periode}</div>
-                        <div className="w-16 text-right text-sm text-zinc-500 tabular-nums flex-shrink-0">{l.dureeJours} j</div>
-                        <div className="w-28 text-right flex-shrink-0">
-                          <span className="font-semibold tabular-nums text-zinc-900">{fmt(l.montant)}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              )}
-              
-              {/* Bandeau ticket */}
-              <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
-                <div className="flex items-start justify-between px-6 py-5">
-                  <div className="flex items-center gap-2 text-gray-400 pt-1">
-                    <Calculator className="w-5 h-5" />
-                    <span className="text-sm font-medium">Récapitulatif</span>
-                  </div>
-                  <div className="text-right min-w-[240px]">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-gray-900">Revenus perçus</span>
-                      <span className="text-2xl font-bold text-gray-900 tabular-nums ml-8">{fmt(revenusPercusTotal)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        }
-        
-        // ===== INDEMNITÉS JOURNALIÈRES =====
-        if (subSection === 'ij') {
-          return (
-            <div className="space-y-4 pb-32">
-              {/* Empty state indemnités journalières */}
-              {pgpaData.ijPercues.length === 0 && (
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-ij'); }}
-                  className={`bg-white rounded-lg border-2 border-dashed overflow-hidden transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50/50' : 'border-zinc-200'}`}
-                >
-                  <div className="px-8 py-12 text-center">
-                    {isDragging ? (
-                      <>
-                        <Upload className="w-10 h-10 text-emerald-500 mx-auto mb-4" />
-                        <h3 className="text-[15px] font-semibold text-emerald-700 mb-1">Déposez vos documents ici</h3>
-                        <p className="text-[13px] text-emerald-600">Les fichiers seront analysés automatiquement</p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
-                          <Landmark className="w-7 h-7 text-zinc-400" />
-                        </div>
-                        <h3 className="text-[15px] font-semibold text-zinc-800 mb-1.5">Aucune indemnité journalière</h3>
-                        <p className="text-[13px] text-zinc-400 mb-6 max-w-sm mx-auto">Ajoutez les décomptes de tiers payeurs ou créez une ligne manuellement.</p>
-
-                        <div className="flex items-center justify-center gap-3 mb-8">
-                          <button onClick={() => document.getElementById('pgpa-ij-file-input-empty').click()} className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors">
-                            <Upload className="w-4 h-4" /> Ajouter des documents
-                          </button>
-                          <button onClick={() => handleAddManual('pgpa-ij')} className="flex items-center gap-2 px-4 py-2.5 border border-zinc-200 text-zinc-700 text-[13px] font-medium rounded-lg hover:bg-zinc-50 transition-colors">
-                            <Edit3 className="w-4 h-4" /> Créer une ligne manuellement
-                          </button>
-                        </div>
-                        <input type="file" id="pgpa-ij-file-input-empty" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-ij'); e.target.value = ''; } }} />
-
-                        <div className="border-t border-zinc-100 pt-5">
-                          <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-3">Documents attendus</p>
-                          <div className="flex flex-wrap justify-center gap-2">
-                            {['Décomptes IJ Sécurité sociale', 'Décomptes mutuelle / prévoyance', 'Attestations de tiers payeur'].map(doc => (
-                              <span key={doc} className="px-2.5 py-1 bg-zinc-50 text-[12px] text-zinc-500 rounded-md border border-zinc-100">{doc}</span>
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Table avec zone d'ajout */}
-              {pgpaData.ijPercues.length > 0 && (
-              <div className="bg-white rounded-lg border overflow-hidden">
-                <div
-                  onDragOver={(e) => { e.preventDefault(); }}
-                  onDrop={(e) => { e.preventDefault(); handleUploadFiles(e.dataTransfer.files, 'pgpa-ij'); }}
-                  className="px-4 py-3 border-b bg-gray-50"
-                >
-                  <input type="file" id="pgpa-ij-file-input" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-ij'); e.target.value = ''; } }} />
-                  <div className="flex items-center gap-4">
-                    <div
-                      onClick={() => document.getElementById('pgpa-ij-file-input').click()}
-                      className="flex items-center gap-3 px-3 py-2 border-2 border-dashed rounded-lg flex-1 hover:border-gray-400 cursor-pointer"
-                    >
-                      <Upload className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-500">Déposez attestations CPAM, relevés de prévoyance...</span>
-                    </div>
-                    <button onClick={() => handleAddManual('pgpa-ij')} className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg whitespace-nowrap">
-                      Ajouter des IJ
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center px-4 py-2 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  <div className="w-10 flex-shrink-0">Statut</div>
-                  <div className="w-12 flex-shrink-0">Pièce</div>
-                  <div className="flex-1">Tiers payeur</div>
-                  <div className="w-28">Période</div>
-                  <div className="w-14 text-right">Jours</div>
-                  <div className="w-24 text-right">Brut</div>
-                  <div className="w-28 text-right">Net versé</div>
-                </div>
-
-                <div className="divide-y">
-                  {pgpaData.ijPercues.map(l => {
-                    const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                    const pieceCount = l.pieceIds?.length || 0;
-
-                    const StatusIcon = () => {
-                      if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-                      return null;
-                    };
-
-                    const PieceIndicator = () => {
-                      if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
-                      return (
-                        <div className="relative group/piece">
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
-                            <FileText className="w-3.5 h-3.5" />
-                            {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
-                          </span>
-                          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
-                            <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
-                            <div className="space-y-1">
-                              {l.pieceIds?.map(pid => {
-                                const piece = getPiece(pid);
-                                return <div key={pid} className="flex items-center gap-2 text-xs"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">{piece?.intitule || piece?.nom || 'Document'}</span></div>;
-                              })}
-                            </div>
-                            <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
-                          </div>
-                        </div>
-                      );
-                    };
-
-                    return (
-                      <div
-                        key={l.id}
-                        onClick={() => openPgpaEditPanel('pgpa-ij', l)}
-                        className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}
-                      >
-                        <div className="w-10 flex-shrink-0"><StatusIcon /></div>
-                        <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
-                        <div className="flex-1 min-w-0 pr-4">
-                          <div className="text-sm font-medium text-zinc-800 truncate">{l.tiers || 'Sans tiers'}</div>
-                          <div className="text-xs text-zinc-500">{l.label}</div>
-                        </div>
-                        <div className="w-28 text-sm text-zinc-500 flex-shrink-0">{l.periode}</div>
-                        <div className="w-14 text-right text-sm text-zinc-500 tabular-nums flex-shrink-0">{l.jours}</div>
-                        <div className="w-24 text-right text-sm text-zinc-500 tabular-nums flex-shrink-0">{fmt(l.montantBrut)}</div>
-                        <div className="w-28 text-right flex-shrink-0">
-                          <span className="font-semibold tabular-nums text-zinc-900">{fmt(l.montant)}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              )}
-              
-              {/* Bandeau ticket */}
-              <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
-                <div className="flex items-start justify-between px-6 py-5">
-                  <div className="flex items-center gap-2 text-gray-400 pt-1">
-                    <Calculator className="w-5 h-5" />
-                    <span className="text-sm font-medium">Récapitulatif</span>
-                  </div>
-                  <div className="text-right min-w-[240px]">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <span>Total brut</span>
-                        <span className="tabular-nums font-medium ml-8">{fmt(pgpaData.ijPercues.reduce((s, l) => s + l.montantBrut, 0))}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <span>CSG-CRDS</span>
-                        <span className="tabular-nums font-medium ml-8">− {fmt(pgpaData.ijPercues.reduce((s, l) => s + l.csgCrds, 0))}</span>
-                      </div>
-                    </div>
-                    <div className="border-t border-gray-200 my-4" />
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-gray-900">Total IJ net (tiers payeur)</span>
-                      <span className="text-2xl font-bold text-gray-900 tabular-nums ml-8">{fmt(ijPercuesTotal)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        }
+      // Empty state — before any data (skip if chat has analyzed)
+      if (pgpaData.revenuRef.lignes.length === 0 && pgpaData.revenusPercus.length === 0 && pgpaData.ijPercues.length === 0 && !chatAnalyzedPostes.current.has('pgpa')) {
+        return renderInlineDocPicker('pgpa-revenu-ref', {
+          icon: Calculator,
+          title: 'Aucune donnée PGPA',
+          description: 'Ajoutez les justificatifs de revenus pour calculer les pertes de gains professionnels actuels.',
+          expectedDocs: ['Bulletins de salaire', 'Attestations employeur', "Avis d'imposition", 'Bilans comptables']
+        });
       }
-      
-      // ===== VUE SOMMAIRE PGPA =====
+
+      // FLAT PGPA — all cards on one page (per Figma)
+      const revenus = pgpaData.revenuRef.lignes.filter(l => l.type === 'revenu');
+      const gains = pgpaData.revenuRef.lignes.filter(l => l.type === 'gain');
+      const allRevenuRefLignes = [...revenus, ...gains];
+
       return (
-        <div className="space-y-4 pb-32">
-          {/* Liste des sous-sections */}
-          <div className="bg-white rounded-lg border border-zinc-200/60 divide-y divide-zinc-100">
-            <button
-              onClick={() => {
-                setNavStack(prev => {
-                  const newStack = [...prev];
-                  newStack[newStack.length - 1] = { ...newStack[newStack.length - 1], subSection: 'revenus-ref' };
-                  return newStack;
-                });
-              }}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-            >
-              <span className="font-medium text-gray-900">Revenus de référence</span>
-              <div className="flex items-center gap-3">
-                {revenuRefAnnuel > 0 ? (
-                  <span className="font-semibold tabular-nums">{fmt(revenuRefAnnuel)}/an</span>
-                ) : (
-                  <span className="font-semibold tabular-nums text-gray-400">—</span>
-                )}
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+        <div>
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+
+          {/* Param chips card block */}
+          <div className={cardBlockClass}>
+            <div className="flex items-center gap-3 px-4 h-[52px]">
+              <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                <Settings className="w-3.5 h-3.5 text-[#78716c]" />
               </div>
-            </button>
-            
-            <button
-              onClick={() => {
-                setNavStack(prev => {
-                  const newStack = [...prev];
-                  newStack[newStack.length - 1] = { ...newStack[newStack.length - 1], subSection: 'revenus-percus' };
-                  return newStack;
-                });
-              }}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-            >
-              <span className="font-medium text-gray-900">Revenus perçus sur la période</span>
-              <div className="flex items-center gap-3">
-                {revenusPercusTotal > 0 ? (
-                  <span className="font-semibold tabular-nums">{fmt(revenusPercusTotal)}</span>
-                ) : (
-                  <span className="font-semibold tabular-nums text-gray-400">—</span>
-                )}
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+              {renderParamPill({
+                paramKey: 'revaloriser-pgpa',
+                label: 'Revaloriser',
+                values: pgpaData.revenuRef.revalorisation === 'ipc-annuel' ? 'IPC Annuel' : pgpaData.revenuRef.revalorisation === 'smic-horaire' ? 'SMIC Horaire' : 'Aucune',
+                enabled: enabledParams['revaloriser-pgpa'],
+                onClick: () => setActiveParamChip(activeParamChip === 'revaloriser-pgpa' ? null : 'revaloriser-pgpa'),
+              })}
+            </div>
+            {activeParamChip === 'revaloriser-pgpa' && (
+              <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+                <div className="flex items-center gap-3">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={enabledParams['revaloriser-pgpa']} onChange={() => setEnabledParams(p => ({ ...p, 'revaloriser-pgpa': !p['revaloriser-pgpa'] }))} className="sr-only peer" />
+                    <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                  </label>
+                  <div className="w-px h-4 bg-[#e7e5e3]" />
+                  <span className="text-xs font-medium text-[#78716c]">Indice</span>
+                  <select className="text-xs font-medium text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-2.5 py-1.5">
+                    <option>IPC Annuel</option>
+                    <option>IPC Mensuel</option>
+                    <option>SMIC Horaire</option>
+                  </select>
+                </div>
               </div>
-            </button>
-            
-            <button
-              onClick={() => {
-                setNavStack(prev => {
-                  const newStack = [...prev];
-                  newStack[newStack.length - 1] = { ...newStack[newStack.length - 1], subSection: 'ij' };
-                  return newStack;
-                });
-              }}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-            >
-              <span className="font-medium text-gray-900">Indemnités journalières (tiers payeur)</span>
-              <div className="flex items-center gap-3">
-                {ijPercuesTotal > 0 ? (
-                  <span className="font-semibold tabular-nums">{fmt(ijPercuesTotal)}</span>
-                ) : (
-                  <span className="font-semibold tabular-nums text-gray-400">—</span>
-                )}
-                <ChevronRight className="w-5 h-5 text-gray-400" />
-              </div>
-            </button>
+            )}
           </div>
-          
-          {/* Bandeau sticky totaux */}
-          <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
-            <div className="flex items-start justify-between px-6 py-5">
-              <div className="flex items-center gap-2 text-gray-400 pt-1">
-                <Calculator className="w-5 h-5" />
-                <span className="text-sm font-medium">Récapitulatif</span>
+
+          {/* Card: Revenu de référence */}
+          <div className={cardBlockClass}>
+            <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard('pgpa-revenu-ref')}>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                  <Calculator className="w-3.5 h-3.5 text-[#78716c]" />
+                </div>
+                <span className="text-[14px] font-medium text-[#292524]">Revenu de référence</span>
               </div>
-              
-              <div className="text-right min-w-[280px]">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm text-gray-500">
-                    <span>Perte de gains ({pgpaData.periode.mois} mois)</span>
-                    <span className="tabular-nums font-medium ml-8">{fmt(perteDeGains)}</span>
+              <div className="flex items-center gap-2">
+                {revenuRefMensuel > 0 ? (
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(Math.round(revenuRefMensuel))}<span className="text-[14px] text-[#78716c] ml-1">/ mois</span></span>
+                ) : (
+                  <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
+                )}
+                {isCardExpanded('pgpa-revenu-ref') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+              </div>
+            </div>
+            {isCardExpanded('pgpa-revenu-ref') && <>
+            {/* Drop zone */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-ref'); }}
+              className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white"
+            >
+              <div className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg transition-colors ${isDragging ? 'border-[#a8a29e] bg-[#f5f5f4]' : 'border-[#d6d3d1]'}`}>
+                <Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" />
+                <span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer" onClick={() => document.getElementById('pgpa-ref-upload')?.click()}>cliquez</span> pour ajouter un justificatif</span>
+                <input type="file" id="pgpa-ref-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-ref'); e.target.value = ''; } }} />
+              </div>
+              <button onClick={() => handleAddManual('pgpa-revenu-ref')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a] flex-shrink-0 whitespace-nowrap">
+                <Plus className="w-4 h-4" /> Ajouter une dépense
+              </button>
+            </div>
+            {/* Column headers */}
+            {allRevenuRefLignes.length > 0 && (
+              <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
+                <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
+                <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période</div>
+                <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
+              </div>
+            )}
+            {/* Data rows */}
+            {allRevenuRefLignes.map(l => {
+              const diffColor = l.diffType ? ROW_DIFF_COLORS[l.diffType] : null;
+              const pieceCount = l.pieceIds?.length || 0;
+              const isDeleted = l.diffType === 'delete';
+              return (
+                <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'pgpa-revenu', title: 'Éditer le revenu', data: l }); }}
+                  className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                  >
+                  {diffColor && <div className="absolute left-0 top-0 bottom-0 w-1 pointer-events-none" style={{ background: diffColor }} />}
+                  <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
+                    {pieceCount > 0 ? (
+                      <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
+                        <FileText className="w-4 h-4 text-[#2563eb]" />
+                        {pieceCount > 1 && <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#2563eb] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceCount}</span>}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]"><FileText className="w-3.5 h-3.5" /></span>
+                    )}
                   </div>
-                  {ijPercuesTotal > 0 && (
-                    <div className="flex items-center justify-between text-xs text-zinc-500">
-                      <span>IJ perçues (tiers payeur)</span>
-                      <span className="tabular-nums font-medium ml-8" style={{ color: '#991b1b' }}>− {fmt(ijPercuesTotal)}</span>
-                    </div>
+                  <div className="flex-1 min-w-0 px-3">
+                    <span className="text-body-medium block" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{l.label || l.annee || 'Sans libellé'}</span>
+                  </div>
+                  <div className="w-[200px] px-3 text-right flex-shrink-0">
+                    <span className="text-body-medium font-semibold tabular-nums" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{fmt(l.revalorise || l.montant || 0)}</span>
+                  </div>
+                  {l.diffType ? (
+                    <span className="absolute right-[-20px] top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <button onClick={(e) => { e.stopPropagation(); handleApproveDiff(l.id, 'pgpa'); }} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} title="Approuver"><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); handleRejectDiff(l.id, 'pgpa'); }} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} title="Rejeter"><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                    </span>
+                  ) : (
+                    <button onClick={(e) => { e.stopPropagation(); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></button>
                   )}
                 </div>
-                
-                <div className="border-t border-zinc-200 my-3" />
-                
-                <div className="flex items-center justify-between py-2 px-3 -mx-3 rounded" style={{ backgroundColor: '#F5F5F0' }}>
-                  <span className="font-semibold text-zinc-700">Indemnité victime</span>
-                  <span className="text-xl font-bold text-zinc-900 tabular-nums">{fmt(indemniteVictimePGPA)}</span>
+              );
+            })}
+          </>}
+          </div>
+
+          {/* Card: Revenus perçus */}
+          <div className={cardBlockClass}>
+            <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard('pgpa-revenus-percus')}>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                  <Receipt className="w-3.5 h-3.5 text-[#78716c]" />
                 </div>
+                <span className="text-[14px] font-medium text-[#292524]">Revenus perçus</span>
               </div>
+              <div className="flex items-center gap-2">
+                {revenusPercusTotal > 0 ? (
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(revenusPercusTotal)}</span>
+                ) : (
+                  <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
+                )}
+                {isCardExpanded('pgpa-revenus-percus') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+              </div>
+            </div>
+            {isCardExpanded('pgpa-revenus-percus') && <>
+            {/* Drop zone */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-percu'); }}
+              className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white"
+            >
+              <div className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg transition-colors ${isDragging ? 'border-[#a8a29e] bg-[#f5f5f4]' : 'border-[#d6d3d1]'}`}>
+                <Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" />
+                <span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer" onClick={() => document.getElementById('pgpa-percu-upload')?.click()}>cliquez</span> pour ajouter un justificatif</span>
+                <input type="file" id="pgpa-percu-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-percu'); e.target.value = ''; } }} />
+              </div>
+              <button onClick={() => handleAddManual('pgpa-revenu-percu')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a] flex-shrink-0 whitespace-nowrap">
+                <Plus className="w-4 h-4" /> Ajouter une dépense
+              </button>
+            </div>
+            {/* Column headers */}
+            {pgpaData.revenusPercus.length > 0 && (
+              <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
+                <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
+                <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période</div>
+                <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
+              </div>
+            )}
+            {/* Data rows */}
+            {pgpaData.revenusPercus.map(l => {
+              const pieceCount = l.pieceIds?.length || 0;
+              return (
+                <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'pgpa-revenu-percu', title: 'Éditer le revenu perçu', data: l }); }}
+                  className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
+                  <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
+                    {pieceCount > 0 ? (
+                      <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
+                        <FileText className="w-4 h-4 text-[#2563eb]" />
+                        {pieceCount > 1 && <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#2563eb] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceCount}</span>}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]"><FileText className="w-3.5 h-3.5" /></span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 px-3">
+                    <span className="text-body-medium text-[#292524] block">{l.label || 'Sans libellé'}</span>
+                    <span className="text-caption text-[#78716c]">{l.periodeDebut} → {l.periodeFin}</span>
+                  </div>
+                  <div className="w-[200px] px-3 text-right flex-shrink-0">
+                    <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.montant)}</span>
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></button>
+                </div>
+              );
+            })}
+          </>}
+          </div>
+
+          {/* Card: Perte de chance */}
+          <div className={cardBlockClass}>
+            <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard('pgpa-perte-chance')}>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                  <Activity className="w-3.5 h-3.5 text-[#78716c]" />
+                </div>
+                <span className="text-[14px] font-medium text-[#292524]">Perte de chance</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span style={serifAmountStyle} className="text-[#292524]">{fmt(0)}</span>
+                {isCardExpanded('pgpa-perte-chance') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+              </div>
+            </div>
+            {isCardExpanded('pgpa-perte-chance') && <>
+            {/* Column headers */}
+            <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
+              <div className="w-12 flex-shrink-0"></div>
+              <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+              <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
+              <div className="w-28 px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant espéré</div>
+              <div className="w-24 px-3 text-center flex-shrink-0" style={colHeaderStyle}>Coefficient</div>
+              <div className="w-28 px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant proraté</div>
+            </div>
+            {/* Add row */}
+            <div className="flex items-center justify-center h-[45px] bg-white">
+              <button className="flex items-center gap-2 text-body-medium text-[#1e3a8a]">
+                <Plus className="w-4 h-4" /> Ajouter une perte de chance
+              </button>
+            </div>
+          </>}
+          </div>
+
+          {/* Total Block */}
+          <div className={totalBlockClass}>
+            <button onClick={() => setTotalExpanded(prev => ({...prev, pgpa: !prev.pgpa}))} className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                  <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                </div>
+                <span className="text-[14px] font-medium text-[#292524]">Total perte PGPA</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span style={serifAmountStyle} className="text-[#292524]">{fmt(indemniteVictimePGPA)}</span>
+                <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded.pgpa ? 'rotate-90' : ''}`} />
+              </div>
+            </button>
+            {totalExpanded.pgpa && (
+              <>
+                <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
+                <div className="space-y-2">
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Revenus attendus sur la période ({pgpaData.periode.mois} mois)</span><span className="text-[14px] text-[#292524]">{fmt(Math.round(revenuRefMensuel * pgpaData.periode.mois))}</span></div>
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Revenus perçus sur la période</span><span className="text-[14px] text-[#292524]">− {fmt(revenusPercusTotal)}</span></div>
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Indemnités journalières</span><span className="text-[14px] text-[#292524]">− {fmt(ijPercuesTotal)}</span></div>
+                </div>
+              </>
+            )}
+          </div>
+
+              </div>
+            </div>
+          </div>
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
+              </div>
+              <textarea
+                value={posteNotes.pgpa || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, pgpa: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
+            </div>
+          </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
             </div>
           </div>
         </div>
@@ -5393,144 +7821,281 @@ export default function App() {
 
     // ========== PGPF ==========
     if (currentLevel.id === 'pgpf') {
+      // Empty state
+      if (!pgpfData.periodes['pgpf-cl'] && !pgpfData.periodes['pgpf-al'] && !chatAnalyzedPostes.current.has('pgpf')) {
+        return renderInlineDocPicker('pgpf', {
+          icon: Calculator,
+          title: 'Aucune donnée PGPF',
+          description: 'Ajoutez les justificatifs de revenus pour calculer les pertes de gains futurs.',
+          expectedDocs: ['Bulletins de salaire', "Avis d'imposition", "Rapport d'expertise"]
+        });
+      }
       const periodeCL = pgpfData.periodes['pgpf-cl'];
       const periodeAL = pgpfData.periodes['pgpf-al'];
-      const tiersTotal = periodeAL.tiersPayeurs.reduce((s, t) => s + t.montantCapitalise, 0);
-      
+      const tiersTotal = periodeAL ? periodeAL.tiersPayeurs.reduce((s, t) => s + t.montantCapitalise, 0) : 0;
+
       return (
         <div>
-          <div className="text-2xl font-bold mb-4">{fmt(pgpfTotal)}</div>
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
 
-          {/* Section 1: Conso → Liqui */}
-          <div className="bg-white rounded-lg border mb-4 overflow-hidden">
-            <button onClick={() => toggleSection('pgpf-cl')} className="w-full flex items-center justify-between p-4 hover:bg-gray-50">
-              <div className="flex items-center gap-3">
-                {expandedSections.includes('pgpf-cl') ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-                <Calendar className="w-5 h-5 text-blue-500" />
-                <div className="text-left">
-                  <div className="font-semibold">{periodeCL.label}</div>
-                  <div className="text-sm text-gray-500">{periodeCL.periode.debut} → {periodeCL.periode.fin} ({periodeCL.periode.mois} mois)</div>
-                </div>
-                <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">Échu</span>
+          {/* Param chips card block */}
+          <div className={cardBlockClass}>
+            <div className="flex items-center gap-3 px-4 h-[52px]">
+              <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                <Settings className="w-3.5 h-3.5 text-[#78716c]" />
               </div>
-              <span className="text-lg font-bold">{fmt(pgpfClTotal)}</span>
-            </button>
-            
-            {expandedSections.includes('pgpf-cl') && (
-              <div className="border-t">
-                {/* Revenu ref */}
-                <div className="border-b">
-                  <div className="px-4 py-3 bg-amber-50 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-amber-900">Revenu d'activité de référence</span>
-                      <span className="text-xs px-2 py-0.5 rounded bg-amber-200 text-amber-800">= {fmt(periodeCL.revenuRef.total)}/an</span>
-                    </div>
-                    <button className="p-1.5 text-amber-700 hover:bg-amber-100 rounded"><Edit3 className="w-4 h-4" /></button>
-                  </div>
-                </div>
-                
-                {/* Revenus perçus */}
-                <div className="border-b">
-                  <div className="px-4 py-2 bg-gray-50 flex items-center justify-between">
-                    <span className="text-sm font-medium">Revenus perçus sur la période</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-red-600">- {fmt(periodeCL.revenusPercus.reduce((s, l) => s + l.montant, 0))}</span>
-                      <button className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"><Plus className="w-3 h-3" /></button>
-                    </div>
-                  </div>
-                  <div className="divide-y">
-                    {periodeCL.revenusPercus.map(l => renderPGLigne(l, { onEdit: () => {} }))}
-                  </div>
-                </div>
-                
-                {/* IJ perçues */}
-                <div>
-                  <div className="px-4 py-2 bg-gray-50 flex items-center justify-between">
-                    <span className="text-sm font-medium">Indemnités journalières perçues</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-red-600">- {fmt(periodeCL.ijPercues.reduce((s, l) => s + l.montant, 0))}</span>
-                      <button className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"><Plus className="w-3 h-3" /></button>
-                    </div>
-                  </div>
-                  <div className="divide-y">
-                    {periodeCL.ijPercues.map(l => renderPGLigne(l, { onEdit: () => {} }))}
-                  </div>
+              {renderParamPill({
+                paramKey: 'capitaliser-pgpf',
+                label: 'Capitaliser',
+                values: enabledParams['capitaliser-pgpf'] ? 'IPC Annuel, XX, XX ans' : null,
+                enabled: enabledParams['capitaliser-pgpf'],
+                onClick: () => setActiveParamChip(activeParamChip === 'capitaliser-pgpf' ? null : 'capitaliser-pgpf'),
+              })}
+            </div>
+            {activeParamChip === 'capitaliser-pgpf' && (
+              <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={enabledParams['capitaliser-pgpf']} onChange={() => setEnabledParams(p => ({ ...p, 'capitaliser-pgpf': !p['capitaliser-pgpf'] }))} className="sr-only peer" />
+                    <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                  </label>
+                  <div className="w-px h-4 bg-[#d6d3d1]" />
+                  {renderBaremePopoverSelect({
+                    popoverId: 'pgpf',
+                    value: chiffrageParams.baremeCapitalisation,
+                    onChange: (id) => setChiffrageParams(prev => ({ ...prev, baremeCapitalisation: id })),
+                    filterType: 'bareme',
+                    label: 'Barème',
+                    variant: 'horizontal',
+                  })}
+                  <div className="w-px h-4 bg-[#d6d3d1]" />
+                  <span className="text-sm font-medium text-[#78716c]">Fin arrérage</span>
+                  <select className="text-sm text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                    <option>IPC Annuel</option>
+                    <option>IPC Mensuel</option>
+                  </select>
+                  <div className="w-px h-4 bg-[#d6d3d1]" />
+                  <span className="text-sm font-medium text-[#78716c]">Départ retraite</span>
+                  <input type="text" defaultValue="XX ans" className="text-sm text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5 w-[70px]" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }} />
                 </div>
               </div>
             )}
           </div>
 
-          {/* Section 2: Après Liqui */}
-          <div className="bg-white rounded-lg border overflow-hidden">
-            <button onClick={() => toggleSection('pgpf-al')} className="w-full flex items-center justify-between p-4 hover:bg-gray-50">
-              <div className="flex items-center gap-3">
-                {expandedSections.includes('pgpf-al') ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-                <Landmark className="w-5 h-5 text-purple-500" />
-                <div className="text-left">
-                  <div className="font-semibold">{periodeAL.label}</div>
-                  <div className="text-sm text-gray-500">{periodeAL.periode.debut} → {periodeAL.periode.fin}</div>
+          {/* Section Label: PRÉ-LIQUIDATION */}
+          {periodeCL && (
+            <>
+            <div style={sectionHeaderStyle} className="mt-2">NOM DE PÉRIODE</div>
+
+            {/* Card: Revenu de référence — synced from PGPA */}
+            <div className={cardBlockClass}>
+              <div className="flex items-center justify-between h-12 px-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                    <Calculator className="w-3.5 h-3.5 text-[#78716c]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[#292524]">Revenu de référence</span>
+                  <span className="text-xs px-2 py-0.5 rounded bg-[#eef3fa] text-[#1e3a8a] border border-[#aabcd5]">⊕ Sync. PGPA</span>
                 </div>
-                <span className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700">Capitalisation</span>
+                <div className="flex items-center gap-2">
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(Math.round(periodeCL.revenuRef.total / 12))}<span className="text-[14px] text-[#78716c] ml-1">/ mois</span></span>
+                </div>
               </div>
-              <span className="text-lg font-bold">{fmt(pgpfAlTotal)}</span>
-            </button>
-            
-            {expandedSections.includes('pgpf-al') && (
-              <div className="border-t">
-                {/* Paramètres */}
-                <div className="p-4 border-b">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-semibold text-purple-900">Paramètres de capitalisation</span>
-                    <button className="p-1.5 text-purple-700 hover:bg-purple-100 rounded"><Edit3 className="w-4 h-4" /></button>
+            </div>
+
+            {/* Card: Revenus perçus */}
+            <div className={cardBlockClass}>
+              <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard('pgpf-revenus-percus')}>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                    <Receipt className="w-3.5 h-3.5 text-[#78716c]" />
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div><span className="text-gray-500">Âge</span><p className="font-medium">{periodeAL.params.age} ans</p></div>
-                    <div><span className="text-gray-500">Perte annuelle</span><p className="font-medium">{fmt(periodeAL.params.perteGainAnnuelle)}</p></div>
-                    <div><span className="text-gray-500">Barème</span><p className="font-medium text-xs">{periodeAL.params.bareme}</p></div>
-                    <div><span className="text-gray-500">Âge dernier arrérage</span><p className="font-medium">{periodeAL.params.ageDernierArreage} ans</p></div>
-                    <div><span className="text-gray-500">Coefficient</span><p className="font-medium">{periodeAL.params.coefficient}</p></div>
-                    <div><span className="text-gray-500">Montant capitalisé</span><p className="font-bold text-purple-700">{fmt(periodeAL.params.montantCapitalise)}</p></div>
-                  </div>
+                  <span className="text-[14px] font-medium text-[#292524]">Revenus perçus</span>
                 </div>
-                
-                {/* Tiers payeurs */}
-                <div className="border-b">
-                  <div className="px-4 py-2 bg-gray-50">
-                    <span className="text-sm font-medium">Tiers payeurs</span>
-                  </div>
-                  <div className="divide-y">
-                    {periodeAL.tiersPayeurs.map(tp => (
-                      <div key={tp.id} className="flex items-center justify-between p-3 hover:bg-gray-50 group">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{tp.label}</span>
-                          {tp.modified && <RefreshCw className="w-3 h-3 text-amber-500" />}
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm text-gray-500">Rente: {fmt(tp.renteAnnuelle)}/an</span>
-                          <span className="font-semibold">{fmt(tp.montantCapitalise)}</span>
-                          <button className="p-1.5 text-gray-400 hover:text-blue-600 rounded opacity-0 group-hover:opacity-100"><Edit3 className="w-4 h-4" /></button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="flex items-center gap-2">
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(periodeCL.revenusPercus.reduce((s, l) => s + l.montant, 0))}</span>
+                  {isCardExpanded('pgpf-revenus-percus') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
                 </div>
-                
-                {/* Résultat */}
-                <div className={`p-4 ${pgpfAlTotal - tiersTotal < 0 ? 'bg-red-50' : 'bg-green-50'}`}>
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">Différence (victime)</span>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xl font-bold ${pgpfAlTotal - tiersTotal < 0 ? 'text-red-700' : 'text-green-700'}`}>{fmt(pgpfAlTotal - tiersTotal)}</span>
-                      {pgpfAlTotal - tiersTotal < 0 && (
-                        <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" />Trop perçu
+              </div>
+              {isCardExpanded('pgpf-revenus-percus') && <>
+              {/* Drop zone */}
+              <div className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white">
+                <div className="flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg border-[#d6d3d1]">
+                  <Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" />
+                  <span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer">cliquez</span> pour ajouter un justificatif</span>
+                </div>
+                <button className="flex items-center gap-2 text-body-medium text-[#1e3a8a] flex-shrink-0 whitespace-nowrap">
+                  <Plus className="w-4 h-4" /> Ajouter une dépense
+                </button>
+              </div>
+              {/* Column headers */}
+              {periodeCL.revenusPercus.length > 0 && (
+                <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
+                  <div className="w-12 flex-shrink-0"></div>
+                  <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+                  <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période</div>
+                  <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
+                </div>
+              )}
+              {/* Data rows */}
+              {periodeCL.revenusPercus.map(l => {
+                const pieceCount = l.pieceIds?.length || 0;
+                return (
+                  <div key={l.id} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
+                    <div className="w-12 flex items-center justify-center flex-shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center"><Check className="w-3 h-3 text-emerald-500" /></div>
+                    </div>
+                    <div className="w-[52px] flex items-center justify-center flex-shrink-0">
+                      {pieceCount > 0 ? (
+                        <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
+                          <FileText className="w-4 h-4 text-[#2563eb]" />
+                          {pieceCount > 1 && <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#2563eb] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceCount}</span>}
                         </span>
+                      ) : (
+                        <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]"><FileText className="w-3.5 h-3.5" /></span>
                       )}
                     </div>
+                    <div className="flex-1 min-w-0 px-3">
+                      <span className="text-body-medium text-[#292524] block">{l.label || 'Sans libellé'}</span>
+                      <span className="text-caption text-[#78716c]">{l.periode}</span>
+                    </div>
+                    <div className="w-[200px] px-3 text-right flex-shrink-0">
+                      <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.montant)}</span>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></button>
                   </div>
+                );
+              })}
+            </>}
+            </div>
+
+            {/* Card: Perte de chance */}
+            <div className={cardBlockClass}>
+              <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard('pgpf-perte-chance')}>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                    <Activity className="w-3.5 h-3.5 text-[#78716c]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[#292524]">Perte de chance</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(0)}</span>
+                  {isCardExpanded('pgpf-perte-chance') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
                 </div>
               </div>
-            )}
+              {isCardExpanded('pgpf-perte-chance') && <>
+              <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
+                <div className="w-12 flex-shrink-0"></div>
+                <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+                <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
+                <div className="w-28 px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant espéré</div>
+                <div className="w-24 px-3 text-center flex-shrink-0" style={colHeaderStyle}>Coefficient</div>
+                <div className="w-28 px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant proraté</div>
+              </div>
+              <div className="flex items-center justify-center h-[45px] bg-white">
+                <button className="flex items-center gap-2 text-body-medium text-[#1e3a8a]">
+                  <Plus className="w-4 h-4" /> Ajouter une perte de chance
+                </button>
+              </div>
+              </>}
+            </div>
+
+            {/* Total Block: PGPF échu */}
+            <div className={totalBlockClass}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                    <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[#292524]">PGPF échu</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(pgpfClTotal)}</span>
+                  <ChevronRight className="w-4 h-4 text-[#78716c]" />
+                </div>
+              </div>
+            </div>
+            </>
+          )}
+
+          {/* Section Label: POST-LIQUIDATION */}
+          {periodeAL && (
+            <>
+            <div style={sectionHeaderStyle} className="mt-2">NOM DE PÉRIODE</div>
+
+            {/* Card: Arrérage à échoir */}
+            <div className={cardBlockClass}>
+              <div className="flex items-center justify-between h-12 px-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                    <Landmark className="w-3.5 h-3.5 text-[#78716c]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[#292524]">Arrérage à échoir</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(periodeAL.params.perteGainAnnuelle)}<span className="text-[14px] text-[#78716c] ml-1">/ an</span></span>
+                  <ChevronDown className="w-4 h-4 text-[#78716c]" />
+                </div>
+              </div>
+            </div>
+
+            {/* Total Block: PGPF à échoir */}
+            <div className={totalBlockClass}>
+              <button onClick={() => setTotalExpanded(prev => ({...prev, pgpfAl: !prev.pgpfAl}))} className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                    <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[#292524]">PGPF à échoir</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(periodeAL.params.perteGainAnnuelle)}<span className="text-[14px] text-[#78716c] ml-1">/ an</span></span>
+                  <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded.pgpfAl ? 'rotate-90' : ''}`} />
+                </div>
+              </button>
+              {totalExpanded.pgpfAl && (
+                <>
+                  <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
+                  <div className="space-y-2">
+                    <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Versement</span><span className="text-[14px] text-[#292524]">En rente, sans capitalisation</span></div>
+                  </div>
+                </>
+              )}
+            </div>
+            </>
+          )}
+
+              </div>
+            </div>
+          </div>
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
+              </div>
+              <textarea
+                value={posteNotes.pgpf || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, pgpf: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
+            </div>
+          </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
+            </div>
           </div>
         </div>
       );
@@ -5538,218 +8103,796 @@ export default function App() {
 
     // ========== DFT ==========
     if (currentLevel.id === 'dft') {
-      const filteredPiecesForSearch = pieces.filter(p =>
-        !p.used && (p.intitule || p.nom).toLowerCase().includes(searchPieces.toLowerCase())
-      );
       return (
-        <div>
-          {/* Empty state */}
-          {dftLignes.length === 0 && processing.length === 0 && (
-            <div
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dft'); }}
-              className={`bg-white rounded-lg border-2 border-dashed overflow-hidden transition-colors ${isDragging ? 'border-emerald-400 bg-emerald-50/50' : 'border-zinc-200'}`}
-            >
-              <div className="px-8 py-12 text-center">
-                {isDragging ? (
-                  <>
-                    <Upload className="w-10 h-10 text-emerald-500 mx-auto mb-4" />
-                    <h3 className="text-[15px] font-semibold text-emerald-700 mb-1">Déposez vos documents ici</h3>
-                    <p className="text-[13px] text-emerald-600">Les fichiers seront analysés automatiquement</p>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
-                      <Calendar className="w-7 h-7 text-zinc-400" />
-                    </div>
-                    <h3 className="text-[15px] font-semibold text-zinc-800 mb-1.5">Aucune période de déficit fonctionnel temporaire</h3>
-                    <p className="text-[13px] text-zinc-400 mb-6 max-w-sm mx-auto">Commencez par ajouter un rapport d'expertise ou créez une période manuellement.</p>
-                    <div className="flex items-center justify-center gap-3 mb-8">
-                      <button onClick={() => document.getElementById('dft-file-input-empty').click()} className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors">
-                        <Upload className="w-4 h-4" /> Ajouter des documents
-                      </button>
-                      <button onClick={() => handleAddManual('dft')} className="flex items-center gap-2 px-4 py-2.5 border border-zinc-200 text-zinc-700 text-[13px] font-medium rounded-lg hover:bg-zinc-50 transition-colors">
-                        <Edit3 className="w-4 h-4" /> Créer une période manuellement
-                      </button>
-                    </div>
-                    <input type="file" id="dft-file-input-empty" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dft'); e.target.value = ''; } }} />
-                    <div className="border-t border-zinc-100 pt-5">
-                      <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-3">Documents attendus</p>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {["Rapport d'expertise médicale", "Rapport d'expertise"].map(doc => (
-                          <span key={doc} className="px-2.5 py-1 bg-zinc-50 text-[12px] text-zinc-500 rounded-md border border-zinc-100">{doc}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
+        <div className={dftLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dft') && !chatAnalyzedPostes.current.has('dft') ? 'h-full flex flex-col' : ''}>
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+
+          {/* Param chips card block */}
+          <div className={cardBlockClass}>
+            <div className="flex items-center gap-3 px-4 h-[52px]">
+              <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                <Settings className="w-3.5 h-3.5 text-[#78716c]" />
               </div>
+              {renderParamPill({
+                paramKey: 'base-journaliere-dft',
+                label: 'Base',
+                values: `${chiffrageParams.baseJournaliereDFT} €/j`,
+                enabled: enabledParams['base-journaliere-dft'],
+                onClick: () => setActiveParamChip(activeParamChip === 'base-journaliere-dft' ? null : 'base-journaliere-dft'),
+              })}
             </div>
-          )}
+            {activeParamChip === 'base-journaliere-dft' && (
+              <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+                <input
+                  type="number"
+                  defaultValue={chiffrageParams.baseJournaliereDFT || 33}
+                  className="text-sm text-[#292524] text-right bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5 w-[69px]"
+                  style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}
+                  onChange={(e) => setChiffrageParams(prev => ({ ...prev, baseJournaliereDFT: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
+            )}
+          </div>
 
-          {/* Processing */}
-          {processing.length > 0 && (
-            <div className="space-y-2 mb-4">
-              {processing.map(p => (
-                <div key={p.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-zinc-200">
-                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm text-zinc-600">{p.phase === 'upload' ? 'Téléchargement...' : 'Analyse en cours...'}</span>
-                  <span className="text-sm text-zinc-400 truncate">{p.name}</span>
+          {/* Empty state */}
+          {dftLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dft') && !chatAnalyzedPostes.current.has('dft') && renderInlineDocPicker('dft', {
+            icon: Calendar,
+            title: 'Ajoutez vos justificatifs pour créer vos lignes de périodes',
+            description: 'Déposez un ou plusieurs documents. Plato lit, extrait et structure les informations pour chaque ligne.',
+            expectedDocs: ["Rapport d'expertise médicale", "Certificat médical", "Compte-rendu hospitalisation"]
+          })}
+
+          {/* Card Block: DFT */}
+          {(dftLignes.length > 0 || processing.length > 0 || (posteExtracting && posteExtracting.posteType === 'dft') || chatAnalyzedPostes.current.has('dft')) && (
+            <div className={cardBlockClass}>
+              {/* Title Row */}
+              <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                    <Calendar className="w-3.5 h-3.5 text-[#78716c]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[#292524]">Déficit fonctionnel temporaire</span>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Action header when lines exist */}
-          {dftLignes.length > 0 && (
-            <div className={`px-4 py-3 border-b transition-colors ${isDragging ? 'bg-emerald-50 border-emerald-200' : 'bg-zinc-50/50'}`}
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dft'); }}
-            >
-              <input type="file" id="dft-file-input" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dft'); e.target.value = ''; } }} />
-              <div className="flex items-center gap-4">
-                <div
-                  onClick={() => document.getElementById('dft-file-input').click()}
-                  className={`flex items-center gap-3 px-4 py-2.5 border-2 border-dashed rounded-lg flex-1 transition-all cursor-pointer ${
-                    isDragging ? 'border-emerald-400 bg-emerald-50' : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'
-                  }`}
-                >
-                  <Upload className={`w-5 h-5 ${isDragging ? 'text-emerald-600' : 'text-zinc-400'}`} strokeWidth={1.5} />
-                  <span className={`text-[13px] ${isDragging ? 'text-emerald-700 font-medium' : 'text-zinc-500'}`}>
-                    {isDragging ? 'Relâchez pour ajouter' : 'Déposez ou cliquez pour ajouter un document'}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(dftTotal)}</span>
+                  <ChevronDown className="w-4 h-4 text-[#78716c]" />
                 </div>
-
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                  <input
-                    type="text"
-                    placeholder="Rechercher une pièce existante..."
-                    value={searchPieces}
-                    onChange={(e) => setSearchPieces(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 border border-zinc-200 rounded-lg text-[13px] bg-white focus:outline-none focus:ring-2 focus:ring-zinc-300"
-                  />
-                  {searchPieces && (
-                    <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white rounded-lg border shadow-lg max-h-48 overflow-y-auto">
-                      {filteredPiecesForSearch.length === 0 ? (
-                        <p className="text-center text-zinc-500 py-3 text-[13px]">Aucune pièce</p>
-                      ) : (
-                        <div className="py-1">
-                          {filteredPiecesForSearch.map(p => (
-                            <button key={p.id} onClick={() => { handleAddFromPiece(p, 'dft'); setSearchPieces(''); }} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-zinc-50 text-left">
-                              <span className="w-6 h-6 bg-zinc-100 text-zinc-600 text-[11px] font-medium rounded flex items-center justify-center">P{pieces.findIndex(x => x.id === p.id) + 1}</span>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium truncate">{p.intitule || p.nom}</div>
-                                <div className="text-xs text-gray-500">{p.type}</div>
-                              </div>
-                              <Plus className="w-4 h-4 text-blue-600" />
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+              </div>
+              {/* Header — dashed drop zone + buttons */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'dft'); }}
+                className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white"
+              >
+                <div className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg transition-colors ${isDragging ? 'border-[#a8a29e] bg-[#f5f5f4]' : 'border-[#d6d3d1]'}`}>
+                  {isDragging ? (
+                    <><ArrowDown className="w-4 h-4 text-[#78716c] flex-shrink-0" /><span className="text-body text-[#44403c]">Déposez vos documents ici</span></>
+                  ) : (
+                    <><Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" /><span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer" onClick={() => document.getElementById('dft-header-upload')?.click()}>cliquez</span> pour ajouter un justificatif</span></>
                   )}
+                  <input type="file" id="dft-header-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'dft'); e.target.value = ''; } }} />
                 </div>
-
-                <button onClick={() => handleAddManual('dft')} className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors whitespace-nowrap">
-                  Ajouter une période
+                {dropFirstPieces.filter(p => p.status === 'done').length > 0 && (
+                  <button onClick={() => setPickerOpen('dft')} className="flex items-center gap-2 px-4 h-9 bg-[#eeece6] text-[#44403c] text-body-medium rounded-lg hover:bg-[#e7e5e3] transition-colors flex-shrink-0">
+                    Extraire depuis un doc. existant
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                )}
+                <button onClick={() => handleAddManual('dft')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a] flex-shrink-0 whitespace-nowrap">
+                  <Plus className="w-4 h-4" /> Ajouter une période
                 </button>
               </div>
-            </div>
-          )}
 
-          {/* Table */}
-          {dftLignes.length > 0 && (
-            <div className="bg-white rounded-lg border overflow-hidden">
-              <div className="flex items-center px-4 py-2 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
-                <div className="w-10 flex-shrink-0"></div>
-                <div className="w-12 flex-shrink-0">Pièce</div>
-                <div className="flex-1 min-w-0">Période & jours</div>
-                <div className="w-16 text-center flex-shrink-0">Taux</div>
-                <div className="w-28 text-right flex-shrink-0">Montant</div>
-              </div>
-              <div className="divide-y">
-                {dftLignes.map(l => {
-                  const isSuggested = l.status === 'ai-suggested' || l.status === 'suggested';
-                  const pieceCount = l.pieceIds?.length || 0;
-
-                  const StatusIcon = () => {
-                    if (isSuggested) return <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center" title="Suggestion IA"><Sparkles className="w-3 h-3 text-indigo-500" /></div>;
-                    return null;
-                  };
-
-                  const PieceIndicator = () => {
-                    if (pieceCount === 0) return <span className="inline-flex items-center justify-center w-7 h-7 bg-zinc-50 text-zinc-300 rounded border border-dashed border-zinc-200"><FileText className="w-3.5 h-3.5" /></span>;
-                    return (
-                      <div className="relative group/piece">
-                        <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 text-blue-600 rounded border border-blue-100 relative">
-                          <FileText className="w-3.5 h-3.5" />
-                          {pieceCount > 1 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{pieceCount}</span>}
-                        </span>
-                        <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-zinc-200 rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
-                          <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''} lié{pieceCount > 1 ? 's' : ''}</div>
-                          <div className="space-y-1">
-                            {l.pieceIds?.map(pid => {
-                              return <div key={pid} className="flex items-center gap-2 text-xs"><span className="w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-zinc-700">Rapport d'expertise</span></div>;
-                            })}
-                          </div>
-                          <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-zinc-200 rotate-45" />
-                        </div>
-                      </div>
-                    );
-                  };
-
-                  return (
-                    <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'dft-ligne', data: l }); }}
-                      className={`flex items-center px-4 py-3 group cursor-pointer transition-colors ${isSuggested ? 'border-l-[3px] border-indigo-400 hover:bg-zinc-50' : 'hover:bg-zinc-50'}`}>
-                      <div className="w-10 flex-shrink-0"><StatusIcon /></div>
-                      <div className="w-12 flex-shrink-0"><PieceIndicator /></div>
-                      <div className="flex-1 min-w-0 pr-4">
-                        <div className="text-sm font-medium text-zinc-800">{l.label || 'Sans libellé'}</div>
-                        <div className="text-xs text-zinc-400">{l.debut} → {l.fin} · {l.jours}j</div>
-                      </div>
-                      <div className="w-16 text-center flex-shrink-0">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${l.taux === 100 ? 'bg-zinc-100 text-zinc-700' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>{l.taux || 100}%</span>
-                      </div>
-                      <div className="w-28 text-right flex-shrink-0">
-                        <span className="text-sm font-semibold tabular-nums text-zinc-900">{fmt(l.montant)}</span>
-                      </div>
+              {/* Extraction progress row */}
+              {posteExtracting && posteExtracting.posteType === 'dft' && (
+                <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#e7e5e3]" style={{ background: 'linear-gradient(to right, #f8f7f5, white 15%)' }}>
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="w-5 h-5 text-[#292524] animate-spin" />
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-body-medium text-[#292524]">{posteExtracting.totalDocs} document{posteExtracting.totalDocs > 1 ? 's' : ''}</span>
+                      <span className="text-caption text-[#78716c]">Extraction en cours…</span>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Sticky recap footer */}
-          {dftLignes.length > 0 && (
-            <div className="fixed bottom-0 left-64 right-0 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-30">
-              <div className="flex items-start justify-between px-6 py-5">
-                <div className="flex items-center gap-2 text-gray-400 pt-1">
-                  <Calculator className="w-5 h-5" />
-                  <span className="text-sm font-medium">Récapitulatif</span>
-                </div>
-                <div className="text-right min-w-[240px]">
-                  <div className="flex items-center justify-between py-2 px-3 -mx-3 rounded" style={{ backgroundColor: '#F5F5F0' }}>
-                    <span className="font-semibold text-zinc-700">Total DFT</span>
-                    <span className="text-xl font-bold text-zinc-900 tabular-nums">{fmt(dftTotal)}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-[70px] h-1 bg-[#eeece6] rounded-full overflow-hidden">
+                      <div className="h-full bg-[#292524] rounded-full transition-all duration-500" style={{ width: `${(posteExtracting.extractedCount / posteExtracting.totalDocs) * 100}%` }} />
+                    </div>
+                    <span className="text-counter text-[#78716c]">{posteExtracting.extractedCount}/{posteExtracting.totalDocs}</span>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* Column headers */}
+              {dftLignes.length > 0 && (
+                <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
+                  <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
+                  <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période & jours</div>
+                  <div className="w-20 px-3 text-center flex-shrink-0" style={colHeaderStyle}>Taux</div>
+                  <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant</div>
+                </div>
+              )}
+
+              {/* Rows */}
+              {dftLignes.map(l => {
+                const diffColor = l.diffType ? ROW_DIFF_COLORS[l.diffType] : null;
+                const pieceCount = l.pieceIds?.length || 0;
+
+                const isDeleted = l.diffType === 'delete';
+                return (
+                  <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'dft-ligne', title: 'Éditer la dépense', data: l }); }}
+                    className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                    >
+                    {/* Left inset border — diff-colored */}
+                    {diffColor && <div className="absolute left-0 top-0 bottom-0 w-1 pointer-events-none" style={{ background: diffColor }} />}
+
+                    {/* Doc indicator */}
+                    <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
+                      {pieceCount > 0 ? (
+                        <div className="relative group/piece">
+                          <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
+                            <FileText className="w-4 h-4 text-[#2563eb]" />
+                            <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#2563eb] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceCount}</span>
+                          </span>
+                          <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-white border border-[#e7e5e3] rounded-lg shadow-lg opacity-0 invisible group-hover/piece:opacity-100 group-hover/piece:visible transition-all z-50">
+                            <div className="text-counter text-[#78716c] uppercase tracking-wide mb-1.5">{pieceCount} document{pieceCount > 1 ? 's' : ''}</div>
+                            <div className="space-y-1">
+                              {l.pieceIds?.map(pid => <div key={pid} className="flex items-center gap-2 text-caption"><span className="w-5 h-5 bg-blue-100 text-[#1e3a8a] text-counter rounded flex items-center justify-center flex-shrink-0">{getPieceLabel(pid)}</span><span className="truncate text-[#292524]">Rapport d'expertise</span></div>)}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]">
+                          <FileText className="w-3.5 h-3.5" />
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Période & jours */}
+                    <div className="flex-1 min-w-0 px-3">
+                      <span className="text-body-medium block" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{l.label || 'Sans libellé'}</span>
+                      <span className="text-caption" style={{ color: '#78716c', textDecoration: isDeleted ? 'line-through' : 'none' }}>{l.debut} → {l.fin} · {l.jours}j</span>
+                    </div>
+
+                    {/* Taux */}
+                    <div className="w-20 px-3 text-center flex-shrink-0">
+                      <span className={`text-caption-medium px-2 py-0.5 rounded-full ${isDeleted ? 'bg-red-50 text-red-400 border border-red-200' : l.taux === 100 ? 'bg-[#eeece6] text-[#44403c]' : 'bg-amber-50 text-amber-700 border border-amber-200'}`} style={isDeleted ? { textDecoration: 'line-through' } : undefined}>{l.taux || 100}%</span>
+                    </div>
+
+                    {/* Montant */}
+                    <div className="w-[200px] px-3 text-right flex-shrink-0">
+                      {l.montant != null ? (
+                        <span className="text-body-medium font-semibold tabular-nums" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{fmt(l.montant)}</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#f9ecd6] rounded-md text-caption-medium text-[#855b31]">
+                          <AlertCircle className="w-3 h-3" /> Compléter
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Actions — overlapping the table right edge */}
+                    {l.diffType ? (
+                      <span className="absolute right-[-20px] top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <button onClick={(e) => { e.stopPropagation(); handleApproveDiff(l.id, 'dft'); }} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} title="Approuver"><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleRejectDiff(l.id, 'dft'); }} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} title="Rejeter"><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                      </span>
+                    ) : (
+                      <button onClick={(e) => { e.stopPropagation(); handleRejectLigne(l.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
+
+          {/* Total Block */}
+          {dftLignes.length > 0 && (
+          <div className={totalBlockClass}>
+            <button onClick={() => setTotalExpanded(prev => ({...prev, dft: !prev.dft}))} className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                  <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                </div>
+                <span className="text-[14px] font-medium text-[#292524]">Total DFT</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span style={serifAmountStyle} className="text-[#292524]">{fmt(dftTotal)}</span>
+                <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded.dft ? 'rotate-90' : ''}`} />
+              </div>
+            </button>
+            {totalExpanded.dft && (
+              <>
+                <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
+                <div className="space-y-2">
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Nombre de périodes</span><span className="text-[14px] text-[#292524]">{dftLignes.length}</span></div>
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Total jours</span><span className="text-[14px] text-[#292524]">{dftLignes.reduce((s, l) => s + (l.jours || 0), 0)}j</span></div>
+                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Base journalière</span><span className="text-[14px] text-[#292524]">{chiffrageParams.baseJournaliereDFT} €/j</span></div>
+                </div>
+              </>
+            )}
+          </div>
+          )}
+
+              </div>{/* end space-y-4 */}
+            </div>{/* end p-4 */}
+          </div>{/* end CALCUL section */}
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
+              </div>
+              <textarea
+                value={posteNotes.dft || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, dft: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
+            </div>
+          </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
+            </div>
+          </div>
+
         </div>
       );
     }
 
 
-    return null;
+    // ========== SE — Souffrances Endurées ==========
+    if (currentLevel.id === 'se') {
+      const seData = formPosteData.se || { referentiel: 'cours-appel-2024', cotation: 0, montant: 0 };
+      const cotations = [1, 2, 3, 4, 5, 6, 7];
+      return (
+        <div>
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+                {/* Param chips card block */}
+                <div className={cardBlockClass}>
+                  <div className="flex items-center gap-3 px-4 h-[52px]">
+                    <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                      <Settings className="w-3.5 h-3.5 text-[#78716c]" />
+                    </div>
+                    {renderParamPill({
+                      paramKey: 'revaloriser-se',
+                      label: 'Revaloriser',
+                      enabled: enabledParams['revaloriser-se'],
+                      onClick: () => setActiveParamChip(activeParamChip === 'revaloriser-se' ? null : 'revaloriser-se'),
+                    })}
+                  </div>
+                  {activeParamChip === 'revaloriser-se' && (
+                    <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+                      <div className="flex items-center gap-3">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" checked={enabledParams['revaloriser-se']} onChange={() => setEnabledParams(p => ({ ...p, 'revaloriser-se': !p['revaloriser-se'] }))} className="sr-only peer" />
+                          <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                        </label>
+                        <div className="w-px h-4 bg-[#e7e5e3]" />
+                        <span className="text-sm font-medium text-[#78716c]">Indice</span>
+                        <select className="text-sm text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                          <option>IPC Annuel</option>
+                          <option>IPC Mensuel</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Form Block */}
+                <div className={cardBlockClass}>
+                  <div className="p-5">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        {renderBaremePopoverSelect({
+                          popoverId: 'se',
+                          value: seData.referentiel,
+                          onChange: (id) => setFormPosteData(prev => ({ ...prev, se: { ...prev.se, referentiel: id } })),
+                          filterType: 'referentiel',
+                          label: 'Référentiel',
+                        })}
+                      </div>
+                      <div>
+                        <label className="block text-[14px] font-medium text-[#78716c] mb-2">Cotation</label>
+                        <div className="flex gap-1">
+                          {cotations.map(c => (
+                            <button
+                              key={c}
+                              onClick={() => setFormPosteData(prev => ({ ...prev, se: { ...prev.se, cotation: c } }))}
+                              className={`flex-1 h-10 text-[14px] font-medium rounded-lg border transition-colors ${
+                                seData.cotation === c
+                                  ? 'bg-[#292524] text-white border-[#292524]'
+                                  : 'bg-white text-[#292524] border-[#e7e5e3] hover:bg-[#fafaf9]'
+                              }`}
+                            >
+                              {c}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pièces justificatives */}
+                <div style={sectionHeaderStyle} className="mt-2">PIÈCES JUSTIFICATIVES</div>
+                <div className={cardBlockClass}>
+                  <div
+                    className="flex items-center justify-center h-[72px] border border-dashed border-[#d6d3d1] m-4 rounded-lg cursor-pointer hover:border-[#a8a29e] transition-colors"
+                    onClick={() => document.getElementById('se-upload')?.click()}
+                  >
+                    <span className="text-[14px] text-[#78716c]">Déposez ou <span className="text-[#1e3a8a] font-medium">cliquez</span> pour ajouter un justificatif</span>
+                    <input type="file" id="se-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" />
+                  </div>
+                </div>
+
+                {/* Total Block */}
+                <div className={totalBlockClass}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                        <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                      </div>
+                      <span className="text-[14px] font-medium text-[#292524]">Total SE</span>
+                    </div>
+                    <span style={serifAmountStyle} className="text-[#292524]">{fmt(seData.montant)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
+              </div>
+              <textarea
+                value={posteNotes.se || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, se: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
+            </div>
+          </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== PEP — Préjudice Esthétique Permanent ==========
+    if (currentLevel.id === 'pep') {
+      const pepData = formPosteData.pep || { referentiel: 'cours-appel-2024', cotation: 0, montant: 0 };
+      const cotations = [1, 2, 3, 4, 5, 6, 7];
+      return (
+        <div>
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+                {/* Param chips card block */}
+                <div className={cardBlockClass}>
+                  <div className="flex items-center gap-3 px-4 h-[52px]">
+                    <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                      <Settings className="w-3.5 h-3.5 text-[#78716c]" />
+                    </div>
+                    {renderParamPill({
+                      paramKey: 'revaloriser-pep',
+                      label: 'Revaloriser',
+                      enabled: enabledParams['revaloriser-pep'],
+                      onClick: () => setActiveParamChip(activeParamChip === 'revaloriser-pep' ? null : 'revaloriser-pep'),
+                    })}
+                  </div>
+                  {activeParamChip === 'revaloriser-pep' && (
+                    <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+                      <div className="flex items-center gap-3">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" checked={enabledParams['revaloriser-pep']} onChange={() => setEnabledParams(p => ({ ...p, 'revaloriser-pep': !p['revaloriser-pep'] }))} className="sr-only peer" />
+                          <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                        </label>
+                        <div className="w-px h-4 bg-[#e7e5e3]" />
+                        <span className="text-sm font-medium text-[#78716c]">Indice</span>
+                        <select className="text-sm text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                          <option>IPC Annuel</option>
+                          <option>IPC Mensuel</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Form Block */}
+                <div className={cardBlockClass}>
+                  <div className="p-5">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        {renderBaremePopoverSelect({
+                          popoverId: 'pep',
+                          value: pepData.referentiel,
+                          onChange: (id) => setFormPosteData(prev => ({ ...prev, pep: { ...prev.pep, referentiel: id } })),
+                          filterType: 'referentiel',
+                          label: 'Référentiel',
+                        })}
+                      </div>
+                      <div>
+                        <label className="block text-[14px] font-medium text-[#78716c] mb-2">Cotation</label>
+                        <div className="flex gap-1">
+                          {cotations.map(c => (
+                            <button
+                              key={c}
+                              onClick={() => setFormPosteData(prev => ({ ...prev, pep: { ...prev.pep, cotation: c } }))}
+                              className={`flex-1 h-10 text-[14px] font-medium rounded-lg border transition-colors ${
+                                pepData.cotation === c
+                                  ? 'bg-[#292524] text-white border-[#292524]'
+                                  : 'bg-white text-[#292524] border-[#e7e5e3] hover:bg-[#fafaf9]'
+                              }`}
+                            >
+                              {c}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pièces justificatives */}
+                <div style={sectionHeaderStyle} className="mt-2">PIÈCES JUSTIFICATIVES</div>
+                <div className={cardBlockClass}>
+                  <div
+                    className="flex items-center justify-center h-[72px] border border-dashed border-[#d6d3d1] m-4 rounded-lg cursor-pointer hover:border-[#a8a29e] transition-colors"
+                    onClick={() => document.getElementById('pep-upload')?.click()}
+                  >
+                    <span className="text-[14px] text-[#78716c]">Déposez ou <span className="text-[#1e3a8a] font-medium">cliquez</span> pour ajouter un justificatif</span>
+                    <input type="file" id="pep-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" />
+                  </div>
+                </div>
+
+                {/* Total Block */}
+                <div className={totalBlockClass}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                        <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                      </div>
+                      <span className="text-[14px] font-medium text-[#292524]">Total PEP</span>
+                    </div>
+                    <span style={serifAmountStyle} className="text-[#292524]">{fmt(pepData.montant)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
+              </div>
+              <textarea
+                value={posteNotes.pep || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, pep: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
+            </div>
+          </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== DFP — Déficit Fonctionnel Permanent ==========
+    if (currentLevel.id === 'dfp') {
+      const dfpData = formPosteData.dfp || { referentiel: 'cours-appel-2024', age: 0, taux: 0, trancheAge: 'inferieure', trancheTaux: 'inferieure', pointBase: 0, montant: 0 };
+      return (
+        <div>
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+                {/* Param chips card block */}
+                <div className={cardBlockClass}>
+                  <div className="flex items-center gap-3 px-4 h-[52px]">
+                    <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                      <Settings className="w-3.5 h-3.5 text-[#78716c]" />
+                    </div>
+                    {renderParamPill({
+                      paramKey: 'revaloriser-dfp',
+                      label: 'Revaloriser',
+                      enabled: enabledParams['revaloriser-dfp'],
+                      onClick: () => setActiveParamChip(activeParamChip === 'revaloriser-dfp' ? null : 'revaloriser-dfp'),
+                    })}
+                  </div>
+                  {activeParamChip === 'revaloriser-dfp' && (
+                    <div className="px-4 py-3 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+                      <div className="flex items-center gap-3">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" checked={enabledParams['revaloriser-dfp']} onChange={() => setEnabledParams(p => ({ ...p, 'revaloriser-dfp': !p['revaloriser-dfp'] }))} className="sr-only peer" />
+                          <div className="w-9 h-5 bg-[#d6d3d1] peer-checked:bg-[#292524] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                        </label>
+                        <div className="w-px h-4 bg-[#e7e5e3]" />
+                        <span className="text-sm font-medium text-[#78716c]">Indice</span>
+                        <select className="text-sm text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                          <option>IPC Annuel</option>
+                          <option>IPC Mensuel</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Form Block */}
+                <div className={cardBlockClass}>
+                  <div className="p-5 space-y-5">
+                    {/* Référentiel */}
+                    <div>
+                      {renderBaremePopoverSelect({
+                        popoverId: 'dfp',
+                        value: dfpData.referentiel,
+                        onChange: (id) => setFormPosteData(prev => ({ ...prev, dfp: { ...prev.dfp, referentiel: id } })),
+                        filterType: 'referentiel',
+                        label: 'Référentiel',
+                      })}
+                    </div>
+                    {/* Âge + Taux — 2 columns */}
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-[14px] font-medium text-[#78716c] mb-2">Âge à la consolidation</label>
+                        <input
+                          type="number"
+                          value={dfpData.age}
+                          onChange={(e) => setFormPosteData(prev => ({ ...prev, dfp: { ...prev.dfp, age: parseInt(e.target.value) || 0 } }))}
+                          className="w-full h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                          placeholder="Âge"
+                        />
+                        <div className="mt-2 space-y-1.5">
+                          {['inferieure', 'superieure'].map(t => (
+                            <label key={t} className="flex items-center gap-2 cursor-pointer">
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${dfpData.trancheAge === t ? 'border-[#292524]' : 'border-[#d6d3d1]'}`}>
+                                {dfpData.trancheAge === t && <div className="w-2 h-2 rounded-full bg-[#292524]" />}
+                              </div>
+                              <span className="text-xs text-[#292524]">Tranche {t === 'inferieure' ? 'inférieure' : 'supérieure'} {dfpData.age > 0 && (t === 'inferieure' ? `${Math.floor(dfpData.age / 10) * 10}-${Math.floor(dfpData.age / 10) * 10 + 9}` : `${Math.floor(dfpData.age / 10) * 10 + 1}-${Math.floor(dfpData.age / 10) * 10 + 10}`)}</span>
+                              <input type="radio" name="tranche-age" checked={dfpData.trancheAge === t} onChange={() => setFormPosteData(prev => ({ ...prev, dfp: { ...prev.dfp, trancheAge: t } }))} className="sr-only" />
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[14px] font-medium text-[#78716c] mb-2">Taux DFP</label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={dfpData.taux}
+                            onChange={(e) => setFormPosteData(prev => ({ ...prev, dfp: { ...prev.dfp, taux: parseFloat(e.target.value) || 0 } }))}
+                            className="w-full h-10 px-3 pr-8 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                            placeholder="Taux"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[14px] text-[#78716c]">%</span>
+                        </div>
+                        <div className="mt-2 space-y-1.5">
+                          {['inferieure', 'superieure'].map(t => (
+                            <label key={t} className="flex items-center gap-2 cursor-pointer">
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${dfpData.trancheTaux === t ? 'border-[#292524]' : 'border-[#d6d3d1]'}`}>
+                                {dfpData.trancheTaux === t && <div className="w-2 h-2 rounded-full bg-[#292524]" />}
+                              </div>
+                              <span className="text-xs text-[#292524]">Tranche {t === 'inferieure' ? 'inférieure' : 'supérieure'} {dfpData.taux > 0 && (t === 'inferieure' ? `${Math.floor(dfpData.taux / 5) * 5}-${Math.floor(dfpData.taux / 5) * 5 + 5}%` : `${Math.floor(dfpData.taux / 5) * 5 + 1}-${Math.floor(dfpData.taux / 5) * 5 + 5}%`)}</span>
+                              <input type="radio" name="tranche-taux" checked={dfpData.trancheTaux === t} onChange={() => setFormPosteData(prev => ({ ...prev, dfp: { ...prev.dfp, trancheTaux: t } }))} className="sr-only" />
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pièces justificatives */}
+                <div style={sectionHeaderStyle} className="mt-2">PIÈCES JUSTIFICATIVES</div>
+                <div className={cardBlockClass}>
+                  <div
+                    className="flex items-center justify-center h-[72px] border border-dashed border-[#d6d3d1] m-4 rounded-lg cursor-pointer hover:border-[#a8a29e] transition-colors"
+                    onClick={() => document.getElementById('dfp-upload')?.click()}
+                  >
+                    <span className="text-[14px] text-[#78716c]">Déposez ou <span className="text-[#1e3a8a] font-medium">cliquez</span> pour ajouter un justificatif</span>
+                    <input type="file" id="dfp-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" />
+                  </div>
+                </div>
+
+                {/* Total Block — expanded */}
+                <div className={totalBlockClass}>
+                  <button onClick={() => setTotalExpanded(prev => ({...prev, dfp: !prev.dfp}))} className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                        <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                      </div>
+                      <span className="text-[14px] font-medium text-[#292524]">Total DFP</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span style={serifAmountStyle} className="text-[#292524]">{fmt(dfpData.montant)}</span>
+                      <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded.dfp ? 'rotate-90' : ''}`} />
+                    </div>
+                  </button>
+                  {totalExpanded.dfp && (
+                    <>
+                      <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
+                      <div className="space-y-2">
+                        <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Prix du point</span><span className="text-[14px] text-[#292524]">{fmt(dfpData.pointBase)}</span></div>
+                        <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Taux DFP</span><span className="text-[14px] text-[#292524]">× {dfpData.taux}%</span></div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
+              </div>
+              <textarea
+                value={posteNotes.dfp || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, dfp: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
+            </div>
+          </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== GENERIC MINIMAL FORM — Fallthrough for all other postes ==========
+    {
+      const posteId = currentLevel.id;
+      const data = formPosteData[posteId] || { montant: 0, tiersPayeur: 0 };
+
+      return (
+        <div>
+
+          {/* CALCUL Section */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+                {/* Form Block */}
+                <div className={cardBlockClass}>
+                  <div className="p-5 space-y-4">
+                    <div>
+                      <label className="block text-[14px] font-medium text-[#78716c] mb-2">Indemnisation</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={data.montant || ''}
+                          onChange={(e) => setFormPosteData(prev => ({ ...prev, [posteId]: { ...(prev[posteId] || {}), montant: parseFloat(e.target.value) || 0 } }))}
+                          className="w-full h-10 px-3 pr-8 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                          placeholder="Montant en €"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[14px] text-[#78716c]">€</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[14px] font-medium text-[#78716c] mb-2">Part tiers payeur</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={data.tiersPayeur || ''}
+                          onChange={(e) => setFormPosteData(prev => ({ ...prev, [posteId]: { ...(prev[posteId] || {}), tiersPayeur: parseFloat(e.target.value) || 0 } }))}
+                          className="w-full h-10 px-3 pr-8 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                          placeholder="Montant en €"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[14px] text-[#78716c]">€</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pièces justificatives */}
+                <div style={sectionHeaderStyle} className="mt-2">PIÈCES JUSTIFICATIVES</div>
+                <div className={cardBlockClass}>
+                  <div
+                    className="flex items-center justify-center h-[72px] border border-dashed border-[#d6d3d1] m-4 rounded-lg cursor-pointer hover:border-[#a8a29e] transition-colors"
+                    onClick={() => document.getElementById(`${posteId}-upload`)?.click()}
+                  >
+                    <span className="text-[14px] text-[#78716c]">Déposez ou <span className="text-[#1e3a8a] font-medium">cliquez</span> pour ajouter un justificatif</span>
+                    <input type="file" id={`${posteId}-upload`} multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" />
+                  </div>
+                </div>
+
+                {/* Total Block */}
+                <div className={totalBlockClass}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                        <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                      </div>
+                      <span className="text-[14px] font-medium text-[#292524]">Total {currentLevel.title || posteId.toUpperCase()}</span>
+                    </div>
+                    <span style={serifAmountStyle} className="text-[#292524]">{fmt(data.montant - (data.tiersPayeur || 0))}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* NOTES / ARGUMENTAIRE Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
+              </div>
+              <textarea
+                value={posteNotes[posteId] || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, [posteId]: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments..."
+              />
+            </div>
+          </div>
+
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
+              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
   };
 
   // Descriptions des postes
-  const posteDescriptions = {
+  const posteDescriptions = { // eslint-disable-line no-unused-vars
     dsa: "Ensemble des frais médicaux, pharmaceutiques, paramédicaux et d'hospitalisation engagés entre la date du fait dommageable et la consolidation.",
     pgpa: "Pertes de revenus professionnels subies entre le fait dommageable et la consolidation, déduction faite des indemnités journalières perçues.",
     dft: "Indemnisation de la perte de qualité de vie pendant les périodes d'incapacité temporaire (hospitalisation, rééducation, gêne résiduelle).",
@@ -5761,7 +8904,7 @@ export default function App() {
     if (activeDossierId) saveDossierData(activeDossierId);
     loadDossierData(dossier.id);
     setActiveDossierId(dossier.id);
-    setNavStack([{ id: dossier.id, type: 'dossier', title: dossier.reference, activeTab: 'détail' }]);
+    setNavStack([{ id: dossier.id, type: 'dossier', title: dossier.reference, activeTab: 'dossier' }]);
     setCurrentPage('dossier');
   };
 
@@ -5811,29 +8954,1237 @@ export default function App() {
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowExportModal(false)}>
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between px-6 py-4 border-b">
-            <h2 className="text-[15px] font-semibold text-zinc-800">{titre}</h2>
-            <button onClick={() => setShowExportModal(false)} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors">
-              <X className="w-4 h-4 text-zinc-400" />
+            <h2 className="text-heading-sm text-[#292524]">{titre}</h2>
+            <button onClick={() => setShowExportModal(false)} className="p-1.5 hover:bg-[#eeece6] rounded-lg transition-colors">
+              <X className="w-4 h-4 text-[#a8a29e]" />
             </button>
           </div>
           <div className="p-4 space-y-2">
             {options.map((opt, i) => (
-              <div key={i} className="group relative flex items-start gap-4 p-4 rounded-xl hover:bg-zinc-50 transition-colors cursor-default">
-                <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center flex-shrink-0 group-hover:bg-zinc-200 transition-colors">
-                  <opt.icon className="w-5 h-5 text-zinc-500" strokeWidth={1.5} />
+              <div key={i} className="group relative flex items-start gap-4 p-4 rounded-xl hover:bg-[#fafaf9] transition-colors cursor-default">
+                <div className="w-10 h-10 rounded-lg bg-[#eeece6] flex items-center justify-center flex-shrink-0 group-hover:bg-zinc-200 transition-colors">
+                  <opt.icon className="w-5 h-5 text-[#78716c]" strokeWidth={1.5} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-zinc-800">{opt.label}</p>
-                  <p className="text-[12px] text-zinc-500 mt-0.5 leading-relaxed">{opt.desc}</p>
+                  <p className="text-body-medium text-[#292524]">{opt.label}</p>
+                  <p className="text-caption text-[#78716c] mt-0.5 leading-relaxed">{opt.desc}</p>
                 </div>
-                <span className="absolute left-4 right-4 -bottom-1 translate-y-full p-2.5 bg-zinc-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30 pointer-events-none">
+                <span className="absolute left-4 right-4 -bottom-1 translate-y-full p-2.5 bg-[#292524] text-white text-caption rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30 pointer-events-none">
                   {opt.tooltip}
                 </span>
               </div>
             ))}
           </div>
-          <div className="px-6 py-4 border-t bg-zinc-50 rounded-b-xl">
-            <p className="text-[11px] text-zinc-400 text-center">Ces options sont présentées à titre informatif pour recueillir vos retours.</p>
+          <div className="px-6 py-4 border-t bg-[#F8F7F5] rounded-b-xl">
+            <p className="text-caption text-[#a8a29e] text-center">Ces options sont présentées à titre informatif pour recueillir vos retours.</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ========== DROP FIRST — HANDLERS ==========
+  const handleDropFirstCreate = () => {
+    if (!dropModal || dropModal.files.length === 0) return;
+    const files = [...dropModal.files];
+    const hasRapport = !!dropModal.rapportFileId;
+
+    // Save current dossier if any
+    if (activeDossierId) saveDossierData(activeDossierId);
+
+    const newId = `dossier-${Date.now()}`;
+
+    // Try to extract a name from file names (e.g. "Martin_Sophie_rapport.pdf" or "dupont jean expertise.pdf")
+    const extractNameFromFiles = (fileList) => {
+      for (const f of fileList) {
+        const base = f.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+        // Match two consecutive capitalized words or words at start
+        const match = base.match(/\b([A-ZÀ-Ü][a-zà-ÿ]+)\s+([A-ZÀ-Ü][a-zà-ÿ]+)/);
+        if (match) return { nom: match[1], prenom: match[2] };
+      }
+      return null;
+    };
+    const extracted = extractNameFromFiles(files);
+    const refName = extracted ? `${extracted.nom} ${extracted.prenom}` : 'Nouveau dossier';
+
+    setDossiers(prev => [{
+      id: newId, reference: refName, typeFait: hasRapport ? 'Accident de la voie publique' : '',
+      date: new Date().toLocaleDateString('fr-FR'), lastEditBy: 'Meghan R.', lastEditDate: new Date().toLocaleDateString('fr-FR')
+    }, ...prev]);
+
+    setVictimeData(extracted
+      ? { nom: extracted.nom, prenom: extracted.prenom, sexe: 'Homme', dateNaissance: '', dateDeces: null }
+      : { nom: '', prenom: '', sexe: 'Homme', dateNaissance: '', dateDeces: null });
+    setFaitGenerateur({ type: '', dateAccident: '', datePremiereConstatation: '', dateConsolidation: '', resume: '' });
+    setChiffrageParams(prev => ({ ...EMPTY_DOSSIER.chiffrageParams }));
+    setDossierStatut('ouvert');
+    setDossierRef('');
+    setDossierIntitule(refName);
+    setDossierDateOuverture(new Date().toLocaleDateString('fr-FR'));
+    setDossierAvocat('');
+    setDossierNotes('');
+    setCommentaireExpertise('');
+    setResumeAffaire('');
+    setVictimesIndirectes([]);
+    setPieces([]);
+    setDsaLignes([]);
+    setDftLignes([]);
+    setPgpaData({ periode: { debut: '', fin: '', mois: 0 }, revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 0 }, revenusPercus: [], ijPercues: [] });
+    setPgpfData({ periodes: {} });
+
+    // Map files to processing items
+    const processingItems = files.map((f, i) => {
+      const poolEntry = DROP_FIRST_DOCUMENT_POOL[i % DROP_FIRST_DOCUMENT_POOL.length];
+      return {
+        id: `dfp-${Date.now()}-${i}`,
+        originalName: f.name,
+        cleanName: null,
+        type: null,
+        date: null,
+        postesLies: [],
+        summary: null,
+        extractedInfo: null,
+        pages: null,
+        status: 'pending', // pending → processing → done
+        poolRef: poolEntry,
+        sourceFile: null,
+        pageRange: null,
+        siblings: null,
+        fakeSize: f.fakeSize,
+        isRapport: f.id === dropModal.rapportFileId,
+      };
+    });
+
+    setDropFirstPieces(processingItems);
+    setDropFirstHasRapport(hasRapport);
+    setDropFirstProcessingDone(false);
+    setPieceOverviewPanel(null);
+    setPiecesFilter({ type: null, search: '' });
+    setRapportBannerDismissed(false);
+    setInfoDossierStreaming(null);
+
+    // Reset chat state for new dossier
+    setChatBlocked(true);
+    setChatSidebarOpen(true);
+    setChatMessages([{
+      type: 'ai-thinking',
+      label: 'Analyse de vos documents...',
+      steps: [
+        { tool: 'analyseDocuments', detail: `Je commence l'analyse de ${processingItems.length} document${processingItems.length > 1 ? 's' : ''}`, expandedText: processingItems.map(f => f.originalName).join(', ') },
+      ],
+      expanded: true,
+      _dropFirstThinking: true,
+    }]);
+    chatExtractionAnnounced.current = false;
+    chatPostesAnnounced.current = false;
+    chatAnalyzedPostes.current = new Set();
+    setDossierPostes([]);
+
+    setNavStack([{ id: newId, type: 'dossier', title: refName, activeTab: 'pièces' }]);
+    setActiveDossierId(newId);
+    setCurrentPage('dossier');
+    setDropModal(null);
+
+    // Start processing simulation after render
+    setTimeout(() => startProcessingSimulation(processingItems, hasRapport), 300);
+  };
+
+  const startProcessingSimulation = (items, hasRapport) => {
+    // Clear any existing timeouts
+    processingTimeouts.current.forEach(t => clearTimeout(t));
+    processingTimeouts.current = [];
+
+    let cumulativeDelay = 500;
+    const processOrder = [...items].sort(() => Math.random() - 0.5); // Random order
+
+    processOrder.forEach((item, idx) => {
+      const delay = 1500 + Math.random() * 2500; // 1.5-4s
+      cumulativeDelay += delay;
+
+      const tid = setTimeout(() => {
+        setDropFirstPieces(prev => {
+          const newPieces = [...prev];
+          const itemIndex = newPieces.findIndex(p => p.id === item.id);
+          if (itemIndex === -1) return prev;
+
+          const poolEntry = newPieces[itemIndex].poolRef;
+
+          if (poolEntry.splits) {
+            // Replace single row with multiple split rows
+            const splitRows = poolEntry.splits.map((split, si) => ({
+              id: `${item.id}-split-${si}`,
+              originalName: item.originalName,
+              cleanName: `${poolEntry.cleanName.split('—')[0].trim()} — ${split.name}`,
+              type: poolEntry.type,
+              date: poolEntry.date,
+              postesLies: [...poolEntry.postesLies],
+              summary: poolEntry.summary,
+              extractedInfo: poolEntry.extractedInfo,
+              pages: split.pageCount,
+              status: 'done',
+              poolRef: poolEntry,
+              sourceFile: item.originalName,
+              pageRange: split.pages,
+              splitName: split.name,
+              siblings: poolEntry.splits.map((s, j) => ({ name: s.name, pages: s.pages, pageCount: s.pageCount, index: j })),
+              splitIndex: si,
+              totalSourcePages: poolEntry.pages,
+              fakeSize: item.fakeSize,
+              isRapport: item.isRapport,
+              justCompleted: true,
+            }));
+            newPieces.splice(itemIndex, 1, ...splitRows);
+          } else {
+            // Simple completion
+            newPieces[itemIndex] = {
+              ...newPieces[itemIndex],
+              cleanName: poolEntry.cleanName,
+              type: poolEntry.type,
+              date: poolEntry.date,
+              postesLies: [...poolEntry.postesLies],
+              summary: poolEntry.summary,
+              extractedInfo: poolEntry.extractedInfo,
+              pages: poolEntry.pages,
+              status: 'done',
+              justCompleted: true,
+            };
+          }
+          return newPieces;
+        });
+
+        // Add progressive step to thinking message
+        const poolEntry = item.poolRef;
+        const stepTool = poolEntry.type === 'Expertise' ? 'readExpertise'
+          : poolEntry.type === 'Factures' ? 'extractMontants'
+          : poolEntry.type === 'Revenus' ? 'readBulletins'
+          : 'readDocument';
+        const stepAction = poolEntry.type === 'Expertise' ? 'Lecture du rapport d\'expertise'
+          : poolEntry.type === 'Factures' ? 'Extraction des montants depuis une facture'
+          : poolEntry.type === 'Revenus' ? 'Lecture d\'un bulletin de salaire'
+          : poolEntry.type === 'Certificat médical' ? 'Lecture d\'un certificat médical'
+          : 'Lecture d\'un document';
+        setChatMessages(prev => prev.map(m => {
+          if (!m._dropFirstThinking) return m;
+          return {
+            ...m,
+            steps: [...(m.steps || []), {
+              tool: stepTool,
+              detail: stepAction,
+              expandedText: poolEntry.cleanName || item.originalName,
+            }],
+          };
+        }));
+
+        // Clear justCompleted flag after animation
+        setTimeout(() => {
+          setDropFirstPieces(prev => prev.map(p => ({ ...p, justCompleted: false })));
+        }, 600);
+      }, cumulativeDelay);
+
+      processingTimeouts.current.push(tid);
+    });
+
+    // Mark all done after all items processed
+    const finalDelay = cumulativeDelay + 500;
+    const doneTid = setTimeout(() => {
+      // Add classification step
+      const types = [...new Set(items.map(it => it.poolRef?.type).filter(Boolean))];
+      setChatMessages(prev => prev.map(m => {
+        if (!m._dropFirstThinking) return m;
+        return {
+          ...m,
+          steps: [...(m.steps || []), {
+            tool: 'detectPostes',
+            detail: 'Je classe les documents par catégorie',
+            expandedText: `${types.length} types identifiés : ${types.join(', ')}`,
+          }],
+        };
+      }));
+
+      setDropFirstProcessingDone(true);
+      // If has rapport, start streaming after a small delay
+      if (hasRapport) {
+        setTimeout(() => {
+          setToastMessage({ text: 'Informations du dossier extraites de l\'expertise', type: 'ai' });
+          setTimeout(() => setToastMessage(null), 4000);
+          startInfoDossierStreaming();
+        }, 2000);
+      }
+    }, finalDelay);
+    processingTimeouts.current.push(doneTid);
+  };
+
+  const startInfoDossierStreaming = () => {
+    setInfoDossierStreaming({ active: true, fieldsRevealed: [], streamingField: null, streamingText: '' });
+    // Auto-navigate to info dossier tab so user sees fields filling live
+    setActiveTab('dossier');
+
+    const fields = [
+      { key: 'nom', section: 'victime', value: DROP_FIRST_VICTIM_DATA.nom, delay: 400 },
+      { key: 'prenom', section: 'victime', value: DROP_FIRST_VICTIM_DATA.prenom, delay: 350 },
+      { key: 'sexe', section: 'victime', value: DROP_FIRST_VICTIM_DATA.sexe, delay: 300 },
+      { key: 'dateNaissance', section: 'victime', value: DROP_FIRST_VICTIM_DATA.dateNaissance, delay: 350 },
+      { key: 'profession', section: 'victime', value: DROP_FIRST_VICTIM_DATA.profession, delay: 400 },
+      { key: 'typeFait', section: 'fait', value: DROP_FIRST_ACCIDENT_DATA.type, delay: 400 },
+      { key: 'dateAccident', section: 'fait', value: DROP_FIRST_ACCIDENT_DATA.dateAccident, delay: 350 },
+      { key: 'resume', section: 'fait', value: DROP_FIRST_ACCIDENT_DATA.resume, delay: 0, stream: true },
+      { key: 'premiereConstatation', section: 'medical', value: DROP_FIRST_MEDICAL_DATA.premiereConstatation, delay: 400 },
+      { key: 'dateConsolidation', section: 'medical', value: DROP_FIRST_MEDICAL_DATA.dateConsolidation, delay: 350 },
+      { key: 'aipp', section: 'medical', value: DROP_FIRST_MEDICAL_DATA.aipp, delay: 300 },
+      { key: 'commentaire', section: 'medical', value: DROP_FIRST_MEDICAL_DATA.commentaire, delay: 0, stream: true },
+      { key: 'postes', section: 'postes', value: DROP_FIRST_POSTES_DETECTES, delay: 300 },
+    ];
+
+    let totalDelay = 500;
+
+    fields.forEach((field, idx) => {
+      if (field.stream) {
+        // Stream text character by character
+        const chars = field.value.split('');
+        const streamStart = totalDelay;
+
+        const startTid = setTimeout(() => {
+          setInfoDossierStreaming(prev => prev ? { ...prev, streamingField: field.key, streamingText: '' } : prev);
+        }, streamStart);
+        processingTimeouts.current.push(startTid);
+
+        chars.forEach((char, ci) => {
+          const charTid = setTimeout(() => {
+            setInfoDossierStreaming(prev => {
+              if (!prev) return prev;
+              return { ...prev, streamingText: prev.streamingText + char };
+            });
+          }, streamStart + 30 * (ci + 1));
+          processingTimeouts.current.push(charTid);
+        });
+
+        totalDelay = streamStart + 30 * chars.length + 300;
+
+        // Commit value and reveal
+        const commitTid = setTimeout(() => {
+          if (field.key === 'resume') {
+            setFaitGenerateur(prev => ({ ...prev, resume: field.value }));
+            setResumeAffaire(field.value);
+          } else if (field.key === 'commentaire') {
+            setCommentaireExpertise(field.value);
+          }
+          setInfoDossierStreaming(prev => prev ? {
+            ...prev, fieldsRevealed: [...prev.fieldsRevealed, field.key], streamingField: null, streamingText: ''
+          } : prev);
+        }, totalDelay);
+        processingTimeouts.current.push(commitTid);
+        totalDelay += 200;
+      } else {
+        totalDelay += field.delay;
+        const tid = setTimeout(() => {
+          // Set the actual data
+          if (field.section === 'victime') {
+            if (field.key === 'nom') setVictimeData(prev => ({ ...prev, nom: field.value }));
+            else if (field.key === 'prenom') setVictimeData(prev => ({ ...prev, prenom: field.value }));
+            else if (field.key === 'sexe') setVictimeData(prev => ({ ...prev, sexe: field.value === 'Féminin' ? 'Femme' : 'Homme' }));
+            else if (field.key === 'dateNaissance') setVictimeData(prev => ({ ...prev, dateNaissance: field.value }));
+          } else if (field.section === 'fait') {
+            if (field.key === 'typeFait') setFaitGenerateur(prev => ({ ...prev, type: field.value }));
+            else if (field.key === 'dateAccident') setFaitGenerateur(prev => ({ ...prev, dateAccident: field.value }));
+          } else if (field.section === 'medical') {
+            if (field.key === 'premiereConstatation') setFaitGenerateur(prev => ({ ...prev, datePremiereConstatation: field.value }));
+            else if (field.key === 'dateConsolidation') setFaitGenerateur(prev => ({ ...prev, dateConsolidation: field.value }));
+          }
+          // Update dossier reference
+          if (field.key === 'prenom') {
+            setDossierIntitule(`${DROP_FIRST_VICTIM_DATA.nom} ${DROP_FIRST_VICTIM_DATA.prenom}`);
+            setDossiers(prev => prev.map(d => d.id === activeDossierId ? { ...d, reference: `${DROP_FIRST_VICTIM_DATA.nom} ${DROP_FIRST_VICTIM_DATA.prenom}` } : d));
+          }
+          setInfoDossierStreaming(prev => prev ? { ...prev, fieldsRevealed: [...prev.fieldsRevealed, field.key] } : prev);
+        }, totalDelay);
+        processingTimeouts.current.push(tid);
+      }
+    });
+
+    // End streaming
+    totalDelay += 500;
+    const endTid = setTimeout(() => {
+      setInfoDossierStreaming(prev => prev ? { ...prev, active: false } : null);
+    }, totalDelay);
+    processingTimeouts.current.push(endTid);
+  };
+
+  const showToast = (message) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // ========== DROP FIRST — PIÈCES TAB ==========
+  const getProcessedPieces = () => dropFirstPieces.filter(p => p.status === 'done');
+  const getPieceNumber = (piece) => {
+    if (piece.status !== 'done') return null;
+    if (manualReorder) {
+      // After manual reorder, numbering follows array order of done items
+      const done = dropFirstPieces.filter(p => p.status === 'done');
+      return done.findIndex(p => p.id === piece.id) + 1;
+    }
+    const done = getProcessedPieces().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    return done.findIndex(p => p.id === piece.id) + 1;
+  };
+  const getFilteredPieces = () => {
+    let items;
+    if (manualReorder) {
+      // Respect array order — done first, then pending
+      items = [...dropFirstPieces].sort((a, b) => {
+        if (a.status === 'done' && b.status !== 'done') return -1;
+        if (a.status !== 'done' && b.status === 'done') return 1;
+        return 0; // preserve array order within each group
+      });
+    } else {
+      // Sort: done items by date (chronological), pending items at the end
+      items = [...dropFirstPieces].sort((a, b) => {
+        if (a.status === 'done' && b.status !== 'done') return -1;
+        if (a.status !== 'done' && b.status === 'done') return 1;
+        if (a.status === 'done' && b.status === 'done') return (a.date || '').localeCompare(b.date || '');
+        return 0;
+      });
+    }
+    if (piecesFilter.type) items = items.filter(p => p.type === piecesFilter.type);
+    if (piecesFilter.search) {
+      const s = piecesFilter.search.toLowerCase();
+      items = items.filter(p => (p.cleanName || p.originalName || '').toLowerCase().includes(s));
+    }
+    return items;
+  };
+
+  const handleCopyBordereau = () => {
+    const done = manualReorder
+      ? dropFirstPieces.filter(p => p.status === 'done')
+      : getProcessedPieces().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    let text = 'BORDEREAU DE PIÈCES\n\nN°    | Pièce\n------|------\n';
+    done.forEach((p, i) => {
+      const num = String(i + 1).padEnd(6);
+      text += `${num}| ${p.cleanName}\n`;
+    });
+    navigator.clipboard.writeText(text).then(() => showToast('Bordereau copié dans le presse-papier ✓'));
+  };
+
+  const handleAddMorePieces = (fileList) => {
+    const accepted = Array.from(fileList).filter(f => /\.(pdf|png|jpe?g|docx?)$/i.test(f.name));
+    if (accepted.length === 0) return;
+
+    const newItems = accepted.map((f, i) => {
+      const poolEntry = DROP_FIRST_DOCUMENT_POOL[(dropFirstPieces.length + i) % DROP_FIRST_DOCUMENT_POOL.length];
+      return {
+        id: `dfp-add-${Date.now()}-${i}`,
+        originalName: f.name,
+        cleanName: null, type: null, date: null, postesLies: [], summary: null,
+        extractedInfo: null, pages: null, status: 'pending', poolRef: poolEntry,
+        sourceFile: null, pageRange: null, siblings: null,
+        fakeSize: (Math.random() * 4 + 0.2).toFixed(1) + ' Mo',
+        isRapport: false,
+      };
+    });
+
+    setDropFirstPieces(prev => [...prev, ...newItems]);
+    setDropFirstProcessingDone(false);
+    setShowAddPiecesZone(false);
+    setTimeout(() => startProcessingSimulation(newItems, false), 300);
+  };
+
+  const renderDropFirstPiecesTab = () => {
+    const totalItems = dropFirstPieces.length;
+    const allDone = dropFirstProcessingDone;
+    const filtered = getFilteredPieces();
+    const isFiltered = !!(piecesFilter.type || piecesFilter.search);
+    const selectedPiece = pieceOverviewPanel ? dropFirstPieces.find(p => p.id === pieceOverviewPanel) : null;
+
+    let dragLeaveTimer = null;
+    const isExternalFileDrag = (e) => !reorderDrag && e.dataTransfer.types.includes('Files');
+    return (
+      <div
+        className="flex h-full relative -mx-4 -mt-4"
+        onDragOver={e => { e.preventDefault(); if (isExternalFileDrag(e)) { clearTimeout(dragLeaveTimer); setPiecesTabDragOver(true); } }}
+        onDragLeave={e => { e.preventDefault(); if (isExternalFileDrag(e)) { dragLeaveTimer = setTimeout(() => setPiecesTabDragOver(false), 50); } }}
+        onDrop={e => { e.preventDefault(); if (piecesTabDragOver) { setPiecesTabDragOver(false); handleAddMorePieces(e.dataTransfer.files); } }}
+      >
+        {/* Full-page drag overlay */}
+        {piecesTabDragOver && (
+          <div className="absolute inset-0 z-40 border border-dashed border-stone-400 rounded-lg flex flex-col items-center justify-center" style={{ pointerEvents: 'none', background: 'linear-gradient(to top, rgba(238,236,230,0) 0%, #eeece6 100%)' }}>
+            <div className="bg-[#eeece6] border border-stone-300 rounded-full p-4 shadow-sm mb-4">
+              <ArrowDown className="w-6 h-6 text-stone-600" />
+            </div>
+            <p className="text-heading-lg-medium text-stone-800">Déposez vos documents ici !</p>
+            <p className="text-body text-stone-500 mt-2">Les documents seront analysés automatiquement</p>
+          </div>
+        )}
+        {/* Hidden file input */}
+        <input id="add-pieces-input" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" className="hidden" onChange={e => { handleAddMorePieces(e.target.files); e.target.value = ''; }} />
+
+        {/* Main content */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Sub-header bar — edge-to-edge */}
+          <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[#e7e5e3]">
+            <span className="flex-1 text-sm font-medium text-[#292524]">{totalItems} pièce{totalItems > 1 ? 's' : ''}</span>
+            <div className="flex items-center gap-2.5">
+              <div className="relative">
+                <select
+                  value={piecesFilter.type || ''}
+                  onChange={e => setPiecesFilter(prev => ({ ...prev, type: e.target.value || null }))}
+                  className="appearance-none h-9 pl-8 pr-8 text-sm border border-[#e7e5e3] rounded-lg bg-white text-[#78716c] focus:outline-none focus:ring-1 focus:ring-stone-300 shadow-sm cursor-pointer"
+                >
+                  <option value="">Filtrer par type</option>
+                  {PIECE_TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <ListFilter className="w-4 h-4 text-[#78716c] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
+                <ChevronDown className="w-4 h-4 text-[#78716c] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Rechercher..."
+                  value={piecesFilter.search}
+                  onChange={e => setPiecesFilter(prev => ({ ...prev, search: e.target.value }))}
+                  className="h-9 pl-8 pr-3 text-sm border border-[#e7e5e3] rounded-lg bg-white text-[#292524] placeholder-[#78716c] placeholder-opacity-70 focus:outline-none focus:ring-1 focus:ring-stone-300 shadow-sm"
+                />
+                <Search className="w-4 h-4 text-[#78716c] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
+              </div>
+              {isFiltered && (
+                <button onClick={() => setPiecesFilter({ type: null, search: '' })} className="text-sm text-[#78716c] hover:text-[#44403c] flex items-center gap-1 transition-colors">
+                  <X className="w-3.5 h-3.5" /> Réinitialiser
+                </button>
+              )}
+              <button
+                onClick={handleCopyBordereau}
+                className="h-8 px-3 text-sm font-medium text-[#44403c] bg-[#eeece6] rounded-md hover:bg-[#e7e5e3] transition-colors"
+              >
+                Bordereau
+              </button>
+            </div>
+          </div>
+
+          {/* Content with padding */}
+          <div className="p-4 flex-1 overflow-y-auto">
+            {/* Drop zone */}
+            <div
+              className="mb-4 flex items-center justify-center gap-4 h-16 border border-dashed border-[#d6d3d1] rounded-lg cursor-pointer transition-colors hover:border-[#a8a29e]"
+              style={{ background: 'linear-gradient(to top, rgba(238,236,230,0) 50%, #f8f7f5 100%)' }}
+              onClick={() => document.getElementById('add-pieces-input')?.click()}
+              onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+              onDrop={e => { e.preventDefault(); e.stopPropagation(); handleAddMorePieces(e.dataTransfer.files); }}
+            >
+              <Upload className="w-5 h-5 text-[#78716c]" strokeWidth={1.5} />
+              <span className="text-sm">
+                <span className="text-[#78716c]">Déposez ou </span>
+                <span className="font-medium text-[#1e3a8a]">cliquez</span>
+                <span className="text-[#78716c]"> pour ajouter de nouvelles pièces</span>
+              </span>
+            </div>
+
+            {/* Table */}
+            <div className="border border-[#e7e5e3] rounded-md overflow-hidden bg-white">
+              <table className="w-full">
+                <thead>
+                  <tr className="h-10 bg-white border-b border-[#e7e5e3]">
+                    <th className="w-[38px]"></th>
+                    <th className="w-[50px] px-3 text-center" style={colHeaderStyle}>N°</th>
+                    <th className="px-3 text-left" style={colHeaderStyle}>Nom du document</th>
+                    <th className="w-[174px] px-3 text-left" style={colHeaderStyle}>Type</th>
+                    <th className="w-[120px] px-3 text-left" style={colHeaderStyle}>Date</th>
+                    <th className="w-[224px] px-3 text-left" style={colHeaderStyle}>Postes liés</th>
+                    <th className="w-[44px]"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((piece, idx) => {
+                    const isProcessing = piece.status !== 'done';
+                    const pieceNum = piece.status === 'done' ? getPieceNumber(piece) : null;
+                    const isSelected = pieceOverviewPanel === piece.id;
+                    const isDragItem = reorderDrag?.pieceId === piece.id;
+                    const canDrag = !isProcessing && !isFiltered;
+
+                    return (
+                      <React.Fragment key={piece.id}>
+                        {/* Drop indicator line */}
+                        {reorderDropIdx === idx && reorderDrag?.pieceId !== piece.id && (
+                          <tr><td colSpan={7} className="p-0"><div className="h-0.5 bg-blue-500 rounded-full mx-2" /></td></tr>
+                        )}
+                        <tr
+                          className={`border-b border-[#e7e5e3] transition-all duration-300 group bg-white ${
+                            isDragItem ? 'opacity-20 !bg-[#f4f4f5]' :
+                            isProcessing ? '' : 'hover:bg-[#fafaf9] cursor-pointer'
+                          } ${piece.justCompleted ? '!bg-teal-50' : ''} ${isSelected && !isDragItem ? '!bg-[#f8f7f5]' : ''}`}
+                          onClick={() => !isProcessing && !reorderDrag && setPieceOverviewPanel(piece.id)}
+                          style={{ height: '56px' }}
+                          draggable={canDrag}
+                          onDragStart={e => {
+                            if (!canDrag) { e.preventDefault(); return; }
+                            const img = new window.Image();
+                            img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                            e.dataTransfer.setDragImage(img, 0, 0);
+                            e.dataTransfer.effectAllowed = 'move';
+                            setReorderDrag({ pieceId: piece.id, ghostX: e.clientX, ghostY: e.clientY, name: piece.cleanName, type: piece.type, num: pieceNum });
+                          }}
+                          onDrag={e => {
+                            if (e.clientX === 0 && e.clientY === 0) return;
+                            setReorderDrag(prev => prev ? { ...prev, ghostX: e.clientX, ghostY: e.clientY } : null);
+                          }}
+                          onDragOver={e => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = 'move';
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const midY = rect.top + rect.height / 2;
+                            setReorderDropIdx(e.clientY < midY ? idx : idx + 1);
+                          }}
+                          onDragEnd={() => {
+                            if (reorderDrag && reorderDropIdx !== null) {
+                              const dragId = reorderDrag.pieceId;
+                              const currentFiltered = filtered;
+                              const draggedIdx = currentFiltered.findIndex(p => p.id === dragId);
+                              let targetIdx = reorderDropIdx;
+                              if (targetIdx > draggedIdx) targetIdx -= 1;
+                              if (draggedIdx !== targetIdx && draggedIdx >= 0) {
+                                setDropFirstPieces(prev => {
+                                  const doneIds = currentFiltered.filter(p => p.status === 'done').map(p => p.id);
+                                  const pending = prev.filter(p => p.status !== 'done');
+                                  const doneMap = {};
+                                  prev.forEach(p => { if (p.status === 'done') doneMap[p.id] = p; });
+                                  const ordered = doneIds.map(id => doneMap[id]);
+                                  const fromIdx = ordered.findIndex(p => p.id === dragId);
+                                  if (fromIdx < 0) return prev;
+                                  const [moved] = ordered.splice(fromIdx, 1);
+                                  let toIdx = targetIdx;
+                                  if (toIdx > ordered.length) toIdx = ordered.length;
+                                  ordered.splice(toIdx, 0, moved);
+                                  return [...ordered, ...pending];
+                                });
+                                setManualReorder(true);
+                              }
+                            }
+                            setReorderDrag(null);
+                            setReorderDropIdx(null);
+                          }}
+                        >
+                        {/* Grip handle */}
+                        <td className="w-[38px] text-center">
+                          {canDrag ? (
+                            <GripVertical className="w-3.5 h-3.5 text-[#d6d3d1] cursor-grab inline-block" strokeWidth={1.5} />
+                          ) : null}
+                        </td>
+                        {/* N° / loader */}
+                        <td className="w-[50px] px-3 text-center">
+                          {isProcessing ? (
+                            <Loader2 className="w-5 h-5 text-[#78716c] animate-spin mx-auto" strokeWidth={1.5} />
+                          ) : (
+                            <span className="inline-flex items-center justify-center w-[22px] h-[22px] bg-[#eeece6] text-[#78716c] text-xs font-semibold rounded-md">{pieceNum || '—'}</span>
+                          )}
+                        </td>
+                        {/* Document name */}
+                        <td className="px-3">
+                          {isProcessing ? (
+                            <span className="text-sm text-[#292524] italic opacity-40">{piece.originalName}</span>
+                          ) : (
+                            <span className="text-sm font-medium text-black">{piece.cleanName}</span>
+                          )}
+                        </td>
+                        {/* Type */}
+                        <td className="w-[174px] px-3">
+                          {isProcessing ? (
+                            <div className="h-[18px] w-16 bg-[#f4f4f5] rounded" />
+                          ) : (
+                            <div className="relative">
+                              <button
+                                className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md cursor-pointer hover:opacity-80 transition-opacity ${PIECE_TYPE_COLORS[piece.type] || 'bg-[#eeece6] text-[#44403c]'}`}
+                                onClick={e => { e.stopPropagation(); setEditingPieceField(editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'type' ? null : { pieceId: piece.id, field: 'type' }); }}
+                              >
+                                {piece.type}
+                                <ChevronDown className="w-3 h-3" strokeWidth={1.5} />
+                              </button>
+                              {editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'type' && (
+                                <div className="absolute left-0 top-full mt-1 bg-white border border-[#e7e5e3] rounded-lg shadow-lg py-1 z-10 min-w-[160px]">
+                                  {PIECE_TYPE_OPTIONS.map(t => (
+                                    <button
+                                      key={t}
+                                      className={`w-full text-left px-3 py-1.5 text-sm hover:bg-[#fafaf9] transition-colors flex items-center gap-2 ${piece.type === t ? 'font-medium text-[#292524]' : 'text-[#78716c]'}`}
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        setDropFirstPieces(prev => prev.map(p => p.id === piece.id ? { ...p, type: t } : p));
+                                        setEditingPieceField(null);
+                                      }}
+                                    >
+                                      <span className={`w-2 h-2 rounded-full ${piece.type === t ? 'bg-[#292524]' : ''}`} />
+                                      {t}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        {/* Date */}
+                        <td className="w-[120px] px-3">
+                          {isProcessing ? (
+                            <div className="h-[18px] w-16 bg-[#f4f4f5] rounded" />
+                          ) : (
+                            <span className="text-sm text-[#292524]">
+                              {piece.date ? new Date(piece.date).toLocaleDateString('fr-FR') : '—'}
+                            </span>
+                          )}
+                        </td>
+                        {/* Postes liés */}
+                        <td className="w-[224px] px-3">
+                          {isProcessing ? (
+                            <div className="h-[18px] w-16 bg-[#f4f4f5] rounded" />
+                          ) : (
+                            <div className="flex flex-wrap gap-1 overflow-hidden">
+                              {(piece.postesLies || []).map(p => (
+                                <span key={p} className="px-2 py-0.5 text-xs font-medium text-[#44403c] bg-[#eeece6] rounded-md">{p}</span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        {/* Options */}
+                        <td className="w-[44px] text-right pr-4">
+                          {!isProcessing && (
+                            <MoreVertical className="w-4 h-4 text-[#78716c] opacity-0 group-hover:opacity-100 transition-opacity inline-block" strokeWidth={1.5} />
+                          )}
+                        </td>
+                      </tr>
+                      </React.Fragment>
+                    );
+                  })}
+                  {/* Drop indicator at the very end */}
+                  {reorderDropIdx === filtered.length && reorderDrag && (
+                    <tr><td colSpan={7} className="p-0"><div className="h-0.5 bg-blue-500 rounded-full mx-2" /></td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Custom drag ghost card */}
+          {reorderDrag && (
+            <div
+              className="fixed z-50 pointer-events-none bg-white border border-[#e7e5e3] rounded-lg shadow-lg px-3 py-2 flex items-center gap-2"
+              style={{ left: reorderDrag.ghostX + 12, top: reorderDrag.ghostY - 16, minWidth: 200 }}
+            >
+              <GripVertical className="w-3 h-3 text-[#d6d3d1]" strokeWidth={1.5} />
+              <span className="inline-flex items-center justify-center w-[22px] h-[22px] bg-[#eeece6] text-[#78716c] text-xs font-semibold rounded-md">{reorderDrag.num || '?'}</span>
+              <span className="text-sm font-medium text-[#292524] truncate max-w-[250px]">{reorderDrag.name}</span>
+              {reorderDrag.type && (
+                <span className={`px-2 py-0.5 text-xs font-medium rounded-md ${PIECE_TYPE_COLORS[reorderDrag.type] || 'bg-[#eeece6] text-[#44403c]'}`}>{reorderDrag.type}</span>
+              )}
+            </div>
+          )}
+
+          {/* Track B hint — no rapport */}
+          {allDone && !dropFirstHasRapport && !rapportBannerDismissed && (
+            <div className="mt-3 px-4 py-3 text-sm text-[#78716c] flex items-center gap-2">
+              <span>💡</span>
+              <span>Astuce : ajoutez un rapport d'expertise pour remplir automatiquement les informations du dossier.</span>
+            </div>
+          )}
+        </div>
+
+        {/* Document Overview Panel (Right Drawer) */}
+        {selectedPiece && renderPieceOverviewPanel(selectedPiece)}
+      </div>
+    );
+  };
+
+  const renderPieceOverviewPanel = (piece) => {
+    const pieceNum = getPieceNumber(piece);
+    const hasSplitInfo = !!piece.sourceFile;
+    const typeColorLight = piece.type === 'Expertise' ? 'bg-teal-50 border-teal-200' : piece.type === 'Décision' ? 'bg-purple-50 border-purple-200' : piece.type === 'Revenus' ? 'bg-green-50 border-green-200' : piece.type === 'Factures' ? 'bg-orange-50 border-orange-200' : piece.type === 'Médical' ? 'bg-blue-50 border-blue-200' : piece.type === 'Administratif' ? 'bg-slate-50 border-slate-200' : 'bg-[#F8F7F5] border-[#e7e5e3]';
+
+    // Navigation: get ordered list of done pieces
+    const donePieces = getFilteredPieces().filter(p => p.status === 'done');
+    const currentIdx = donePieces.findIndex(p => p.id === piece.id);
+    const prevPiece = currentIdx > 0 ? donePieces[currentIdx - 1] : null;
+    const nextPiece = currentIdx < donePieces.length - 1 ? donePieces[currentIdx + 1] : null;
+
+    const editingPanelType = editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'panelType';
+
+    return (
+      <div className="fixed right-0 top-0 h-screen bg-white border-l border-[#e7e5e3] shadow-xl z-30 flex flex-col" style={{ width: '860px', animation: 'slideInRight 0.2s ease-out' }}>
+        {/* Common header: navigation + close — spans full width */}
+        <div className="px-5 py-3 border-b border-[#e7e5e3] flex items-center justify-between flex-shrink-0 bg-white">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[6px] bg-[#dfe8f5] text-caption-medium text-[#292524]">{pieceNum || '—'}</span>
+              <span className="text-body-medium text-[#44403c] truncate max-w-[300px]">{piece.cleanName}</span>
+            </div>
+            <span className="text-zinc-200 mx-1">|</span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => prevPiece && setPieceOverviewPanel(prevPiece.id)}
+                disabled={!prevPiece}
+                className={`p-1.5 rounded-md transition-colors ${prevPiece ? 'text-[#78716c] hover:text-[#292524] hover:bg-[#eeece6]' : 'text-zinc-200 cursor-not-allowed'}`}
+              >
+                <ChevronRight className="w-4 h-4 rotate-180" />
+              </button>
+              <span className="text-caption text-[#a8a29e] min-w-[40px] text-center">{currentIdx + 1} / {donePieces.length}</span>
+              <button
+                onClick={() => nextPiece && setPieceOverviewPanel(nextPiece.id)}
+                disabled={!nextPiece}
+                className={`p-1.5 rounded-md transition-colors ${nextPiece ? 'text-[#78716c] hover:text-[#292524] hover:bg-[#eeece6]' : 'text-zinc-200 cursor-not-allowed'}`}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          <button onClick={() => setPieceOverviewPanel(null)} className="p-1.5 text-[#a8a29e] hover:text-[#78716c] hover:bg-[#eeece6] rounded-md transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Two-column body */}
+        <div className="flex flex-1 min-h-0">
+        {/* Left: Document Preview */}
+        <div className="w-[420px] flex flex-col border-r border-zinc-100 bg-[#F8F7F5]">
+          {/* Source file card — on top */}
+          <div className="px-4 pt-4 pb-2 flex-shrink-0">
+            <div className="rounded-lg border border-[#e7e5e3] bg-[#F8F7F5]/60 overflow-hidden">
+              <div className="flex items-center gap-1.5 px-3 py-2 border-b border-zinc-100">
+                {hasSplitInfo ? (
+                  <>
+                    <Scissors className="w-3 h-3 text-[#a8a29e]" />
+                    <span className="text-caption-medium text-[#a8a29e]">Document découpé · partie {piece.splitIndex + 1}/{piece.siblings.length}</span>
+                  </>
+                ) : (
+                  <span className="text-caption-medium text-[#a8a29e]">Document original</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2.5 px-3 py-2.5">
+                <div className="flex items-center justify-center w-7 h-7 rounded-md bg-white border border-[#e7e5e3] flex-shrink-0">
+                  <FileText className="w-3.5 h-3.5 text-[#a8a29e]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-body-medium text-[#78716c] truncate">{piece.originalName || piece.sourceFile || '—'}</p>
+                  <p className="text-caption text-[#a8a29e]">{piece.pages || '?'} page{(piece.pages || 0) > 1 ? 's' : ''}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Preview content — placeholder */}
+          <div className="flex-1 p-4 overflow-y-auto">
+            <div className={`w-full h-full min-h-[500px] rounded-lg border ${typeColorLight} flex flex-col items-center justify-center`}>
+              <FileText className="w-12 h-12 text-[#d6d3d1] mb-3" />
+              <p className="text-body-medium text-[#a8a29e] mb-1">Aperçu du document</p>
+              <p className="text-caption text-[#d6d3d1] text-center px-8">
+                {piece.cleanName}
+              </p>
+              <div className="mt-4 flex items-center gap-2 text-caption text-[#d6d3d1]">
+                <span>{piece.pages || '?'} page{(piece.pages || 0) > 1 ? 's' : ''}</span>
+                {hasSplitInfo && <span>· p. {piece.pageRange}</span>}
+              </div>
+              {/* Fake page thumbnails */}
+              <div className="mt-6 flex flex-wrap gap-2 justify-center px-6">
+                {Array.from({ length: Math.min(piece.pages || 1, 6) }).map((_, i) => (
+                  <div key={i} className="w-[60px] h-[80px] bg-white rounded border border-[#e7e5e3] shadow-sm flex items-center justify-center">
+                    <span className="text-counter text-[#d6d3d1]">{i + 1}</span>
+                  </div>
+                ))}
+                {(piece.pages || 0) > 6 && (
+                  <div className="w-[60px] h-[80px] bg-white rounded border border-[#e7e5e3] shadow-sm flex items-center justify-center">
+                    <span className="text-counter text-[#d6d3d1]">+{piece.pages - 6}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Metadata panel */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto px-5 py-5">
+            {/* 1. Name — always-editable input */}
+            <div className="mb-2">
+              <label className="text-caption text-[#a8a29e] mb-1 block">Nom du document</label>
+              <input
+                className="text-body-medium text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-2 w-full hover:border-zinc-300 focus:border-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-200 transition-colors"
+                value={piece.cleanName}
+                onChange={e => setDropFirstPieces(prev => prev.map(p => p.id === piece.id ? { ...p, cleanName: e.target.value } : p))}
+              />
+            </div>
+
+            {/* Description — extracted summary */}
+            {piece.summary && (
+              <div className="mb-4">
+                <p className="text-caption text-[#78716c] leading-relaxed">{piece.summary}</p>
+              </div>
+            )}
+
+            {/* Data rows — label / value, separated by border */}
+            <div className="divide-y divide-[#e7e5e3]">
+              {/* Type */}
+              <div className="flex items-center justify-between py-3">
+                <span className="text-caption text-[#a8a29e]">Type</span>
+                <div className="relative">
+                  <button
+                    className={`badge badge-md cursor-pointer hover:opacity-80 transition-opacity ${PIECE_TYPE_COLORS[piece.type] || 'badge-secondary'}`}
+                    onClick={() => setEditingPieceField(editingPanelType ? null : { pieceId: piece.id, field: 'panelType' })}
+                  >
+                    {piece.type}
+                    <ChevronDown className="w-3 h-3 opacity-50" />
+                  </button>
+                  {editingPanelType && (
+                    <div className="absolute right-0 top-full mt-1 bg-white border border-[#e7e5e3] rounded-lg shadow-lg py-1 z-10 min-w-[160px]">
+                      {PIECE_TYPE_OPTIONS.map(t => (
+                        <button
+                          key={t}
+                          className={`w-full text-left px-3 py-1.5 text-body hover:bg-[#fafaf9] transition-colors flex items-center gap-2 ${piece.type === t ? 'font-medium text-[#292524]' : 'text-[#78716c]'}`}
+                          onClick={() => {
+                            setDropFirstPieces(prev => prev.map(p => p.id === piece.id ? { ...p, type: t } : p));
+                            setEditingPieceField(null);
+                          }}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${piece.type === t ? 'bg-stone-800' : ''}`} />
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Date */}
+              <div className="flex items-center justify-between py-3">
+                <span className="text-caption text-[#a8a29e]">Date</span>
+                <span className="text-body text-[#44403c]">{piece.date ? new Date(piece.date).toLocaleDateString('fr-FR') : '—'}</span>
+              </div>
+
+              {/* Postes liés */}
+              <div className="flex items-start justify-between py-3">
+                <span className="text-caption text-[#a8a29e] pt-0.5">Postes liés</span>
+                <div className="flex flex-wrap gap-1 justify-end max-w-[65%]">
+                  {piece.postesLies && piece.postesLies.length > 0 ? piece.postesLies.map(p => (
+                    <span key={p} className="badge badge-sm badge-secondary">{p}</span>
+                  )) : (
+                    <span className="text-caption text-[#d6d3d1]">—</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+
+          </div>
+          {/* Footer — fixed at bottom of right column */}
+          <div className="px-5 py-4 border-t border-[#e7e5e3] bg-white flex-shrink-0">
+            <button
+              className="w-full px-4 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg flex items-center justify-center gap-2 font-medium text-sm transition-colors"
+              onClick={() => {
+                setDropFirstPieces(prev => prev.filter(p => p.id !== piece.id));
+                setPieceOverviewPanel(null);
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+              Supprimer le document
+            </button>
+          </div>
+        </div>
+        </div>{/* end two-column body */}
+      </div>
+    );
+  };
+
+  // ========== DROP FIRST — MODAL ==========
+  const renderDropFirstModal = () => {
+    if (!dropModal) return null;
+
+    const { files, rapportFileId, rapportDismissed } = dropModal;
+    const hasFiles = files.length > 0;
+
+    const handleFileDrop = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const droppedFiles = Array.from(e.dataTransfer?.files || []);
+      addFilesToModal(droppedFiles);
+    };
+
+    const handleFileSelect = (e) => {
+      const selected = Array.from(e.target.files || []);
+      addFilesToModal(selected);
+      e.target.value = '';
+    };
+
+    const handleRapportFileSelect = (e) => {
+      const selected = Array.from(e.target.files || []);
+      if (selected.length > 0) {
+        const file = selected[0];
+        const fileObj = {
+          id: `file-${Date.now()}-rapport`,
+          name: file.name,
+          fakeSize: (Math.random() * 4 + 0.5).toFixed(1) + ' Mo',
+          isRapport: true,
+          status: 'uploading',
+          guessedType: null,
+        };
+        setDropModal(prev => ({
+          ...prev,
+          files: [...prev.files, fileObj],
+          rapportFileId: fileObj.id,
+        }));
+        setTimeout(() => {
+          setDropModal(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              files: prev.files.map(f =>
+                f.id === fileObj.id ? { ...f, status: 'ready', guessedType: 'Expertise' } : f
+              ),
+            };
+          });
+        }, 1000 + Math.random() * 500);
+      }
+      e.target.value = '';
+    };
+
+    // Guess a document type from filename — always returns a category
+    const guessFileType = (name) => {
+      const ln = name.toLowerCase();
+      if (ln.includes('expertise') || ln.includes('rapport')) return 'Expertise';
+      if (ln.includes('facture') || ln.includes('kine') || ln.includes('kiné')) return 'Factures';
+      if (ln.includes('salaire') || ln.includes('bulletin') || ln.includes('impot') || ln.includes('impôt') || ln.includes('revenu') || ln.includes('avis')) return 'Revenus';
+      if (ln.includes('jugement') || ln.includes('decision') || ln.includes('décision') || ln.includes('arret') || ln.includes('arrêt') || ln.includes('ordonnance')) return 'Décision';
+      if (ln.includes('medical') || ln.includes('médical') || ln.includes('certificat') || ln.includes('hospitalisation') || ln.includes('cpam') || ln.includes('travail') || ln.includes('irm') || ln.includes('scanner') || ln.includes('radio') || ln.includes('compte_rendu') || ln.includes('compte-rendu') || ln.includes('decompte') || ln.includes('décompte') || ln.includes('blessure')) return 'Médical';
+      if (ln.includes('courrier') || ln.includes('lettre') || ln.includes('mail') || ln.includes('assurance') || ln.includes('correspondance')) return 'Correspondance';
+      if (ln.includes('pv') || ln.includes('police') || ln.includes('constat') || ln.includes('administratif')) return 'Administratif';
+      // Fallback: assign a random plausible type for unrecognized filenames
+      const fallbackTypes = ['Médical', 'Administratif', 'Correspondance', 'Factures', 'Revenus'];
+      return fallbackTypes[Math.floor(Math.random() * fallbackTypes.length)];
+    };
+
+    const addFilesToModal = (fileList) => {
+      const accepted = fileList.filter(f => /\.(pdf|png|jpe?g|docx?)$/i.test(f.name));
+      if (accepted.length === 0) return;
+
+      const newFiles = accepted.map((f, i) => ({
+        id: `file-${Date.now()}-${i}`,
+        name: f.name,
+        fakeSize: (Math.random() * 4 + 0.2).toFixed(1) + ' Mo',
+        status: 'uploading',
+        guessedType: null,
+      }));
+
+      setDropModal(prev => {
+        const updatedFiles = [...prev.files, ...newFiles];
+        // Auto-detect rapport
+        let newRapportId = prev.rapportFileId;
+        if (!newRapportId && !prev.rapportDismissed) {
+          const rapportFile = updatedFiles.find(f => {
+            const ln = f.name.toLowerCase();
+            return ln.includes('expertise') || ln.includes('rapport');
+          });
+          if (rapportFile) newRapportId = rapportFile.id;
+        }
+        return { ...prev, files: updatedFiles, rapportFileId: newRapportId };
+      });
+
+      // Simulate upload + categorization per file with staggered delays
+      newFiles.forEach((fileObj, i) => {
+        const delay = 800 + i * 400 + Math.random() * 600;
+        setTimeout(() => {
+          setDropModal(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              files: prev.files.map(f =>
+                f.id === fileObj.id
+                  ? { ...f, status: 'ready', guessedType: guessFileType(fileObj.name) }
+                  : f
+              ),
+            };
+          });
+        }, delay);
+      });
+    };
+
+    const removeFile = (fileId) => {
+      setDropModal(prev => {
+        const newFiles = prev.files.filter(f => f.id !== fileId);
+        return {
+          ...prev,
+          files: newFiles,
+          rapportFileId: prev.rapportFileId === fileId ? null : prev.rapportFileId,
+        };
+      });
+    };
+
+    const rapportFile = rapportFileId ? files.find(f => f.id === rapportFileId) : null;
+    const showRapportCard = hasFiles && !rapportDismissed;
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[700px] max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 pt-6 pb-4">
+            <h2 className="text-display-sm text-[#292524]" style={{ fontFamily: 'Georgia, serif' }}>Nouveau dossier</h2>
+            <button onClick={() => setDropModal(null)} className="p-1 text-[#a8a29e] hover:text-[#78716c] hover:bg-[#eeece6] rounded-lg transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto px-6 pb-4">
+            {/* Drop zone */}
+            <div
+              className="dropzone-container border border-dashed rounded-lg transition-all cursor-pointer"
+              style={{ borderColor: '#d6d3d1' }}
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('dropzone-drop'); }}
+              onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('dropzone-drop'); }}
+              onDrop={(e) => { e.currentTarget.classList.remove('dropzone-drop'); handleFileDrop(e); }}
+              onClick={() => document.getElementById('drop-first-file-input')?.click()}
+            >
+              {!hasFiles ? (
+                <>
+                  {/* Default/hover state — start context */}
+                  <div className="dropzone-default-content flex flex-col items-center rounded-lg" style={{ background: 'linear-gradient(to top, rgba(238,236,230,0) 0%, #f8f7f5 100%)' }}>
+                    <div className="pt-8 pb-8 px-8 flex flex-col items-center gap-8 w-full max-w-[576px] mx-auto">
+                      <div className="bg-[#eeece6] border shadow-sm rounded-full p-4" style={{ borderColor: '#d6d3d1' }}>
+                        <Upload className="w-6 h-6 text-stone-500" />
+                      </div>
+                      <div className="text-center space-y-2">
+                        <p className="text-heading-lg-medium text-stone-800 leading-7">Déposez l'ensemble des pièces du dossier</p>
+                        <p className="text-body text-stone-500">PDF, images, Word — vous pourrez en ajouter d'autres plus tard</p>
+                      </div>
+                      <div className="flex flex-wrap justify-center gap-3" onClick={e => e.stopPropagation()}>
+                        {['Rapports médicaux', 'Décisions de justice', 'Factures', 'Bulletins de salaire', 'Correspondances', 'PV & constats'].map((label, i) => (
+                          <span key={i} className="badge badge-sm badge-secondary">{label}</span>
+                        ))}
+                      </div>
+                      <span className="h-10 px-6 bg-stone-800 text-white text-body-medium rounded-lg hover:bg-stone-900 transition-colors inline-flex items-center gap-2 shadow-sm">
+                        <Upload className="w-4 h-4" /> Importer des pièces
+                      </span>
+                    </div>
+                  </div>
+                  {/* Drop state */}
+                  <div className="dropzone-drop-content hidden flex-col items-center rounded-lg" style={{ background: 'linear-gradient(to top, rgba(238,236,230,0) 0%, #eeece6 100%)' }}>
+                    <div className="pt-8 pb-8 px-8 flex flex-col items-center gap-8 w-full max-w-[576px] mx-auto">
+                      <div className="bg-[#eeece6] border shadow-sm rounded-full p-4" style={{ borderColor: '#d6d3d1' }}>
+                        <ArrowDown className="w-6 h-6 text-stone-600" />
+                      </div>
+                      <div className="text-center space-y-2">
+                        <p className="text-heading-lg-medium text-stone-800 leading-7">Déposez vos documents ici, l'extraction commencera</p>
+                        <p className="text-body text-stone-500">Déposez un ou plusieurs documents.</p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Default/hover — panel context */}
+                  <div className="dropzone-default-content flex items-center justify-center gap-2.5 py-4 rounded-lg" style={{ background: 'linear-gradient(to top, rgba(238,236,230,0) 50%, #f8f7f5 100%)' }}>
+                    <Upload className="w-5 h-5 text-stone-400" />
+                    <p className="text-body text-stone-500">Déposez ou <span className="font-medium text-[#1e3a8a]">cliquez</span> pour ajouter des pièces</p>
+                  </div>
+                  {/* Drop state */}
+                  <div className="dropzone-drop-content hidden flex items-center justify-center gap-2.5 py-4 rounded-lg" style={{ background: 'linear-gradient(to top, rgba(238,236,230,0) 50%, #eeece6 100%)' }}>
+                    <ArrowDown className="w-5 h-5 text-stone-600" />
+                    <p className="text-body-medium text-[#292524]">Déposez vos fichiers ici</p>
+                  </div>
+                </>
+              )}
+              <input id="drop-first-file-input" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" className="hidden" onChange={handleFileSelect} />
+            </div>
+
+            {/* File list */}
+            {hasFiles && (
+              <div className="mt-4">
+                <p className="text-body-medium text-[#78716c] mb-2">{files.length} document{files.length > 1 ? 's' : ''} ajouté{files.length > 1 ? 's' : ''}</p>
+                <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto">
+                  {files.map((f, idx) => {
+                    const isUploading = f.status === 'uploading';
+                    const fileType = (f.id === rapportFileId || f.isRapport) ? 'Expertise' : f.guessedType;
+                    return (
+                      <div key={f.id} className={`flex items-center justify-between px-3 py-2.5 rounded-lg group transition-all ${isUploading ? '' : 'hover:bg-[#f8f7f5]'}`}>
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Icon: spinner while loading, paperclip when ready */}
+                          <div className="flex items-center justify-center w-[22px] h-[22px] flex-shrink-0">
+                            {isUploading ? (
+                              <Loader2 className="w-4 h-4 text-[#78716c] animate-spin" />
+                            ) : (
+                              <>
+                                <Paperclip className="w-4 h-4 text-[#78716c] group-hover:hidden" />
+                                <Trash2
+                                  className="w-4 h-4 text-[#78716c] hover:text-red-500 hidden group-hover:block cursor-pointer"
+                                  onClick={(e) => { e.stopPropagation(); removeFile(f.id); }}
+                                />
+                              </>
+                            )}
+                          </div>
+                          {/* Filename */}
+                          <span className={`text-sm truncate ${isUploading ? 'italic opacity-40 text-[#292524]' : 'text-[#292524]'}`}>{f.name}</span>
+                        </div>
+                        {/* Badge — only shown when ready */}
+                        {!isUploading && fileType && (
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium flex-shrink-0 ${
+                            (f.id === rapportFileId || f.isRapport)
+                              ? 'bg-[#cce6d9] text-[#064e3b]'
+                              : 'bg-[#dfe8f5] text-[#1e3a8a]'
+                          }`}>
+                            {fileType}
+                            <ChevronDown className="w-3 h-3" />
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Rapport d'expertise prompt — only when no rapport detected */}
+            {showRapportCard && !rapportFile && (
+              <div className="mt-4">
+                <div className="banner banner-regular banner-ai">
+                  <div className="banner-body">
+                    <Sparkles className="w-5 h-5 banner-icon mt-0.5" fill="currentColor" />
+                    <div className="banner-content">
+                      <p className="banner-title">Avez-vous un rapport d'expertise médicale ?</p>
+                      <p className="banner-description">
+                        C'est la pièce maîtresse. À partir de ce document, nous pouvons remplir automatiquement la quasi-totalité de votre dossier : identité de la victime, faits, dates clés, postes de préjudice…
+                      </p>
+                      <div className="banner-actions">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); document.getElementById('rapport-file-input')?.click(); }}
+                          className="banner-btn-primary"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" /> Ajouter le rapport d'expertise
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDropModal(prev => ({ ...prev, rapportDismissed: true })); }}
+                          className="banner-btn-ghost"
+                        >
+                          Je n'en ai pas
+                        </button>
+                      </div>
+                      <input id="rapport-file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" className="hidden" onChange={handleRapportFileSelect} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-zinc-100 flex items-center justify-between">
+            <button
+              onClick={() => {
+                setDropModal(null);
+                setCreationWizard({ step: 'infos', formData: { nom: '', prenom: '', sexe: 'Homme', dateNaissance: '', dateDeces: '', reference: '', typeFait: 'Accident de la route', dateAccident: '', dateConsolidation: '', dateLiquidation: '' } });
+              }}
+              className="text-body text-[#a8a29e] hover:text-[#78716c] transition-colors"
+            >
+              Créer manuellement
+            </button>
+            <button
+              onClick={handleDropFirstCreate}
+              disabled={!hasFiles}
+              className={`px-5 py-2.5 text-body-medium rounded-lg transition-all ${
+                hasFiles
+                  ? 'bg-stone-800 text-white hover:bg-stone-900 shadow-sm'
+                  : 'bg-stone-100 text-stone-400 cursor-not-allowed'
+              }`}
+            >
+              Créer le dossier
+            </button>
           </div>
         </div>
       </div>
@@ -5860,48 +10211,48 @@ export default function App() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden">
             {/* Header */}
             <div className="px-6 py-5 border-b border-zinc-100">
-              <h2 className="text-lg font-semibold text-zinc-800">Nouveau dossier</h2>
+              <h2 className="text-lg font-semibold text-[#292524]">Nouveau dossier</h2>
             </div>
 
             {/* Body */}
             <div className="px-6 py-5 space-y-6">
               {/* Section Identité */}
               <div>
-                <h3 className="text-[13px] font-semibold text-zinc-700 mb-3">Identité de la victime</h3>
+                <h3 className="text-body-medium font-semibold text-[#44403c] mb-3">Identité de la victime</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Nom *</label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Nom *</label>
                     <input
                       type="text"
                       value={formData.nom}
                       onChange={(e) => updateFormData('nom', e.target.value)}
                       placeholder="Nom de famille"
-                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                      className="w-full px-3 py-2.5 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Prénom *</label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Prénom *</label>
                     <input
                       type="text"
                       value={formData.prenom}
                       onChange={(e) => updateFormData('prenom', e.target.value)}
                       placeholder="Prénom"
-                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                      className="w-full px-3 py-2.5 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Sexe</label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Sexe</label>
                     <select
                       value={formData.sexe}
                       onChange={(e) => updateFormData('sexe', e.target.value)}
-                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                      className="w-full px-3 py-2.5 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                     >
                       <option value="Homme">Homme</option>
                       <option value="Femme">Femme</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de naissance *</label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Date de naissance *</label>
                     <div className="relative">
                       <input
                         type="text"
@@ -5909,15 +10260,15 @@ export default function App() {
                         value={formData.dateNaissance}
                         onChange={(e) => updateFormData('dateNaissance', formatDateInput(e.target.value))}
                         maxLength={10}
-                        className="w-full px-3 py-2.5 pr-9 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                        className="w-full px-3 py-2.5 pr-9 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                       />
                       <input type="date" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => { if (e.target.value) updateFormData('dateNaissance', formatDateFR(e.target.value)); }} />
-                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                     </div>
-                    {computedAge !== null && <div className="text-[11px] text-zinc-400 mt-1">{computedAge} ans</div>}
+                    {computedAge !== null && <div className="text-caption text-[#a8a29e] mt-1">{computedAge} ans</div>}
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de décès</label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Date de décès</label>
                     <div className="relative">
                       <input
                         type="text"
@@ -5925,10 +10276,10 @@ export default function App() {
                         value={formData.dateDeces}
                         onChange={(e) => updateFormData('dateDeces', formatDateInput(e.target.value))}
                         maxLength={10}
-                        className="w-full px-3 py-2.5 pr-9 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                        className="w-full px-3 py-2.5 pr-9 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                       />
                       <input type="date" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => { if (e.target.value) updateFormData('dateDeces', formatDateFR(e.target.value)); }} />
-                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                     </div>
                   </div>
                 </div>
@@ -5936,14 +10287,14 @@ export default function App() {
 
               {/* Section Contexte */}
               <div>
-                <h3 className="text-[13px] font-semibold text-zinc-700 mb-3">Contexte</h3>
+                <h3 className="text-body-medium font-semibold text-[#44403c] mb-3">Contexte</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Type de fait générateur</label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Type de fait générateur</label>
                     <select
                       value={formData.typeFait}
                       onChange={(e) => updateFormData('typeFait', e.target.value)}
-                      className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                      className="w-full px-3 py-2.5 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                     >
                       {typesFaitGenerateur.map(t => (
                         <option key={t} value={t}>{t}</option>
@@ -5951,7 +10302,7 @@ export default function App() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de l'accident *</label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Date de l'accident *</label>
                     <div className="relative">
                       <input
                         type="text"
@@ -5959,14 +10310,14 @@ export default function App() {
                         value={formData.dateAccident}
                         onChange={(e) => updateFormData('dateAccident', formatDateInput(e.target.value))}
                         maxLength={10}
-                        className="w-full px-3 py-2.5 pr-9 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                        className="w-full px-3 py-2.5 pr-9 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                       />
                       <input type="date" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => { if (e.target.value) updateFormData('dateAccident', formatDateFR(e.target.value)); }} />
-                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de consolidation <span className="text-zinc-300 font-normal">(facultatif)</span></label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Date de consolidation <span className="text-[#d6d3d1] font-normal">(facultatif)</span></label>
                     <div className="relative">
                       <input
                         type="text"
@@ -5974,14 +10325,14 @@ export default function App() {
                         value={formData.dateConsolidation}
                         onChange={(e) => updateFormData('dateConsolidation', formatDateInput(e.target.value))}
                         maxLength={10}
-                        className="w-full px-3 py-2.5 pr-9 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                        className="w-full px-3 py-2.5 pr-9 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                       />
                       <input type="date" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => { if (e.target.value) updateFormData('dateConsolidation', formatDateFR(e.target.value)); }} />
-                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[12px] font-medium text-zinc-500 mb-1.5">Date de liquidation <span className="text-zinc-300 font-normal">(facultatif)</span></label>
+                    <label className="block text-caption-medium text-[#78716c] mb-1.5">Date de liquidation <span className="text-[#d6d3d1] font-normal">(facultatif)</span></label>
                     <div className="relative">
                       <input
                         type="text"
@@ -5989,10 +10340,10 @@ export default function App() {
                         value={formData.dateLiquidation}
                         onChange={(e) => updateFormData('dateLiquidation', formatDateInput(e.target.value))}
                         maxLength={10}
-                        className="w-full px-3 py-2.5 pr-9 border border-zinc-200 rounded-lg text-[14px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
+                        className="w-full px-3 py-2.5 pr-9 border border-[#e7e5e3] rounded-lg text-body text-[#44403c] focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 transition-colors"
                       />
                       <input type="date" className="absolute inset-0 opacity-0 pointer-events-none" onChange={(e) => { if (e.target.value) updateFormData('dateLiquidation', formatDateFR(e.target.value)); }} />
-                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 rounded"><Calendar className="w-4 h-4 text-zinc-400" /></button>
+                      <button type="button" onClick={(e) => e.currentTarget.previousElementSibling.showPicker()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[#eeece6] rounded"><Calendar className="w-4 h-4 text-[#a8a29e]" /></button>
                     </div>
                   </div>
                 </div>
@@ -6003,14 +10354,14 @@ export default function App() {
             <div className="px-6 py-4 border-t border-zinc-100 flex justify-end gap-3">
               <button
                 onClick={() => setCreationWizard(null)}
-                className="px-4 py-2.5 text-[13px] text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
+                className="px-4 py-2.5 text-body text-[#78716c] hover:text-[#44403c] hover:bg-[#eeece6] rounded-lg transition-colors"
               >
                 Annuler
               </button>
               <button
                 onClick={() => setCreationWizard(prev => ({ ...prev, step: 'mode-chiffrage' }))}
                 disabled={!canSubmitInfos}
-                className="px-5 py-2.5 bg-zinc-900 text-white text-[13px] font-medium rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-5 py-2.5 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Créer le dossier
               </button>
@@ -6026,7 +10377,7 @@ export default function App() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden">
             {/* Header */}
             <div className="px-6 py-5 border-b border-zinc-100">
-              <h2 className="text-lg font-semibold text-zinc-800">Comment souhaitez-vous créer votre chiffrage ?</h2>
+              <h2 className="text-lg font-semibold text-[#292524]">Comment souhaitez-vous créer votre chiffrage ?</h2>
             </div>
 
             {/* Body */}
@@ -6036,13 +10387,13 @@ export default function App() {
                 {/* Option 1: Importer le rapport */}
                 <div
                   onClick={() => document.getElementById('wizard-file-input').click()}
-                  className="flex-1 p-6 border-2 border-zinc-200 rounded-xl hover:border-zinc-400 hover:bg-zinc-50 cursor-pointer transition-all group"
+                  className="flex-1 p-6 border-2 border-[#e7e5e3] rounded-xl hover:border-zinc-400 hover:bg-[#fafaf9] cursor-pointer transition-all group"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-zinc-100 flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
-                    <Upload className="w-6 h-6 text-zinc-600" />
+                  <div className="w-12 h-12 rounded-xl bg-[#eeece6] flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
+                    <Upload className="w-6 h-6 text-[#78716c]" />
                   </div>
-                  <h3 className="text-[15px] font-semibold text-zinc-800 mb-2">Importer mon rapport d'expertise</h3>
-                  <p className="text-[13px] text-zinc-500 leading-relaxed">Extraction automatique des données. Pré-remplissage des postes et calculs.</p>
+                  <h3 className="text-heading-sm text-[#292524] mb-2">Importer mon rapport d'expertise</h3>
+                  <p className="text-body text-[#78716c] leading-relaxed">Extraction automatique des données. Pré-remplissage des postes et calculs.</p>
                   <input
                     id="wizard-file-input"
                     type="file"
@@ -6062,27 +10413,27 @@ export default function App() {
                 {/* Option 2: Saisie manuelle */}
                 <div
                   onClick={() => handleCreateDossier(formData, 'chiffrage')}
-                  className="flex-1 p-6 border-2 border-zinc-200 rounded-xl hover:border-zinc-400 hover:bg-zinc-50 cursor-pointer transition-all group"
+                  className="flex-1 p-6 border-2 border-[#e7e5e3] rounded-xl hover:border-zinc-400 hover:bg-[#fafaf9] cursor-pointer transition-all group"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-zinc-100 flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
-                    <Edit3 className="w-6 h-6 text-zinc-600" />
+                  <div className="w-12 h-12 rounded-xl bg-[#eeece6] flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
+                    <Edit3 className="w-6 h-6 text-[#78716c]" />
                   </div>
-                  <h3 className="text-[15px] font-semibold text-zinc-800 mb-2">Saisir les données manuellement</h3>
-                  <p className="text-[13px] text-zinc-500 leading-relaxed">Le rapport est sous vos yeux. Renseignez les informations à la main.</p>
+                  <h3 className="text-heading-sm text-[#292524] mb-2">Saisir les données manuellement</h3>
+                  <p className="text-body text-[#78716c] leading-relaxed">Le rapport est sous vos yeux. Renseignez les informations à la main.</p>
                 </div>
               </div>
 
               {/* Option 3: Pas encore de rapport (secondaire) */}
               <div
-                onClick={() => handleCreateDossier(formData, 'détail')}
-                className="mt-4 px-4 py-3 border border-zinc-200 rounded-lg hover:bg-zinc-50 cursor-pointer transition-all flex items-center gap-3 group"
+                onClick={() => handleCreateDossier(formData, 'dossier')}
+                className="mt-4 px-4 py-3 border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] cursor-pointer transition-all flex items-center gap-3 group"
               >
-                <div className="w-8 h-8 rounded-lg bg-zinc-50 flex items-center justify-center flex-shrink-0 group-hover:bg-zinc-100 transition-colors">
-                  <FileText className="w-4 h-4 text-zinc-400" />
+                <div className="w-8 h-8 rounded-lg bg-[#F8F7F5] flex items-center justify-center flex-shrink-0 group-hover:bg-[#eeece6] transition-colors">
+                  <FileText className="w-4 h-4 text-[#a8a29e]" />
                 </div>
                 <div>
-                  <h3 className="text-[13px] font-medium text-zinc-500 group-hover:text-zinc-700 transition-colors">Je n'ai pas encore le rapport d'expertise</h3>
-                  <p className="text-[12px] text-zinc-400 leading-relaxed">Créer le dossier maintenant, le chiffrage pourra démarrer après.</p>
+                  <h3 className="text-body-medium text-[#78716c] group-hover:text-[#44403c] transition-colors">Je n'ai pas encore le rapport d'expertise</h3>
+                  <p className="text-caption text-[#a8a29e] leading-relaxed">Créer le dossier maintenant, le chiffrage pourra démarrer après.</p>
                 </div>
               </div>
             </div>
@@ -6091,13 +10442,13 @@ export default function App() {
             <div className="px-6 py-4 border-t border-zinc-100 flex justify-end gap-3">
               <button
                 onClick={() => setCreationWizard(prev => ({ ...prev, step: 'infos' }))}
-                className="px-4 py-2.5 text-[13px] text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
+                className="px-4 py-2.5 text-body text-[#78716c] hover:text-[#44403c] hover:bg-[#eeece6] rounded-lg transition-colors"
               >
                 Retour
               </button>
               <button
                 onClick={() => setCreationWizard(null)}
-                className="px-4 py-2.5 text-[13px] text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
+                className="px-4 py-2.5 text-body text-[#78716c] hover:text-[#44403c] hover:bg-[#eeece6] rounded-lg transition-colors"
               >
                 Annuler
               </button>
@@ -6113,22 +10464,44 @@ export default function App() {
   // ========== RENDER PAGE LISTE ==========
   const renderDossierListPage = () => (
     <div className="h-screen flex relative" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: '#27272a' }}>
-      {/* Sidebar Rail - anthracite */}
-      <div className="w-14 bg-zinc-900 flex flex-col items-center py-4 flex-shrink-0">
-        {/* Logo Norma */}
-        <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center mb-6">
-          <span className="text-zinc-900 font-bold text-[15px]">N</span>
+      {/* Sidebar Rail */}
+      <div className="w-12 bg-white border-r border-[#e7e5e3] flex flex-col items-start flex-shrink-0">
+        {/* Header — Logo */}
+        <div className="w-full flex flex-col items-center justify-center py-3 border-b border-[#e7e5e3]">
+          <img src="/logo-plato.png" alt="Plato" className="w-6 h-6" />
         </div>
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Bottom: Settings + User */}
-        <div className="flex flex-col items-center gap-3">
-          <button className="w-9 h-9 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors">
-            <Settings className="w-[18px] h-[18px]" />
+        {/* Nav items */}
+        <div className="flex-1 w-full flex flex-col gap-2 p-2">
+          <button
+            onClick={() => setCurrentPage('list')}
+            title="Mes dossiers"
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'list' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+            style={{ borderRadius: 8 }}
+          >
+            <Folder className="w-4 h-4" />
           </button>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-xs font-medium cursor-pointer">
+          <button
+            onClick={() => setCurrentPage('baremes')}
+            title="Référentiels & Barèmes"
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'baremes' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+            style={{ borderRadius: 8 }}
+          >
+            <Scale className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Footer — UIKit + Avatar */}
+        <div className="w-full border-t border-[#e7e5e3] p-2 flex flex-col gap-2">
+          <button
+            onClick={() => setCurrentPage('components')}
+            title="UI Components"
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'components' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+            style={{ borderRadius: 8 }}
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
+          <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium cursor-pointer overflow-hidden" style={{ borderRadius: 12 }}>
             MR
           </div>
         </div>
@@ -6143,8 +10516,8 @@ export default function App() {
               Mes dossiers
             </h1>
             <button
-              onClick={() => setCreationWizard({ step: 'infos', formData: { nom: '', prenom: '', sexe: 'Homme', dateNaissance: '', dateDeces: '', reference: '', typeFait: 'Accident de la route', dateAccident: '', dateConsolidation: '', dateLiquidation: '' } })}
-              className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 transition-colors"
+              onClick={() => setDropModal({ files: [], rapportFileId: null, rapportDismissed: false })}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors"
             >
               <Plus className="w-4 h-4" />
               Nouveau dossier
@@ -6154,46 +10527,46 @@ export default function App() {
 
         {/* Table */}
         <div className="flex-1 overflow-y-auto px-8 pb-8">
-          <div className="bg-white rounded-lg border border-zinc-200/60 overflow-hidden">
+          <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-100">
-                  <th className="px-5 py-3 text-left text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Référence</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Type de fait</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Date</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Dernier édit</th>
+                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Référence</th>
+                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Type de fait</th>
+                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Date</th>
+                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Dernier édit</th>
                   <th className="px-5 py-3 w-10"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-[#e7e5e3]">
                 {dossiers.map(dossier => (
                   <tr
                     key={dossier.id}
                     onClick={() => openDossier(dossier)}
-                    className="hover:bg-zinc-50 cursor-pointer transition-colors group"
+                    className="bg-white hover:bg-[#fafaf9] cursor-pointer transition-colors group"
                   >
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center flex-shrink-0">
-                          <Folder className="w-4 h-4 text-zinc-400" />
+                        <div className="w-8 h-8 rounded-lg bg-[#eeece6] flex items-center justify-center flex-shrink-0">
+                          <Folder className="w-4 h-4 text-[#a8a29e]" />
                         </div>
-                        <span className="text-[14px] font-medium text-zinc-800">{dossier.reference}</span>
+                        <span className="text-body-medium text-[#292524]">{dossier.reference}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-[13px] text-zinc-500">{dossier.typeFait}</td>
-                    <td className="px-5 py-4 text-[13px] text-zinc-500 tabular-nums">{dossier.date}</td>
+                    <td className="px-5 py-4 text-body text-[#78716c]">{dossier.typeFait}</td>
+                    <td className="px-5 py-4 text-body text-[#78716c] tabular-nums">{dossier.date}</td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
-                          <span className="text-[9px] text-white font-medium">{dossier.lastEditBy.split(' ').map(n => n[0]).join('')}</span>
+                          <span className="text-counter text-white">{dossier.lastEditBy.split(' ').map(n => n[0]).join('')}</span>
                         </div>
-                        <span className="text-[13px] text-zinc-500">{dossier.lastEditDate}</span>
+                        <span className="text-body text-[#78716c]">{dossier.lastEditDate}</span>
                       </div>
                     </td>
                     <td className="px-5 py-4">
                       <button
                         onClick={(e) => { e.stopPropagation(); }}
-                        className="p-1.5 rounded-lg text-zinc-300 hover:text-zinc-600 hover:bg-zinc-100 opacity-0 group-hover:opacity-100 transition-all"
+                        className="p-1.5 rounded-lg text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#eeece6] opacity-0 group-hover:opacity-100 transition-all"
                       >
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
@@ -6206,12 +10579,14 @@ export default function App() {
         </div>
       </div>
       {renderCreationWizard()}
+      {renderDropFirstModal()}
     </div>
   );
 
   // ========== MAIN ==========
   // Obtenir le parent pour le bouton back
   const getParentInfo = () => {
+    if (!currentLevel) return null;
     // Si on est dans une sous-section PGPA
     if (currentLevel.subSection) {
       return { hasBack: true, action: () => {
@@ -6227,16 +10602,2888 @@ export default function App() {
     return { hasBack: true, action: () => navigateToStackLevel(navStack.length - 2) };
   };
   
-  const parentInfo = getParentInfo();
+  const parentInfo = getParentInfo(); // eslint-disable-line no-unused-vars
+
+  // ========== SHARED SANDBOX COMPONENTS ==========
+  // These are reused by both the UI Kit and Diff Engine pages.
+
+  const DIFF_TABLE_TAG_STYLES = {
+    add: { bg: '#dcfce7', color: '#064e3b', label: 'ADD' },
+    edit: { bg: '#f9ecd6', color: '#855b31', label: 'EDIT' },
+    mixed: { bg: '#fff7ed', color: '#9a3412', label: 'MIXED' },
+    delete: { bg: '#fef2f2', color: '#991b1b', label: 'DELETE' },
+  };
+  const diffTag = (type) => { const t = DIFF_TABLE_TAG_STYLES[type]; return <span className="text-counter px-1.5 py-0.5 rounded" style={{ background: t.bg, color: t.color, fontWeight: 600 }}>{t.label}</span>; };
+
+  const DIFF_TABLE_INITIAL_ROWS = [
+    { id: 'r1', diffType: 'add', label: 'Hospitalisation jour', date: '15/02/2026', montant: '500 €', reste: '255,00 €', resteBase: '250,00€', taux: '100%', status: 'pending' },
+    { id: 'r2', diffType: 'edit', label: 'Hospitalisation jour', date: '15/02/2026', oldDate: '15/02/2026', montant: '200€', oldMontant: '500€', reste: '255,00 €', resteBase: '250,00€', oldReste: '255,00 €', oldResteBase: '250,00€', taux: '100%', status: 'pending' },
+    { id: 'r3', diffType: 'edit', label: 'Hospitalisation de nuit', oldLabel: 'Hospitalisation jour', date: '15/02/2026', montant: '200€', reste: '255,00 €', resteBase: '250,00€', taux: '100%', bgAlt: true, status: 'pending' },
+    { id: 'r4', diffType: 'edit', label: 'Hospitalisation de nuit', badgeEdit: true, oldTaux: '50%', montant: null, oldMontant: '200€', reste: '255,00 €', resteBase: '250,00€', taux: '100%', tauxSuccess: true, status: 'pending' },
+    { id: 'r5', diffType: 'mixed', label: 'Hospitalisation de nuit', oldLabel: 'Hospitalisation jour', date: '15/02/2026', montant: null, oldMontant: '200€', reste: '255,00 €', resteBase: '250,00€', taux: '100%', tauxSuccess: true, status: 'pending' },
+    { id: 'r6', diffType: 'delete', label: 'Hospitalisation jour', date: '15/02/2026', montant: '500 €', reste: '255,00 €', resteBase: '250,00€', taux: '100%', status: 'pending' },
+    { id: 'r7', diffType: null, label: 'Frais pharmaceutiques', date: '20/07/2022', montant: '320,00 €', reste: '320,00 €', resteBase: '320,00€', taux: '100%', status: null },
+  ];
+
+  const ARTIFACT_CARD_INITIAL_DIFFS = [
+    { id: 'dsa-1', entityLabel: 'Hospitalisation CHU', type: 'add', fields: [{ label: 'Montant', after: '4 500 €' }, { label: 'Date', after: '05/06/2022' }] },
+    { id: 'dsa-2', entityLabel: 'Kinésithérapie', type: 'edit', fields: [{ label: 'Montant', before: '960 €', after: '1 280 €' }] },
+    { id: 'dsa-3', entityLabel: 'Consultation doublon', type: 'delete', fields: [{ label: 'Montant', before: '55 €' }] },
+    { id: 'dsa-4', entityLabel: 'Revalorisation activée', type: 'add', fields: [{ label: 'État', after: 'On', badge: 'success' }, { label: 'Valeur', after: 'IPC Annuel' }] },
+    { id: 'dsa-5', entityLabel: 'Revalorisation modifiée', type: 'edit', fields: [{ label: 'Indice', before: 'IPC Annuel', after: 'IPC Mensuel' }] },
+    { id: 'dsa-6', entityLabel: 'Revalorisation désactivée', type: 'delete', fields: [{ label: 'État', before: 'Off', badge: 'secondary' }] },
+    { id: 'info-1', entityLabel: 'Nom', type: 'add', fields: [{ label: 'Valeur', after: 'Martin' }] },
+    { id: 'info-2', entityLabel: 'Prénom', type: 'add', fields: [{ label: 'Valeur', after: 'Sophie' }] },
+    { id: 'info-3', entityLabel: 'Date de naissance', type: 'add', fields: [{ label: 'Valeur', after: '14/03/1985' }] },
+    { id: 'info-4', entityLabel: 'Date accident', type: 'edit', fields: [{ label: 'Valeur', before: '04/06/2022', after: '05/06/2022' }] },
+    { id: 'info-5', entityLabel: 'Profession', type: 'edit', fields: [{ label: 'Valeur', before: 'Commerciale', after: 'Cadre commercial' }] },
+    { id: 'info-6', entityLabel: 'AIPP', type: 'add', fields: [{ label: 'Valeur', after: '8%' }] },
+  ];
+  const ARTIFACT_CARD_DEFS = [
+    { id: 'kit-dsa', title: 'DSA — Dépenses de santé actuelles', Icon: HeartPulse, diffIds: ['dsa-1', 'dsa-2', 'dsa-3', 'dsa-4', 'dsa-5', 'dsa-6'] },
+    { id: 'kit-info', title: 'Info dossier', Icon: ClipboardList, diffIds: ['info-1', 'info-2', 'info-3', 'info-4', 'info-5', 'info-6'] },
+  ];
+
+  const SharedDiffTableSandbox = () => {
+    const [rows, setRows] = React.useState(DIFF_TABLE_INITIAL_ROWS);
+    const pending = rows.filter(r => r.status === 'pending');
+    const reset = () => setRows(DIFF_TABLE_INITIAL_ROWS);
+    const accept = (id) => setRows(prev => prev.map(r => r.id === id ? { ...r, status: 'accepted' } : r));
+    const reject = (id) => setRows(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+
+    const thStyle = { fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '0 8px' };
+    const oldVal = (v) => <div style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through', letterSpacing: '0.12px' }}>{v}</div>;
+    const newVal = (v, opts = {}) => <div style={{ fontSize: 14, lineHeight: '20px', fontWeight: 500, color: '#292524', ...opts }}>{v}</div>;
+    const delVal = (v) => <span style={{ fontSize: 14, color: '#a8a29e', textDecoration: 'line-through' }}>{v}</span>;
+    const strip = (color) => <div className="absolute left-0 top-0 bottom-0 w-1 pointer-events-none" style={{ background: color }} />;
+
+    const renderBtns = (id) => (
+      <span className="absolute right-[-20px] top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover/diff:opacity-100 transition-opacity z-10">
+        <button onClick={() => accept(id)} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+        <button onClick={() => reject(id)} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+      </span>
+    );
+
+    const docIcon = (r) => {
+      if (r.diffType === 'delete') return <span className="inline-flex items-center justify-center w-7 h-7 bg-white rounded-md border border-dashed border-[#a8a29e]" style={{ opacity: 0.4 }}><FileText className="w-3.5 h-3.5 text-[#a8a29e]" /></span>;
+      if (!r.diffType) return <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]"><FileText className="w-3.5 h-3.5" /></span>;
+      return <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative"><FileText className="w-4 h-4 text-[#2563eb]" /><span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#1e3a8a] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">1</span></span>;
+    };
+
+    const resteCell = (r, muted) => {
+      const c = muted ? '#a8a29e' : '#78716c';
+      const mc = muted ? '#a8a29e' : '#292524';
+      const strike = muted ? 'line-through' : 'none';
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+          <span style={{ fontSize: 12, color: c, textDecoration: strike, letterSpacing: muted ? '0.12px' : undefined }}>{r.resteBase} ·</span>
+          <CircleArrowUp className="w-3 h-3" style={{ color: c }} />
+          <span style={{ fontSize: 14, fontWeight: 500, color: mc, textDecoration: strike }}>{r.reste}</span>
+        </div>
+      );
+    };
+
+    const resolvedDocIcon = <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative"><FileText className="w-4 h-4 text-[#2563eb]" /><span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#1e3a8a] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">1</span></span>;
+
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-caption text-[#78716c]">{pending.length} pending · {rows.filter(r => r.status === 'accepted').length} accepted · {rows.filter(r => r.status === 'rejected').length} rejected</span>
+          <button onClick={reset} className="flex items-center gap-1.5 text-caption-medium text-[#1e3a8a] hover:text-[#1e40af]"><RotateCcw className="w-3 h-3" /> Reset</button>
+        </div>
+        <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-visible">
+          <div className="flex items-center" style={{ borderBottom: '1px solid #e7e5e3', background: '#fafaf9', padding: '8px 0' }}>
+            <div className="w-[52px] flex-shrink-0" style={{ ...thStyle, paddingLeft: 14 }}>Doc</div>
+            <div className="flex-1 min-w-0" style={thStyle}>Libellé</div>
+            <div className="flex-1 min-w-0" style={thStyle}>Taux</div>
+            <div className="flex-1 min-w-0" style={thStyle}>Date</div>
+            <div className="flex-1 min-w-0" style={{ ...thStyle, textAlign: 'right' }}>Montant</div>
+            <div className="flex-1 min-w-0" style={{ ...thStyle, textAlign: 'right' }}>Reste à charge</div>
+            <div className="flex-1 min-w-0" style={{ ...thStyle, textAlign: 'right' }}>Type</div>
+          </div>
+          {rows.filter(r => {
+            if (r.status === 'accepted' && r.diffType === 'delete') return false;
+            if (r.status === 'rejected' && r.diffType === 'add') return false;
+            return true;
+          }).map((r, i, arr) => {
+            const isPending = r.status === 'pending';
+            const isAccepted = r.status === 'accepted';
+            const isRejected = r.status === 'rejected';
+            const isDel = r.diffType === 'delete';
+            const resolved = isAccepted || isRejected;
+            const diffColor = r.diffType ? ROW_DIFF_COLORS[r.diffType === 'mixed' ? 'edit' : r.diffType] : null;
+            const showLabel = resolved && isRejected && r.oldLabel ? r.oldLabel : r.label;
+            const showDate = resolved && isRejected && r.oldDate ? r.oldDate : r.date;
+            const showMontant = resolved && isRejected && r.oldMontant ? r.oldMontant : r.montant;
+            const showTaux = resolved && isRejected && r.oldTaux ? r.oldTaux : r.taux;
+            const showReste = resolved && isRejected && r.oldReste ? r.oldReste : r.reste;
+            const showResteBase = resolved && isRejected && r.oldResteBase ? r.oldResteBase : r.resteBase;
+            return (
+              <div key={r.id} className={`group/diff relative flex items-center transition-colors ${isAccepted ? 'diff-row-accepted' : isRejected ? 'diff-row-rejected' : ''}`} style={{ borderBottom: i < arr.length - 1 ? '1px solid #f0efed' : 'none', minHeight: 56, background: r.bgAlt && isPending ? '#fafaf9' : undefined }}>
+                {isPending && diffColor && strip(diffColor)}
+                <div className="w-[52px] flex-shrink-0 px-2 pl-[14px]">{resolved ? resolvedDocIcon : docIcon(r)}</div>
+                <div className="flex-1 min-w-0 px-2">
+                  {resolved ? newVal(showLabel) : isPending && isDel ? delVal(r.label) : isPending && r.oldLabel ? <>{oldVal(r.oldLabel)}{newVal(r.label)}</> : newVal(r.label)}
+                </div>
+                <div className="flex-1 min-w-0 px-2">
+                  {resolved ? <span className="text-caption-medium px-2 py-0.5 rounded-[6px] bg-[#eeece6] text-[#44403c]">{showTaux}</span>
+                    : isPending && r.badgeEdit ? <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span className="text-caption-medium px-2 py-0.5 rounded-[6px] line-through" style={{ background: '#eeece6', color: '#a8a29e' }}>{r.oldTaux}</span><span className="text-caption-medium px-2 py-0.5 rounded-[6px]" style={{ background: '#cce6d9', color: '#064e3b' }}>{r.taux}</span></div>
+                    : isPending && isDel ? <span className="text-caption-medium px-2 py-0.5 rounded-[6px] line-through" style={{ background: '#f5f5f4', color: '#a8a29e' }}>{r.taux}</span>
+                    : r.tauxSuccess ? <span className="text-caption-medium px-2 py-0.5 rounded-[6px]" style={{ background: '#cce6d9', color: '#064e3b' }}>{r.taux}</span>
+                    : <span className="text-caption-medium px-2 py-0.5 rounded-[6px] bg-[#eeece6] text-[#44403c]">{r.taux}</span>}
+                </div>
+                <div className="flex-1 min-w-0 px-2">
+                  {resolved ? <span style={{ fontSize: 14, color: '#78716c' }}>{showDate}</span> : isPending && isDel ? delVal(r.date) : isPending && r.oldDate ? <>{oldVal(r.oldDate)}{newVal(r.date, { fontWeight: 500 })}</> : <span style={{ fontSize: 14, color: '#78716c' }}>{r.date}</span>}
+                </div>
+                <div className="flex-1 min-w-0 px-2 text-right">
+                  {resolved ? (showMontant ? newVal(showMontant, { color: '#44403c' }) : <span style={{ color: '#a8a29e' }}>—</span>) : r.montant == null && r.oldMontant && isPending ? delVal(r.oldMontant) : isPending && isDel ? delVal(r.montant) : isPending && r.oldMontant ? <>{oldVal(r.oldMontant)}{newVal(r.montant)}</> : r.montant ? newVal(r.montant, { color: '#44403c' }) : <span style={{ color: '#a8a29e' }}>—</span>}
+                </div>
+                <div className="flex-1 min-w-0 px-2 text-right">
+                  {resolved ? resteCell({ resteBase: showResteBase, reste: showReste }, false) : isPending && r.oldReste ? <>{resteCell({ resteBase: r.oldResteBase, reste: r.oldReste }, true)}{resteCell(r, false)}</> : resteCell(r, isPending && isDel)}
+                </div>
+                <div className="flex-1 min-w-0 px-2 text-right">
+                  {r.diffType ? diffTag(r.diffType) : <span className="text-counter text-[#a8a29e]">—</span>}
+                </div>
+                {isPending && r.diffType && renderBtns(r.id)}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const SharedInteractiveCards = ({ initialDiffs = ARTIFACT_CARD_INITIAL_DIFFS, cardDefs = ARTIFACT_CARD_DEFS }) => {
+    const [diffs, setDiffs] = React.useState(initialDiffs);
+    const [expanded, setExpanded] = React.useState({});
+    const reset = () => { setDiffs(initialDiffs); setExpanded({}); };
+
+    return (
+      <div className="flex flex-col gap-5" style={{ maxWidth: 420, marginBottom: 24 }}>
+        {cardDefs.map(card => {
+          const cardDiffs = diffs.filter(d => card.diffIds.includes(d.id));
+          const pending = cardDiffs.filter(d => !d.approved && !d.rejected);
+          const allResolved = cardDiffs.length > 0 && cardDiffs.every(d => d.approved || d.rejected);
+          const isExp = !!expanded[card.id];
+          const summary = { adds: pending.filter(d => d.type === 'add').length, edits: pending.filter(d => d.type === 'edit').length, deletes: pending.filter(d => d.type === 'delete').length };
+          const chips = [];
+          if (summary.adds > 0) chips.push({ icon: Plus, count: summary.adds, color: ROW_DIFF_COLORS.add });
+          if (summary.edits > 0) chips.push({ icon: Pencil, count: summary.edits, color: ROW_DIFF_COLORS.edit });
+          if (summary.deletes > 0) chips.push({ icon: Trash2, count: summary.deletes, color: ROW_DIFF_COLORS.delete });
+          const approvedCnt = cardDiffs.filter(d => d.approved).length;
+          const rejectedCnt = cardDiffs.filter(d => d.rejected).length;
+          const resType = allResolved ? (rejectedCnt === 0 ? 'all-approved' : approvedCnt === 0 ? 'all-rejected' : 'mixed') : null;
+          return (
+            <div key={card.id}>
+              <div className="rounded-lg border border-[#e7e5e3] bg-white overflow-hidden transition-all duration-300" style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -2px 4px rgba(0,0,0,0.03)', opacity: allResolved ? 0.85 : 1 }}>
+                <div className="flex items-stretch cursor-pointer select-none group/header">
+                  <div className="w-10 flex items-center justify-center flex-shrink-0" style={{ background: allResolved ? (resType === 'all-approved' ? '#ecfdf5' : resType === 'all-rejected' ? '#fef2f2' : '#f5f5f4') : '#f5f5f4' }}><card.Icon className="w-3.5 h-3.5" style={{ color: allResolved ? (resType === 'all-approved' ? ROW_DIFF_COLORS.add : resType === 'all-rejected' ? ROW_DIFF_COLORS.delete : '#78716c') : '#78716c' }} /></div>
+                  <div className="flex items-center gap-3 flex-1 min-w-0" style={{ padding: '12px 14px 12px 12px' }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="group-hover/header:underline" style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '18px', textDecorationColor: '#d6d3d1' }}>{card.title}</div>
+                      {allResolved ? (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, lineHeight: '14px', color: resType === 'all-approved' ? ROW_DIFF_COLORS.add : resType === 'all-rejected' ? ROW_DIFF_COLORS.delete : '#78716c' }}>
+                            {resType === 'all-approved' ? 'Tout accepté' : resType === 'all-rejected' ? 'Tout rejeté' : `${approvedCnt}/${cardDiffs.length} accepté${approvedCnt > 1 ? 's' : ''}`}
+                          </span>
+                        </div>
+                      ) : chips.length > 0 ? (
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {chips.map((chip, ci) => { const CI = chip.icon; return <span key={ci} className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: chip.color, fontWeight: 500 }}><CI className="w-2.5 h-2.5" strokeWidth={2.5} />{chip.count}</span>; })}
+                        </div>
+                      ) : null}
+                    </div>
+                    {cardDiffs.length > 0 && <button className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0 hover:bg-[#e7e5e3]" onClick={() => setExpanded(prev => ({ ...prev, [card.id]: !prev[card.id] }))}><ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" style={{ color: '#78716c', transform: isExp ? 'rotate(0deg)' : 'rotate(-90deg)' }} /></button>}
+                  </div>
+                </div>
+                {isExp && (
+                  <div style={{ borderTop: '1px solid #f0efed' }}>
+                    {cardDiffs.map((diff, di) => {
+                      const dotColor = ROW_DIFF_COLORS[diff.type] || ROW_DIFF_COLORS.edit;
+                      return (
+                        <div key={diff.id} className={`group/diff cursor-pointer transition-colors ${diff.approved ? 'diff-row-accepted' : diff.rejected ? 'diff-row-rejected' : 'hover:bg-[#fafaf9]'}`} style={{ padding: '8px 14px', fontSize: 12, borderBottom: di < cardDiffs.length - 1 ? '1px solid #f0efed' : 'none' }}>
+                          <div className="flex items-center gap-2">
+                            {diff.approved ? <Check className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.add }} strokeWidth={3} />
+                              : diff.rejected ? (diff.type === 'delete' ? <RotateCcw className="w-2.5 h-2.5 flex-shrink-0" style={{ color: '#a8a29e' }} strokeWidth={2.5} /> : <X className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.delete }} strokeWidth={3} />)
+                              : <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dotColor, transform: 'rotate(45deg)' }} />}
+                            <span style={{ color: (diff.approved || diff.rejected) ? '#a8a29e' : diff.type === 'delete' ? '#a8a29e' : '#44403c', fontWeight: 500, flex: 1, textDecoration: (diff.type === 'delete' && !diff.rejected) || (diff.rejected && diff.type !== 'delete') ? 'line-through' : 'none' }}>{diff.entityLabel}</span>
+                            {!diff.approved && !diff.rejected && (
+                              <span className="flex items-center gap-1.5 opacity-0 group-hover/diff:opacity-100 transition-opacity flex-shrink-0">
+                                <button className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#ecfdf5] hover:border-[#a5c9b7]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} onClick={() => setDiffs(prev => prev.map(d => d.id === diff.id ? { ...d, approved: true } : d))}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                                <button className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#fef2f2] hover:border-[#cf9d9d]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} onClick={() => setDiffs(prev => prev.map(d => d.id === diff.id ? { ...d, rejected: true } : d))}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 items-center" style={{ paddingLeft: 14 }}>
+                            {diff.fields.map((f, fi) => {
+                              const badgeStyle = f.badge ? { display: 'inline-flex', alignItems: 'center', padding: '1px 6px', borderRadius: 6, fontSize: 11, fontWeight: 500, lineHeight: '16px', ...(f.badge === 'success' ? { background: '#cce6d9', color: '#064e3b' } : { background: '#eeece6', color: '#44403c' }) } : null;
+                              const renderVal = (val, style) => f.badge ? <span style={{ ...badgeStyle, ...style }}>{val}</span> : <span style={style}>{val}</span>;
+                              return (
+                                <span key={fi} className="inline-flex items-center gap-1" style={{ fontSize: 12, color: (diff.approved || diff.rejected) ? '#a8a29e' : '#78716c' }}>
+                                  <span style={{ color: '#a8a29e' }}>{f.label}:</span>{' '}
+                                  {diff.rejected ? (
+                                    diff.type === 'delete' ? renderVal(f.before || f.after, { color: '#78716c' })
+                                    : diff.type === 'add' ? <>{f.after && renderVal(f.after, { textDecoration: 'line-through', color: '#a8a29e', opacity: f.badge ? 0.5 : 1 })}</>
+                                    : <>{f.after && renderVal(f.after, { textDecoration: 'line-through', color: '#a8a29e', opacity: f.badge ? 0.5 : 1 })}{f.before && <span style={{ color: '#a8a29e' }}> → </span>}{f.before && renderVal(f.before, { color: '#78716c' })}</>
+                                  ) : (
+                                    <>{f.before && renderVal(f.before, { textDecoration: 'line-through', color: '#a8a29e', opacity: f.badge ? 0.5 : 1 })}{f.before && f.after && <span style={{ color: '#a8a29e' }}> → </span>}{f.after && renderVal(f.after, f.badge ? {} : { color: diff.approved ? '#a8a29e' : '#44403c', fontWeight: 500 })}</>
+                                  )}
+                                  {f.variants && f.variants.length > 1 && !diff.approved && !diff.rejected && (
+                                    <span className="inline-flex items-center gap-1 ml-1.5" style={{ position: 'relative' }}>
+                                      {f.variants.map((v, vi) => (
+                                        <span key={vi} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ fontSize: 10, fontWeight: 500, background: vi === 0 ? '#eef3fa' : '#f5f5f4', border: `1px solid ${vi === 0 ? '#aabcd5' : '#e7e5e3'}`, color: vi === 0 ? '#1e3a8a' : '#78716c', boxShadow: vi === 0 ? '0 1px 2px rgba(0,0,0,0.06)' : 'none' }}>
+                                          <CircleArrowUp className="w-2.5 h-2.5" />{v.source}: {v.value}
+                                        </span>
+                                      ))}
+                                    </span>
+                                  )}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {cardDiffs.length > 0 && !allResolved && (
+                  <div style={{ borderTop: '1px solid #f0efed' }} className="flex items-center">
+                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2 hover:bg-[#fafaf9]" style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }} onClick={() => setDiffs(prev => prev.map(d => card.diffIds.includes(d.id) ? { ...d, approved: true } : d))}><Check className="w-3.5 h-3.5" strokeWidth={2.5} /> Tout accepter</button>
+                    <div style={{ width: 1, height: 16, background: '#e7e5e3' }} />
+                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2 hover:bg-[#fafaf9]" style={{ fontSize: 12, fontWeight: 500, color: '#a8a29e' }} onClick={() => setDiffs(prev => prev.map(d => card.diffIds.includes(d.id) ? { ...d, rejected: true } : d))}><RotateCcw className="w-3 h-3" /> Tout annuler</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        <button onClick={reset} className="inline-flex items-center gap-1.5 self-start px-3 py-1.5 rounded-md border border-[#e7e5e3] hover:bg-[#fafaf9] transition-colors" style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}><RotateCcw className="w-3 h-3" /> Reset</button>
+      </div>
+    );
+  };
+
+  // ========== COMPONENTS SHOWCASE ==========
+  const renderComponentsPage = () => {
+    const sectionClass = "mb-10";
+    const sectionTitle = (title) => <h2 style={{ fontSize: 18, fontWeight: 600, color: '#292524', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>{title}</h2>;
+    const subTitle = (title) => <h3 style={{ fontSize: 14, fontWeight: 600, color: '#78716c', marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</h3>;
+    const row = (children) => <div className="flex items-start gap-4 flex-wrap mb-4">{children}</div>;
+
+    // Sample diffs for artifact card demo
+    const sampleDiffs = [
+      { actionId: 'demo', zone: 'postes', entityId: 'demo-1', entityLabel: 'Hospitalisation CHU', type: 'add', fields: [{ key: 'montant', label: 'Montant', after: '4 500 €' }, { key: 'date', label: 'Date', after: '05/06/2022' }], timestamp: 1 },
+      { actionId: 'demo', zone: 'postes', entityId: 'demo-2', entityLabel: 'Kinésithérapie', type: 'edit', fields: [{ key: 'montant', label: 'Montant', before: '960 €', after: '1 280 €' }], timestamp: 2 },
+      { actionId: 'demo', zone: 'postes', entityId: 'demo-3', entityLabel: 'Consultation doublon', type: 'delete', fields: [{ key: 'montant', label: 'Montant', before: '55 €' }], timestamp: 3 },
+    ];
+
+    return (
+      <div className="h-screen flex" style={{ backgroundColor: '#F8F7F5', fontFamily: "'Inter', system-ui, sans-serif" }}>
+        {/* Sidebar */}
+        <div className="w-[220px] flex-shrink-0 border-r border-[#e7e5e3] bg-white overflow-y-auto" style={{ padding: '20px 16px' }}>
+          <button onClick={() => setCurrentPage('list')} className="flex items-center gap-2 text-body-medium text-[#78716c] hover:text-[#292524] mb-6 transition-colors">
+            <ChevronRight className="w-4 h-4 rotate-180" /> Retour
+          </button>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#292524', marginBottom: 16 }}>UI Components</div>
+          <nav className="flex flex-col gap-1">
+            {['Diff Rows', 'Panel Diff Inputs', 'Reasoning', 'Chat Messages', 'Field Streaming', 'Badges & Pills', 'Buttons', 'Barème Components', 'Artifact Cards'].map(s => (
+              /* Hypothèses diff is a subsection of Diff Rows — no separate nav entry needed */
+              <a key={s} href={`#section-${s.toLowerCase().replace(/\s+/g, '-')}`} className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">{s}</a>
+            ))}
+            <div className="mt-4 pt-4 border-t border-[#e7e5e3]">
+              <button onClick={() => setCurrentPage('reasoning-demo')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5" /> Reasoning Demo
+              </button>
+              <button onClick={() => setCurrentPage('diff-engine')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5" /> Diff Engine
+              </button>
+            </div>
+          </nav>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto" style={{ padding: '32px 48px' }}>
+          <div>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#292524', marginBottom: 4 }}>Plato UI Components</h1>
+            <p style={{ fontSize: 14, color: '#78716c', marginBottom: 32 }}>Composants visuels du prototype Plato — tester les propriétés et variantes en situation.</p>
+
+            {/* ====== DIFF ROWS ====== */}
+            <div id="section-diff-rows" className={sectionClass}>
+              {sectionTitle('Diff Rows')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Table rows with cell-level diff rendering. Left 4px strip encodes row diff type. Changed cells stack old→new. Figma ref: 1324:17669.</p>
+
+              {subTitle('Multi-column table — all diff types')}
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 12 }}>Interactive sandbox. Accept/reject per row on hover. Reset to restore all pending diffs.</p>
+              <SharedDiffTableSandbox />
+
+
+              {subTitle('Legend — Diff dot colors')}
+              {row(<>
+                {[
+                  { type: 'add', color: ROW_DIFF_COLORS.add, label: 'Ajout' },
+                  { type: 'edit', color: ROW_DIFF_COLORS.edit, label: 'Modification' },
+                  { type: 'delete', color: ROW_DIFF_COLORS.delete, label: 'Suppression' },
+                ].map(d => (
+                  <div key={d.type} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#e7e5e3] bg-white">
+                    <div className="w-1.5 h-1.5" style={{ background: d.color, transform: 'rotate(45deg)' }} />
+                    <span style={{ fontSize: 12, color: '#44403c' }}>{d.label}</span>
+                    <code style={{ fontSize: 11, color: '#a8a29e', fontFamily: 'DM Mono, monospace' }}>{d.color}</code>
+                  </div>
+                ))}
+              </>)}
+
+              {subTitle('Cell types in diff context')}
+              {(() => {
+                const cellLabel = (text) => <div style={{ fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{text}</div>;
+                const cellCard = (children, opts = {}) => <div className="border border-[#e7e5e3] rounded-lg bg-white p-3" style={opts.deleted ? { opacity: 0.55 } : undefined}>{children}</div>;
+                return (
+              <div style={{ maxWidth: 680 }}>
+                {/* TEXT — label never changes, only default + deleted */}
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#292524', marginBottom: 8, marginTop: 4 }}>Text</div>
+                <div className="grid grid-cols-2 gap-3 mb-5" style={{ maxWidth: 440 }}>
+                  {cellCard(<>
+                    {cellLabel('Default')}
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>Kinésithérapie</div>
+                    <div style={{ fontSize: 11, color: '#a8a29e' }}>24 séances post-opératoires</div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Deleted')}
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#a8a29e', textDecoration: 'line-through' }}>Consultation Dr. Dupont</div>
+                    <div style={{ fontSize: 11, color: '#a8a29e', textDecoration: 'line-through' }}>Doublon — déjà comptabilisé</div>
+                  </>, { deleted: true })}
+                </div>
+
+                {/* AMOUNT */}
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#292524', marginBottom: 8 }}>Amount</div>
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {cellCard(<>
+                    {cellLabel('Default')}
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#292524', fontVariantNumeric: 'tabular-nums' }}>4 500,00 €</div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Modified')}
+                    <div style={{ fontSize: 11, color: '#a8a29e', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>960,00 €</div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#292524', fontVariantNumeric: 'tabular-nums' }}>1 280,00 €</div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Deleted')}
+                    <div style={{ fontSize: 14, color: '#a8a29e', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>55,00 €</div>
+                  </>, { deleted: true })}
+                </div>
+
+                {/* DATE */}
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#292524', marginBottom: 8 }}>Date</div>
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {cellCard(<>
+                    {cellLabel('Default')}
+                    <div style={{ fontSize: 12, color: '#44403c' }}>05/06/2022</div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Modified')}
+                    <div style={{ fontSize: 11, color: '#a8a29e', textDecoration: 'line-through' }}>01/01/2023</div>
+                    <div style={{ fontSize: 12, color: '#44403c' }}>15/03/2023</div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Deleted')}
+                    <div style={{ fontSize: 12, color: '#a8a29e', textDecoration: 'line-through' }}>10/01/2022</div>
+                  </>, { deleted: true })}
+                </div>
+
+                {/* BADGE / PILL */}
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#292524', marginBottom: 8 }}>Badge / Pill</div>
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {cellCard(<>
+                    {cellLabel('Default')}
+                    <span className="text-caption-medium px-2 py-0.5 rounded-full bg-[#eeece6] text-[#44403c]">100%</span>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Modified')}
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="text-caption-medium px-2 py-0.5 rounded-full line-through" style={{ background: '#f5f5f4', color: '#a8a29e', fontSize: 10 }}>50%</span>
+                      <span className="text-caption-medium px-2 py-0.5 rounded-full" style={{ background: '#fff7ed', color: ROW_DIFF_COLORS.edit, fontSize: 10 }}>100%</span>
+                    </div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Deleted')}
+                    <span className="text-caption-medium px-2 py-0.5 rounded-full line-through" style={{ background: '#fef2f2', color: '#a8a29e' }}>100%</span>
+                  </>, { deleted: true })}
+                </div>
+
+                {/* TOGGLE / ON-OFF */}
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#292524', marginBottom: 8 }}>Toggle</div>
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {cellCard(<>
+                    {cellLabel('Default')}
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-caption-medium" style={{ background: '#dcfce7', color: ROW_DIFF_COLORS.add }}>ON</span>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Modified')}
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-caption-medium line-through" style={{ background: '#fef2f2', color: '#a8a29e' }}>OFF</span>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-caption-medium" style={{ background: '#dcfce7', color: ROW_DIFF_COLORS.add }}>ON</span>
+                    </div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Deleted')}
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-caption-medium line-through" style={{ background: '#f5f5f4', color: '#a8a29e' }}>ON</span>
+                  </>, { deleted: true })}
+                </div>
+
+                {/* TOTAL WITH REVALO */}
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#292524', marginBottom: 8 }}>Total with Revalo</div>
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {cellCard(<>
+                    {cellLabel('Default')}
+                    <div className="flex items-center gap-1.5">
+                      <span style={{ fontSize: 13, color: '#78716c', fontVariantNumeric: 'tabular-nums' }}>32 400 €</span>
+                      <span style={{ fontSize: 11, color: '#a8a29e' }}>·</span>
+                      <CircleArrowUp className="w-3.5 h-3.5 text-[#1e3a8a]" />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: '#292524', fontVariantNumeric: 'tabular-nums' }}>33 696 €</span>
+                    </div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Modified — amount changed')}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1.5">
+                        <span style={{ fontSize: 11, color: '#a8a29e', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>29 800 €</span>
+                        <span style={{ fontSize: 11, color: '#a8a29e' }}>·</span>
+                        <CircleArrowUp className="w-3 h-3 text-[#a8a29e]" />
+                        <span style={{ fontSize: 11, color: '#a8a29e', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>31 886 €</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span style={{ fontSize: 13, color: '#78716c', fontVariantNumeric: 'tabular-nums' }}>31 200 €</span>
+                        <span style={{ fontSize: 11, color: '#a8a29e' }}>·</span>
+                        <CircleArrowUp className="w-3.5 h-3.5 text-[#1e3a8a]" />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#292524', fontVariantNumeric: 'tabular-nums' }}>33 384 €</span>
+                      </div>
+                    </div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Modified — revalo toggled ON')}
+                    <div className="flex flex-col gap-1">
+                      <div>
+                        <span style={{ fontSize: 13, color: '#a8a29e', fontVariantNumeric: 'tabular-nums' }}>32 400 €</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span style={{ fontSize: 13, color: '#78716c', fontVariantNumeric: 'tabular-nums' }}>32 400 €</span>
+                        <span style={{ fontSize: 11, color: '#a8a29e' }}>·</span>
+                        <CircleArrowUp className="w-3.5 h-3.5 text-[#1e3a8a]" />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#292524', fontVariantNumeric: 'tabular-nums' }}>33 696 €</span>
+                      </div>
+                    </div>
+                  </>)}
+                </div>
+                <div className="grid grid-cols-3 gap-3 mb-2">
+                  {cellCard(<>
+                    {cellLabel('Modified — revalo index changed')}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1.5">
+                        <span style={{ fontSize: 11, color: '#a8a29e', fontVariantNumeric: 'tabular-nums' }}>32 400 €</span>
+                        <span style={{ fontSize: 11, color: '#a8a29e' }}>·</span>
+                        <CircleArrowUp className="w-3 h-3 text-[#a8a29e]" />
+                        <span style={{ fontSize: 11, color: '#a8a29e', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>33 048 €</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span style={{ fontSize: 13, color: '#78716c', fontVariantNumeric: 'tabular-nums' }}>32 400 €</span>
+                        <span style={{ fontSize: 11, color: '#a8a29e' }}>·</span>
+                        <CircleArrowUp className="w-3.5 h-3.5 text-[#1e3a8a]" />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#292524', fontVariantNumeric: 'tabular-nums' }}>33 696 €</span>
+                      </div>
+                    </div>
+                  </>)}
+                  {cellCard(<>
+                    {cellLabel('Deleted')}
+                    <div className="flex items-center gap-1.5">
+                      <span style={{ fontSize: 13, color: '#a8a29e', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>32 400 €</span>
+                      <span style={{ fontSize: 11, color: '#a8a29e' }}>·</span>
+                      <CircleArrowUp className="w-3.5 h-3.5 text-[#a8a29e]" />
+                      <span style={{ fontSize: 14, color: '#a8a29e', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>33 696 €</span>
+                    </div>
+                  </>, { deleted: true })}
+                  {cellCard(<>
+                    {cellLabel('Default — no revalo')}
+                    <div className="flex items-center gap-1.5">
+                      <span style={{ fontSize: 14, fontWeight: 600, color: '#292524', fontVariantNumeric: 'tabular-nums' }}>32 400 €</span>
+                    </div>
+                  </>)}
+                </div>
+              </div>
+                );
+              })()}
+
+              {subTitle('Field-level streaming indicator')}
+              <div className="border border-[#e7e5e3] rounded-lg bg-white p-4" style={{ maxWidth: 320 }}>
+                <div className="animate-field-glow">
+                  <div className="text-caption-medium text-[#78716c] mb-1 flex items-center gap-1">
+                    Nom
+                    <span className="inline-block w-1.5 h-1.5" style={{ background: '#4a9168', transform: 'rotate(45deg)' }} />
+                  </div>
+                  <div className="text-body text-[#292524]">
+                    Martin<span className="inline-block w-0.5 h-4 animate-pulse ml-0.5 align-middle" style={{ background: '#4a9168' }}></span>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="text-caption-medium text-[#78716c] mb-1 flex items-center gap-1">
+                    Prénom
+                    <span className="inline-block w-1.5 h-1.5" style={{ background: '#4a9168', transform: 'rotate(45deg)' }} />
+                  </div>
+                  <div className="text-body text-[#292524]">Sophie</div>
+                </div>
+              </div>
+            </div>
+
+            {/* ====== PARAMETER PILLS ====== */}
+            <div id="section-param-pills" className={sectionClass}>
+              {sectionTitle('Parameter Pills')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Hypothèse/parameter pills with diff states. Accept/reject embedded inside the pill when a diff is pending.</p>
+
+              {subTitle('All states')}
+              <div className="flex flex-wrap items-center gap-3" style={{ maxWidth: 900, marginBottom: 24 }}>
+                {/* Default enabled (blue info) */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.info.bg, borderColor: PILL_SCHEMES.info.border, color: PILL_SCHEMES.info.text }}>
+                  <CircleArrowUp className="w-3.5 h-3.5" /> Capitaliser <span style={{ fontWeight: 400 }}>IPC Annuel, XX, XX ans</span>
+                </span>
+                {/* Default disabled (gray neutral) */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.neutral.bg, borderColor: PILL_SCHEMES.neutral.border, color: PILL_SCHEMES.neutral.text }}>
+                  <CircleArrowUp className="w-3.5 h-3.5" /> Param
+                </span>
+                {/* Add diff (blue info + green diamond) */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.info.bg, borderColor: PILL_SCHEMES.info.border, color: PILL_SCHEMES.info.text }}>
+                  <span className="w-1.5 h-1.5 flex-shrink-0" style={{ background: DIAMOND_COLORS.add, transform: 'rotate(45deg)', borderRadius: '0.5px' }} />
+                  <CircleArrowUp className="w-3.5 h-3.5" /> Revaloriser <span style={{ fontWeight: 400 }}>On · IPC Annuel</span>
+                  <span className="inline-flex items-center gap-1 ml-0.5">
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                  </span>
+                </span>
+                {/* Edit diff (blue ON + orange diamond) */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.info.bg, borderColor: PILL_SCHEMES.info.border, color: PILL_SCHEMES.info.text }}>
+                  <span className="w-1.5 h-1.5 flex-shrink-0" style={{ background: DIAMOND_COLORS.edit, transform: 'rotate(45deg)', borderRadius: '0.5px' }} />
+                  <CircleArrowUp className="w-3.5 h-3.5" /> Revalorisation <span style={{ fontWeight: 400 }}><span style={{ textDecoration: 'line-through', opacity: 0.6 }}>IPC Mensuel</span> → Annuel</span>
+                  <span className="inline-flex items-center gap-1 ml-0.5">
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                  </span>
+                </span>
+                {/* Delete diff (gray OFF + red diamond) */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.neutral.bg, borderColor: PILL_SCHEMES.neutral.border, color: PILL_SCHEMES.neutral.text }}>
+                  <span className="w-1.5 h-1.5 flex-shrink-0" style={{ background: DIAMOND_COLORS.delete, transform: 'rotate(45deg)', borderRadius: '0.5px' }} />
+                  <CircleArrowUp className="w-3.5 h-3.5" /> Capitaliser <span style={{ fontWeight: 400 }}><span style={{ textDecoration: 'line-through', opacity: 0.6 }}>On</span> → Off</span>
+                  <span className="inline-flex items-center gap-1 ml-0.5">
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                  </span>
+                </span>
+              </div>
+
+              {subTitle('In-context — settings row with mixed states')}
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 12 }}>Simulates a real settings row: icon + stacked pills, some default, some with pending diffs.</p>
+              <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden" style={{ maxWidth: 880, marginBottom: 24, boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}>
+                <div className="flex items-center gap-3 px-4 h-[52px] flex-wrap">
+                  <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                    <Settings className="w-3.5 h-3.5 text-[#78716c]" />
+                  </div>
+                  {/* Default enabled */}
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.info.bg, borderColor: PILL_SCHEMES.info.border, color: PILL_SCHEMES.info.text }}>
+                    <CircleArrowUp className="w-3.5 h-3.5" /> Capitaliser <span style={{ fontWeight: 400 }}>IPC Annuel, XX, XX ans</span>
+                  </span>
+                  {/* Edit diff */}
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.info.bg, borderColor: PILL_SCHEMES.info.border, color: PILL_SCHEMES.info.text }}>
+                    <span className="w-1.5 h-1.5 flex-shrink-0" style={{ background: DIAMOND_COLORS.edit, transform: 'rotate(45deg)', borderRadius: '0.5px' }} />
+                    <CircleArrowUp className="w-3.5 h-3.5" /> Revalorisation <span style={{ fontWeight: 400 }}><span style={{ textDecoration: 'line-through', opacity: 0.6 }}>IPC Mensuel</span> → Annuel</span>
+                    <span className="inline-flex items-center gap-1 ml-0.5">
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                    </span>
+                  </span>
+                  {/* Delete diff */}
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.neutral.bg, borderColor: PILL_SCHEMES.neutral.border, color: PILL_SCHEMES.neutral.text }}>
+                    <span className="w-1.5 h-1.5 flex-shrink-0" style={{ background: DIAMOND_COLORS.delete, transform: 'rotate(45deg)', borderRadius: '0.5px' }} />
+                    <CircleArrowUp className="w-3.5 h-3.5" /> Capitaliser <span style={{ fontWeight: 400 }}><span style={{ textDecoration: 'line-through', opacity: 0.6 }}>On</span> → Off</span>
+                  </span>
+                  {/* Default disabled */}
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border" style={{ background: PILL_SCHEMES.neutral.bg, borderColor: PILL_SCHEMES.neutral.border, color: PILL_SCHEMES.neutral.text }}>
+                    <CircleArrowUp className="w-3.5 h-3.5" /> Param
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ====== ARTIFACT CARDS ====== */}
+            <div id="section-artifact-cards" className={sectionClass}>
+              {sectionTitle('Artifact Cards')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Cartes affichées dans le chat pour résumer les changements par zone. Expandable avec actions approve/reject.</p>
+
+              {subTitle('By zone type — collapsed')}
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 16 }}>Icon + title identify the zone. Color is reserved exclusively for diff counters (green/orange/red).</p>
+
+              {/* Three cards side by side */}
+              <div className="grid grid-cols-3 gap-4" style={{ maxWidth: 880, marginBottom: 24 }}>
+                {[
+                  { label: 'Poste / Chiffrage', title: 'DSA — Dépenses de santé actuelles', Icon: HeartPulse, adds: 3, edits: 1, deletes: 1 },
+                  { label: 'Documents', title: 'Pièces du dossier', Icon: FileText, adds: 4, edits: 0, deletes: 0 },
+                  { label: 'Infos dossier', title: 'Info dossier', Icon: ClipboardList, adds: 8, edits: 2, deletes: 0 },
+                ].map((zone, zi) => (
+                  <div key={zi}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{zone.label}</div>
+                    <div className="rounded-lg border border-[#e7e5e3] bg-white overflow-hidden" style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -2px 4px rgba(0,0,0,0.03)' }}>
+                      <div className="flex items-stretch">
+                        <div className="w-10 flex items-center justify-center flex-shrink-0" style={{ background: '#f5f5f4' }}>
+                          <zone.Icon className="w-3.5 h-3.5" style={{ color: '#78716c' }} />
+                        </div>
+                        <div className="flex items-center gap-3 flex-1 min-w-0" style={{ padding: '12px 14px 12px 12px' }}>
+                          <div className="flex-1 min-w-0">
+                            <div style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '18px' }}>{zone.title}</div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {zone.adds > 0 && <span className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: ROW_DIFF_COLORS.add, fontWeight: 500 }}><Plus className="w-2.5 h-2.5" strokeWidth={2.5} />{zone.adds}</span>}
+                              {zone.edits > 0 && <span className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: ROW_DIFF_COLORS.edit, fontWeight: 500 }}><Pencil className="w-2.5 h-2.5" strokeWidth={2.5} />{zone.edits}</span>}
+                              {zone.deletes > 0 && <span className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: ROW_DIFF_COLORS.delete, fontWeight: 500 }}><Trash2 className="w-2.5 h-2.5" strokeWidth={2.5} />{zone.deletes}</span>}
+                            </div>
+                          </div>
+                          <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#a8a29e', transform: 'rotate(-90deg)' }} />
+                        </div>
+                      </div>
+                      {/* Footer — always visible */}
+                      <div style={{ borderTop: '1px solid #f0efed' }} className="flex items-center">
+                        <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 hover:bg-[#fafaf9]" style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}>
+                          <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> Tout accepter
+                        </button>
+                        <div style={{ width: 1, height: 14, background: '#e7e5e3' }} />
+                        <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 hover:bg-[#fafaf9]" style={{ fontSize: 12, fontWeight: 500, color: '#a8a29e' }}>
+                          <RotateCcw className="w-3 h-3" /> Tout annuler
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {subTitle('Interactive — expand/collapse + accept/reject')}
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 12 }}>Click chevron to expand/collapse. Accept/reject per row or bulk. Card collapses to "Traité" when all resolved. Click reset to start over.</p>
+
+              <SharedInteractiveCards />
+            </div>
+
+            {/* ====== REASONING ====== */}
+            <div id="section-reasoning" className={sectionClass}>
+              {sectionTitle('Reasoning')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Composant de raisonnement de l'agent. Streaming → auto-collapse → expand inspection.</p>
+
+              {subTitle('Step type → user label mapping')}
+              <div className="flex flex-col gap-0 mb-4 border border-[#e7e5e3] rounded-lg bg-white overflow-hidden" style={{ maxWidth: 520 }}>
+                {[
+                  ['read_documents',  'Analyse de X documents'],
+                  ['read_rapport',    "Lecture du rapport d'expertise"],
+                  ['search_document', 'Recherche dans le document'],
+                  ['extract_data',    'Extraction des données'],
+                  ['calculate',       'Calcul du poste'],
+                  ['verify_data',     'Vérification des données'],
+                  ['summarize',       'Synthèse des résultats'],
+                  ['navigate',        'Navigation vers le poste'],
+                  ['add_row',         'X lignes ajoutées'],
+                  ['update_row',      'Mise à jour du champ'],
+                  ['delete_row',      'X lignes supprimées'],
+                  ['sub_agent',       'Agent extraction factures'],
+                  ['error',           'Extraction impossible — fichier illisible'],
+                ].map(([type, label], i) => {
+                  const cfg = STEP_TYPE_CONFIG[type];
+                  if (!cfg) return null;
+                  const Icon = cfg.Icon;
+                  const colors = STEP_COLORS[cfg.color] || STEP_COLORS.default;
+                  return (
+                    <div key={type} className="flex items-center gap-2.5 px-3 py-1.5" style={{ borderTop: i > 0 ? '1px solid #f5f5f4' : 'none' }}>
+                      <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: colors.icon }} />
+                      <span className="flex-shrink-0" style={{ fontSize: 11, fontFamily: 'monospace', color: '#a8a29e', width: 120 }}>{type}</span>
+                      <span style={{ fontSize: 12, color: '#44403c' }}>{label}</span>
+                      {cfg.pill && <CrudPill type={type} />}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {subTitle('CRUD Pills')}
+              {row(
+                <div className="flex items-center gap-3">
+                  <CrudPill type="add_row" />
+                  <CrudPill type="update_row" />
+                  <CrudPill type="delete_row" />
+                </div>
+              )}
+
+              {subTitle('Dot Counters')}
+              {row(
+                <div className="flex items-center gap-4">
+                  <DotCounter color="green" count={3} />
+                  <DotCounter color="orange" count={1} />
+                  <DotCounter color="red" count={1} />
+                </div>
+              )}
+
+              {subTitle('Streaming (active)')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="streaming"
+                  steps={[
+                    { type: 'read_documents', label: 'Analyse de 6 documents', status: 'done', children: ['rapport.pdf', 'facture_1.pdf', 'facture_2.pdf', 'facture_3.pdf', 'bulletin_01.pdf', 'bulletin_02.pdf'] },
+                    { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+                    { type: 'extract_data', label: 'Extraction facture CHU Bordeaux', status: 'loading', children: ['Montant : 4 500 €', 'CPAM : 3 200 €', 'RAC : 1 300 €'] },
+                  ]}
+                  onToggle={() => {}}
+                />
+              </div>
+
+              {subTitle('Collapsed (done — with CRUD counters)')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="done"
+                  summary="Complétion du poste DSA depuis 3 factures"
+                  counters={{ add: 3, update: 1 }}
+                  steps={[
+                    { type: 'read_documents', label: 'Analyse de 6 documents', status: 'done' },
+                    { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+                    { type: 'extract_data', label: 'Extraction facture CHU Bordeaux', status: 'done', children: ['4 500 € — CPAM 3 200 €'] },
+                    { type: 'add_row', label: '3 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire', 'Kinésithérapie'] },
+                    { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
+                  ]}
+                  expanded={false}
+                  onToggle={() => {}}
+                />
+              </div>
+
+              {subTitle('Collapsed (read-only — no counters)')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="done"
+                  summary="Analyse du rapport d'expertise"
+                  steps={[
+                    { type: 'read_documents', label: 'Analyse de 2 documents', status: 'done' },
+                    { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+                  ]}
+                  expanded={false}
+                  onToggle={() => {}}
+                />
+              </div>
+
+              {subTitle('Expanded (inspection mode)')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="done"
+                  summary="Complétion du poste DSA depuis 3 factures"
+                  counters={{ add: 3, update: 1 }}
+                  steps={[
+                    { type: 'read_documents', label: 'Analyse de 6 documents', status: 'done', children: ['rapport.pdf', 'facture_1.pdf', 'facture_2.pdf', 'facture_3.pdf', 'bulletin_01.pdf', 'bulletin_02.pdf'] },
+                    { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+                    { type: 'extract_data', label: 'Extraction facture CHU Bordeaux', status: 'done', children: ['Montant : 4 500 €', 'CPAM : 3 200 €', 'RAC : 1 300 €'] },
+                    { type: 'add_row', label: '3 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire', 'Kinésithérapie'] },
+                    { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
+                  ]}
+                  expanded={true}
+                  onToggle={() => {}}
+                />
+              </div>
+
+              {subTitle('Partial error')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="done"
+                  summary="Extraction des factures DSA"
+                  counters={{ add: 2, error: 1 }}
+                  steps={[
+                    { type: 'read_documents', label: 'Analyse de 3 documents', status: 'done' },
+                    { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 € — CPAM 3 200 €'] },
+                    { type: 'error', label: 'Extraction impossible — facture_scan.pdf illisible', status: 'error' },
+                    { type: 'add_row', label: '2 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire'] },
+                  ]}
+                  expanded={true}
+                  onToggle={() => {}}
+                />
+              </div>
+
+              {subTitle('Total error')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="done"
+                  summary="Analyse du rapport d'expertise"
+                  counters={{ error: 1 }}
+                  steps={[
+                    { type: 'error', label: "Aucun rapport d'expertise dans le dossier", status: 'error' },
+                  ]}
+                  expanded={false}
+                  onToggle={() => {}}
+                />
+              </div>
+
+              {subTitle('Sub-agent')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="done"
+                  summary="Extraction et complétion DSA"
+                  counters={{ add: 2 }}
+                  steps={[
+                    { type: 'read_documents', label: 'Analyse de 4 documents', status: 'done' },
+                    { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+                    { type: 'sub_agent', label: 'Agent extraction factures', status: 'done', children_steps: [
+                      { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 €'] },
+                      { type: 'extract_data', label: 'Extraction facture clinique', status: 'done', children: ['2 800 €'] },
+                    ]},
+                    { type: 'add_row', label: '2 lignes DSA', status: 'done', poste: 'DSA', children: ['CHU Bordeaux', 'Clinique St-Jean'] },
+                  ]}
+                  expanded={true}
+                  onToggle={() => {}}
+                />
+              </div>
+
+              {subTitle('Backend tool mapping (real Plato Supervisor names)')}
+              <div style={{ maxWidth: 420 }} className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                <ReasoningStepper
+                  status="done"
+                  summary="Analyse du poste DFT — 2 problèmes détectés"
+                  counters={{ update: 2, delete: 1 }}
+                  steps={[
+                    { type: 'read_documents', label: 'Lecture du dossier', status: 'done', children: ['rapport_expertise.pdf', 'consolidation_2023.pdf'] },
+                    { type: 'extract_data', label: 'Extraction des périodes DFT', status: 'done', children: ['3 périodes identifiées'] },
+                    { tool: 'getPosteProblemDetector', detail: 'Vérification des données DFT', expandedText: '2 doublons détectés entre sources' },
+                    { tool: 'getHistoireSummaryTool', detail: 'Synthèse des résultats' },
+                    { type: 'delete_row', label: '1 ligne en doublon', status: 'done', poste: 'DFT' },
+                    { type: 'update_row', label: 'Taux DFT période 2', status: 'done', poste: 'DFT', children: ['25% → 30%'] },
+                    { type: 'update_row', label: 'Date fin période 3', status: 'done', poste: 'DFT', children: ['15/03/2023 → 17/05/2023'] },
+                  ]}
+                  expanded={true}
+                  onToggle={() => {}}
+                />
+              </div>
+
+            </div>
+
+            {/* ====== CHAT MESSAGES ====== */}
+            <div id="section-chat-messages" className={sectionClass}>
+              {sectionTitle('Chat Messages')}
+
+              {subTitle('Chat blocked indicator')}
+              <div style={{ maxWidth: 380 }} className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-1.5" style={{ borderBottom: '1px solid #e7e5e3' }}>
+                  <ThinkingDots />
+                  <span style={{ fontSize: 11, color: '#a8a29e' }}>Plato analyse vos documents...</span>
+                </div>
+                <div style={{ padding: '12px', opacity: 0.5 }}>
+                  <span className="text-[14px]" style={{ color: '#78716c' }}>Plato analyse vos documents...</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ====== PANEL DIFF INPUTS ====== */}
+            <div id="section-panel-diff-inputs" className={sectionClass}>
+              {sectionTitle('Panel Diff Inputs')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Champs du panel d'édition avec contexte diff agent. Utilise l'anatomie shadcn Field : label → input (shadow-xs) → description. Le sparkle ✦ signale les champs touchés par l'agent, la description affiche l'ancienne valeur.</p>
+
+              {(() => {
+                const inputBase = "w-full px-3 py-2 bg-white border border-[#e7e5e3] rounded-lg text-[14px] leading-5 text-[#292524] placeholder:text-[#78716c] focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)]";
+                const shadowXs = '0 1px 2px rgba(26,26,26,0.05)';
+                const labelStyle = { fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' };
+                const descStyle = { fontSize: 12, fontWeight: 400, color: '#78716c', lineHeight: '16px', letterSpacing: '0.12px', marginTop: 6 };
+                const warnLabelStyle = { ...labelStyle, color: '#855b31' };
+                const warnDescStyle = { ...descStyle, color: '#855b31' };
+
+                // Shadcn Field wrapper
+                const Field = ({ label: lbl, diffColor, warning, description, descColor, children }) => (
+                  <div className="flex flex-col" style={{ gap: 6 }}>
+                    <div className="flex items-center gap-1.5">
+                      <span style={warning ? warnLabelStyle : labelStyle}>{lbl}</span>
+                      {diffColor && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />}
+                    </div>
+                    {children}
+                    {description && <p style={warning ? warnDescStyle : { ...descStyle, color: descColor || '#78716c' }}>{description}</p>}
+                  </div>
+                );
+
+                const PanelDiffDemo = () => {
+                  const [montant, setMontant] = React.useState('1 280,00');
+                  const [base, setBase] = React.useState('30');
+                  const [date, setDate] = React.useState('12/03/2023');
+                  const [label, setLabel] = React.useState('Kinésithérapie (24 séances)');
+                  const [saved, setSaved] = React.useState(false);
+
+                  const reset = () => { setMontant('1 280,00'); setBase('30'); setDate('12/03/2023'); setLabel('Kinésithérapie (24 séances)'); setSaved(false); };
+
+                  if (saved) {
+                    return (
+                      <div style={{ maxWidth: 380 }}>
+                        <div className="border border-[#e7e5e3] rounded-lg bg-white p-5 space-y-5">
+                          <div className="flex items-center gap-2 p-3 rounded-lg" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                            <Check className="w-4 h-4" style={{ color: ROW_DIFF_COLORS.add }} strokeWidth={2.5} />
+                            <span className="text-body-medium" style={{ color: ROW_DIFF_COLORS.add }}>Enregistré — diffs effacés</span>
+                          </div>
+                          <Field label="Libellé dépense"><input type="text" readOnly value={label} className={inputBase} style={{ boxShadow: shadowXs, background: '#fafaf9' }} /></Field>
+                          <Field label="Montant"><input type="text" readOnly value={`€ ${montant}`} className={inputBase} style={{ boxShadow: shadowXs, background: '#fafaf9' }} /></Field>
+                        </div>
+                        <button onClick={reset} className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#e7e5e3] hover:bg-[#fafaf9] transition-colors" style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}>
+                          <RotateCcw className="w-3 h-3" /> Reset
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div style={{ maxWidth: 380 }}>
+                      {/* ---- Edit diff ---- */}
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Edit — agent modified fields</div>
+                      <div className="border border-[#e7e5e3] rounded-lg bg-white p-5 space-y-5">
+                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: '#fff7ed', border: '1px solid #fed7aa' }}>
+                          <div className="w-1.5 h-1.5" style={{ background: ROW_DIFF_COLORS.edit, transform: 'rotate(45deg)' }} />
+                          <span style={{ fontSize: 12, fontWeight: 500, color: ROW_DIFF_COLORS.edit }}>Ligne modifiée par l'agent</span>
+                        </div>
+
+                        {/* Untouched field — no sparkle, no description */}
+                        <Field label="Libellé dépense">
+                          <input type="text" value={label} onChange={e => setLabel(e.target.value)} className={inputBase} style={{ boxShadow: shadowXs }} />
+                        </Field>
+
+                        {/* Agent-touched field — sparkle + old value in description */}
+                        <Field label="Montant" diffColor={ROW_DIFF_COLORS.edit} description="Ancien : 960,00 €">
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#78716c]" style={{ fontSize: 14 }}>€</span>
+                            <input type="text" value={montant} onChange={e => setMontant(e.target.value)} className={inputBase} style={{ boxShadow: shadowXs, paddingLeft: 28 }} />
+                          </div>
+                        </Field>
+
+                        {/* Agent-touched field — sparkle + old value */}
+                        <Field label="Date" diffColor={ROW_DIFF_COLORS.edit} description="Ancien : 01/03/2023">
+                          <input type="text" value={date} onChange={e => setDate(e.target.value)} className={inputBase} style={{ boxShadow: shadowXs }} />
+                        </Field>
+
+                        {/* Agent-touched + revalo */}
+                        <Field label="Base journalière" diffColor={ROW_DIFF_COLORS.edit}>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#78716c]" style={{ fontSize: 14 }}>€</span>
+                            <input type="text" value={base} onChange={e => setBase(e.target.value)} className={inputBase} style={{ boxShadow: shadowXs, paddingLeft: 28 }} />
+                          </div>
+                          {/* Revalo row — matches Figma ↳ Revalo pattern */}
+                          <div className="flex items-center gap-2 px-0.5" style={{ marginTop: 6 }}>
+                            <div className="flex items-center gap-1 flex-1 min-w-0">
+                              <CircleArrowUp className="w-3 h-3 flex-shrink-0" style={{ color: '#1e3a8a' }} />
+                              <span style={{ fontSize: 12, fontWeight: 500, lineHeight: '16px' }}>
+                                <span style={{ color: '#78716c' }}>Revalo (IPC Annuel)</span>{' '}
+                                <span style={{ color: '#1e3a8a' }}>32,70 €</span>
+                              </span>
+                            </div>
+                            <span style={{ fontSize: 12, color: '#78716c', lineHeight: '16px', letterSpacing: '0.12px' }}>30,00 × 1,09</span>
+                          </div>
+                        </Field>
+
+                        {/* Warning state — missing info */}
+                        <Field label="Taux de responsabilité" warning description="Info. manquante pour calculer">
+                          <input type="text" placeholder="Ex: 100" className={inputBase} style={{ boxShadow: '0 0 0 3px #f9ecd6', borderColor: '#eeb97e' }} />
+                        </Field>
+
+                        <div className="flex items-center gap-3 pt-2">
+                          <button onClick={() => setSaved(true)} className="flex-1 px-4 py-2 rounded-lg text-body-medium text-white transition-colors" style={{ backgroundColor: '#292524' }}>Enregistrer</button>
+                          <button onClick={reset} className="px-4 py-2 rounded-lg text-body-medium text-[#44403c] hover:bg-[#f5f5f4] transition-colors">Annuler</button>
+                        </div>
+                      </div>
+
+                      {/* ---- Add ---- */}
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, marginTop: 24 }}>Add — all fields are new</div>
+                      <div className="border border-[#e7e5e3] rounded-lg bg-white p-5 space-y-5">
+                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                          <div className="w-1.5 h-1.5" style={{ background: '#4a9168', transform: 'rotate(45deg)' }} />
+                          <span style={{ fontSize: 12, fontWeight: 500, color: ROW_DIFF_COLORS.add }}>Ligne ajoutée par l'agent</span>
+                        </div>
+                        <Field label="Libellé dépense" diffColor={ROW_DIFF_COLORS.add}>
+                          <input type="text" defaultValue="Hospitalisation CHU Bordeaux" className={inputBase} style={{ boxShadow: shadowXs }} />
+                        </Field>
+                        <Field label="Montant" diffColor={ROW_DIFF_COLORS.add}>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#78716c]" style={{ fontSize: 14 }}>€</span>
+                            <input type="text" defaultValue="4 500,00" className={inputBase} style={{ boxShadow: shadowXs, paddingLeft: 28 }} />
+                          </div>
+                        </Field>
+                        <Field label="Date" diffColor={ROW_DIFF_COLORS.add}>
+                          <input type="text" defaultValue="05/06/2022" className={inputBase} style={{ boxShadow: shadowXs }} />
+                        </Field>
+                      </div>
+
+                      {/* ---- Delete ---- */}
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, marginTop: 24 }}>Delete — read-only</div>
+                      <div className="border border-[#e7e5e3] rounded-lg bg-white p-5 space-y-5" style={{ opacity: 0.6 }}>
+                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
+                          <div className="w-1.5 h-1.5" style={{ background: ROW_DIFF_COLORS.delete, transform: 'rotate(45deg)' }} />
+                          <span style={{ fontSize: 12, fontWeight: 500, color: ROW_DIFF_COLORS.delete }}>Ligne supprimée par l'agent</span>
+                        </div>
+                        <Field label="Libellé dépense">
+                          <div className={inputBase} style={{ boxShadow: shadowXs, color: '#a8a29e', background: '#fafaf9', textDecoration: 'line-through' }}>Consultation Dr. Dupont</div>
+                        </Field>
+                        <Field label="Montant">
+                          <div className={inputBase} style={{ boxShadow: shadowXs, color: '#a8a29e', background: '#fafaf9', textDecoration: 'line-through' }}>55,00 €</div>
+                        </Field>
+                        <div className="flex items-center gap-3 pt-2">
+                          <button className="flex-1 px-4 py-2 rounded-lg text-body-medium text-[#c45555] border border-[#fecaca] hover:bg-[#fef2f2] transition-colors">Confirmer la suppression</button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                };
+
+                return <PanelDiffDemo />;
+              })()}
+            </div>
+
+            {/* ====== FIELD STREAMING ====== */}
+            <div id="section-field-streaming" className={sectionClass}>
+              {sectionTitle('Field Streaming')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Indicateurs visuels lors du remplissage automatique des champs par l'agent.</p>
+
+              {subTitle('States: streaming → revealed → default')}
+              <div className="border border-[#e7e5e3] rounded-lg bg-white p-4 space-y-4" style={{ maxWidth: 320 }}>
+                <div className="animate-field-glow">
+                  <div className="text-caption-medium text-[#78716c] mb-1">En cours de saisie</div>
+                  <div className="text-body text-[#292524]">Mar<span className="inline-block w-0.5 h-4 animate-pulse ml-0.5 align-middle" style={{ background: '#4a9168' }}></span></div>
+                </div>
+                <div className="pl-3" style={{ borderLeft: '2px solid rgba(22, 163, 74, 0.35)' }}>
+                  <div className="text-caption-medium text-[#78716c] mb-1 flex items-center gap-1">Rempli par l'agent <span className="inline-block w-1.5 h-1.5" style={{ background: '#4a9168', transform: 'rotate(45deg)' }} /></div>
+                  <div className="text-body text-[#292524]">Martin</div>
+                </div>
+                <div>
+                  <div className="text-caption-medium text-[#78716c] mb-1">Champ normal</div>
+                  <div className="text-body text-[#292524]">Dupont</div>
+                </div>
+              </div>
+            </div>
+
+            {/* ====== BADGES & PILLS ====== */}
+            <div id="section-badges-&-pills" className={sectionClass}>
+              {sectionTitle('Badges & Pills')}
+
+              {subTitle('Diff type badges')}
+              {row(<>
+                {[
+                  { label: 'Ajout', bg: '#dcfce7', color: ROW_DIFF_COLORS.add },
+                  { label: 'Modif.', bg: '#fff7ed', color: ROW_DIFF_COLORS.edit },
+                  { label: 'Suppr.', bg: '#fef2f2', color: ROW_DIFF_COLORS.delete },
+                ].map(b => (
+                  <span key={b.label} className="inline-flex items-center gap-1 px-1.5 py-0.5 text-caption-medium rounded-full" style={{ background: b.bg, color: b.color }}>{b.label}</span>
+                ))}
+              </>)}
+
+              {subTitle('Diff chips (subtitle)')}
+              {row(<>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#e7e5e3] bg-white">
+                  <span className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: ROW_DIFF_COLORS.add, fontWeight: 500 }}><Plus className="w-2.5 h-2.5" strokeWidth={2.5} />3</span>
+                  <span className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: ROW_DIFF_COLORS.edit, fontWeight: 500 }}><Pencil className="w-2.5 h-2.5" strokeWidth={2.5} />2</span>
+                  <span className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: ROW_DIFF_COLORS.delete, fontWeight: 500 }}><Trash2 className="w-2.5 h-2.5" strokeWidth={2.5} />1</span>
+                </div>
+              </>)}
+
+              {subTitle('DFT taux pills')}
+              {row(<>
+                <span className="text-caption-medium px-2 py-0.5 rounded-full bg-[#eeece6] text-[#44403c]">100%</span>
+                <span className="text-caption-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">50%</span>
+                <span className="text-caption-medium px-2 py-0.5 rounded-full bg-red-50 text-red-400 border border-red-200" style={{ textDecoration: 'line-through' }}>25%</span>
+              </>)}
+            </div>
+
+            {/* ====== BUTTONS ====== */}
+            <div id="section-buttons" className={sectionClass}>
+              {sectionTitle('Buttons')}
+
+              {subTitle('Primary actions')}
+              {row(<>
+                <button className="px-4 py-2 rounded-lg text-body-medium text-white" style={{ backgroundColor: '#b9703f' }}>Action principale</button>
+                <button className="px-4 py-2 rounded-lg text-body-medium text-[#292524] border border-[#e7e5e3] bg-white hover:bg-[#fafaf9]">Secondaire</button>
+                <button className="px-2 py-1 rounded flex items-center gap-1" style={{ fontSize: 12, fontWeight: 500, color: ROW_DIFF_COLORS.edit, background: 'rgba(234,121,73,0.06)' }}>Voir <ChevronRight className="w-3 h-3" /></button>
+              </>)}
+
+              {subTitle('Approve / Reject')}
+              {row(<>
+                <button className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded hover:bg-[#fafaf9] border border-[#e7e5e3]" style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}>
+                  <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> Tout accepter
+                </button>
+                <span className="flex items-center gap-0.5">
+                  <button className="w-6 h-6 rounded flex items-center justify-center hover:bg-[#fafaf9] border border-[#e7e5e3]"><Check className="w-3.5 h-3.5 text-[#44403c]" strokeWidth={2.5} /></button>
+                  <button className="w-6 h-6 rounded flex items-center justify-center hover:bg-[#fafaf9] border border-[#e7e5e3]"><X className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={2.5} /></button>
+                </span>
+              </>)}
+
+              {subTitle('Toast notification')}
+              {row(<>
+                <div className="px-4 py-3 text-white text-body rounded-lg shadow-lg flex items-center gap-2 bg-zinc-800">
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#4a9168' }} />
+                  Informations du dossier extraites
+                </div>
+              </>)}
+            </div>
+
+            {/* ====== BARÈME COMPONENTS ====== */}
+            <div id="section-barème-components" className={sectionClass}>
+              {sectionTitle('Barème Components')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Composants pour la gestion des barèmes et référentiels — bibliothèque, sélecteur, viewer, upload.</p>
+
+              {subTitle('StatusBadge — Actif / En traitement')}
+              {row(<>
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#dcfce7', color: '#065f46' }}>Actif</span>
+                  <span className="inline-flex items-center text-xs px-2.5 py-1 rounded-full" style={{ background: '#dcfce7', color: '#065f46', fontSize: 13 }}>Actif</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#92400e' }}>En traitement</span>
+                  <span className="inline-flex items-center text-xs px-2.5 py-1 rounded-full" style={{ background: '#fef3c7', color: '#92400e', fontSize: 13 }}>En traitement</span>
+                </div>
+              </>)}
+
+
+              {subTitle('BaremeListItem — Row variants')}
+              <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden mb-4" style={{ maxWidth: 500 }}>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-zinc-100">
+                      <th className="px-4 py-2.5 text-left" style={colHeaderStyle}>Nom</th>
+                      <th className="px-4 py-2.5 text-left" style={colHeaderStyle}>Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e7e5e3]">
+                    {[
+                      { label: 'GDP 2025 Prospective 0,50%', status: 'active' },
+                      { label: "Cour d'appel 2024", status: 'active' },
+                      { label: 'Barème Cabinet Martin', status: 'processing' },
+                    ].map((item, i) => (
+                      <tr key={i} className={`bg-white ${item.status === 'active' ? 'hover:bg-[#fafaf9] cursor-pointer' : 'opacity-75'}`}>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-md bg-[#eeece6] flex items-center justify-center"><Scale className="w-3.5 h-3.5 text-[#a8a29e]" /></div>
+                            <span className="text-body-medium text-[#292524]">{item.label}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {item.status === 'active'
+                            ? <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#dcfce7', color: '#065f46' }}>Actif</span>
+                            : <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#92400e' }}>En traitement</span>
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {subTitle('BaremeSelect — Vertical (label above)')}
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 12 }}>Popover dropdown with search + "Ajouter le vôtre" at the bottom. Live component below.</p>
+              <div className="bg-white rounded-lg border border-[#e7e5e3] p-5 mb-4" style={{ maxWidth: 420 }}>
+                {renderBaremePopoverSelect({
+                  popoverId: 'uikit-vertical',
+                  value: 'gdp_2025_prospective',
+                  onChange: () => {},
+                  filterType: 'bareme',
+                  label: 'Barême utilisé',
+                })}
+              </div>
+
+              {subTitle('BaremeSelect — Horizontal (inline label)')}
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 12 }}>Same popover, inline layout. Used in param chip bars (PGPF).</p>
+              <div className="bg-white rounded-lg border border-[#e7e5e3] p-5 mb-4" style={{ maxWidth: 560 }}>
+                <div className="flex items-center gap-3">
+                  {renderBaremePopoverSelect({
+                    popoverId: 'uikit-horizontal',
+                    value: 'gdp_2025_prospective',
+                    onChange: () => {},
+                    filterType: 'bareme',
+                    label: 'Barème',
+                    variant: 'horizontal',
+                  })}
+                  <div className="w-px h-4 bg-[#d6d3d1]" />
+                  <span className="text-sm font-medium text-[#78716c] flex-shrink-0">Fin arrérage</span>
+                  <select className="text-sm text-[#292524] bg-white border border-[#e7e5e3] rounded-lg px-3 py-1.5" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                    <option>IPC Annuel</option>
+                    <option>IPC Mensuel</option>
+                  </select>
+                </div>
+              </div>
+
+              {subTitle('BaremeTableViewer — Sidepanel preview')}
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 12 }}>Opens as a right-side panel (same pattern as document preview). Table is rendered inside.</p>
+              <div className="bg-white rounded-lg border-l-2 border border-[#e7e5e3] overflow-hidden mb-4 shadow-lg" style={{ maxWidth: 600 }}>
+                <div className="px-4 py-3 border-b border-[#e7e5e3] flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-md bg-[#eeece6] flex items-center justify-center"><Scale className="w-3.5 h-3.5 text-[#a8a29e]" /></div>
+                  <span className="text-body-medium text-[#44403c]">ONIAM 2025</span>
+                  <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#dcfce7', color: '#065f46' }}>Actif</span>
+                  <div className="flex-1" />
+                  <div className="p-1 text-[#a8a29e]"><X className="w-3.5 h-3.5" /></div>
+                </div>
+                <div className="overflow-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="px-3 py-2 text-left border border-[#e7e5e3]" style={{ background: '#f5f5f4', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase' }}>Durée</th>
+                        {['25 ans', '62 ans', '67 ans'].map((c, i) => (
+                          <th key={i} className="px-3 py-2 text-right border border-[#e7e5e3]" style={{ background: '#f5f5f4', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', whiteSpace: 'nowrap' }}>{c}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { h: '1', v: ['0.996', '0.996', '0.996'] },
+                        { h: '10', v: ['9.589', '9.589', '9.589'] },
+                        { h: '30', v: ['26.231', '26.231', '26.231'] },
+                        { h: 'Viager', v: ['41.543', '16.891', '13.010'] },
+                      ].map((r, ri) => (
+                        <tr key={ri} className="hover:bg-[#fafaf9]">
+                          <td className="px-3 py-2 border border-[#e7e5e3]" style={{ background: '#f5f5f4', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#44403c' }}>{r.h}</td>
+                          {r.v.map((val, ci) => (
+                            <td key={ci} className={`px-3 py-2 text-right border border-[#e7e5e3]`} style={{
+                              fontFamily: "'DM Mono', 'IBM Plex Mono', monospace", fontSize: 12, color: '#292524',
+                              background: ri === 2 && ci === 0 ? '#eff6ff' : 'white',
+                              ...(ri === 2 && ci === 0 ? { boxShadow: 'inset 0 0 0 2px #3b82f6', borderRadius: 2 } : {})
+                            }}>{val}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-4 py-2 border-t border-[#e7e5e3]" style={{ background: '#fafaf9' }}>
+                  <span className="text-xs text-[#a8a29e]">↑ Cellule en surbrillance = valeur retenue pour le dossier</span>
+                </div>
+              </div>
+
+              {subTitle('BaremeUploadForm — States')}
+              {row(<>
+                {/* Empty form preview */}
+                <div className="bg-white rounded-lg border border-[#e7e5e3] p-5" style={{ width: 260 }}>
+                  <div className="text-body-medium text-[#292524] mb-3">Formulaire vide</div>
+                  <div className="space-y-2.5">
+                    <div className="h-9 bg-[#f5f5f4] rounded-lg border border-[#e7e5e3]" />
+                    <div className="h-9 bg-[#f5f5f4] rounded-lg border border-[#e7e5e3]" />
+                    <div className="h-20 bg-[#f5f5f4] rounded-lg border-2 border-dashed border-[#d6d3d1] flex items-center justify-center">
+                      <FileUp className="w-4 h-4 text-[#a8a29e]" />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1">
+                      <div className="px-3 py-1.5 text-xs text-[#78716c] rounded">Annuler</div>
+                      <div className="px-3 py-1.5 text-xs text-white bg-[#e7e5e3] rounded">Soumettre</div>
+                    </div>
+                  </div>
+                </div>
+                {/* Post-submit confirmation preview */}
+                <div className="bg-white rounded-lg border border-[#e7e5e3] p-5 text-center" style={{ width: 260 }}>
+                  <div className="text-body-medium text-[#292524] mb-3">Confirmation</div>
+                  <div className="w-10 h-10 rounded-full bg-[#dcfce7] flex items-center justify-center mx-auto mb-3">
+                    <CheckCircle2 className="w-5 h-5 text-[#16a34a]" />
+                  </div>
+                  <p className="text-body-medium text-[#292524] mb-1">Demande prise en compte</p>
+                  <p className="text-xs text-[#78716c]">Activation sous 48h</p>
+                </div>
+              </>)}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ========== DIFF ENGINE DOCUMENTATION ==========
+  const renderDiffEnginePage = () => {
+    const sectionClass = "mb-16";
+    const heading = (title) => <h2 style={{ fontSize: 20, fontWeight: 700, color: '#292524', marginBottom: 8 }}>{title}</h2>;
+    const prose = (text) => <p style={{ fontSize: 14, lineHeight: '24px', color: '#57534e', marginBottom: 20, maxWidth: 720 }}>{text}</p>;
+    const quote = (text) => <blockquote style={{ borderLeft: '3px solid #e7e5e3', paddingLeft: 16, margin: '16px 0 24px', fontSize: 14, lineHeight: '22px', color: '#78716c', fontStyle: 'italic', maxWidth: 720 }}>{text}</blockquote>;
+    const sandboxLabel = () => <div style={{ fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Sandbox</div>;
+
+    /* ── S1: The Problem Today ── */
+    const BeforeAfterToggle = () => {
+      const [view, setView] = React.useState('after');
+      return (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            {['before', 'after'].map(v => (
+              <button key={v} onClick={() => setView(v)}
+                className="px-3 py-1.5 rounded-md text-caption-medium transition-colors"
+                style={{ background: view === v ? '#292524' : '#eeece6', color: view === v ? 'white' : '#78716c' }}
+              >{v === 'before' ? 'Before (no feedback)' : 'After (diff system)'}</button>
+            ))}
+          </div>
+          <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden" style={{ maxWidth: 700 }}>
+            {view === 'before' ? (
+              /* Before: flat row, no indication of what changed — the user sees final values but has zero visibility */
+              <div className="flex items-center h-[56px] px-4 gap-4">
+                <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md"><FileText className="w-4 h-4 text-[#2563eb]" /></span>
+                <span className="text-body-medium text-[#292524] flex-1">Hospitalisation jour</span>
+                <span className="text-body text-[#78716c]">15/02/2026</span>
+                <span className="text-body-medium text-[#44403c]">500 €</span>
+              </div>
+            ) : (
+              /* After: diff-aware row with before/after values, colored strip, accept/reject */
+              <div className="group/diff relative flex items-center h-[56px] px-4 gap-4">
+                <div className="absolute left-0 top-0 bottom-0 w-1 pointer-events-none" style={{ background: ROW_DIFF_COLORS.edit }} />
+                <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md"><FileText className="w-4 h-4 text-[#2563eb]" /></span>
+                <span className="text-body-medium text-[#292524] flex-1">Hospitalisation jour</span>
+                <div className="text-right">
+                  <div style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through' }}>15/01/2026</div>
+                  <div className="text-body-medium text-[#292524]">15/02/2026</div>
+                </div>
+                <div className="text-right">
+                  <div style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through' }}>350 €</div>
+                  <div className="text-body-medium text-[#44403c]">500 €</div>
+                </div>
+                <span className="flex items-center gap-1 opacity-0 group-hover/diff:opacity-100 transition-opacity">
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></span>
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    /* ── S3: Visual System specimens ── */
+    const TypoSpecimen = ({ label, size, weight, color, decoration, value }) => (
+      <div className="px-4 py-3 rounded-lg border border-[#e7e5e3] bg-white" style={{ minWidth: 160 }}>
+        <div className="text-counter text-[#a8a29e] mb-2 uppercase">{label}</div>
+        <span style={{ fontSize: size, fontWeight: weight, color, textDecoration: decoration }}>{value}</span>
+        <div className="text-counter text-[#d6d3d1] mt-2">{size}px · {weight === 500 ? 'Medium' : 'Regular'} · {color}</div>
+      </div>
+    );
+
+    /* ── S4: Canvas Table (reuse DiffTableSandbox) ── */
+
+    /* ── S6: Panel States ── */
+    const PanelField = ({ label, value, diffColor, oldValue }) => (
+      <div className="mb-4">
+        <div className="flex items-center gap-1.5 mb-1">
+          {diffColor && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: diffColor, transform: 'rotate(45deg)' }} />}
+          <label style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}>{label}</label>
+        </div>
+        <input type="text" readOnly value={value} className="w-full px-3 py-2 rounded-lg border text-body text-[#292524]" style={{ borderColor: diffColor ? diffColor : '#e7e5e3', background: diffColor ? `${diffColor}08` : 'white' }} />
+        {oldValue && <div style={{ fontSize: 11, color: '#a8a29e', marginTop: 2 }}>Ancien : {oldValue}</div>}
+      </div>
+    );
+
+    /* ── S7: Peels (Hypotheses) ── */
+    const PeelSandbox = () => {
+      const initialPeels = [
+        { id: 'p1', label: 'Revaloriser', diffType: 'add', fields: [{ key: 'etat', before: null, after: 'On' }, { key: 'indice', before: null, after: 'IPC Annuel' }], status: 'pending' },
+        { id: 'p2', label: 'Capitaliser', diffType: null, fields: [], enabled: true, values: 'IPC Annuel, 62 ans', status: null },
+        { id: 'p3', label: 'Revalorisation', diffType: 'edit', fields: [{ key: 'indice', before: 'IPC Mensuel', after: 'IPC Annuel' }], status: 'pending' },
+        { id: 'p4', label: 'Capitaliser', diffType: 'delete', fields: [{ key: 'etat', before: 'On', after: 'Off' }], status: 'pending' },
+        { id: 'p5', label: 'Param', diffType: null, fields: [], enabled: false, status: null },
+      ];
+      const [peels, setPeels] = React.useState(initialPeels);
+      const reset = () => setPeels(initialPeels);
+
+      const renderPill = (p) => {
+        const hasDiff = p.status === 'pending' && !!p.diffType;
+        const isAccepted = p.status === 'accepted';
+        const isRejected = p.status === 'rejected';
+        const resolved = isAccepted || isRejected;
+
+        // Pill scheme: diff add/edit → info (blue ON), diff delete → neutral (gray OFF), no diff → enabled ? info : neutral
+        const scheme = hasDiff
+          ? (p.diffType === 'delete' ? PILL_SCHEMES.neutral : PILL_SCHEMES.info)
+          : (p.enabled !== false ? PILL_SCHEMES.info : PILL_SCHEMES.neutral);
+
+        // Value display
+        let valueContent = null;
+        if (hasDiff && p.fields.length > 0) {
+          const parts = p.fields.map(f => {
+            if (f.before && f.after) return <span key={f.key}><span style={{ textDecoration: 'line-through', opacity: 0.6 }}>{f.before}</span> → {f.after}</span>;
+            if (f.after) return <span key={f.key}>{f.after}</span>;
+            if (f.before) return <span key={f.key} style={{ textDecoration: 'line-through', opacity: 0.6 }}>{f.before}</span>;
+            return null;
+          }).filter(Boolean);
+          valueContent = parts.length > 0 ? parts.reduce((acc, part, i) => i === 0 ? [part] : [...acc, <span key={`sep-${i}`}>, </span>, part], []) : null;
+        } else if (p.values) {
+          valueContent = <span style={{ fontWeight: 400 }}>{p.values}</span>;
+        }
+
+        // Resolved state: determine winning scheme and value
+        // Accepted: keep the "after" state (add/edit → info ON, delete → neutral OFF)
+        // Rejected: revert to "before" state (add → neutral OFF/gone, edit → info with old value, delete → info ON)
+        const resolvedScheme = isAccepted
+          ? (p.diffType === 'delete' ? PILL_SCHEMES.neutral : PILL_SCHEMES.info)
+          : (p.diffType === 'add' ? PILL_SCHEMES.neutral : PILL_SCHEMES.info);
+
+        // Build the resolved value content (the winning value after accept/reject)
+        let resolvedValueContent = null;
+        if (resolved) {
+          if (isAccepted) {
+            // Show the after values (what the agent proposed)
+            const parts = p.fields.filter(f => f.after).map(f => <span key={f.key}>{f.after}</span>);
+            resolvedValueContent = parts.length > 0 ? parts.reduce((acc, part, i) => i === 0 ? [part] : [...acc, <span key={`sep-${i}`}>, </span>, part], []) : null;
+          } else {
+            // Rejected: show the before values (reverted state)
+            const parts = p.fields.filter(f => f.before).map(f => <span key={f.key}>{f.before}</span>);
+            resolvedValueContent = parts.length > 0 ? parts.reduce((acc, part, i) => i === 0 ? [part] : [...acc, <span key={`sep-${i}`}>, </span>, part], []) : null;
+          }
+        }
+
+        return (
+          <span
+            key={p.id}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-all"
+            style={{
+              background: resolved ? resolvedScheme.bg : scheme.bg,
+              borderColor: resolved ? resolvedScheme.border : scheme.border,
+              color: resolved ? resolvedScheme.text : scheme.text,
+            }}
+          >
+            {hasDiff && !resolved && (
+              <span className="w-1.5 h-1.5 flex-shrink-0" style={{ background: DIAMOND_COLORS[p.diffType], transform: 'rotate(45deg)', borderRadius: '0.5px', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} />
+            )}
+            <CircleArrowUp className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>{p.label}</span>
+            {!resolved && valueContent && <span style={{ fontWeight: 400 }}>{valueContent}</span>}
+            {resolved && resolvedValueContent && <span style={{ fontWeight: 400 }}>{resolvedValueContent}</span>}
+            {hasDiff && !resolved && (
+              <span className="inline-flex items-center gap-1 ml-0.5 flex-shrink-0">
+                <span className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors cursor-pointer" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} onClick={() => setPeels(prev => prev.map(pp => pp.id === p.id ? { ...pp, status: 'accepted' } : pp))}>
+                  <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                </span>
+                <span className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors cursor-pointer" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} onClick={() => setPeels(prev => prev.map(pp => pp.id === p.id ? { ...pp, status: 'rejected' } : pp))}>
+                  <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
+                </span>
+              </span>
+            )}
+          </span>
+        );
+      };
+
+      return (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-caption text-[#78716c]">{peels.filter(p => p.status === 'pending').length} pending · {peels.filter(p => p.status === 'accepted').length} accepted · {peels.filter(p => p.status === 'rejected').length} rejected</span>
+            <button onClick={reset} className="flex items-center gap-1.5 text-caption-medium text-[#1e3a8a] hover:text-[#1e40af]"><RotateCcw className="w-3 h-3" /> Reset</button>
+          </div>
+          {/* In-context: settings row with mixed pill states */}
+          <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden mb-4" style={{ boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}>
+            <div className="flex items-center gap-3 px-4 py-3 flex-wrap">
+              <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                <Settings className="w-3.5 h-3.5 text-[#78716c]" />
+              </div>
+              {peels.map(p => renderPill(p))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    /* ── S8: Rejected State ── */
+    const RejectedStateSandbox = () => {
+      const [step, setStep] = React.useState('pending');
+      const reset = () => setStep('pending');
+      return (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            {['pending', 'rejected', 'clean'].map(s => (
+              <div key={s} className="flex items-center gap-1.5">
+                <div className="w-5 h-5 rounded-full flex items-center justify-center text-counter font-bold" style={{ background: step === s ? '#292524' : '#eeece6', color: step === s ? 'white' : '#78716c' }}>{s === 'pending' ? '1' : s === 'rejected' ? '2' : '3'}</div>
+                <span className="text-caption" style={{ color: step === s ? '#292524' : '#a8a29e', fontWeight: step === s ? 500 : 400 }}>{s === 'pending' ? 'Pending diff' : s === 'rejected' ? 'Rejected' : 'Clean state'}</span>
+              </div>
+            ))}
+          </div>
+          <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-visible" style={{ maxWidth: 600 }}>
+            <div className={`relative flex items-center h-[56px] px-4 gap-4 transition-colors ${step === 'rejected' ? 'diff-row-rejected' : ''}`}>
+              {step === 'pending' && <div className="absolute left-0 top-0 bottom-0 w-1 pointer-events-none" style={{ background: ROW_DIFF_COLORS.edit }} />}
+              <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md"><FileText className="w-4 h-4 text-[#2563eb]" /></span>
+              <span className="text-body-medium text-[#292524] flex-1">Kinésithérapie</span>
+              {step === 'pending' ? (
+                <div className="text-right">
+                  <div style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through' }}>960 €</div>
+                  <div className="text-body-medium text-[#44403c]">1 280 €</div>
+                </div>
+              ) : step === 'rejected' ? (
+                <div className="text-right">
+                  <span className="text-body-medium text-[#292524]">960 €</span>
+                </div>
+              ) : (
+                <span className="text-body-medium text-[#44403c]">960 €</span>
+              )}
+              {step === 'pending' && (
+                <span className="flex items-center gap-1">
+                  <button className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                  <button onClick={() => setStep('rejected')} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 mt-4">
+            {step === 'rejected' && <button onClick={() => setStep('clean')} className="px-3 py-1.5 rounded-md text-caption-medium bg-[#292524] text-white">Dismiss → Clean state</button>}
+            <button onClick={reset} className="px-3 py-1.5 rounded-md text-caption-medium border border-[#e7e5e3] text-[#78716c] hover:bg-[#fafaf9]"><RotateCcw className="w-3 h-3 inline mr-1" />Reset</button>
+          </div>
+        </div>
+      );
+    };
+
+
+    /* ── Surface recap table ── */
+    const SurfaceRecap = () => (
+      <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden" style={{ maxWidth: 700 }}>
+        {[
+          { surface: 'Canvas (table)', sees: true, canAccept: true, canEdit: false },
+          { surface: 'Chat (artifact card)', sees: true, canAccept: true, canEdit: false },
+          { surface: 'Panel', sees: false, canAccept: false, canEdit: true },
+        ].map((row, i) => (
+          <div key={i} className="flex items-center" style={{ borderBottom: i < 2 ? '1px solid #f0efed' : 'none', padding: '10px 16px' }}>
+            <span className="text-body-medium text-[#292524]" style={{ width: 200 }}>{row.surface}</span>
+            <span className="flex-1 text-body" style={{ color: row.sees ? ROW_DIFF_COLORS.add : '#a8a29e' }}>{row.sees ? '✓ Sees diff' : '✗ Banner only'}</span>
+            <span className="flex-1 text-body" style={{ color: row.canAccept ? ROW_DIFF_COLORS.add : '#a8a29e' }}>{row.canAccept ? '✓ Accept/Reject' : '✗ Save = implicit accept'}</span>
+            <span className="flex-1 text-body" style={{ color: row.canEdit ? ROW_DIFF_COLORS.add : '#a8a29e' }}>{row.canEdit ? '✓ Full edit' : '✗ Read-only'}</span>
+          </div>
+        ))}
+      </div>
+    );
+
+    return (
+      <div className="h-screen flex flex-col" style={{ backgroundColor: '#F8F7F5', fontFamily: "'Inter', system-ui, sans-serif" }}>
+        {/* Top bar */}
+        <div className="flex items-center h-12 px-6 border-b border-[#e7e5e3] bg-white flex-shrink-0">
+          <button onClick={() => setCurrentPage('components')} className="flex items-center gap-2 text-body-medium text-[#78716c] hover:text-[#292524] transition-colors">
+            <ChevronRight className="w-4 h-4 rotate-180" /> Back to UI Kit
+          </button>
+          <div className="ml-4 pl-4 border-l border-[#e7e5e3]">
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#292524' }}>Diff Engine</span>
+          </div>
+        </div>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto" style={{ padding: '48px 64px' }}>
+          <div style={{ maxWidth: 1100 }}>
+            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#292524', marginBottom: 4, letterSpacing: '-0.5px' }}>Diff Engine</h1>
+            <p style={{ fontSize: 16, color: '#78716c', marginBottom: 48 }}>Visualization & validation system for agent modifications</p>
+
+            {/* S1: The Problem Today */}
+            <div id="de-problem" className={sectionClass}>
+              {heading('The Problem Today')}
+              {prose('The current system uses line-level statuses (AI, Done, Pending) to indicate state. The lawyer can\'t see which fields changed, can\'t validate granularly, and loses track when the agent modifies multiple postes in one exchange.')}
+              {quote('We replace line statuses (AI / Done / etc.) with a proper diff system.')}
+              {sandboxLabel()}
+              <BeforeAfterToggle />
+            </div>
+
+            {/* S2: The Solution */}
+            <div id="de-solution" className={sectionClass}>
+              {heading('The Solution: Diff Engine')}
+              {prose('The diff engine visualizes and validates agent modifications. It has three roles:')}
+              <div className="flex flex-col gap-3 mb-6" style={{ maxWidth: 720 }}>
+                {[
+                  { n: '1', title: 'Show', desc: 'What changed (addition, modification, deletion) with before/after values' },
+                  { n: '2', title: 'Validate', desc: 'Accept or reject at different levels of granularity' },
+                  { n: '3', title: 'Stay transparent', desc: 'Only agent actions are tracked — manual edits by the lawyer don\'t go through the diff system' },
+                ].map(item => (
+                  <div key={item.n} className="flex items-start gap-3 p-4 rounded-lg border border-[#e7e5e3] bg-white">
+                    <span className="w-6 h-6 rounded-full bg-[#292524] text-white text-caption-medium flex items-center justify-center flex-shrink-0">{item.n}</span>
+                    <div><span className="text-body-medium text-[#292524]">{item.title}.</span> <span className="text-body text-[#57534e]">{item.desc}</span></div>
+                  </div>
+                ))}
+              </div>
+              {quote('The diff is a trust mechanism for agent actions, not a generic change tracker. What the agent does needs to be reviewed. What the lawyer does manually is intentional.')}
+              <div className="text-caption-medium text-[#78716c] mb-3 mt-6 uppercase" style={{ letterSpacing: '0.05em' }}>Diff surfaces</div>
+              <SurfaceRecap />
+            </div>
+
+            {/* S3: Visual System */}
+            <div id="de-visual" className={sectionClass}>
+              {heading('Visual System — Typography & Color')}
+              {prose('The diff relies on typography hierarchy to separate old vs new values, not color on text. Color lives only in structural markers (left border, status tags).')}
+              {sandboxLabel()}
+              <div className="flex flex-wrap gap-3 mb-8">
+                <TypoSpecimen label="Old value (before)" size={12} weight={400} color="#a8a29e" decoration="line-through" value="960 €" />
+                <TypoSpecimen label="New value (after)" size={14} weight={500} color="#292524" decoration="none" value="1 280 €" />
+                <TypoSpecimen label="Added value" size={14} weight={500} color="#292524" decoration="none" value="4 500 €" />
+                <TypoSpecimen label="Deleted value" size={14} weight={400} color="#a8a29e" decoration="line-through" value="55 €" />
+              </div>
+              <div className="text-caption-medium text-[#78716c] mb-3 uppercase" style={{ letterSpacing: '0.05em' }}>Row-level color system</div>
+              <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden" style={{ maxWidth: 400 }}>
+                {[
+                  { type: 'add', label: 'Ajout', color: ROW_DIFF_COLORS.add },
+                  { type: 'edit', label: 'Modif.', color: ROW_DIFF_COLORS.edit },
+                  { type: 'delete', label: 'Suppr.', color: ROW_DIFF_COLORS.delete },
+                  { type: null, label: 'No diff', color: null },
+                ].map((r, i) => (
+                  <div key={i} className="relative flex items-center h-10 px-4" style={{ borderBottom: i < 3 ? '1px solid #f0efed' : 'none' }}>
+                    {r.color && <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: r.color }} />}
+                    <span className="text-body text-[#292524] flex-1">{r.type ? r.label : '—'}</span>
+                    {r.color && <span className="text-counter px-1.5 py-0.5 rounded" style={{ background: r.color + '18', color: r.color, fontWeight: 600 }}>{r.label.toUpperCase()}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Chat (Artifact Cards) */}
+            <div id="de-chat" className={sectionClass}>
+              {heading('Chat (Artifact Cards)')}
+              {prose('The agent displays an artifact card recap in the chat after each action. Cards list added, modified, and deleted postes with per-line detail. Actions: accept all, reject all, or accept/reject line by line.')}
+              {sandboxLabel()}
+              <SharedInteractiveCards />
+            </div>
+
+            {/* S4: Canvas (Poste Table) */}
+            <div id="de-canvas" className={sectionClass}>
+              {heading('Canvas (Poste Table)')}
+              {prose('The table is the primary diff visualization surface. Row-level markers (colored left border + status tag) indicate the diff type. Cell-level stacked values show before/after. Accept/reject buttons appear on hover, overlapping the table edge.')}
+              {sandboxLabel()}
+              <SharedDiffTableSandbox />
+            </div>
+
+            {/* S6: Panel (Manual Editing) */}
+            {/* S7: Hypotheses & Parameters (Peels) */}
+            <div id="de-peels" className={sectionClass}>
+              {heading('Hypotheses & Poste Parameters')}
+              {prose('The diff engine also applies to hypotheses and parameters (revalorization, capitalization, rates). Displayed as pills with embedded accept/reject. Each parameter validates independently.')}
+              {sandboxLabel()}
+              <PeelSandbox />
+            </div>
+
+            {/* S8: Rejected State */}
+            <div id="de-rejected" className={sectionClass}>
+              {heading('Rejected State')}
+              {prose('When a value is rejected, it doesn\'t disappear. The stored value reverts to the previous state. The row shows a brief red flash, then displays the original value in default style.')}
+              {sandboxLabel()}
+              <RejectedStateSandbox />
+            </div>
+
+            {/* S9: Bulk Actions */}
+            <div id="de-bulk" className={sectionClass}>
+              {heading('Bulk Actions → Card Resolution')}
+              {prose('Once all lines in an artifact card are treated (accept all, reject all, or one by one), the card reflects a resolved state. Three variants: all approved (green), all rejected (grey), mixed.')}
+              {sandboxLabel()}
+              <div className="flex gap-4 flex-wrap">
+                <div style={{ flex: 1, minWidth: 300 }}>
+                  <div className="text-caption-medium text-[#a8a29e] mb-2 uppercase">All approved</div>
+                  <SharedInteractiveCards
+                    initialDiffs={[
+                      { id: 'ba-1', entityLabel: 'Hospitalisation CHU', type: 'add', fields: [{ label: 'Montant', after: '4 500 €' }], approved: true },
+                      { id: 'ba-2', entityLabel: 'Kinésithérapie', type: 'edit', fields: [{ label: 'Montant', before: '960 €', after: '1 280 €' }], approved: true },
+                    ]}
+                    cardDefs={[{ id: 'bulk-approved', title: 'DSA — Batch 1', Icon: HeartPulse, diffIds: ['ba-1', 'ba-2'] }]}
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: 300 }}>
+                  <div className="text-caption-medium text-[#a8a29e] mb-2 uppercase">All rejected</div>
+                  <SharedInteractiveCards
+                    initialDiffs={[
+                      { id: 'br-1', entityLabel: 'Hospitalisation CHU', type: 'add', fields: [{ label: 'Montant', after: '4 500 €' }], rejected: true },
+                      { id: 'br-2', entityLabel: 'Consultation doublon', type: 'delete', fields: [{ label: 'Montant', before: '55 €' }], rejected: true },
+                    ]}
+                    cardDefs={[{ id: 'bulk-rejected', title: 'DSA — Batch 2', Icon: HeartPulse, diffIds: ['br-1', 'br-2'] }]}
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: 300 }}>
+                  <div className="text-caption-medium text-[#a8a29e] mb-2 uppercase">Mixed</div>
+                  <SharedInteractiveCards
+                    initialDiffs={[
+                      { id: 'bm-1', entityLabel: 'Hospitalisation CHU', type: 'add', fields: [{ label: 'Montant', after: '4 500 €' }], approved: true },
+                      { id: 'bm-2', entityLabel: 'Kinésithérapie', type: 'edit', fields: [{ label: 'Montant', before: '960 €', after: '1 280 €' }], rejected: true },
+                      { id: 'bm-3', entityLabel: 'Consultation', type: 'edit', fields: [{ label: 'Date', before: '04/06', after: '05/06' }], approved: true },
+                    ]}
+                    cardDefs={[{ id: 'bulk-mixed', title: 'DSA — Batch 3', Icon: HeartPulse, diffIds: ['bm-1', 'bm-2', 'bm-3'] }]}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* What we don't build */}
+            <div id="de-exclusions" className={sectionClass}>
+              {heading('What We Don\'t Build')}
+              <div className="flex flex-col gap-2" style={{ maxWidth: 720 }}>
+                {[
+                  'Line statuses AI / Done / Pending → replaced by the diff system',
+                  'No diff visuals inside the panel',
+                  'No separate review mode vs edit mode',
+                  'No per-field accept/reject inside the panel',
+                  'No read-only panel state for deleted lines',
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 text-body text-[#78716c]">
+                    <X className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={2} />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Panel (Manual Editing) — last section */}
+            <div id="de-panel" className="mb-8">
+              {heading('Panel (Manual Editing)')}
+              {prose('The panel is NOT part of the diff system. It always shows the latest version. A subtle banner indicates "Modified by assistant" when a diff is pending. Edit + save = implicit accept. Deleted lines cannot be opened in the panel.')}
+              {sandboxLabel()}
+              <div className="flex gap-6 flex-wrap">
+                <div className="rounded-lg border border-[#e7e5e3] bg-white p-5" style={{ width: 280 }}>
+                  <div className="text-caption-medium text-[#a8a29e] mb-3 uppercase">Normal</div>
+                  <PanelField label="Libellé" value="Hospitalisation jour" />
+                  <PanelField label="Date" value="15/02/2026" />
+                  <PanelField label="Montant" value="500 €" />
+                </div>
+                <div className="rounded-lg border border-[#e7e5e3] bg-white p-5" style={{ width: 280 }}>
+                  <div className="text-caption-medium text-[#a8a29e] mb-3 uppercase">Pending diff</div>
+                  <div className="rounded-lg p-3 mb-4 flex items-center gap-2" style={{ background: `${ROW_DIFF_COLORS.edit}10`, border: `1px solid ${ROW_DIFF_COLORS.edit}30` }}>
+                    <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: ROW_DIFF_COLORS.edit, transform: 'rotate(45deg)' }} />
+                    <span style={{ fontSize: 12, fontWeight: 500, color: ROW_DIFF_COLORS.edit }}>Modifié par l'assistant</span>
+                  </div>
+                  <PanelField label="Libellé" value="Hospitalisation jour" />
+                  <PanelField label="Montant" value="1 280 €" diffColor={ROW_DIFF_COLORS.edit} oldValue="960 €" />
+                  <PanelField label="Date" value="05/06/2022" diffColor={ROW_DIFF_COLORS.edit} oldValue="04/06/2022" />
+                </div>
+                <div className="rounded-lg border border-[#e7e5e3] bg-white p-5 flex flex-col items-center justify-center" style={{ width: 280, minHeight: 240 }}>
+                  <div className="text-caption-medium text-[#a8a29e] mb-3 uppercase">Deleted line</div>
+                  <div className="w-10 h-10 rounded-full bg-[#fef2f2] flex items-center justify-center mb-3">
+                    <Trash2 className="w-4 h-4" style={{ color: ROW_DIFF_COLORS.delete }} />
+                  </div>
+                  <span className="text-body text-[#78716c] text-center">Cette ligne a été supprimée par l'agent.</span>
+                  <span className="text-caption text-[#a8a29e] mt-1">Restaurez ou confirmez depuis le tableau.</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ========== BARÈME POPOVER SELECT ==========
+  const renderBaremePopoverSelect = ({ popoverId, value, onChange, filterType, label, variant = 'vertical' }) => {
+    const isOpen = baremePopover === popoverId;
+    const filteredBaremes = baremesLibrary
+      .filter(b => b.status === 'active' && (filterType ? b.type === filterType : true))
+      .filter(b => !baremePopoverSearch || b.label.toLowerCase().includes(baremePopoverSearch.toLowerCase()));
+    const selectedBareme = baremesLibrary.find(b => b.id === value);
+
+    const triggerBtn = (
+      <button
+        data-bareme-popover={popoverId}
+        onClick={() => { setBaremePopover(isOpen ? null : popoverId); setBaremePopoverSearch(''); }}
+        className={`flex items-center justify-between bg-white border border-[#e7e5e3] transition-colors hover:border-[#d6d3d1] ${
+          variant === 'horizontal' ? 'text-sm px-3 py-2' : 'w-full px-3 py-2 text-[14px]'
+        } text-[#292524]`}
+        style={{ borderRadius: 8, boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}
+      >
+        <span className={`overflow-hidden text-ellipsis whitespace-nowrap ${selectedBareme ? 'text-[#292524]' : 'text-[#78716c]'}`}>{selectedBareme ? selectedBareme.label : 'Sélectionner…'}</span>
+        <ChevronDown className="w-4 h-4 text-[#78716c] ml-2 flex-shrink-0" />
+      </button>
+    );
+
+    const popoverContent = isOpen && (
+      <div data-bareme-popover={popoverId} className="absolute z-40 mt-1 bg-white border border-[#e7e5e3] overflow-hidden" style={{ borderRadius: 8, width: variant === 'horizontal' ? 287 : '100%', animation: 'fadeIn 0.1s ease-out', boxShadow: '0px 2px 4px -2px rgba(26,26,26,0.05), 0px 4px 6px -1px rgba(26,26,26,0.05)' }}>
+        {/* Command Search */}
+        <button className="w-full flex items-center gap-0 px-3 py-3 border-b border-[#e7e5e3] cursor-text" onClick={() => {}}>
+          <div className="pr-2 flex-shrink-0"><Search className="w-4 h-4 text-[#78716c]" /></div>
+          <input
+            type="text"
+            value={baremePopoverSearch}
+            onChange={(e) => setBaremePopoverSearch(e.target.value)}
+            placeholder="Rechercher.."
+            className="w-full bg-transparent text-sm text-[#292524] placeholder:text-[#78716c] outline-none"
+            autoFocus
+          />
+        </button>
+        {/* Options */}
+        <div className="max-h-[200px] overflow-y-auto p-1">
+          <div className="p-1">
+            {filteredBaremes.length > 0 ? filteredBaremes.map(b => (
+              <button
+                key={b.id}
+                onClick={() => { onChange(b.id); setBaremePopover(null); setBaremePopoverSearch(''); }}
+                className={`w-full text-left px-2 py-1.5 text-sm transition-colors flex items-center justify-between gap-2 ${
+                  b.id === value ? 'font-medium text-[#292524]' : 'text-[#78716c] hover:bg-[#f8f7f5]'
+                }`}
+                style={{ borderRadius: 6, background: b.id === value ? '#f8f7f5' : undefined }}
+              >
+                {b.label}
+                {b.id === value && <Check className="w-4 h-4 text-[#292524] flex-shrink-0" />}
+              </button>
+            )) : (
+              <div className="px-2 py-4 text-center text-sm text-[#78716c]">Aucun résultat</div>
+            )}
+          </div>
+        </div>
+        {/* Ajouter footer */}
+        <div className="border-t border-[#e7e5e3] px-3 py-3">
+          <button
+            onClick={() => { setBaremePopover(null); setBaremePopoverSearch(''); setBaremeUploadFormOpen(true); setBaremeUploadData({ nom: '', type: filterType || 'bareme', notes: '', fileName: '' }); }}
+            className="w-full text-left text-xs flex items-center gap-1.5"
+          >
+            <CirclePlus className="w-4 h-4 text-[#78716c] flex-shrink-0" style={{ opacity: 0.5 }} />
+            <span className="text-[#78716c]" style={{ letterSpacing: '0.12px' }}>Barême introuvable ?</span>
+            <span className="font-medium text-[#1e3a8a]">Ajouter le vôtre</span>
+          </button>
+        </div>
+      </div>
+    );
+
+    if (variant === 'horizontal') {
+      return (
+        <div className="relative">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-sm font-medium text-[#78716c]">{label}</span>
+              {value && (
+                <button onClick={() => setBaremeViewerOpen(value)} className="text-xs font-normal text-[#1e3a8a] hover:underline transition-colors">
+                  Voir
+                </button>
+              )}
+            </div>
+            {triggerBtn}
+          </div>
+          {popoverContent}
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative">
+        <label className="block text-[14px] font-medium text-[#292524] mb-1.5">{label}</label>
+        {triggerBtn}
+        {value && (
+          <button onClick={() => setBaremeViewerOpen(value)} className="mt-1.5 text-xs font-medium text-[#1e3a8a] hover:underline transition-colors">
+            Voir le barême
+          </button>
+        )}
+        {popoverContent}
+      </div>
+    );
+  };
+
+  // ========== BARÈME TABLE VIEWER (sidepanel — adapted from doc preview) ==========
+  const renderBaremeViewer = () => {
+    const bareme = baremesLibrary.find(b => b.id === baremeViewerOpen);
+    if (!bareme) return null;
+    return (
+      <div className="fixed right-0 top-0 h-screen bg-white border-l border-[#e7e5e3] shadow-xl z-30 flex flex-col" style={{ width: '860px', animation: 'slideInRight 0.2s ease-out' }}>
+        {/* Header — matches doc preview pattern */}
+        <div className="px-4 border-b border-[#e7e5e3] flex items-center justify-between flex-shrink-0 bg-white" style={{ paddingTop: 14, paddingBottom: 14 }}>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-[22px] h-[22px] rounded-[6px] bg-[#eeece6] flex items-center justify-center flex-shrink-0">
+              <Scale className="w-3 h-3 text-[#78716c]" />
+            </div>
+            <span className="text-[14px] font-medium text-black truncate">{bareme.label}</span>
+            {bareme.status === 'active' ? (
+              <span className="inline-flex items-center text-xs font-medium px-2 py-1 rounded-[6px] flex-shrink-0" style={{ background: '#dcfce7', color: '#065f46' }}>Actif</span>
+            ) : (
+              <span className="inline-flex items-center text-xs font-medium px-2 py-1 rounded-[6px] flex-shrink-0" style={{ background: '#fef3c7', color: '#92400e' }}>En traitement</span>
+            )}
+          </div>
+          <button onClick={() => setBaremeViewerOpen(null)} className="w-4 h-4 flex items-center justify-center flex-shrink-0 ml-3 text-[#78716c] hover:text-[#292524] transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Content — full width, no padding, table fills panel */}
+        {bareme.status === 'active' && bareme.tableData ? (
+          <div className="flex-1 overflow-auto">
+              <div className="overflow-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="sticky top-0 left-0 z-20 px-3 py-2.5 text-left border-b border-r border-[#e7e5e3]" style={{ background: '#f5f5f4', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 80 }}>
+                        Durée
+                      </th>
+                      {bareme.tableData.columns.map((col, i) => (
+                        <th key={i} className="sticky top-0 z-10 px-3 py-2.5 text-right border-b border-r border-[#e7e5e3] last:border-r-0" style={{ background: '#f5f5f4', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', whiteSpace: 'nowrap', minWidth: 72 }}>
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bareme.tableData.rows.map((row, ri) => (
+                      <tr key={ri} className="hover:bg-[#fafaf9] transition-colors">
+                        <td className="sticky left-0 z-10 px-3 py-2 border-b border-r border-[#e7e5e3]" style={{ background: '#f5f5f4', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#44403c' }}>
+                          {row.header}
+                        </td>
+                        {row.values.map((val, ci) => (
+                          <td key={ci} className="px-3 py-2 text-right border-b border-r border-[#e7e5e3] last:border-r-0" style={{ fontFamily: "'DM Mono', 'IBM Plex Mono', monospace", fontSize: 12, color: '#292524', background: 'white' }}>
+                            {typeof val === 'number' ? val.toFixed(3) : val}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: '#f8f7f5' }}>
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 text-[#d6d3d1] mx-auto mb-3 animate-spin" />
+              <p className="text-body text-[#78716c]">Ce barème est en cours de modélisation.</p>
+              <p className="text-caption text-[#a8a29e] mt-1">Il sera disponible sous 48h.</p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ========== BARÈME UPLOAD FORM MODAL ==========
+  const renderBaremeUploadModal = () => {
+    if (!baremeUploadFormOpen) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onClick={() => { setBaremeUploadFormOpen(false); setBaremeUploadData({ nom: '', type: 'bareme', notes: '', fileName: '' }); }}>
+        <div className="bg-white rounded-xl shadow-2xl" style={{ width: 520 }} onClick={(e) => e.stopPropagation()}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#e7e5e3]">
+            <h2 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '18px', fontWeight: 400, color: '#18181b' }}>Ajouter un barème</h2>
+            <button onClick={() => { setBaremeUploadFormOpen(false); setBaremeUploadData({ nom: '', type: 'bareme', notes: '', fileName: '' }); }} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#eeece6] transition-colors">
+              <X className="w-4 h-4 text-[#78716c]" />
+            </button>
+          </div>
+
+            {/* Form */}
+            <div className="px-6 py-5 space-y-4">
+              {/* Nom */}
+              <div>
+                <label className="block text-[14px] font-medium text-[#78716c] mb-2">Nom du barème <span className="text-red-400">*</span></label>
+                <input
+                  type="text"
+                  value={baremeUploadData.nom}
+                  onChange={(e) => setBaremeUploadData(prev => ({ ...prev, nom: e.target.value }))}
+                  placeholder="Ex: GDP 2026, Mornet révisé…"
+                  className="w-full h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                />
+              </div>
+
+              {/* Type */}
+              <div>
+                <label className="block text-[14px] font-medium text-[#78716c] mb-2">Type</label>
+                <select
+                  value={baremeUploadData.type}
+                  onChange={(e) => setBaremeUploadData(prev => ({ ...prev, type: e.target.value }))}
+                  className="w-full h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                >
+                  <option value="bareme">Barème</option>
+                  <option value="referentiel">Référentiel</option>
+                </select>
+              </div>
+
+              {/* File upload zone */}
+              <div>
+                <label className="block text-[14px] font-medium text-[#78716c] mb-2">Document de référence <span className="text-red-400">*</span></label>
+                <div
+                  className="border-2 border-dashed border-[#d6d3d1] rounded-lg p-6 text-center hover:border-[#a8a29e] transition-colors cursor-pointer"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.pdf,.xlsx,.xls,.png,.jpg,.jpeg';
+                    input.onchange = (e) => {
+                      if (e.target.files[0]) {
+                        setBaremeUploadData(prev => ({ ...prev, fileName: e.target.files[0].name }));
+                      }
+                    };
+                    input.click();
+                  }}
+                >
+                  {baremeUploadData.fileName ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <FileText className="w-5 h-5 text-[#292524]" />
+                      <span className="text-body-medium text-[#292524]">{baremeUploadData.fileName}</span>
+                      <button onClick={(e) => { e.stopPropagation(); setBaremeUploadData(prev => ({ ...prev, fileName: '' })); }} className="ml-2 p-1 rounded hover:bg-[#eeece6]">
+                        <X className="w-3 h-3 text-[#78716c]" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <FileUp className="w-6 h-6 text-[#a8a29e] mx-auto mb-2" />
+                      <p className="text-body text-[#78716c]">Glissez votre fichier ici ou <span className="text-[#292524] font-medium underline">parcourir</span></p>
+                      <p className="text-caption text-[#a8a29e] mt-1">PDF, Excel, image</p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-[14px] font-medium text-[#78716c] mb-2">Notes</label>
+                <textarea
+                  value={baremeUploadData.notes}
+                  onChange={(e) => setBaremeUploadData(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Précisions sur le barème, source, contexte d'utilisation…"
+                  rows={3}
+                  className="w-full px-3 py-2.5 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524] resize-none"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => { setBaremeUploadFormOpen(false); setBaremeUploadData({ nom: '', type: 'bareme', notes: '', fileName: '' }); }}
+                  className="px-4 py-2.5 text-body-medium text-[#78716c] rounded-lg hover:bg-[#eeece6] transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={() => {
+                    if (!baremeUploadData.nom || !baremeUploadData.fileName) return;
+                    const newBareme = {
+                      id: baremeUploadData.nom.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''),
+                      label: baremeUploadData.nom,
+                      type: baremeUploadData.type,
+                      status: 'processing',
+                      source: 'imported',
+                      tableData: null,
+                      uploadedFileName: baremeUploadData.fileName,
+                      notes: baremeUploadData.notes,
+                    };
+                    setBaremesLibrary(prev => [...prev, newBareme]);
+                    setBaremeUploadFormOpen(false);
+                    setBaremeUploadData({ nom: '', type: 'bareme', notes: '', fileName: '' });
+                    setToastMessage('Demande prise en compte — votre barème sera activé sous 48h.');
+                    setTimeout(() => setToastMessage(null), 5000);
+                  }}
+                  disabled={!baremeUploadData.nom || !baremeUploadData.fileName}
+                  className={`px-5 py-2.5 text-body-medium rounded-lg transition-colors ${
+                    baremeUploadData.nom && baremeUploadData.fileName
+                      ? 'bg-[#292524] text-white hover:bg-[#44403c]'
+                      : 'bg-[#e7e5e3] text-[#a8a29e] cursor-not-allowed'
+                  }`}
+                >
+                  Soumettre
+                </button>
+              </div>
+            </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ========== RENDER BARÈMES LIBRARY PAGE ==========
+  const renderBaremesLibraryPage = () => (
+    <div className="h-screen flex relative" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: '#27272a' }}>
+      {/* Sidebar Rail */}
+      <div className="w-12 bg-white border-r border-[#e7e5e3] flex flex-col items-start flex-shrink-0">
+        {/* Header — Logo */}
+        <div className="w-full flex flex-col items-center justify-center py-3 border-b border-[#e7e5e3]">
+          <img src="/logo-plato.png" alt="Plato" className="w-6 h-6" />
+        </div>
+
+        {/* Nav items */}
+        <div className="flex-1 w-full flex flex-col gap-2 p-2">
+          <button
+            onClick={() => setCurrentPage('list')}
+            title="Mes dossiers"
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'list' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+            style={{ borderRadius: 8 }}
+          >
+            <Folder className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setCurrentPage('baremes')}
+            title="Référentiels & Barèmes"
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'baremes' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+            style={{ borderRadius: 8 }}
+          >
+            <Scale className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Footer — UIKit + Avatar */}
+        <div className="w-full border-t border-[#e7e5e3] p-2 flex flex-col gap-2">
+          <button
+            onClick={() => setCurrentPage('components')}
+            title="UI Components"
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'components' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+            style={{ borderRadius: 8 }}
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
+          <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium cursor-pointer overflow-hidden" style={{ borderRadius: 12 }}>
+            MR
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
+        {/* Header */}
+        <div className="px-8 pt-8 pb-6">
+          <div className="flex items-center justify-between">
+            <h1 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '28px', fontWeight: 400, color: '#18181b', letterSpacing: '-0.01em' }}>
+              Référentiels & Barèmes
+            </h1>
+            <button
+              onClick={() => { setBaremeUploadFormOpen(true); setBaremeUploadData({ nom: '', type: 'bareme', notes: '', fileName: '' }); }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Ajouter un barème
+            </button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="flex-1 overflow-y-auto px-8 pb-8">
+          <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-zinc-100">
+                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Nom</th>
+                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Statut</th>
+                  <th className="px-5 py-3 w-10"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#e7e5e3]">
+                {baremesLibrary.map(bareme => (
+                  <tr
+                    key={bareme.id}
+                    onClick={() => bareme.status === 'active' && setBaremeViewerOpen(bareme.id)}
+                    className={`bg-white transition-colors group ${bareme.status === 'active' ? 'hover:bg-[#fafaf9] cursor-pointer' : 'opacity-75'}`}
+                  >
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-[#eeece6] flex items-center justify-center flex-shrink-0">
+                          <Scale className="w-4 h-4 text-[#a8a29e]" />
+                        </div>
+                        <span className="text-body-medium text-[#292524]">{bareme.label}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      {bareme.status === 'active' ? (
+                        <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#dcfce7', color: '#065f46' }}>Actif</span>
+                      ) : (
+                        <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#92400e' }}>En traitement</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
+                      {bareme.status === 'active' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setBaremeViewerOpen(bareme.id); }}
+                          className="p-1.5 rounded-lg text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#eeece6] opacity-0 group-hover:opacity-100 transition-all"
+                          title="Voir le barème"
+                        >
+                          <Table2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Modals */}
+      {baremeViewerOpen && renderBaremeViewer()}
+      {renderBaremeUploadModal()}
+    </div>
+  );
+
+  // ========== REASONING DEMO PAGE ==========
+  const REASONING_SCENARIOS = {
+    A: {
+      title: 'Success with CRUD (DSA completion)',
+      summary: 'Complétion du poste DSA depuis 3 factures',
+      counters: { add: 3, update: 1 },
+      response: "J'ai complété le poste DSA avec les 3 lignes extraites des factures et mis à jour le taux DFP à 20%. Le resté à charge total DSA est de 7 300 €.",
+      steps: [
+        { type: 'read_documents', label: 'Analyse de 6 documents', status: 'done', children: ['rapport.pdf', 'facture_1.pdf', 'facture_2.pdf', 'facture_3.pdf', 'bulletin_01.pdf', 'bulletin_02.pdf'] },
+        { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+        { type: 'extract_data', label: 'Extraction facture CHU Bordeaux', status: 'done', children: ['Montant : 4 500 €', 'CPAM : 3 200 €', 'RAC : 1 300 €'] },
+        { type: 'add_row', label: '3 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire', 'Kinésithérapie'] },
+        { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
+      ],
+    },
+    B: {
+      title: 'Read-only (analysis)',
+      summary: "Analyse du rapport d'expertise",
+      counters: {},
+      response: "La consolidation est fixée au 15 mars 2024. Le DFP retenu est de 20% et le DFT couvre 4 périodes (187 jours). Souhaitez-vous que je pré-remplisse les postes concernés ?",
+      steps: [
+        { type: 'read_documents', label: 'Analyse de 2 documents', status: 'done', children: ['rapport.pdf', 'conclusions_amiable.pdf'] },
+        { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+      ],
+    },
+    C: {
+      title: 'Partial error',
+      summary: 'Extraction des factures DSA',
+      counters: { add: 2, error: 1 },
+      response: "J'ai extrait 2 factures sur 3 et créé les lignes DSA. Le fichier facture_scan.pdf n'a pas pu être lu — vérifiez qu'il s'agit d'un PDF texte.",
+      steps: [
+        { type: 'read_documents', label: 'Analyse de 3 documents', status: 'done' },
+        { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 € — CPAM 3 200 €'] },
+        { type: 'error', label: 'Extraction impossible — facture_scan.pdf illisible', status: 'error' },
+        { type: 'add_row', label: '2 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire'] },
+      ],
+    },
+    D: {
+      title: 'Total error',
+      summary: "Analyse du rapport d'expertise",
+      counters: { error: 1 },
+      response: "Je n'ai pas trouvé de rapport d'expertise dans ce dossier. Déposez-le dans la section Documents puis relancez l'analyse.",
+      steps: [
+        { type: 'error', label: "Aucun rapport d'expertise dans le dossier", status: 'error' },
+      ],
+    },
+    E: {
+      title: 'Multi-poste with deletion',
+      summary: "Pré-remplissage depuis le rapport d'expertise",
+      counters: { add: 5, update: 1, delete: 1 },
+      response: "J'ai pré-rempli 3 postes depuis le rapport : DSA (3 lignes), DFT (2 périodes) et DFP (taux à 20%). J'ai aussi supprimé un doublon sur DFT.",
+      steps: [
+        { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+        { type: 'add_row', label: '3 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire', 'Kinésithérapie'] },
+        { type: 'add_row', label: '2 périodes DFT', status: 'done', poste: 'DFT', children: ['01/01 → 15/03/2024 — 25% — 74j', '16/03 → 30/06/2024 — 10% — 107j'] },
+        { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
+        { type: 'delete_row', label: '1 ligne DFT doublon', status: 'done', poste: 'DFT', children: ['Période 3 — doublon avec période 2'] },
+      ],
+    },
+    F: {
+      title: 'Sub-agent',
+      summary: 'Extraction et complétion DSA',
+      counters: { add: 2 },
+      response: "J'ai extrait les montants de 2 factures via l'agent d'extraction et ajouté les lignes correspondantes au poste DSA.",
+      steps: [
+        { type: 'read_documents', label: 'Analyse de 4 documents', status: 'done' },
+        { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+        { type: 'sub_agent', label: 'Agent extraction factures', status: 'done', children_steps: [
+          { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 €'] },
+          { type: 'extract_data', label: 'Extraction facture clinique', status: 'done', children: ['2 800 €'] },
+        ]},
+        { type: 'add_row', label: '2 lignes DSA', status: 'done', poste: 'DSA', children: ['CHU Bordeaux', 'Clinique St-Jean'] },
+      ],
+    },
+  };
+
+  const ReasoningDemoScenario = ({ id, scenario }) => {
+    const [phase, setPhase] = React.useState('idle'); // idle | streaming | done
+    const [visibleSteps, setVisibleSteps] = React.useState([]);
+    const [expanded, setExpanded] = React.useState(false);
+    const [speed, setSpeed] = React.useState(1);
+    const timeoutsRef = React.useRef([]);
+
+    const play = () => {
+      // Clear any running timeouts
+      timeoutsRef.current.forEach(t => clearTimeout(t));
+      timeoutsRef.current = [];
+      setPhase('streaming');
+      setVisibleSteps([]);
+      setExpanded(false);
+
+      const stepInterval = 15000 / Math.max(scenario.steps.length, 1);
+      const processingDelay = stepInterval * 0.6;
+      scenario.steps.forEach((step, idx) => {
+        // Add step in loading state
+        const tLoad = setTimeout(() => {
+          setVisibleSteps(prev => [...prev, { ...step, status: 'loading' }]);
+        }, (400 + idx * stepInterval) / speed);
+        timeoutsRef.current.push(tLoad);
+        // Flip to done after processing delay
+        const tDone = setTimeout(() => {
+          setVisibleSteps(prev => prev.map((s, i) => i === idx ? { ...step, status: step.status || 'done' } : s));
+        }, (400 + idx * stepInterval + processingDelay) / speed);
+        timeoutsRef.current.push(tDone);
+      });
+
+      // Auto-collapse after all steps
+      const doneT = setTimeout(() => {
+        setPhase('done');
+        setVisibleSteps(scenario.steps);
+      }, (400 + scenario.steps.length * stepInterval + 600) / speed);
+      timeoutsRef.current.push(doneT);
+    };
+
+    const reset = () => {
+      timeoutsRef.current.forEach(t => clearTimeout(t));
+      timeoutsRef.current = [];
+      setPhase('idle');
+      setVisibleSteps([]);
+      setExpanded(false);
+    };
+
+    return (
+      <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded text-xs font-semibold" style={{ backgroundColor: '#292524', color: 'white' }}>{id}</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{scenario.title}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Speed control */}
+            <div className="flex items-center gap-1 border border-[#e7e5e3] rounded overflow-hidden">
+              {[1, 2, 4].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setSpeed(s)}
+                  className="px-2 py-0.5 text-xs transition-colors"
+                  style={{ fontWeight: speed === s ? 600 : 400, color: speed === s ? '#292524' : '#a8a29e', backgroundColor: speed === s ? '#eeece6' : 'transparent' }}
+                >
+                  {s}x
+                </button>
+              ))}
+            </div>
+            {phase === 'idle' ? (
+              <button onClick={play} className="px-3 py-1 rounded text-xs font-medium text-white transition-colors" style={{ backgroundColor: '#292524' }}>
+                Play
+              </button>
+            ) : (
+              <button onClick={reset} className="px-3 py-1 rounded text-xs font-medium transition-colors border border-[#e7e5e3]" style={{ color: '#78716c' }}>
+                <RotateCcw className="w-3 h-3 inline mr-1" />Reset
+              </button>
+            )}
+          </div>
+        </div>
+        {/* Content */}
+        <div className="p-4" style={{ minHeight: 60 }}>
+          {phase === 'idle' && (
+            <p style={{ fontSize: 13, color: '#a8a29e', textAlign: 'center', padding: '16px 0' }}>
+              Cliquez Play pour lancer la simulation
+            </p>
+          )}
+          {phase === 'streaming' && (
+            <ReasoningStepper
+              status="streaming"
+              steps={visibleSteps}
+              onToggle={() => {}}
+            />
+          )}
+          {phase === 'done' && (
+            <>
+              <ReasoningStepper
+                status="done"
+                summary={scenario.summary}
+                counters={scenario.counters}
+                steps={scenario.steps}
+                expanded={expanded}
+                onToggle={() => setExpanded(v => !v)}
+              />
+              {/* Agent response */}
+              <div style={{ marginTop: 8, fontSize: 14, lineHeight: '20px', color: '#44403c' }}>
+                {scenario.response}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const FinishedInspectableCard = ({ summary, counters, steps }) => {
+    const [expanded, setExpanded] = React.useState(false);
+    return (
+      <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden">
+        <div className="px-3 py-2" style={{ backgroundColor: '#fafaf9', borderBottom: '1px solid #e7e5e3' }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Reasoning finished inspectable</span>
+        </div>
+        <div className="p-4">
+          <ReasoningStepper
+            status="done"
+            summary={summary}
+            counters={counters}
+            steps={steps}
+            expanded={expanded}
+            onToggle={() => setExpanded(v => !v)}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const ExampleStageCard = ({ label, summary, counters, allSteps }) => {
+    const [phase, setPhase] = React.useState('idle'); // idle | streaming | done
+    const [visibleSteps, setVisibleSteps] = React.useState([]);
+    const [expanded, setExpanded] = React.useState(false);
+    const timeoutsRef = React.useRef([]);
+
+    const play = () => {
+      timeoutsRef.current.forEach(t => clearTimeout(t));
+      timeoutsRef.current = [];
+      setPhase('streaming');
+      setVisibleSteps([]);
+      setExpanded(false);
+
+      const stepInterval = 10000 / Math.max(allSteps.length, 1);
+      const processingDelay = stepInterval * 0.6;
+      allSteps.forEach((step, idx) => {
+        const tLoad = setTimeout(() => {
+          setVisibleSteps(prev => [...prev, { ...step, status: 'loading' }]);
+        }, 300 + idx * stepInterval);
+        timeoutsRef.current.push(tLoad);
+        const tDone = setTimeout(() => {
+          setVisibleSteps(prev => prev.map((s, i) => i === idx ? { ...step, status: step.status || 'done' } : s));
+        }, 300 + idx * stepInterval + processingDelay);
+        timeoutsRef.current.push(tDone);
+      });
+
+      const doneT = setTimeout(() => {
+        setPhase('done');
+        setVisibleSteps(allSteps);
+        setExpanded(false);
+      }, 300 + allSteps.length * stepInterval + 400);
+      timeoutsRef.current.push(doneT);
+    };
+
+    const reset = () => {
+      timeoutsRef.current.forEach(t => clearTimeout(t));
+      timeoutsRef.current = [];
+      setPhase('idle');
+      setVisibleSteps([]);
+      setExpanded(false);
+    };
+
+    React.useEffect(() => () => timeoutsRef.current.forEach(t => clearTimeout(t)), []);
+
+    return (
+      <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden">
+        <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#fafaf9', borderBottom: '1px solid #e7e5e3' }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
+          <div className="flex items-center gap-1.5">
+            {phase === 'idle' ? (
+              <button onClick={play} className="px-2.5 py-0.5 rounded text-xs font-medium text-white transition-colors" style={{ backgroundColor: '#292524' }}>
+                Play
+              </button>
+            ) : (
+              <button onClick={reset} className="px-2.5 py-0.5 rounded text-xs font-medium transition-colors border border-[#e7e5e3]" style={{ color: '#78716c' }}>
+                <RotateCcw className="w-3 h-3 inline mr-1" />Reset
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="p-4" style={{ minHeight: 48 }}>
+          {phase === 'idle' && (
+            <p style={{ fontSize: 12, color: '#a8a29e', textAlign: 'center', padding: '12px 0' }}>
+              Cliquez Play pour lancer
+            </p>
+          )}
+          {phase === 'streaming' && (
+            <ReasoningStepper
+              status="streaming"
+              steps={visibleSteps}
+              onToggle={() => {}}
+            />
+          )}
+          {phase === 'done' && (
+            <ReasoningStepper
+              status="done"
+              summary={summary}
+              counters={counters}
+              steps={allSteps}
+              expanded={expanded}
+              onToggle={() => setExpanded(v => !v)}
+            />
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderReasoningDemoPage = () => {
+    const sH1 = { fontSize: 20, fontWeight: 700, color: '#292524', marginBottom: 6, marginTop: 48 };
+    const sH2 = { fontSize: 15, fontWeight: 600, color: '#292524', marginBottom: 6, marginTop: 32 };
+    const sP = { fontSize: 13, color: '#78716c', lineHeight: '20px', marginBottom: 16 };
+    const sCode = { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#78716c', backgroundColor: '#f5f5f4', padding: '1px 5px', borderRadius: 3 };
+    const sCard = "border border-[#e7e5e3] rounded-lg bg-white p-4";
+    const sLabel = { fontSize: 10, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 };
+
+    return (
+      <div className="h-screen flex flex-col" style={{ backgroundColor: '#F8F7F5', fontFamily: "'Inter', system-ui, sans-serif" }}>
+        {/* Top bar */}
+        <div className="flex items-center gap-3 px-6 h-12 border-b border-[#e7e5e3] flex-shrink-0 bg-white">
+          <button onClick={() => setCurrentPage('components')} className="flex items-center gap-1.5 text-[#78716c] hover:text-[#292524] transition-colors" style={{ fontSize: 13 }}>
+            <ChevronRight className="w-4 h-4 rotate-180" /> UI Kit
+          </button>
+          <span style={{ color: '#d6d3d1' }}>/</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#292524' }}>Reasoning Stepper</span>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-8 py-8">
+          <div style={{ maxWidth: 880 }}>
+
+            {/* ══════════════════════════════════════════════════════════════ */}
+            {/* TITLE                                                        */}
+            {/* ══════════════════════════════════════════════════════════════ */}
+            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#292524', marginBottom: 8, letterSpacing: '-0.5px' }}>ReasoningStepper</h1>
+            <p style={{ ...sP, maxWidth: 640 }}>
+              Affiche les étapes de raisonnement de l'agent Plato. Supporte le streaming progressif, l'auto-collapse, les sous-agents, le groupement CRUD, et la vérification des données.
+            </p>
+
+            {/* ══════════════════════════════════════════════════════════════ */}
+            {/* EXAMPLES & STAGES                                            */}
+            {/* ══════════════════════════════════════════════════════════════ */}
+            <h1 style={sH1}>Examples & stages</h1>
+            <p style={{ ...sP, maxWidth: 700 }}>
+              Component designed to integrate streaming of agent actions, but also designed for V1 where there is no per-action streaming — instead, a single streaming process runs, and at the end, the full payload is displayed (reflecting the trace and all actions performed).
+            </p>
+
+            {/* ── Live streaming (future) ── */}
+            <h2 style={sH2}>Live streaming</h2>
+            <p style={{ fontSize: 12, color: '#a8a29e', lineHeight: '18px', marginBottom: 12 }}>Steps stream one by one in real-time. Each step shows the processing gif while active, then its final icon when done.</p>
+
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <ExampleStageCard
+                label="Reasoning (streaming)"
+                summary="Complétion du poste DSA depuis 3 factures"
+                counters={{ add: 3, update: 1 }}
+                allSteps={[
+                  { type: 'read_documents', label: 'Analyse de 4 documents', status: 'done' },
+                  { type: 'read_rapport', label: "Lecture du rapport d'expertise médicale", status: 'done' },
+                  { type: 'extract_data', label: 'Extraction facture CHU Bordeaux', status: 'done', children: ['4 500 € — CPAM 3 200 €'] },
+                  { type: 'verify_data', label: 'Vérification des données', status: 'done' },
+                  { type: 'add_row', label: '3 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire', 'Kinésithérapie'] },
+                  { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
+                ]}
+              />
+              <FinishedInspectableCard
+                summary="Résumé du reasoning usage final"
+                counters={{ add: 4, update: 1 }}
+                steps={[
+                  { type: 'read_documents', label: 'Analyse de 6 documents', status: 'done' },
+                  { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+                  { type: 'extract_data', label: 'Extraction facture CHU Bordeaux', status: 'done', children: ['4 500 € — CPAM 3 200 €'] },
+                  { type: 'verify_data', label: 'Vérification des données', status: 'done' },
+                  { type: 'calculate', label: 'Calcul du poste DSA', status: 'done' },
+                  { type: 'add_row', label: '3 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire', 'Kinésithérapie'] },
+                  { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
+                  { type: 'navigate', label: 'Navigation vers le poste', status: 'done' },
+                  { type: 'add_row', label: '1 ligne DFT', status: 'done', poste: 'DFT' },
+                  { type: 'error', label: 'Extraction impossible — fichier illisible', status: 'error' },
+                ]}
+              />
+            </div>
+
+            {/* ── V1 — no per-action streaming ── */}
+            <h2 style={sH2}>V1 — no per-action streaming</h2>
+            <p style={{ fontSize: 12, color: '#a8a29e', lineHeight: '18px', marginBottom: 12 }}>No step-by-step detail during processing. A single process runs, then the full trace payload arrives at once.</p>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {/* V1 Processing */}
+              <div className="border border-[#e7e5e3] rounded-lg bg-white overflow-hidden">
+                <div className="px-3 py-2" style={{ backgroundColor: '#fafaf9', borderBottom: '1px solid #e7e5e3' }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Reasoning (processing)</span>
+                </div>
+                <div className="p-4 flex items-center gap-2">
+                  <img src="/plato-thinking.gif" alt="" className="w-3 h-3" style={{ objectFit: 'contain' }} />
+                  <span style={{ fontSize: 12, color: '#78716c' }}>Raisonnement en cours…</span>
+                </div>
+              </div>
+
+              {/* V1 Finished */}
+              <FinishedInspectableCard
+                summary="Complétion du poste DSA — 3 factures traitées"
+                counters={{ add: 3, update: 1 }}
+                steps={[
+                  { type: 'read_documents', label: 'Analyse de 4 documents', status: 'done' },
+                  { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 €'] },
+                  { type: 'verify_data', label: 'Vérification des données', status: 'done' },
+                  { type: 'add_row', label: '3 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation', 'IRM', 'Kiné'] },
+                  { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
+                ]}
+              />
+            </div>
+
+            {/* ══════════════════════════════════════════════════════════════ */}
+            {/* ANATOMY                                                      */}
+            {/* ══════════════════════════════════════════════════════════════ */}
+            <h1 style={sH1}>Anatomy</h1>
+
+            {/* ── StepIcon ── */}
+            <h2 style={sH2}>StepIcon</h2>
+            <p style={sP}>Chaque étape a un <span style={sCode}>type</span> qui détermine son icône, sa couleur, et son comportement.</p>
+            <p style={{ ...sP, fontSize: 11 }}>Les vrais noms d'outils du Plato Supervisor (PostHog traces) sont mappés via <span style={sCode}>BACKEND_TOOL_MAP</span>.</p>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {/* Left: Icon type table */}
+              <div className="flex flex-col gap-0 border border-[#e7e5e3] rounded-lg bg-white overflow-hidden">
+                <div className="flex items-center gap-2.5 px-3 py-1.5" style={{ backgroundColor: '#fafaf9', borderBottom: '1px solid #e7e5e3' }}>
+                  <span style={{ ...sLabel, marginBottom: 0, width: 16 }}></span>
+                  <span style={{ ...sLabel, marginBottom: 0, width: 110 }}>Type</span>
+                  <span style={{ ...sLabel, marginBottom: 0, flex: 1 }}>Label utilisateur</span>
+                </div>
+                {[
+                  ['read_documents',  'Analyse de X documents'],
+                  ['read_rapport',    "Lecture du rapport d'expertise"],
+                  ['search_document', 'Recherche dans le document'],
+                  ['extract_data',    'Extraction des données en cours de...'],
+                  ['verify_data',     'Vérification des données'],
+                  ['summarize',       'Synthèse des résultats'],
+                  ['calculate',       'Calcul du poste'],
+                  ['navigate',        'Navigation vers le poste'],
+                  ['add_row',         'X lignes ajoutées'],
+                  ['update_row',      'Mise à jour du champ'],
+                  ['delete_row',      'X lignes supprimées'],
+                  ['sub_agent',       'Agent extraction factures'],
+                  ['error',           'Extraction impossible — Fichier illisible'],
+                ].map(([type, label]) => {
+                  const cfg = STEP_TYPE_CONFIG[type];
+                  if (!cfg) return null;
+                  const Icon = cfg.Icon;
+                  const colors = STEP_COLORS[cfg.color] || STEP_COLORS.default;
+                  return (
+                    <div key={type} className="flex items-center gap-2.5 px-3 py-1.5" style={{ borderTop: '1px solid #f5f5f4' }}>
+                      <span className="flex items-center justify-center flex-shrink-0" style={{ width: 16 }}>
+                        <Icon className="w-3.5 h-3.5" style={{ color: colors.icon }} />
+                      </span>
+                      <span className="flex-shrink-0" style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: '#a8a29e', width: 110 }}>{type}</span>
+                      <span className="flex items-center gap-1.5 flex-1 truncate" style={{ fontSize: 12, color: '#44403c' }}>
+                        {cfg.pill && <CrudPill type={type} />}
+                        {label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Right: States + backend mapping */}
+              <div className="flex flex-col gap-4">
+                {/* Hover states */}
+                <div className="border border-[#e7e5e3] rounded-lg bg-white p-3">
+                  <p style={sLabel}>Item states</p>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: 10, color: '#a8a29e', width: 60 }}>default</span>
+                      <div className="flex-1 flex items-start gap-2 p-1 rounded">
+                        <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                          <Search className="w-3.5 h-3.5" style={{ color: '#a8a29e' }} />
+                        </span>
+                        <span style={{ fontSize: 12, color: '#44403c' }}>When hovering a collapsed item</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: 10, color: '#a8a29e', width: 60 }}>hover</span>
+                      <div className="flex-1 flex items-start gap-2 p-1 rounded" style={{ backgroundColor: '#f8f7f5' }}>
+                        <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                          <ChevronRight className="w-3.5 h-3.5" style={{ color: '#78716c' }} />
+                        </span>
+                        <span style={{ fontSize: 12, color: '#44403c' }}>When hovering an expanded item</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: 10, color: '#a8a29e', width: 60 }}>processing</span>
+                      <div className="flex-1 flex items-start gap-2 p-1 rounded">
+                        <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                          <img src="/plato-thinking.gif" alt="" className="w-3 h-3" style={{ objectFit: 'contain' }} />
+                        </span>
+                        <span style={{ fontSize: 12, color: '#78716c' }}>When step is processing</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Backend tool mapping */}
+                <div className="flex flex-col gap-0 border border-[#e7e5e3] rounded-lg bg-white overflow-hidden">
+                  <div className="flex items-center gap-2.5 px-3 py-1.5" style={{ backgroundColor: '#fafaf9', borderBottom: '1px solid #e7e5e3' }}>
+                    <span style={{ ...sLabel, marginBottom: 0, flex: 1 }}>Backend tool</span>
+                    <span style={{ ...sLabel, marginBottom: 0, width: 80 }}>Map to</span>
+                    <span style={{ ...sLabel, marginBottom: 0, flex: 1 }}>Label FR</span>
+                  </div>
+                  {Object.entries(BACKEND_TOOL_MAP).map(([tool, mapping]) => {
+                    const cfg = STEP_TYPE_CONFIG[mapping.type];
+                    const Icon = cfg?.Icon;
+                    const colors = STEP_COLORS[cfg?.color] || STEP_COLORS.default;
+                    return (
+                      <div key={tool} className="flex items-center gap-2.5 px-3 py-1.5" style={{ borderTop: '1px solid #f5f5f4' }}>
+                        <span className="flex-1 truncate" style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: '#78716c' }}>{tool}</span>
+                        <span className="flex items-center gap-1 flex-shrink-0" style={{ width: 80 }}>
+                          {Icon && <Icon className="w-3 h-3" style={{ color: colors.icon }} />}
+                          <span style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: '#a8a29e' }}>{mapping.type}</span>
+                        </span>
+                        <span className="flex-1 truncate" style={{ fontSize: 12, color: '#44403c' }}>{mapping.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* ── CrudBadges ── */}
+            <h2 style={sH2}>CrudBadges (feature level badges)</h2>
+            <p style={sP}>Le caractère de chaque étape CRUD est rapidement identifiable par un badge → indicateur. Couleur + diamant = indique le type dans le header collapsed. Indicateur = <span style={sCode}>ajout/modif./suppr.</span> → label mono apparaît dans la ligne d'étape CRUD. Counter → diamant + nombre dans le header collapsed.</p>
+
+            <div className="flex items-center gap-6 mb-6 p-4 border border-[#e7e5e3] rounded-lg bg-white" style={{ maxWidth: 480 }}>
+              <div>
+                <p style={{ ...sLabel, marginBottom: 6 }}>Pills</p>
+                <div className="flex items-center gap-2">
+                  <CrudPill type="add_row" />
+                  <CrudPill type="update_row" />
+                  <CrudPill type="delete_row" />
+                </div>
+              </div>
+              <div style={{ width: 1, height: 32, backgroundColor: '#e7e5e3' }} />
+              <div>
+                <p style={{ ...sLabel, marginBottom: 6 }}>Counters</p>
+                <div className="flex items-center gap-3">
+                  <DotCounter color="green" count={3} />
+                  <DotCounter color="orange" count={1} />
+                  <DotCounter color="red" count={1} />
+                </div>
+              </div>
+            </div>
+
+            {/* ── Tree / Tree zones ── */}
+            <h2 style={sH2}>Tree / Tree zones (planning for deeper levels)</h2>
+            <p style={sP}>
+              Tree = connecteur vertical (1px, <span style={sCode}>#e7e5e4</span>) dans un gutter de 16px, branche horizontale par child row.<br/>
+              Tree zone: Level 1 only for now.
+            </p>
+
+            <div className="flex items-start gap-4 mb-6">
+              {/* Tree component visual */}
+              <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#292524', padding: 20 }}>
+                <div className="flex flex-col">
+                  {/* Tree connector piece — vertical + horizontal branch */}
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="flex items-stretch" style={{ height: 24 }}>
+                      <div className="relative" style={{ width: 20 }}>
+                        <div className="absolute" style={{ left: 12, top: 0, bottom: i === 2 ? '50%' : 0, width: 1, backgroundColor: '#e7e5e4' }} />
+                      </div>
+                      <div className="relative" style={{ width: 20 }}>
+                        <div className="absolute" style={{ left: 0, top: '50%', width: 10, height: 1, backgroundColor: '#e7e5e4' }} />
+                      </div>
+                      <div style={{ width: 40 }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tree zone — Level 1 */}
+              <div className="rounded-lg overflow-hidden flex items-center justify-center" style={{ backgroundColor: '#292524', padding: 20 }}>
+                <div className="rounded border border-dashed flex items-center justify-center" style={{ borderColor: '#78716c', width: 80, height: 64, position: 'relative' }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Level 1</span>
+                  {/* Tree inside zone */}
+                  <div className="absolute" style={{ left: -20, top: 8 }}>
+                    {[0, 1].map((i) => (
+                      <div key={i} className="flex items-stretch" style={{ height: 24 }}>
+                        <div className="relative" style={{ width: 20 }}>
+                          <div className="absolute" style={{ left: 12, top: 0, bottom: i === 1 ? '50%' : 0, width: 1, backgroundColor: '#e7e5e4' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Step + StepItem side-by-side ── */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className={sCard}>
+                <p style={sLabel}>Step</p>
+                <p style={{ fontSize: 11, color: '#78716c', marginBottom: 8 }}>Step est le composant qui gère le type + le style dans le ReasoningStepper.</p>
+                <ReasoningStepper status="done" steps={[
+                  { type: 'extract_data', label: 'Extraction et traitement DSA', status: 'done' },
+                  { type: 'read_documents', label: 'Analyse de 4 documents', status: 'done' },
+                  { type: 'read_rapport', label: "Lecture du rapport d'expertise médicale", status: 'done' },
+                  { type: 'extract_data', label: 'Extraction des données en cours de...', status: 'done' },
+                  { type: 'add_row', label: '3 lignes ajoutées', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire', 'Kinésithérapie'] },
+                ]} expanded={true} onToggle={() => {}} />
+              </div>
+              <div className={sCard}>
+                <p style={sLabel}>StepItem</p>
+                <p style={{ fontSize: 11, color: '#78716c', marginBottom: 8 }}>StepItem = un simple wrapper padding + state default/hover.</p>
+                <div className="flex flex-col gap-0">
+                  <div className="flex items-start gap-2 p-1 rounded">
+                    <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                      <FileSearch className="w-3.5 h-3.5" style={{ color: '#a8a29e' }} />
+                    </span>
+                    <span style={{ fontSize: 12, color: '#44403c' }}>Analyse de 4 documents</span>
+                  </div>
+                  <div className="flex items-start gap-2 p-1 rounded" style={{ backgroundColor: '#f8f7f5' }}>
+                    <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                      <ChevronRight className="w-3.5 h-3.5" style={{ color: '#78716c' }} />
+                    </span>
+                    <span style={{ fontSize: 12, color: '#44403c' }}>Analyse de 4 documents</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ══════════════════════════════════════════════════════════════ */}
+            {/* WHO GOT SUBITEMS, WHO GOT DESC                               */}
+            {/* ══════════════════════════════════════════════════════════════ */}
+            <h2 style={sH2}>Who got subitems, who got desc ?</h2>
+            <p style={sP}>
+              <span style={sCode}>1 child</span> = description inline sous le label (pas d'expand, toujours visible).<br/>
+              <span style={sCode}>2+ children</span> = expandable tree avec connecteur vertical. Au clic, le chevron toggle les enfants.<br/>
+              Un child est une simple ligne de texte ("line step" / sub item) sans icône.
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className={sCard}>
+                <p style={sLabel}>1 child = description</p>
+                <ReasoningStepper status="done" steps={[
+                  { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 € — CPAM 3 200 €'] },
+                ]} expanded={true} onToggle={() => {}} />
+              </div>
+              <div className={sCard}>
+                <p style={sLabel}>2+ children = expandable tree avec connecteur</p>
+                <ReasoningStepper status="done" steps={[
+                  { type: 'read_documents', label: 'Analyse de 6 documents', status: 'done', children: ['rapport.pdf', 'facture_1.pdf', 'facture_2.pdf', 'facture_3.pdf', 'bulletin_01.pdf', 'bulletin_02.pdf'] },
+                ]} expanded={true} onToggle={() => {}} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className={sCard}>
+                <p style={sLabel}>Sub-agent with child steps</p>
+                <ReasoningStepper status="done" steps={[
+                  { type: 'sub_agent', label: 'Agent extraction factures', status: 'done', children_steps: [
+                    { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 €'] },
+                    { type: 'extract_data', label: 'Extraction facture clinique', status: 'done', children: ['2 800 €'] },
+                  ]},
+                ]} expanded={true} onToggle={() => {}} />
+              </div>
+              <div className={sCard}>
+                <p style={sLabel}>CRUD grouping (consecutive same type+poste)</p>
+                <ReasoningStepper status="done" steps={[
+                  { type: 'add_row', label: '1 ligne DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste'] },
+                  { type: 'add_row', label: '1 ligne DSA', status: 'done', poste: 'DSA', children: ['IRM lombaire'] },
+                  { type: 'add_row', label: '1 ligne DSA', status: 'done', poste: 'DSA', children: ['Kinésithérapie'] },
+                  { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
+                ]} expanded={true} onToggle={() => {}} />
+              </div>
+            </div>
+
+            {/* Lecture du rapport + sub-agents example */}
+            <div className={sCard} style={{ marginBottom: 24 }}>
+              <p style={sLabel}>Full example: Lecture + sous-agents + CRUD</p>
+              <ReasoningStepper
+                status="done"
+                summary="Extraction et complétion DSA"
+                counters={{ add: 2 }}
+                steps={[
+                  { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
+                  { type: 'sub_agent', label: 'Agent extraction factures', status: 'done', children_steps: [
+                    { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 €'] },
+                    { type: 'extract_data', label: 'Extraction facture clinique', status: 'done', children: ['2 800 €'] },
+                  ]},
+                  { type: 'add_row', label: '2 lignes DSA', status: 'done', poste: 'DSA', children: ['CHU Bordeaux', 'Clinique St-Jean'] },
+                ]}
+                expanded={true}
+                onToggle={() => {}}
+              />
+            </div>
+
+            {/* ══════════════════════════════════════════════════════════════ */}
+            {/* USE CASE INTERACTIVE SANDBOX                                  */}
+            {/* ══════════════════════════════════════════════════════════════ */}
+            <h1 style={sH1}>Use case interactive sandbox</h1>
+            <p style={sP}>Chaque scénario simule le streaming avec gif de processing (~15s), l'auto-collapse, puis l'expand/collapse pour inspection.</p>
+            <div className="flex flex-col gap-4 mb-8" style={{ maxWidth: 560 }}>
+              {Object.entries(REASONING_SCENARIOS).map(([id, scenario]) => (
+                <ReasoningDemoScenario key={id} id={id} scenario={scenario} />
+              ))}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // ========== ROUTING ==========
+  if (currentPage === 'reasoning-demo') {
+    return renderReasoningDemoPage();
+  }
+  if (currentPage === 'diff-engine') {
+    return renderDiffEnginePage();
+  }
+  if (currentPage === 'components') {
+    return renderComponentsPage();
+  }
   if (currentPage === 'list') {
     return renderDossierListPage();
+  }
+  if (currentPage === 'baremes') {
+    return renderBaremesLibraryPage();
   }
 
   return (
     <div
-      className="h-screen flex"
+      className="h-screen flex flex-col"
       style={{
         backgroundColor: '#F8F7F5',
         fontFamily: "'Inter', system-ui, sans-serif",
@@ -6244,125 +13491,37 @@ export default function App() {
         color: '#27272a'
       }}
     >
-      {/* Sidebar */}
-      {renderSidebar()}
-      
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
-        {/* Header - fond beige, imposant */}
-        <div className="px-8 pt-6 pb-4">
-          {/* Bouton Back */}
-          {parentInfo && (
-            <button 
-              onClick={parentInfo.action}
-              className="flex items-center gap-1.5 text-[13px] text-zinc-400 hover:text-zinc-600 mb-3 -ml-1 transition-colors"
-            >
-              <ChevronRight className="w-4 h-4 rotate-180" strokeWidth={1.5} />
-              <span>Retour</span>
-            </button>
-          )}
-          
-          <div className="flex items-start justify-between">
-            <div>
-              {/* Titre + Badge statut */}
-              <div className="flex items-center gap-3">
-                <h1 style={{ 
-                  fontFamily: "Georgia, 'Times New Roman', serif",
-                  fontSize: '32px',
-                  fontWeight: 400,
-                  color: '#18181b',
-                  lineHeight: 1.1,
-                  letterSpacing: '-0.01em'
-                }}>
-                  {currentLevel.subSection === 'revenus-ref' && 'Revenus de référence'}
-                  {currentLevel.subSection === 'revenus-percus' && 'Revenus perçus sur la période'}
-                  {currentLevel.subSection === 'ij' && 'Indemnités journalières'}
-                  {!currentLevel.subSection && (currentLevel.fullTitle || currentLevel.title)}
-                </h1>
-                
-                {/* Badge statut dossier */}
-                {currentLevel.type === 'dossier' && (
-                  <span className={`px-2.5 py-1 text-[11px] font-medium rounded-full ${
-                    dossierStatut === 'ouvert' 
-                      ? 'bg-emerald-100 text-emerald-700' 
-                      : 'bg-zinc-100 text-zinc-500'
-                  }`}>
-                    {dossierStatut === 'ouvert' ? 'Ouvert' : 'Fermé'}
-                  </span>
-                )}
-                
-                {/* Bouton édition dossier */}
-                {currentLevel.type === 'dossier' && (
-                  <button
-                    onClick={() => setEditPanel({ type: 'dossier-edit', title: 'Modifier le dossier' })}
-                    className="ml-2 p-1.5 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
-                  >
-                    <Edit3 className="w-4 h-4" strokeWidth={1.5} />
-                  </button>
-                )}
-              </div>
-              
-              {/* Description du poste */}
-              {currentLevel.type === 'poste' && !currentLevel.subSection && posteDescriptions[currentLevel.id] && (
-                <p className="text-[14px] text-zinc-400 mt-3">{posteDescriptions[currentLevel.id]}</p>
-              )}
-            </div>
-            
-            {/* CTAs pour Chiffrage */}
-            {currentLevel.type === 'dossier' && currentLevel.activeTab === 'chiffrage' && (
-              <div className="flex items-center gap-2">
-                <button onClick={() => setShowExportModal(true)} className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 shadow-sm transition-colors">
-                  <Download className="w-4 h-4" strokeWidth={1.5} />
-                  Exporter
-                </button>
-                <button
-                  onClick={() => setShowChiffrageParams(true)}
-                  className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 shadow-sm transition-colors"
-                >
-                  <Settings className="w-4 h-4" strokeWidth={1.5} />
-                  Paramètres
-                </button>
-              </div>
-            )}
-            {currentLevel.type === 'poste' && !currentLevel.subSection && (
-              <div className="flex items-center gap-2">
-                <button onClick={() => setShowExportModal(true)} className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-zinc-600 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 shadow-sm transition-colors">
-                  <Download className="w-4 h-4" strokeWidth={1.5} />
-                  Exporter
-                </button>
-              </div>
-            )}
+      {/* Horizontal split: left content column + right chat sidebar */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left: Top Bar + Content */}
+        <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
+          {renderTopBar()}
+          {renderContentSubHeader()}
+          <div className="flex-1 overflow-y-auto">
+            <div className={`min-h-full flex flex-col ${currentLevel.type === 'dossier' ? 'px-8 pt-6 pb-8' : ''}`}>{renderContent()}</div>
           </div>
-          
-          {/* Tabs */}
-          {currentTabs.length > 0 && !currentLevel.subSection && (
-            <div className="flex gap-1 mt-6 border-b border-zinc-200/60">
-              {currentTabs.map(tab => {
-                const isActive = currentLevel.activeTab === tab.toLowerCase();
-                return (
-                  <button 
-                    key={tab} 
-                    onClick={() => setActiveTab(tab)} 
-                    className={`px-4 py-3 text-[14px] font-medium relative transition-colors ${isActive ? 'text-zinc-800' : 'text-zinc-400 hover:text-zinc-600'}`}
-                  >
-                    {tab}
-                    {isActive && <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-zinc-800 rounded-full" />}
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
-        
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-8 pb-8">
-          <div className="min-h-full">{renderContent()}</div>
-        </div>
+
+        {/* Right: Edit Panel or Chat Sidebar (full viewport height) */}
+        {editPanel ? renderEditPanel() : (chatSidebarOpen && renderChatSidebar())}
       </div>
+
       {renderAddModal()}
       {renderExportModal()}
-      {renderEditPanel()}
       {renderSmartProcedureWizard()}
+      {baremeViewerOpen && renderBaremeViewer()}
+
+      {/* Toast notification */}
+      {toastMessage && (
+        <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 text-white text-body rounded-lg shadow-lg flex items-center gap-2 animate-fade-up bg-zinc-800`}>
+          {toastMessage?.type === 'ai' ? (
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#4a9168' }} />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 text-teal-400" />
+          )}
+          {typeof toastMessage === 'string' ? toastMessage : toastMessage?.text}
+        </div>
+      )}
     </div>
   );
 }
