@@ -3,6 +3,9 @@ import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3
 import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { JPPill, JPPopoverCard, DecisionDrawer, JPListing, JPAddStepper, SlashCommandPalette, JPSearchView } from './components/jp';
+import useDemoCommands from './hooks/useDemoCommands';
+import { getDecisionById } from './data/mockDecisions';
 
 const POSTES_TAXONOMY = [
   {
@@ -3252,6 +3255,14 @@ export default function App() {
     const text = chatInputValue.trim();
     if (!text && stagedDocs.length === 0) return;
 
+    // Slash command detection — trigger demo scenario
+    if (text.startsWith('/')) {
+      const cmd = text.slice(1).trim();
+      setChatInputValue('');
+      jp.playScenario(cmd);
+      return;
+    }
+
     // Push user message
     const userMsg = { type: 'user', text: text || 'Documents ajoutés', attachments: stagedDocs.length > 0 ? [...stagedDocs] : undefined };
     setChatMessages(prev => [...prev, userMsg]);
@@ -3783,6 +3794,11 @@ export default function App() {
   const prevChatCountRef = useRef(0);
   const chatAnalyzedPostes = useRef(new Set()); // track which postes chat has already analyzed
 
+  // ========== JP STATE ==========
+  const jp = useDemoCommands({ setChatMessages, setNavStack, tabsConfig: { dossier: ['Dossier', 'Chiffrage', 'Pièces', 'Actes', 'JP'], poste: [] } });
+  const [jpPopover, setJpPopover] = useState(null); // { decision, anchorRect }
+  const jpPopoverTimeout = useRef(null);
+
   // Auto-scroll chat only when new messages are added
   useEffect(() => {
     if (chatMessages.length > prevChatCountRef.current && chatScrollRef.current) {
@@ -4218,6 +4234,63 @@ export default function App() {
                 );
               }
 
+              // AI JP message — text with inline pill tokens
+              if (msg.type === 'ai-jp') {
+                const parts = msg.text.split(/(\{pill:[^}]+\})/g);
+                return (
+                  <div key={i} className="flex flex-col gap-3 items-start pb-4" style={{ paddingRight: 20 }}>
+                    <div style={{ fontSize: 14, lineHeight: '24px', color: '#292524', margin: 0 }}>
+                      {parts.map((part, pi) => {
+                        const match = part.match(/^\{pill:(.+)\}$/);
+                        if (match) {
+                          const dec = getDecisionById(match[1]);
+                          if (!dec) return null;
+                          return (
+                            <JPPill
+                              key={pi}
+                              decision={dec}
+                              saved={jp.isDecisionPinned(dec.id)}
+                              isSelected={jp.jpState.drawerDecisionId === dec.id}
+                              onClick={(d) => {
+                                const rect = document.querySelector(`[data-pill-id="${d.id}"]`)?.getBoundingClientRect();
+                                if (rect) setJpPopover({ decision: d, anchorRect: rect, resultSet: msg.pills || [] });
+                              }}
+                              onMouseEnter={(e, d) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                clearTimeout(jpPopoverTimeout.current);
+                                jpPopoverTimeout.current = setTimeout(() => {
+                                  setJpPopover({ decision: d, anchorRect: rect, resultSet: msg.pills || [] });
+                                }, 300);
+                              }}
+                              onMouseLeave={() => {
+                                clearTimeout(jpPopoverTimeout.current);
+                                jpPopoverTimeout.current = setTimeout(() => setJpPopover(null), 400);
+                              }}
+                            />
+                          );
+                        }
+                        return <span key={pi}>{part}</span>;
+                      })}
+                    </div>
+                    {/* Action icons */}
+                    <div className="flex items-center gap-2.5">
+                      <button className="p-0 bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100 transition-opacity">
+                        <Copy className="w-3.5 h-3.5 text-[#78716c]" />
+                      </button>
+                      <button className="p-0 bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100 transition-opacity">
+                        <ThumbsUp className="w-3.5 h-3.5 text-[#78716c]" />
+                      </button>
+                      <button className="p-0 bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100 transition-opacity">
+                        <ThumbsDown className="w-3.5 h-3.5 text-[#78716c]" />
+                      </button>
+                      <button className="p-0 bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100 transition-opacity">
+                        <RotateCcw className="w-3.5 h-3.5 text-[#78716c]" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
               // AI response with thinking steps
               if (msg.type === 'ai') {
                 return (
@@ -4272,6 +4345,15 @@ export default function App() {
               }
             }}
           >
+            <div style={{ position: 'relative' }}>
+            {/* Slash command palette */}
+            {chatInputValue.startsWith('/') && (
+              <SlashCommandPalette
+                query={chatInputValue.slice(1).trim()}
+                onSelect={(cmd) => { setChatInputValue(''); jp.playScenario(cmd); }}
+                onDismiss={() => setChatInputValue('')}
+              />
+            )}
             <div
               style={{
                 backgroundColor: '#ffffff',
@@ -4351,11 +4433,18 @@ export default function App() {
                 </button>
               </div>
             </div>
+            </div>{/* close relative wrapper */}
           </div>
         </div>
       </>
     );
   };
+
+  // ========== JP HELPERS ==========
+  const jpPosteOptions = dossierPostes.map(pid => {
+    const taxo = allTaxoPostes.find(p => p.id === pid);
+    return taxo ? { id: pid, acronym: taxo.acronym, label: taxo.label } : null;
+  }).filter(Boolean);
 
   // ========== CONTENT SUB-HEADER ==========
   const renderContentSubHeader = () => {
@@ -8015,15 +8104,18 @@ export default function App() {
         );
       }
 
-      // JP tab placeholder
+      // JP tab — search + saved decisions
       if (currentLevel.activeTab === 'jp') {
         return (
-          <div className="flex-1 flex items-center justify-center py-20">
-            <div className="text-center">
-              <Landmark className="w-10 h-10 text-stone-300 mx-auto mb-3" strokeWidth={1.5} />
-              <p className="text-body-medium text-stone-500">Jurisprudences</p>
-              <p className="text-caption text-stone-400 mt-1">Bientôt disponible</p>
-            </div>
+          <div className="flex-1 flex flex-col">
+            <JPSearchView
+              pinnedJP={jp.jpState.pinnedJP}
+              selectedDecisionId={jp.jpState.drawerDecisionId}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+              onPin={(id) => jp.pinDecision(id)}
+              onUnpin={(id) => jp.unpinDecision(id)}
+              onAddClick={() => jp.openStepper('jp-add')}
+            />
           </div>
         );
       }
@@ -8353,12 +8445,13 @@ export default function App() {
           </div>
 
           {/* JURISPRUDENCES Section */}
-          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
-            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
-            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
-              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
-            </div>
-          </div>
+          <JPListing
+            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+            selectedDecisionId={jp.jpState.drawerDecisionId}
+            compact={true}
+            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+            onAddClick={() => jp.openStepper('jp-add')}
+          />
 
         </div>
       );
@@ -8667,12 +8760,13 @@ export default function App() {
           </div>
 
           {/* JURISPRUDENCES Section */}
-          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
-            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
-            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
-              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
-            </div>
-          </div>
+          <JPListing
+            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+            selectedDecisionId={jp.jpState.drawerDecisionId}
+            compact={true}
+            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+            onAddClick={() => jp.openStepper('jp-add')}
+          />
         </div>
       );
     }
@@ -8949,12 +9043,13 @@ export default function App() {
           </div>
 
           {/* JURISPRUDENCES Section */}
-          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
-            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
-            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
-              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
-            </div>
-          </div>
+          <JPListing
+            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+            selectedDecisionId={jp.jpState.drawerDecisionId}
+            compact={true}
+            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+            onAddClick={() => jp.openStepper('jp-add')}
+          />
         </div>
       );
     }
@@ -9199,12 +9294,13 @@ export default function App() {
           </div>
 
           {/* JURISPRUDENCES Section */}
-          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
-            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
-            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
-              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
-            </div>
-          </div>
+          <JPListing
+            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+            selectedDecisionId={jp.jpState.drawerDecisionId}
+            compact={true}
+            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+            onAddClick={() => jp.openStepper('jp-add')}
+          />
 
         </div>
       );
@@ -9333,12 +9429,13 @@ export default function App() {
           </div>
 
           {/* JURISPRUDENCES Section */}
-          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
-            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
-            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
-              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
-            </div>
-          </div>
+          <JPListing
+            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+            selectedDecisionId={jp.jpState.drawerDecisionId}
+            compact={true}
+            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+            onAddClick={() => jp.openStepper('jp-add')}
+          />
         </div>
       );
     }
@@ -9465,12 +9562,13 @@ export default function App() {
           </div>
 
           {/* JURISPRUDENCES Section */}
-          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
-            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
-            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
-              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
-            </div>
-          </div>
+          <JPListing
+            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+            selectedDecisionId={jp.jpState.drawerDecisionId}
+            compact={true}
+            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+            onAddClick={() => jp.openStepper('jp-add')}
+          />
         </div>
       );
     }
@@ -9637,12 +9735,13 @@ export default function App() {
           </div>
 
           {/* JURISPRUDENCES Section */}
-          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
-            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
-            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
-              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
-            </div>
-          </div>
+          <JPListing
+            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+            selectedDecisionId={jp.jpState.drawerDecisionId}
+            compact={true}
+            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+            onAddClick={() => jp.openStepper('jp-add')}
+          />
         </div>
       );
     }
@@ -10317,12 +10416,13 @@ export default function App() {
           </div>
 
           {/* JURISPRUDENCES Section */}
-          <div className="p-4" style={{ backgroundColor: '#F8F7F5' }}>
-            <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
-            <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
-              <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
-            </div>
-          </div>
+          <JPListing
+            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+            selectedDecisionId={jp.jpState.drawerDecisionId}
+            compact={true}
+            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+            onAddClick={() => jp.openStepper('jp-add')}
+          />
         </div>
       );
     }
@@ -15028,7 +15128,7 @@ export default function App() {
           {renderTopBar()}
           {renderContentSubHeader()}
           <div className="flex-1 overflow-y-auto">
-            <div className={`min-h-full flex flex-col ${currentLevel.type === 'dossier' ? 'px-8 pt-6 pb-8' : ''}`}>{renderContent()}</div>
+            <div className={`min-h-full flex flex-col ${currentLevel.type === 'dossier' && currentLevel.activeTab !== 'jp' ? 'px-8 pt-6 pb-8' : ''}`}>{renderContent()}</div>
           </div>
         </div>
 
@@ -15040,6 +15140,55 @@ export default function App() {
       {renderExportModal()}
       {renderSmartProcedureWizard()}
       {baremeViewerOpen && renderBaremeViewer()}
+
+      {/* JP Decision Drawer */}
+      {jp.jpState.drawerDecisionId && (
+        <DecisionDrawer
+          decisionId={jp.jpState.drawerDecisionId}
+          resultSet={jp.jpState.drawerResultSet}
+          resultIndex={jp.jpState.drawerIndex}
+          isPinned={jp.isDecisionPinned(jp.jpState.drawerDecisionId)}
+          onClose={jp.closeDrawer}
+          onPrev={jp.drawerPrev}
+          onNext={jp.drawerNext}
+          onPin={(id) => jp.pinDecision(id)}
+          onUnpin={(id) => jp.unpinDecision(id)}
+          onAttachToPoste={(id, posteId) => { jp.pinDecision(id); jp.attachToPoste(id, posteId); }}
+          posteOptions={jpPosteOptions}
+        />
+      )}
+
+      {/* JP Popover Card */}
+      {jpPopover && (
+        <JPPopoverCard
+          decision={jpPopover.decision}
+          anchorRect={jpPopover.anchorRect}
+          onOpenDrawer={(id) => { const rs = jpPopover.resultSet; setJpPopover(null); jp.openDrawer(id, rs); }}
+          onMouseEnter={() => clearTimeout(jpPopoverTimeout.current)}
+          onMouseLeave={() => { jpPopoverTimeout.current = setTimeout(() => setJpPopover(null), 300); }}
+        />
+      )}
+
+      {/* JP Add Stepper Modal */}
+      {jp.jpState.activeStepper === 'jp-add' && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={jp.closeStepper}>
+          <div className="w-[460px]" onClick={(e) => e.stopPropagation()}>
+            <JPAddStepper
+              onClose={jp.closeStepper}
+              onSubmit={({ url, impact, posteId }) => {
+                // In the prototype, simulate adding a mock decision
+                const mockId = 'jp-atpt-01';
+                jp.pinDecision(mockId, { impact, posteId });
+                setChatMessages(prev => [...prev, {
+                  type: 'ai',
+                  text: `Décision ajoutée au dossier${posteId ? ` et assignée au poste ${posteId.toUpperCase()}` : ''}.`,
+                }]);
+              }}
+              posteOptions={jpPosteOptions}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Toast notification */}
       {toastMessage && (
