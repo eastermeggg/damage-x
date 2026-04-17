@@ -887,6 +887,7 @@ export default function App() {
   const chatResizing = useRef(false);
   const [posteSearchOpen, setPosteSearchOpen] = useState(false);
   const [posteSearchQuery, setPosteSearchQuery] = useState('');
+  const [posteSearchVictimeFilter, setPosteSearchVictimeFilter] = useState(null); // null = VD, or victimeId for IV
   const [editingPieceField, setEditingPieceField] = useState(null); // null | { pieceId, field }
   const [toastMessage, setToastMessage] = useState(null); // null | string
   const [activeDiffs, setActiveDiffs] = useState([]); // Array of diff events pushed by mock actions
@@ -900,6 +901,11 @@ export default function App() {
   const [enabledParams, setEnabledParams] = useState({ 'revaloriser': true, 'revaloriser-pgpa': true, 'capitaliser-pgpf': true, 'base-journaliere-dft': true, 'revaloriser-se': true, 'revaloriser-pep': true, 'revaloriser-dfp': true }); // toggle on/off per param
   const [totalExpanded, setTotalExpanded] = useState({}); // { [posteId]: boolean }
   const [dossierPostes, setDossierPostes] = useState(['dsa', 'pgpa', 'dft', 'pgpf', 'se', 'dfp', 'pep']); // IDs of postes added to this dossier
+  const [ivDossierPostes, setIvDossierPostes] = useState([]); // IDs of IV postes enabled in this dossier
+  const [ivPosteData, setIvPosteData] = useState({}); // { posteId: { lignes: [{ victimeId, montant, notes, pieceIds, bareme }] } }
+  const [ivPosteSharedData, setIvPosteSharedData] = useState({}); // { [posteId]: { partResponsabilite: number } }
+  const [ivOverviewExpanded, setIvOverviewExpanded] = useState({}); // { [posteId]: boolean } — UI only
+  const [ivViewMode, setIvViewMode] = useState('poste'); // 'poste' | 'victime' — UI only
   const [formPosteData, setFormPosteData] = useState({
     se: { referentiel: 'cours-appel-2024', cotation: 4, montant: 15000 },
     pep: { referentiel: 'cours-appel-2024', cotation: 3, montant: 4500 },
@@ -1242,6 +1248,7 @@ export default function App() {
     pgpaData: { periode: { debut: '', fin: '', mois: 0 }, revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 0 }, revenusPercus: [], ijPercues: [] },
     pgpfData: { periodes: {} }, dftLignes: [],
     dossierPostes: [], formPosteData: {},
+    ivDossierPostes: [], ivPosteData: {}, ivPosteSharedData: {},
   };
 
   const collectCurrentDossierData = () => ({
@@ -1250,6 +1257,7 @@ export default function App() {
     resumeAffaire, commentaireExpertise, victimesIndirectes, pieces,
     dsaLignes, pgpaData, pgpfData, dftLignes,
     dossierPostes, formPosteData,
+    ivDossierPostes, ivPosteData, ivPosteSharedData,
     dropFirstPieces: dropFirstPieces.map(p => ({ ...p, justCompleted: false })),
     dropFirstHasRapport, dropFirstProcessingDone,
   });
@@ -1284,6 +1292,9 @@ export default function App() {
       pep: { referentiel: 'cours-appel-2024', cotation: 3, montant: 4500 },
       dfp: { referentiel: 'cours-appel-2024', age: 42, taux: 18, trancheAge: 'inferieure', trancheTaux: 'inferieure', pointBase: 1500, montant: 27000 },
     });
+    setIvDossierPostes(data.ivDossierPostes ?? []);
+    setIvPosteData(data.ivPosteData ?? {});
+    setIvPosteSharedData(data.ivPosteSharedData ?? {});
     // Drop-first state restoration
     setDropFirstPieces(data.dropFirstPieces ?? []);
     setDropFirstHasRapport(data.dropFirstHasRapport ?? false);
@@ -1329,7 +1340,8 @@ export default function App() {
   }, [activeDossierId, victimeData, faitGenerateur, chiffrageParams,
     dossierStatut, dossierRef, dossierIntitule, dossierDateOuverture, dossierAvocat, dossierNotes,
     resumeAffaire, commentaireExpertise, victimesIndirectes, pieces,
-    dsaLignes, pgpaData, pgpfData, dftLignes]);
+    dsaLignes, pgpaData, pgpfData, dftLignes,
+    ivDossierPostes, ivPosteData, ivPosteSharedData]);
 
   // Auto-save global state
   useEffect(() => {
@@ -1812,7 +1824,33 @@ export default function App() {
     .map(cat => ({ ...cat, postes: allPostes.filter(p => p.category === cat.id) }))
     .filter(cat => cat.postes.length > 0);
 
-  const totalChiffrage = allPostes.reduce((s, p) => s + p.montant, 0);
+  // IV computed helpers
+  const getIvPosteMontant = (posteId) =>
+    (ivPosteData[posteId]?.lignes || []).reduce((sum, l) => sum + (l.montant || 0), 0);
+
+  const getIvVictimeTotal = (victimeId) =>
+    ivDossierPostes.reduce((sum, pid) => {
+      const ligne = ivPosteData[pid]?.lignes?.find(l => l.victimeId === victimeId);
+      return sum + (ligne?.montant || 0);
+    }, 0);
+
+  const allIvPostes = ivDossierPostes.map(id => {
+    const taxo = allTaxoPostes.find(p => p.id === id);
+    if (!taxo) return null;
+    const cat = CATEGORY_MAP[taxo.categoryId];
+    return { id, title: taxo.acronym || id.toUpperCase(), fullTitle: taxo.label, montant: getIvPosteMontant(id), category: cat?.id };
+  }).filter(Boolean);
+
+  const ivCategories = Object.values(CATEGORY_MAP)
+    .filter(cat => cat.id === 'vi-pat' || cat.id === 'vi-expat')
+    .map(cat => ({ ...cat, postes: allIvPostes.filter(p => p.category === cat.id) }))
+    .filter(cat => cat.postes.length > 0);
+
+  // Filter VD categories (exclude IV categories)
+  const vdCategories = categories.filter(cat => cat.id !== 'vi-pat' && cat.id !== 'vi-expat');
+
+  const totalIvChiffrage = allIvPostes.reduce((s, p) => s + p.montant, 0);
+  const totalChiffrage = allPostes.reduce((s, p) => s + p.montant, 0) + totalIvChiffrage;
 
   // ========== HELPERS ==========
   const currentLevel = navStack[navStack.length - 1];
@@ -4229,6 +4267,30 @@ export default function App() {
       );
     }
 
+    // IV poste sub-header
+    if (currentLevel.type === 'poste-iv') {
+      const ivPosteTotal = getIvPosteMontant(currentLevel.id);
+      return (
+        <div className="border-b border-[#e7e5e3] bg-white flex-shrink-0">
+          <div className="h-[52px] px-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button onClick={() => navigateToStackLevel(navStack.length - 2)} className="p-1 hover:bg-stone-100 rounded transition-colors">
+                <ChevronRight className="w-4 h-4 rotate-180 text-[#a8a29e]" strokeWidth={1.5} />
+              </button>
+              <span className="inline-flex items-center px-2 py-0.5 text-caption-medium font-semibold border border-[#e7e5e3] text-[#292524] rounded-[6px]">
+                {currentLevel.title}
+              </span>
+              <span className="text-[14px] font-medium text-[#292524]">{currentLevel.fullTitle || currentLevel.title}</span>
+              <span className="inline-flex items-center px-2 py-0.5 text-caption bg-[#eeece6] text-[#78716c] rounded-full">Victimes indirectes</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span style={serifAmountStyle} className="text-[#292524]">{fmt(ivPosteTotal)}</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     // PGPA sub-section: back to PGPA summary
     if (currentLevel.subSection) {
       const subLabels = { 'revenus-ref': 'Revenus de référence', 'revenus-percus': 'Revenus perçus sur la période', 'ij': 'Indemnités journalières' };
@@ -5155,6 +5217,30 @@ export default function App() {
                   </div>
                 )}
                 
+                {/* Panel IV poste ligne edit */}
+                {editPanel.type === 'iv-poste-ligne' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Montant</h4>
+                      <div>
+                        <label className="text-body-medium text-gray-700">Montant demandé</label>
+                        <div className="relative mt-1">
+                          <input type="number" id="iv-ligne-montant" defaultValue={data?.montant || ''} className="w-full px-3 py-2 border rounded-lg pr-8" placeholder="0" step="any" min="0" />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Barème / Référence</h4>
+                      <input type="text" id="iv-ligne-bareme" defaultValue={data?.bareme || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="Ex : Cour d'appel de Paris 2024" />
+                    </div>
+                    <div>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Notes</h4>
+                      <textarea id="iv-ligne-notes" defaultValue={data?.notes || ''} className="w-full px-3 py-2 border rounded-lg min-h-[80px] resize-none" placeholder="Notes sur ce poste pour cette victime..." />
+                    </div>
+                  </div>
+                )}
+
                 {/* Panel Nouvelle procédure supprimé */}
 
                 {/* Panel Édition Dossier */}
@@ -6086,7 +6172,24 @@ export default function App() {
                 <div className="px-5 py-4 flex justify-between">
                   {data && (
                     <button onClick={() => {
+                      const affectedPostes = ivDossierPostes.filter(pid =>
+                        (ivPosteData[pid]?.lignes || []).some(l => l.victimeId === data.id && l.montant > 0)
+                      );
+                      const msg = affectedPostes.length > 0
+                        ? `${data.prenom} ${data.nom} a des montants chiffrés sur ${affectedPostes.length} poste(s). Supprimer ?`
+                        : `Supprimer ${data.prenom} ${data.nom} ?`;
+                      if (!window.confirm(msg)) return;
                       setVictimesIndirectes(prev => prev.filter(vi => vi.id !== data.id));
+                      // Clean up IV poste data for this victim
+                      setIvPosteData(prev => {
+                        const next = { ...prev };
+                        for (const pid of Object.keys(next)) {
+                          if (next[pid]?.lignes) {
+                            next[pid] = { ...next[pid], lignes: next[pid].lignes.filter(l => l.victimeId !== data.id) };
+                          }
+                        }
+                        return next;
+                      });
                       setEditPanel(null);
                     }} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
                       <Trash2 className="w-4 h-4" />Supprimer
@@ -6104,6 +6207,17 @@ export default function App() {
                         dateNaissance: document.getElementById('vi-naissance')?.value || '',
                         lien: document.getElementById('vi-lien')?.value || 'Conjoint'
                       };
+                      // Duplicate detection
+                      const isDuplicate = victimesIndirectes.some(vi =>
+                        vi.id !== newVi.id &&
+                        vi.nom.toLowerCase() === newVi.nom.toLowerCase() &&
+                        vi.prenom.toLowerCase() === newVi.prenom.toLowerCase() &&
+                        vi.lien === newVi.lien &&
+                        vi.dateNaissance === newVi.dateNaissance
+                      );
+                      if (isDuplicate) {
+                        if (!window.confirm('Une victime indirecte avec ces informations existe déjà. Continuer ?')) return;
+                      }
                       if (data) {
                         setVictimesIndirectes(prev => prev.map(vi => vi.id === data.id ? newVi : vi));
                       } else {
@@ -6112,6 +6226,28 @@ export default function App() {
                       setEditPanel(null);
                     }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                   </div>
+                </div>
+              )}
+              {/* IV poste ligne save */}
+              {editPanel.type === 'iv-poste-ligne' && (
+                <div className="px-5 py-4 flex justify-end gap-2">
+                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
+                  <button onClick={() => {
+                    const montant = parseFloat(document.getElementById('iv-ligne-montant')?.value) || 0;
+                    const bareme = document.getElementById('iv-ligne-bareme')?.value || '';
+                    const notes = document.getElementById('iv-ligne-notes')?.value || '';
+                    const { victimeId, posteId, pieceIds = [] } = data;
+                    setIvPosteData(prev => {
+                      const existing = prev[posteId]?.lignes || [];
+                      const ligneIdx = existing.findIndex(l => l.victimeId === victimeId);
+                      const newLigne = { victimeId, montant, notes, pieceIds, bareme };
+                      const newLignes = ligneIdx >= 0
+                        ? existing.map((l, i) => i === ligneIdx ? newLigne : l)
+                        : [...existing, newLigne];
+                      return { ...prev, [posteId]: { ...prev[posteId], lignes: newLignes } };
+                    });
+                    setEditPanel(null);
+                  }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
                 </div>
               )}
               {/* Panel nouvelle-procedure supprimé */}
@@ -6713,6 +6849,78 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Section: Victimes indirectes */}
+              <div className="bg-white rounded-[5px] border border-[#e7e5e3] shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between gap-2.5 px-3 py-3.5 border-b border-[#e7e5e3] bg-white">
+                  <div className="flex items-center gap-2.5">
+                    <svg className="w-4 h-4 text-[#78716c]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                    </svg>
+                    <span className="text-[11px] font-medium text-[#78716c] uppercase tracking-wider" style={colHeaderStyle}>Victimes indirectes</span>
+                  </div>
+                  <button
+                    onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Nouvelle victime indirecte', data: null })}
+                    className="flex items-center gap-1 px-2 py-1 text-caption text-[#78716c] hover:bg-[#eeece6] rounded transition-colors"
+                  >
+                    <Plus className="w-3 h-3" strokeWidth={1.5} />Ajouter
+                  </button>
+                </div>
+                {victimesIndirectes.length > 0 ? (
+                  <div className="divide-y divide-[#e7e5e3]">
+                    {victimesIndirectes.map(vi => (
+                      <div key={vi.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-[#fafaf9] group transition-colors">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-[#eeece6] flex items-center justify-center text-caption text-[#78716c] font-medium">
+                            {vi.prenom[0]}{vi.nom[0]}
+                          </div>
+                          <div>
+                            <div className="text-body text-[#44403c]">{vi.prenom} {vi.nom}</div>
+                            <div className="text-caption text-[#a8a29e]">{vi.lien} {vi.dateNaissance ? `• ${calcAge(vi.dateNaissance)} ans` : ''}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                          <button
+                            onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Modifier victime indirecte', data: vi })}
+                            className="p-1 text-[#d6d3d1] hover:text-[#78716c] rounded transition-colors"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const affectedPostes = ivDossierPostes.filter(pid =>
+                                (ivPosteData[pid]?.lignes || []).some(l => l.victimeId === vi.id && l.montant > 0)
+                              );
+                              const msg = affectedPostes.length > 0
+                                ? `${vi.prenom} ${vi.nom} a des montants chiffrés sur ${affectedPostes.length} poste(s). Supprimer ?`
+                                : `Supprimer ${vi.prenom} ${vi.nom} ?`;
+                              if (!window.confirm(msg)) return;
+                              setVictimesIndirectes(prev => prev.filter(v => v.id !== vi.id));
+                              setIvPosteData(prev => {
+                                const next = { ...prev };
+                                for (const pid of Object.keys(next)) {
+                                  if (next[pid]?.lignes) {
+                                    next[pid] = { ...next[pid], lignes: next[pid].lignes.filter(l => l.victimeId !== vi.id) };
+                                  }
+                                }
+                                return next;
+                              });
+                            }}
+                            className="p-1 text-[#d6d3d1] hover:text-red-500 rounded transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-5 py-6 text-center">
+                    <div className="text-body text-[#a8a29e]">Aucune victime indirecte</div>
+                  </div>
+                )}
+              </div>
+
             </div>
           );
         }
@@ -6875,12 +7083,39 @@ export default function App() {
                             <div className="text-caption text-[#a8a29e]">{vi.lien} • {calcAge(vi.dateNaissance)} ans</div>
                           </div>
                         </div>
-                        <button
-                          onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Modifier victime indirecte', data: vi })}
-                          className="p-1 text-[#d6d3d1] hover:text-[#78716c] rounded opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} />
-                        </button>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                          <button
+                            onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Modifier victime indirecte', data: vi })}
+                            className="p-1 text-[#d6d3d1] hover:text-[#78716c] rounded transition-colors"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const affectedPostes = ivDossierPostes.filter(pid =>
+                                (ivPosteData[pid]?.lignes || []).some(l => l.victimeId === vi.id && l.montant > 0)
+                              );
+                              const msg = affectedPostes.length > 0
+                                ? `${vi.prenom} ${vi.nom} a des montants chiffrés sur ${affectedPostes.length} poste(s). Supprimer ?`
+                                : `Supprimer ${vi.prenom} ${vi.nom} ?`;
+                              if (!window.confirm(msg)) return;
+                              setVictimesIndirectes(prev => prev.filter(v => v.id !== vi.id));
+                              setIvPosteData(prev => {
+                                const next = { ...prev };
+                                for (const pid of Object.keys(next)) {
+                                  if (next[pid]?.lignes) {
+                                    next[pid] = { ...next[pid], lignes: next[pid].lignes.filter(l => l.victimeId !== vi.id) };
+                                  }
+                                }
+                                return next;
+                              });
+                            }}
+                            className="p-1 text-[#d6d3d1] hover:text-red-500 rounded transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -6930,8 +7165,8 @@ export default function App() {
         // eslint-disable-next-line no-unused-vars
         const _getPosteAiReasoning = () => null;
 
-        // UI de progression pendant l'extraction
-        if (extractionState && extractionState.phase !== 'done') {
+        // Extraction banner (non-blocking — renders inline above chiffrage content)
+        const extractionBanner = (extractionState && extractionState.phase !== 'done') ? (() => {
           const extractionPhases = [
             { key: 'upload', label: 'Réception', icon: Upload },
             { key: 'analyse', label: 'Analyse', icon: FileSearch },
@@ -6940,47 +7175,46 @@ export default function App() {
             { key: 'postes', label: 'Postes', icon: ListChecks },
           ];
           const currentPhaseIndex = extractionPhases.findIndex(p => p.key === extractionState.phase);
-
           return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fade-up">
-              <div className="relative w-20 h-20 mb-8">
-                <div
-                  className="absolute inset-0 rounded-full animate-spin-slow"
-                  style={{ background: 'conic-gradient(from 0deg, #71717a, #a1a1aa, #71717a, transparent 70%)' }}
-                />
-                <div className="absolute inset-[3px] rounded-full bg-white flex items-center justify-center">
-                  <Sparkles className="w-8 h-8 text-[#78716c] animate-pulse" />
+            <div className="border border-[#e7e5e3] rounded-xl p-4 mb-6 animate-fade-up" style={{ backgroundColor: '#f8f7f5' }}>
+              <div className="flex items-center gap-4">
+                <div className="relative w-10 h-10 flex-shrink-0">
+                  <div className="absolute inset-0 rounded-full animate-spin-slow" style={{ background: 'conic-gradient(from 0deg, #71717a, #a1a1aa, #71717a, transparent 70%)' }} />
+                  <div className="absolute inset-[2px] rounded-full bg-[#f8f7f5] flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-[#78716c] animate-pulse" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-body-medium text-[#292524]">{extractionPhases[currentPhaseIndex]?.label || 'Analyse'} en cours...</span>
+                    <span className="text-caption text-[#a8a29e]">{extractionState.progress}%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {extractionPhases.map((phase, i) => {
+                      const Icon = phase.icon;
+                      const isActive = i === currentPhaseIndex;
+                      const isDone = i < currentPhaseIndex;
+                      return (
+                        <div key={phase.key} className="flex items-center">
+                          <div className={`w-6 h-6 rounded flex items-center justify-center transition-all duration-500 ${isDone ? 'bg-zinc-200' : isActive ? 'bg-zinc-200 scale-110' : 'bg-[#eeece6]'}`}>
+                            {isDone ? <Check className="w-3 h-3 text-[#78716c]" /> : <Icon className={`w-3 h-3 transition-colors duration-300 ${isActive ? 'text-[#44403c]' : 'text-[#a8a29e]'}`} />}
+                          </div>
+                          {i < extractionPhases.length - 1 && <div className={`w-2 h-0.5 mx-0.5 transition-colors duration-500 ${isDone ? 'bg-zinc-400' : 'bg-zinc-200'}`} />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="w-24 h-1.5 bg-[#eeece6] rounded-full overflow-hidden flex-shrink-0">
+                  <div className="h-full bg-[#a8a29e] rounded-full transition-all duration-700 ease-out" style={{ width: `${extractionState.progress}%` }} />
                 </div>
               </div>
-              <h2 className="text-heading-md text-[#292524] mb-1 tracking-tight">
-                {extractionPhases[currentPhaseIndex]?.label || 'Analyse'} en cours...
-              </h2>
-              <p className="text-body text-[#78716c] mb-8">L'IA analyse vos documents</p>
-              <div className="flex items-center gap-1 mb-8">
-                {extractionPhases.map((phase, i) => {
-                  const Icon = phase.icon;
-                  const isActive = i === currentPhaseIndex;
-                  const isDone = i < currentPhaseIndex;
-                  return (
-                    <div key={phase.key} className="flex items-center">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-500 ${isDone ? 'bg-zinc-200' : isActive ? 'bg-zinc-200 scale-110' : 'bg-[#eeece6]'}`}>
-                        {isDone ? <Check className="w-4 h-4 text-[#78716c] animate-bounce-in" /> : <Icon className={`w-4 h-4 transition-colors duration-300 ${isActive ? 'text-[#44403c]' : 'text-[#a8a29e]'}`} />}
-                      </div>
-                      {i < extractionPhases.length - 1 && <div className={`w-3 h-0.5 mx-0.5 transition-colors duration-500 ${isDone ? 'bg-zinc-400' : 'bg-zinc-200'}`} />}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="w-56 h-1.5 bg-[#eeece6] rounded-full overflow-hidden">
-                <div className="h-full bg-[#F8F7F5]0 rounded-full transition-all duration-700 ease-out" style={{ width: `${extractionState.progress}%` }} />
-              </div>
-              <p className="text-caption text-[#a8a29e] mt-3">{extractionState.progress}%</p>
             </div>
           );
-        }
+        })() : null;
 
-        // Empty state - no postes yet
-        if (allPostes.length === 0) {
+        // Empty state - no postes yet (but still show add button)
+        if (allPostes.length === 0 && !extractionBanner) {
           return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 animate-fade-up">
               <div className="text-center max-w-sm">
@@ -7009,25 +7243,55 @@ export default function App() {
           pgpaAiCount;
 
         // Compute summary totals
-        const totalDepenses = allPostes.reduce((s, p) => s + (p.montant || 0), 0);
-        const totalTiers = 0; // placeholder
-        const totalIndem = totalDepenses - totalTiers;
+        const totalVd = allPostes.reduce((s, p) => s + (p.montant || 0), 0);
+        const totalIv = totalIvChiffrage;
+        const totalTiers = 0; // placeholder — future implementation
+        const totalIndem = totalVd + totalIv - totalTiers;
+
+        // Reusable subtotal/total card component
+        // rows: [{ label, amount, muted?, negative? }], totalRow: { label, amount }
+        const renderTotalCard = (rows, totalRow) => (
+          <div className="border border-[#e7e5e3] rounded-xl overflow-hidden" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+            {rows.map((row, i) => (
+              <div key={i} className={`flex items-center justify-between h-9 px-4 bg-white ${i > 0 ? 'border-t border-[#e7e5e3]' : ''}`}>
+                <span style={{ fontSize: 13, fontWeight: 400, color: row.muted ? '#a8a29e' : '#78716c' }}>{row.label}</span>
+                <span style={{ fontSize: 14, fontWeight: row.muted ? 400 : 500, color: row.muted ? '#a8a29e' : '#292524' }}>
+                  {row.muted && row.amount === 0 ? '—' : `${row.negative ? '- ' : ''}${fmt(row.amount)}`}
+                </span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between h-11 px-4 border-t border-[#e7e5e3]" style={{ backgroundColor: '#eeece6' }}>
+              <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{totalRow.label}</span>
+              <span style={serifAmountStyle} className="text-[#292524]">{fmt(totalRow.amount)}</span>
+            </div>
+          </div>
+        );
 
         return (
           <div className="space-y-6" data-zone-id="postes">
-            {/* Summary pills + actions row */}
+            {/* Extraction progress banner (non-blocking) */}
+            {extractionBanner}
+
+            {/* Toolbar: total pill + actions */}
             <div className="flex items-center gap-3 px-px">
-              <div className="h-9 px-3 flex items-center gap-2.5 border border-[#d6d3d1] rounded-lg whitespace-nowrap">
-                <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c', letterSpacing: 0.12, lineHeight: '16px' }}>Dépenses</span>
-                <span style={{ fontSize: 14, fontWeight: 500, color: '#44403c', lineHeight: '20px' }}>{fmt(totalDepenses)}</span>
-              </div>
-              <div className="h-9 px-3 flex items-center gap-2.5 border border-[#d6d3d1] rounded-lg whitespace-nowrap">
-                <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c', letterSpacing: 0.12, lineHeight: '16px' }}>Tiers payeurs</span>
-                <span style={{ fontSize: 14, fontWeight: 500, color: '#44403c', lineHeight: '20px' }}>{fmt(totalTiers)}</span>
-              </div>
-              <div className="h-9 px-3 flex items-center gap-2 border border-[#e7e5e3] rounded-lg whitespace-nowrap" style={{ backgroundColor: '#eeece6' }}>
-                <span style={{ fontSize: 12, fontWeight: 400, color: '#292524', letterSpacing: 0.12, lineHeight: '16px' }}>Indem. totale</span>
-                <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(totalIndem)}</span>
+              <div className="relative group">
+                <div className="h-9 px-3 flex items-center gap-2 border border-[#e7e5e3] rounded-lg whitespace-nowrap cursor-default" style={{ backgroundColor: '#eeece6' }}>
+                  <span style={{ fontSize: 12, fontWeight: 400, color: '#292524', letterSpacing: 0.12, lineHeight: '16px' }}>Indemnisation totale</span>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(totalIndem)}</span>
+                </div>
+                {/* Hover popover — breakdown */}
+                <div className="absolute top-full left-0 mt-1.5 z-30 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-150">
+                  <div className="w-[280px]">
+                    {renderTotalCard(
+                      [
+                        { label: 'Victime directe', amount: totalVd },
+                        ...(totalIv > 0 ? [{ label: 'Victimes indirectes', amount: totalIv }] : []),
+                        { label: 'Tiers payeurs', amount: totalTiers, muted: totalTiers === 0, negative: totalTiers > 0 },
+                      ],
+                      { label: 'Indemnisation totale', amount: totalIndem }
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="flex-1" />
               <button
@@ -7047,81 +7311,320 @@ export default function App() {
               </button>
             </div>
 
-            {/* Category table sections */}
-            <div className="space-y-6">
-              {categories.filter(cat => cat.postes.length > 0).map((cat) => (
-                <div key={cat.id} className="border border-[#e7e5e3] rounded-xl overflow-hidden" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
-                  {/* Category header */}
-                  <div className="h-10 px-4 flex items-center border-b border-[#e7e5e3]" style={{ backgroundColor: '#f8f7f5' }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{cat.title}</span>
+            {/* ===== Victim-sectioned category tables ===== */}
+            <div className="space-y-8">
+
+              {/* --- Section: Victime directe --- */}
+              {vdCategories.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 px-1">
+                    <div className="w-8 h-8 rounded-full bg-[#eeece6] flex items-center justify-center text-caption text-[#78716c] font-medium">
+                      {victimeData.prenom?.[0] || '?'}{victimeData.nom?.[0] || '?'}
+                    </div>
+                    <div>
+                      <div className="text-body-medium text-[#292524]">Victime directe — {victimeData.prenom} {victimeData.nom}</div>
+                    </div>
+                    <div className="flex-1" />
+                    <span className="text-body text-[#78716c]">{fmt(allPostes.reduce((s, p) => s + (p.montant || 0), 0))}</span>
                   </div>
-                  {/* Column headers */}
-                  <div className="flex items-center h-10 bg-white border-b border-[#e7e5e3]">
-                    <div className="flex-1 px-4">
-                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Nom du poste</span>
-                    </div>
-                    <div className="w-[140px] px-3 text-right">
-                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Total</span>
-                    </div>
-                    <div className="w-[140px] px-3 text-right">
-                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Tiers</span>
-                    </div>
-                    <div className="w-[160px] px-3 text-right">
-                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Indemnisation victime</span>
-                    </div>
-                    <div className="w-11" />
+                  <div className="space-y-4">
+                    {vdCategories.map((cat) => (
+                      <div key={cat.id} className="border border-[#e7e5e3] rounded-xl overflow-hidden" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                        <div className="h-10 px-4 flex items-center border-b border-[#e7e5e3]" style={{ backgroundColor: '#f8f7f5' }}>
+                          <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{cat.title}</span>
+                        </div>
+                        <div className="flex items-center h-10 bg-white border-b border-[#e7e5e3]">
+                          <div className="flex-1 px-4">
+                            <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Nom du poste</span>
+                          </div>
+                          <div className="w-[140px] px-3 text-right">
+                            <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Total</span>
+                          </div>
+                          <div className="w-[140px] px-3 text-right">
+                            <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Tiers</span>
+                          </div>
+                          <div className="w-[160px] px-3 text-right">
+                            <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Indemnisation victime</span>
+                          </div>
+                          <div className="w-11" />
+                        </div>
+                        {cat.postes.map((p, pIdx) => {
+                          const isLast = pIdx === cat.postes.length - 1;
+                          return (
+                            <button
+                              key={p.id}
+                              data-entity-id={p.id}
+                              onClick={() => navigateTo(p)}
+                              className={`w-full flex items-center h-14 bg-white hover:bg-[#fafaf9] transition-colors ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}
+                            >
+                              <div className="pl-4 pr-1 w-[52px] flex items-center">
+                                <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{p.title}</span>
+                              </div>
+                              <div className="flex-1 px-3 flex items-center min-w-0">
+                                <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{p.fullTitle}</span>
+                              </div>
+                              <div className="w-[140px] px-3 flex items-center justify-end">
+                                {p.montant > 0 ? (
+                                  <span style={{ fontSize: 14, fontWeight: 400, color: '#78716c', lineHeight: '20px' }}>{fmt(p.montant)}</span>
+                                ) : (
+                                  <span style={{ fontSize: 14, fontWeight: 400, color: '#78716c', lineHeight: '20px' }}>&mdash;</span>
+                                )}
+                              </div>
+                              <div className="w-[140px] px-3 flex items-center justify-end">
+                                <span style={{ fontSize: 14, fontWeight: 400, color: '#78716c', lineHeight: '20px' }}>&mdash;</span>
+                              </div>
+                              <div className="w-[160px] px-3 flex flex-col items-end justify-center">
+                                <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(p.montant)}</span>
+                              </div>
+                              <div className="w-11 pr-4 pl-3 flex items-center justify-end">
+                                <MoreVertical className="w-4 h-4 text-[#a8a29e] opacity-0 group-hover:opacity-100" />
+                                <ChevronRight className="w-4 h-4 text-[#d6d3d1]" strokeWidth={1.5} />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
                   </div>
-                  {/* Data rows */}
-                  {cat.postes.map((p, pIdx) => {
-                    const isLast = pIdx === cat.postes.length - 1;
-                    return (
-                      <button
-                        key={p.id}
-                        data-entity-id={p.id}
-                        onClick={() => navigateTo(p)}
-                        className={`w-full flex items-center h-14 bg-white hover:bg-[#fafaf9] transition-colors ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}
-                      >
-                        {/* Acronym */}
-                        <div className="pl-4 pr-1 w-[52px] flex items-center">
-                          <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{p.title}</span>
-                        </div>
-                        {/* Full name */}
-                        <div className="flex-1 px-3 flex items-center min-w-0">
-                          <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{p.fullTitle}</span>
-                        </div>
-                        {/* Total column */}
-                        <div className="w-[140px] px-3 flex items-center justify-end">
-                          {p.montant > 0 ? (
-                            <span style={{ fontSize: 14, fontWeight: 400, color: '#78716c', lineHeight: '20px' }}>{fmt(p.montant)}</span>
-                          ) : (
-                            <span style={{ fontSize: 14, fontWeight: 400, color: '#78716c', lineHeight: '20px' }}>&mdash;</span>
-                          )}
-                        </div>
-                        {/* Tiers column */}
-                        <div className="w-[140px] px-3 flex items-center justify-end">
-                          <span style={{ fontSize: 14, fontWeight: 400, color: '#78716c', lineHeight: '20px' }}>&mdash;</span>
-                        </div>
-                        {/* Indemnisation victime column */}
-                        <div className="w-[160px] px-3 flex flex-col items-end justify-center">
-                          <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(p.montant)}</span>
-                        </div>
-                        {/* Chevron + ellipsis */}
-                        <div className="w-11 pr-4 pl-3 flex items-center justify-end">
-                          <MoreVertical className="w-4 h-4 text-[#a8a29e] opacity-0 group-hover:opacity-100" />
-                          <ChevronRight className="w-4 h-4 text-[#d6d3d1]" strokeWidth={1.5} />
-                        </div>
-                      </button>
-                    );
-                  })}
                 </div>
-              ))}
+              )}
+
+              {/* Sous-total Victime directe */}
+              {vdCategories.length > 0 && (
+                <div>
+                  {renderTotalCard(
+                    vdCategories.map(cat => ({
+                      label: cat.title.replace('Préjudices ', '').replace('Autres ', ''),
+                      amount: cat.postes.reduce((s, p) => s + (p.montant || 0), 0),
+                    })).filter(r => r.amount > 0),
+                    { label: 'Sous-total victime directe', amount: totalVd }
+                  )}
+                </div>
+              )}
+
+              {/* --- Section: Victimes indirectes (single section, expandable rows) --- */}
+              {(ivDossierPostes.length > 0 || victimesIndirectes.length > 0) && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 px-1">
+                    <div className="w-8 h-8 rounded-full bg-[#eeece6] flex items-center justify-center">
+                      <svg className="w-4 h-4 text-[#78716c]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="text-body-medium text-[#292524]">Victimes indirectes</div>
+                      {victimesIndirectes.length > 0 && (
+                        <div className="text-caption text-[#a8a29e]">{victimesIndirectes.length} victime{victimesIndirectes.length > 1 ? 's' : ''}</div>
+                      )}
+                    </div>
+                    <div className="flex-1" />
+                    {/* View mode toggle — Plato tab component */}
+                    {victimesIndirectes.length > 0 && ivDossierPostes.length > 0 && (
+                      <div className="flex items-center gap-0 h-8 rounded-lg p-1 mr-3" style={{ backgroundColor: '#eeece6' }}>
+                        <button
+                          onClick={() => setIvViewMode('poste')}
+                          className={`h-full px-2 min-w-[56px] flex items-center justify-center rounded-md transition-all ${ivViewMode === 'poste' ? 'bg-white shadow-[0_1px_4px_0_rgba(26,26,26,0.05),0_1px_2px_0_rgba(26,26,26,0.05)]' : ''}`}
+                          style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}
+                        >
+                          Par poste
+                        </button>
+                        <button
+                          onClick={() => setIvViewMode('victime')}
+                          className={`h-full px-2 min-w-[56px] flex items-center justify-center rounded-md transition-all ${ivViewMode === 'victime' ? 'bg-white shadow-[0_1px_4px_0_rgba(26,26,26,0.05),0_1px_2px_0_rgba(26,26,26,0.05)]' : ''}`}
+                          style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}
+                        >
+                          Par victime
+                        </button>
+                      </div>
+                    )}
+                    {totalIvChiffrage > 0 && <span className="text-body text-[#78716c]">{fmt(totalIvChiffrage)}</span>}
+                  </div>
+
+                  {victimesIndirectes.length > 0 && ivDossierPostes.length > 0 ? (
+                    <>
+                      {/* === View: Par poste (aggregated) === */}
+                      {ivViewMode === 'poste' && (
+                        <div className="space-y-4">
+                          {ivCategories.map(cat => (
+                            <div key={cat.id} className="border border-[#e7e5e3] rounded-xl overflow-hidden" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                              <div className="h-10 px-4 flex items-center border-b border-[#e7e5e3]" style={{ backgroundColor: '#f8f7f5' }}>
+                                <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{cat.title}</span>
+                              </div>
+                              {cat.postes.map((p, pIdx) => {
+                                const isLast = pIdx === cat.postes.length - 1;
+                                const isExpanded = ivOverviewExpanded[p.id];
+                                return (
+                                  <div key={p.id}>
+                                    <button
+                                      data-entity-id={p.id}
+                                      onClick={() => setIvOverviewExpanded(prev => ({ ...prev, [p.id]: !prev[p.id] }))}
+                                      className={`w-full flex items-center h-12 bg-white hover:bg-[#fafaf9] transition-colors ${!isLast && !isExpanded ? 'border-b border-[#e7e5e3]' : ''}`}
+                                    >
+                                      <div className="pl-4 pr-1 w-[52px] flex items-center">
+                                        <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{p.title}</span>
+                                      </div>
+                                      <div className="flex-1 px-3 flex items-center min-w-0">
+                                        <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{p.fullTitle}</span>
+                                      </div>
+                                      <div className="px-3 flex items-center justify-end">
+                                        {p.montant > 0 ? (
+                                          <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(p.montant)}</span>
+                                        ) : (
+                                          <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
+                                        )}
+                                      </div>
+                                      <div className="w-10 pr-3 pl-2 flex items-center justify-end">
+                                        <ChevronRight className={`w-4 h-4 text-[#d6d3d1] transition-transform ${isExpanded ? 'rotate-90' : ''}`} strokeWidth={1.5} />
+                                      </div>
+                                    </button>
+                                    {isExpanded && (
+                                      <div className={`bg-[#fafaf9] ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}>
+                                        {victimesIndirectes.map((vi, viIdx) => {
+                                          const viLigne = (ivPosteData[p.id]?.lignes || []).find(l => l.victimeId === vi.id);
+                                          const viMontant = viLigne?.montant || 0;
+                                          const isLastVi = viIdx === victimesIndirectes.length - 1;
+                                          return (
+                                            <button
+                                              key={vi.id}
+                                              onClick={() => navigateTo({ ...p, type: 'poste-iv' })}
+                                              className={`w-full flex items-center h-11 hover:bg-[#f5f5f4] transition-colors ${!isLastVi ? 'border-b border-[#e7e5e3]/50' : ''}`}
+                                            >
+                                              <div className="pl-10 flex-1 flex items-center gap-2 min-w-0">
+                                                <div className="w-6 h-6 rounded-full bg-[#e7e5e3] flex items-center justify-center text-[9px] text-[#78716c] font-medium flex-shrink-0">
+                                                  {vi.prenom[0]}{vi.nom[0]}
+                                                </div>
+                                                <span className="truncate" style={{ fontSize: 13, fontWeight: 400, color: '#44403c' }}>{vi.prenom} {vi.nom}</span>
+                                                <span className="text-caption text-[#a8a29e] flex-shrink-0">({vi.lien})</span>
+                                              </div>
+                                              <div className="px-3 flex items-center justify-end">
+                                                {viMontant > 0 ? (
+                                                  <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmt(viMontant)}</span>
+                                                ) : (
+                                                  <span style={{ fontSize: 13, fontWeight: 400, color: '#a8a29e' }}>—</span>
+                                                )}
+                                              </div>
+                                              <div className="w-10 pr-3 pl-2 flex items-center justify-end">
+                                                <ChevronRight className="w-3.5 h-3.5 text-[#d6d3d1]" strokeWidth={1.5} />
+                                              </div>
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* === View: Par victime (récap) === */}
+                      {ivViewMode === 'victime' && (
+                        <div className="space-y-3">
+                          {victimesIndirectes.map(vi => {
+                            const viTotal = getIvVictimeTotal(vi.id);
+                            return (
+                              <div key={vi.id} className="border border-[#e7e5e3] rounded-xl overflow-hidden" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                                <div className="px-4 py-3 flex items-center justify-between border-b border-[#e7e5e3]" style={{ backgroundColor: '#f8f7f5' }}>
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-7 h-7 rounded-full bg-[#eeece6] flex items-center justify-center text-[10px] text-[#78716c] font-medium">
+                                      {vi.prenom[0]}{vi.nom[0]}
+                                    </div>
+                                    <div>
+                                      <div className="text-body-medium text-[#292524]">{vi.prenom} {vi.nom}</div>
+                                      <div className="text-caption text-[#a8a29e]">{vi.lien} {vi.dateNaissance ? `• ${calcAge(vi.dateNaissance)} ans` : ''}</div>
+                                    </div>
+                                  </div>
+                                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(viTotal)}</span>
+                                </div>
+                                {ivDossierPostes.map((pid, pIdx) => {
+                                  const taxo = allTaxoPostes.find(t => t.id === pid);
+                                  if (!taxo) return null;
+                                  const ligne = (ivPosteData[pid]?.lignes || []).find(l => l.victimeId === vi.id);
+                                  const montant = ligne?.montant || 0;
+                                  const isLast = pIdx === ivDossierPostes.length - 1;
+                                  return (
+                                    <button
+                                      key={pid}
+                                      onClick={() => navigateTo({ id: pid, type: 'poste-iv', title: taxo.acronym || pid.toUpperCase(), fullTitle: taxo.label })}
+                                      className={`w-full flex items-center justify-between px-4 py-2.5 bg-white hover:bg-[#fafaf9] transition-colors ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-caption text-[#78716c] w-10">{taxo.acronym || pid.toUpperCase()}</span>
+                                        <span className="text-body text-[#44403c]">{taxo.label}</span>
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                        <span className={`text-body ${montant > 0 ? 'text-[#292524] font-medium' : 'text-[#a8a29e]'}`}>
+                                          {montant > 0 ? fmt(montant) : '—'}
+                                        </span>
+                                        <ChevronRight className="w-3.5 h-3.5 text-[#d6d3d1]" strokeWidth={1.5} />
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="border border-dashed border-[#e7e5e3] rounded-xl p-6 text-center">
+                      <span className="text-body text-[#a8a29e]">{victimesIndirectes.length > 0 ? 'Aucun poste ajouté' : 'Aucune victime indirecte déclarée'}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Sous-total Victimes indirectes */}
+              {totalIv > 0 && (
+                <div>
+                  {renderTotalCard(
+                    victimesIndirectes.map(vi => ({
+                      label: `${vi.prenom} ${vi.nom} (${vi.lien})`,
+                      amount: getIvVictimeTotal(vi.id),
+                    })).filter(r => r.amount > 0),
+                    { label: 'Sous-total victimes indirectes', amount: totalIv }
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* Global total card */}
+            {(totalVd > 0 || totalIv > 0) && (
+              <div>
+                {renderTotalCard(
+                  [
+                    { label: 'Victime directe', amount: totalVd },
+                    ...(totalIv > 0 ? [{ label: 'Victimes indirectes', amount: totalIv }] : []),
+                    { label: 'Tiers payeurs', amount: totalTiers, muted: totalTiers === 0, negative: totalTiers > 0 },
+                  ],
+                  { label: 'Indemnisation totale', amount: totalIndem }
+                )}
+              </div>
+            )}
 
             {/* Poste Search Command Palette */}
             {posteSearchOpen && (
-              <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]" onClick={() => setPosteSearchOpen(false)}>
+              <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]" onClick={() => { setPosteSearchOpen(false); setPosteSearchVictimeFilter(null); }}>
                 <div className="absolute inset-0 bg-black/30" />
                 <div className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+                  {/* Section tabs: VD / VI */}
+                  <div className="flex items-center gap-1 px-4 pt-3 pb-2 border-b border-stone-100">
+                    <button
+                      onClick={() => setPosteSearchVictimeFilter(null)}
+                      className={`px-3 py-1.5 rounded-full text-caption whitespace-nowrap transition-colors ${posteSearchVictimeFilter === null ? 'bg-[#292524] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+                    >
+                      Victime directe
+                    </button>
+                    <button
+                      onClick={() => setPosteSearchVictimeFilter('iv')}
+                      className={`px-3 py-1.5 rounded-full text-caption whitespace-nowrap transition-colors ${posteSearchVictimeFilter === 'iv' ? 'bg-[#292524] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+                    >
+                      Victimes indirectes
+                    </button>
+                  </div>
                   {/* Search input */}
                   <div className="flex items-center gap-3 px-4 py-3 border-b border-stone-100">
                     <Search className="w-4 h-4 text-stone-400 flex-shrink-0" strokeWidth={1.5} />
@@ -7142,16 +7645,21 @@ export default function App() {
                   {/* Results */}
                   <div className="max-h-[50vh] overflow-y-auto py-2">
                     {(() => {
+                      const isIvFilter = posteSearchVictimeFilter === 'iv';
+                      const sectionFilter = isIvFilter ? 'VICTIME(S) INDIRECTE(S)' : 'VICTIME DIRECTE';
                       const q = posteSearchQuery.trim().toLowerCase();
-                      const allTaxoPostes = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes.map(p => ({ ...p, categoryTitle: c.title }))));
+                      const taxoPostesForSection = POSTES_TAXONOMY
+                        .filter(s => s.section === sectionFilter)
+                        .flatMap(s => s.categories.flatMap(c => c.postes.map(p => ({ ...p, categoryTitle: c.title }))));
                       const filtered = q
-                        ? allTaxoPostes.filter(p => p.label.toLowerCase().includes(q) || (p.acronym && p.acronym.toLowerCase().includes(q)))
-                        : allTaxoPostes;
-                      const alreadyEnabled = allPostes.map(p => p.id);
+                        ? taxoPostesForSection.filter(p => p.label.toLowerCase().includes(q) || (p.acronym && p.acronym.toLowerCase().includes(q)))
+                        : taxoPostesForSection;
+                      const alreadyEnabledVd = dossierPostes;
+                      const alreadyEnabledIv = ivDossierPostes;
                       if (filtered.length === 0) return <p className="px-4 py-6 text-center text-body text-stone-400">Aucun poste trouvé</p>;
                       let lastCat = '';
                       return filtered.map(p => {
-                        const isEnabled = alreadyEnabled.includes(p.id);
+                        const isEnabled = isIvFilter ? alreadyEnabledIv.includes(p.id) : alreadyEnabledVd.includes(p.id);
                         const showCat = p.categoryTitle !== lastCat;
                         lastCat = p.categoryTitle;
                         return (
@@ -7159,13 +7667,25 @@ export default function App() {
                             {showCat && <div className="px-4 pt-3 pb-1" style={colHeaderStyle}>{p.categoryTitle}</div>}
                             <button
                               onClick={() => {
-                                if (!isEnabled) {
-                                  handleSmartAddPoste(p.id);
+                                if (isIvFilter) {
+                                  // Add IV poste
+                                  if (!alreadyEnabledIv.includes(p.id)) {
+                                    setIvDossierPostes(prev => [...prev, p.id]);
+                                  }
+                                  // Navigate to IV poste detail
+                                  const taxo = allTaxoPostes.find(tp => tp.id === p.id);
+                                  const cat = taxo ? CATEGORY_MAP[taxo.categoryId] : null;
+                                  navigateTo({ id: p.id, type: 'poste-iv', title: p.acronym || p.id.toUpperCase(), fullTitle: p.label, montant: getIvPosteMontant(p.id), category: cat?.id });
                                 } else {
-                                  const existing = allPostes.find(ep => ep.id === p.id);
-                                  if (existing) navigateTo(existing);
+                                  if (!isEnabled) {
+                                    handleSmartAddPoste(p.id);
+                                  } else {
+                                    const existing = allPostes.find(ep => ep.id === p.id);
+                                    if (existing) navigateTo(existing);
+                                  }
                                 }
                                 setPosteSearchOpen(false);
+                                setPosteSearchVictimeFilter(null);
                               }}
                               className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-stone-50 transition-colors text-left"
                             >
@@ -8878,6 +9398,140 @@ export default function App() {
             <div style={sectionHeaderStyle} className="mb-[17px]">JURISPRUDENCES</div>
             <div className="bg-white border border-[#e7e5e3] rounded-[4px] h-[58px] flex items-center justify-center">
               <span className="text-[14px] text-[#a8a29e]">Aucune jurisprudence ajoutée</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== IV POSTE DETAIL PAGE (two-zone layout) ==========
+    if (currentLevel.type === 'poste-iv') {
+      const ivPosteId = currentLevel.id;
+      const ivTaxo = allTaxoPostes.find(p => p.id === ivPosteId);
+      const ivLignes = ivPosteData[ivPosteId]?.lignes || [];
+      const ivTotal = ivLignes.reduce((s, l) => s + (l.montant || 0), 0);
+      return (
+        <div>
+          {/* Per-victim table */}
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div style={sectionHeaderStyle} className="mb-[17px]">DETAIL PAR VICTIME</div>
+
+              <div className="bg-white border border-[#e7e5e3] rounded-lg overflow-hidden">
+                {/* Column headers */}
+                <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                  <div className="flex-1 px-3">
+                    <span style={colHeaderStyle}>Victime</span>
+                  </div>
+                  <div className="w-[90px] px-3">
+                    <span style={colHeaderStyle}>Lien</span>
+                  </div>
+                  <div className="w-[130px] px-3 text-right">
+                    <span style={colHeaderStyle}>Montant</span>
+                  </div>
+                  <div className="w-[160px] px-3">
+                    <span style={colHeaderStyle}>Barème / réf.</span>
+                  </div>
+                  <div className="w-[120px] px-3">
+                    <span style={colHeaderStyle}>Notes</span>
+                  </div>
+                  <div className="w-10" />
+                </div>
+
+                {/* Data rows — one per indirect victim */}
+                {victimesIndirectes.map((vi, idx) => {
+                  const ligne = ivLignes.find(l => l.victimeId === vi.id);
+                  const montant = ligne?.montant || 0;
+                  const isLast = idx === victimesIndirectes.length - 1;
+                  return (
+                    <div
+                      key={vi.id}
+                      className={`flex items-center h-14 bg-white hover:bg-[#fafaf9] transition-colors group cursor-pointer ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}
+                      onClick={() => setEditPanel({
+                        type: 'iv-poste-ligne',
+                        title: `${vi.prenom} ${vi.nom} — ${ivTaxo?.label || ivPosteId}`,
+                        data: { victimeId: vi.id, posteId: ivPosteId, montant, notes: ligne?.notes || '', pieceIds: ligne?.pieceIds || [], bareme: ligne?.bareme || '' }
+                      })}
+                    >
+                      {/* Name */}
+                      <div className="flex-1 px-3 flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-full bg-[#eeece6] flex items-center justify-center text-[10px] text-[#78716c] font-medium flex-shrink-0">
+                          {vi.prenom[0]}{vi.nom[0]}
+                        </div>
+                        <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524' }}>{vi.prenom} {vi.nom}</span>
+                      </div>
+                      {/* Lien */}
+                      <div className="w-[90px] px-3">
+                        <span className="text-caption text-[#78716c]">{vi.lien}</span>
+                      </div>
+                      {/* Montant */}
+                      <div className="w-[130px] px-3 text-right">
+                        {montant > 0 ? (
+                          <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(montant)}</span>
+                        ) : (
+                          <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e' }}>À chiffrer</span>
+                        )}
+                      </div>
+                      {/* Barème / référence */}
+                      <div className="w-[160px] px-3">
+                        <span className="text-caption text-[#78716c] truncate block">{ligne?.bareme || '—'}</span>
+                      </div>
+                      {/* Notes */}
+                      <div className="w-[120px] px-3">
+                        <span className="text-caption text-[#a8a29e] truncate block">{ligne?.notes || '—'}</span>
+                      </div>
+                      {/* Edit indicator */}
+                      <div className="w-10 flex items-center justify-center">
+                        <Edit3 className="w-3.5 h-3.5 text-[#d6d3d1] opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Empty state */}
+                {victimesIndirectes.length === 0 && (
+                  <div className="p-6 text-center">
+                    <span className="text-body text-[#a8a29e]">Ajoutez des victimes indirectes depuis l'onglet Dossier</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Add IV button */}
+              <button
+                onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Nouvelle victime indirecte', data: null })}
+                className="mt-3 flex items-center gap-2 px-3 py-2 text-caption text-[#78716c] hover:bg-[#eeece6] rounded-lg transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Ajouter une victime indirecte
+              </button>
+            </div>
+
+            {/* Total block */}
+            <div className="p-4 pt-0">
+              <div className="bg-white rounded-lg border border-[#e7e5e3] p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-body-medium text-[#292524]">Total — {ivTaxo?.label || ivPosteId}</span>
+                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(ivTotal)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* NOTES / ARGUMENTAIRE */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
+            <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] font-bold text-sm">B</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] italic text-sm">I</button>
+                <button className="px-2 py-1 rounded hover:bg-[#f5f5f4] text-[#78716c] underline text-sm">U</button>
+              </div>
+              <textarea
+                value={posteNotes[ivPosteId] || ''}
+                onChange={(e) => setPosteNotes(prev => ({...prev, [ivPosteId]: e.target.value}))}
+                className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
+                placeholder="Ajoutez vos notes et arguments juridiques..."
+              />
             </div>
           </div>
         </div>
