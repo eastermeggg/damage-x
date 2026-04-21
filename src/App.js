@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp } from 'lucide-react';
 import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -72,9 +72,9 @@ const POSTES_TAXONOMY = [
 
 // ========== IV POSTE CONFIG — type-driven rendering ==========
 const IV_POSTE_CONFIG = {
-  pai:  { type: 'A', columns: ['victime', 'lien', 'montant', 'bareme'] },
-  pafv: { type: 'A', columns: ['victime', 'lien', 'montant', 'bareme'] },
-  pepe: { type: 'A', columns: ['victime', 'lien', 'intitule', 'montant', 'bareme'] },
+  pai:  { type: 'A', columns: ['victime', 'montant'] },
+  pafv: { type: 'A', columns: ['victime', 'montant'] },
+  pepe: { type: 'A', columns: ['victime', 'intitule', 'montant'] },
   fdp:  { type: 'B', columns: ['intitule', 'montant', 'piece'] },
   fo:   { type: 'C', columns: ['intitule', 'montant', 'payePar', 'piece'] },
   prp:  { type: 'D', columns: ['victime', 'lien', 'partIndividuelle', 'dureeIndemnisation', 'coeffCapitalisation', 'total'] },
@@ -924,48 +924,61 @@ export default function App() {
   const [ivDossierPostes, setIvDossierPostes] = useState(['pai', 'pafv', 'pepe', 'fdp', 'fo', 'prp']); // IDs of IV postes enabled in this dossier
   const [ivPosteData, setIvPosteData] = useState({
     // Type A — Préjudice d'affection
-    pai: { lignes: [
-      { victimeId: 'vi-1', montant: 25000, pieceIds: [], bareme: 'Mornet 2024 — Conjoint' },
-      { victimeId: 'vi-2', montant: 15000, pieceIds: [], bareme: 'Mornet 2024 — Enfant' },
-      { victimeId: 'vi-3', montant: 15000, pieceIds: [], bareme: 'Mornet 2024 — Enfant' },
+    pai: { bareme: 'mornet-2024', lignes: [
+      { victimeId: 'vi-1', montant: 25000, pieceIds: [] },
+      { victimeId: 'vi-2', montant: 15000, pieceIds: [] },
+      { victimeId: 'vi-3', montant: 15000, pieceIds: [] },
     ]},
     // Type A — Préjudice d'accompagnement de fin de vie
-    pafv: { lignes: [
-      { victimeId: 'vi-1', montant: 8000, pieceIds: [], bareme: 'CA Paris 2023' },
-      { victimeId: 'vi-2', montant: 5000, pieceIds: [], bareme: 'CA Paris 2023' },
-      { victimeId: 'vi-3', montant: 5000, pieceIds: [], bareme: '' },
+    pafv: { bareme: 'cours-appel-2024', lignes: [
+      { victimeId: 'vi-1', montant: 8000, pieceIds: [] },
+      { victimeId: 'vi-2', montant: 5000, pieceIds: [] },
+      { victimeId: 'vi-3', montant: 5000, pieceIds: [] },
     ]},
     // Type A + intitulé — Préjudices extra-patrimoniaux exceptionnels
-    pepe: { lignes: [
-      { victimeId: 'vi-1', montant: 10000, pieceIds: [], bareme: '', intitule: 'Syndrome de stress post-traumatique sévère' },
+    pepe: { bareme: '', lignes: [
+      { victimeId: 'vi-1', montant: 10000, pieceIds: [], intitule: 'Syndrome de stress post-traumatique sévère' },
     ]},
     // Type B — Frais divers des proches (grouped by victim)
     fdp: { lignes: [
-      { id: 'fdp-1', victimeId: 'vi-1', montant: 1200, pieceIds: ['p-1'], intitule: 'Déplacements hôpital (48 trajets)' },
-      { id: 'fdp-2', victimeId: 'vi-1', montant: 2800, pieceIds: ['p-2'], intitule: 'Hébergement proche hôpital' },
+      { id: 'fdp-1', victimeId: 'vi-1', montant: 1200, pieceIds: ['p-1'], intitule: 'Déplacements hôpital (48 trajets)', source: 'ocr' },
+      { id: 'fdp-2', victimeId: 'vi-1', montant: 2800, pieceIds: ['p-2'], intitule: 'Hébergement proche hôpital', source: 'ocr' },
       { id: 'fdp-3', victimeId: 'vi-1', montant: 450, pieceIds: [], intitule: 'Repas sur place' },
       { id: 'fdp-4', victimeId: 'vi-2', montant: 600, pieceIds: [], intitule: 'Déplacements' },
       { id: 'fdp-5', victimeId: 'vi-3', montant: 600, pieceIds: [], intitule: 'Déplacements' },
     ]},
-    // Type C — Frais d'obsèques (flat list)
+    // Type C — Frais d'obsèques (shared expenses with attributions)
     fo: { lignes: [
-      { id: 'fo-1', victimeId: 'vi-1', montant: 3500, pieceIds: ['p-7'], intitule: 'Cercueil et préparation', payePar: 'vi-1' },
-      { id: 'fo-2', victimeId: 'vi-1', montant: 1800, pieceIds: ['p-8'], intitule: 'Cérémonie religieuse', payePar: 'vi-1' },
-      { id: 'fo-3', victimeId: null, montant: 4200, pieceIds: [], intitule: 'Monument funéraire', payePar: 'partage' },
-      { id: 'fo-4', victimeId: null, montant: 350, pieceIds: [], intitule: 'Fleurs et couronnes', payePar: 'partage' },
+      { id: 'fo-1', label: 'Cercueil et préparation', totalAmount: 3200, pieceIds: ['p-7'], attributions: [{ viId: 'vi-1', amount: 1600 }, { viId: 'vi-3', amount: 1600 }] },
+      { id: 'fo-2', label: 'Cérémonie religieuse', totalAmount: 800, pieceIds: [], attributions: [{ viId: 'vi-1', amount: 800 }] },
+      { id: 'fo-3', label: 'Concession funéraire', totalAmount: 2100, pieceIds: [], attributions: [{ viId: 'vi-1', amount: 714 }, { viId: 'vi-2', amount: 693 }, { viId: 'vi-3', amount: 693 }] },
+      { id: 'fo-4', label: 'Marbrerie et gravure', totalAmount: 1450, pieceIds: [], attributions: [{ viId: 'vi-3', amount: 1450 }] },
+      { id: 'fo-5', label: 'Transport du corps', totalAmount: 680, pieceIds: [], attributions: [{ viId: 'vi-1', amount: 680 }] },
     ]},
     // Type D — Pertes de revenus des proches (shared foyer + per-VI ventilation)
     prp: { lignes: [
-      { victimeId: 'vi-1', montant: 208125, partIndividuelle: 50, dureeIndemnisation: 'Viager', coeffCapitalisation: 18.5 },
-      { victimeId: 'vi-2', montant: 46125, partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans", coeffCapitalisation: 8.2 },
-      { victimeId: 'vi-3', montant: 33750, partIndividuelle: 15, dureeIndemnisation: "Jusqu'à 25 ans", coeffCapitalisation: 10.0 },
+      { victimeId: 'vi-1', partIndividuelle: 50, dureeIndemnisation: 'Viager', anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 20 },
+      { victimeId: 'vi-2', partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans (7 ans)", anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 6.5 },
+      { victimeId: 'vi-3', partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans (12 ans)", anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 10 },
     ]},
   }); // { posteId: { lignes: [...] } }
   const [ivPosteSharedData, setIvPosteSharedData] = useState({
-    prp: { revenuDefunt: 45000, revenuConjoint: 30000, nombreParts: 2.5, partAutoConsommation: 30 },
+    prp: {
+      victimeDecedee: true,
+      revenuRefLignes: [
+        { id: 'prp-rev-1', source: 'Bulletin de salaire Déc 2022', periode: 'Déc 2022', netMensuel: 4000, pieceIds: [] },
+        { id: 'prp-rev-2', source: 'Avis d\'imposition 2022', periode: '2022', netMensuel: 4000, pieceIds: ['p-3'] },
+      ],
+      autoConsommationMethod: 'percentage',
+      revenuConjoint: 24000,
+      partAutoConsommation: 25,
+      nombreParts: 3,
+      revenuActuel: 1000,
+    },
   }); // { [posteId]: { ... } }
   const [ivOverviewExpanded, setIvOverviewExpanded] = useState({}); // { [posteId]: boolean } — UI only
   const [ivViewMode, setIvViewMode] = useState('poste'); // 'poste' | 'victime' — UI only
+  const [prpUseCase, setPrpUseCase] = useState('decede-capital-echu'); // preset selector for PRP
   const [formPosteData, setFormPosteData] = useState({
     se: { referentiel: 'cours-appel-2024', cotation: 4, montant: 15000 },
     pep: { referentiel: 'cours-appel-2024', cotation: 3, montant: 4500 },
@@ -979,52 +992,64 @@ export default function App() {
   // Serif amounts for card titles and totals
   const serifAmountStyle = { fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '18px', letterSpacing: '-0.5px', fontWeight: 400 };
   // Reusable card block class
-  const cardBlockClass = "bg-white rounded-lg border border-[#e7e5e3] overflow-visible shadow-[0_1px_2px_0_rgba(26,26,26,0.05)]";
+  const cardBlockClass = "bg-white rounded-lg border border-[#e7e5e3] overflow-hidden shadow-[0_1px_2px_0_rgba(26,26,26,0.05)]";
   // Total block class
   const totalBlockClass = "bg-[#eeece6] border border-[#e7e5e3] rounded-lg shadow-[0_1px_2px_0_rgba(26,26,26,0.05)] p-4";
 
+  // ========== CHESS PIECE AVATARS ==========
+  const CHESS_PATHS = {
+    knight: { vb: '0 0 24.19 27.63', d: 'M14.18 0c.02.11.01 1.02.01 1.17l-.001 2.8c.4.29 1.01.66 1.44.93l2.64 1.72c.16.56.29 1.14.43 1.7.06.23.1.49.2.71.14.34 1.84 1.93 2.23 2.32l-4.52 4.45-4.05-.02c-.28-.25-.6-.59-.88-.86-.47-.46-.93-.93-1.4-1.4.04-.87.01-2 .01-2.88-.44.01-.88.01-1.33.01-.04 1.1-.01 2.4-.01 3.51.62.66 1.31 1.29 1.94 1.94l.33.36 2.2-.002c.95 1.35 2.12 2.82 3.13 4.16l.003 2.72c.39.36 1.02.84 1.45 1.19.01.8.003 1.63 0 2.44l-7-0.001-8.74.004-.002-2.45c.45-.4.98-.79 1.44-1.19l-.004-2.73-4.41-.007c.08-.34.13-.79.19-1.15l.3-1.97c.78-.61 1.84-1.23 2.61-1.87.01-.15.04-.36.06-.52-.73.23-1.7.69-2.45.97.13-1.04.34-2.2.5-3.26.82-.42 1.65-.8 2.47-1.22.01-.16.02-.32.03-.48-.76.2-1.56.38-2.33.57.04-.2.07-.43.1-.64.17-1.27.44-2.55.59-3.81.75.25 1.49.5 2.23.76l.18-.37c-.6-.5-1.28-.97-1.87-1.47l2.37-2.33c.39-.39.81-.81 1.21-1.18.45-.03 1.16-.01 1.62-.01l3-.008c.23-.21.49-.49.72-.72.88-.85 1.74-1.75 2.62-2.59zm7.93 12.35c.16.08 1.84 1.82 2.08 2.06l-.04 3.04c-.44.37-.93.75-1.38 1.11-.36-.22-.68-.46-1.03-.7l-1.53-1.05-.31.3c.29.43.64.9.95 1.32.23.32.46.64.68.96l-2.84-.03c-.26-.8-.72-1.84-1.03-2.66.56-.58 1.24-1.23 1.83-1.8.86-.83 1.74-1.73 2.61-2.54zm-.19 2.46l-.004.68.57.06c.07.12.14.23.2.35.13.22.25.45.37.67l.02-1.74c-.04-.03-.02-.03-.06-.03-.35.01-.71.02-1.06.02zm-8.05-7.02c.31.21.64.37.94.56.01.24.01.5.03.74.21.15.48.29.72.41.25-.11.47-.22.72-.35.2.09.41.19.6.29l.21.11-.95-1.76h-2.27z' },
+    bishop: { vb: '0 0 12.98 27.86', d: 'M12.67 20.83v3.08h-1.6l.81 3.95H1.1l.83-3.95H.31v-3.08h12.36zM6.49 0c.16.18.5.63.65.84.4.57.91 1.2 1.28 1.78L6.59 7.69c-.37 1.03-.79 2.12-1.13 3.15.12.39.31.87.45 1.25.18.51.37 1.07.57 1.56.13-.28.28-.77.38-1.07.26-.71.52-1.43.77-2.14l2.12-5.88c.19.26.41.6.59.87.38.57.76 1.14 1.13 1.72.3.47.6.95.89 1.43.21.33.43.69.6 1.05-.17.88-.41 1.87-.61 2.75-.11.47-.2.98-.31 1.46-.2.9-.39 1.8-.58 2.69-.12.6-.35 1.43-.43 2l-9.12.002c-.05-.34-.19-.92-.27-1.27-.12-.54-.24-1.08-.35-1.62l-.63-2.86C.46 11.74.24 10.68 0 9.63c.1-.23.33-.58.46-.8.38-.63.77-1.25 1.17-1.86 1.02-1.59 2.07-3.15 3.16-4.68.37-.53.75-1.05 1.14-1.56.19-.25.36-.49.56-.73z' },
+    rook: { vb: '0 0 23.58 32.41', d: 'M21.14 27.17c.73.82 1.71 1.66 2.44 2.48l.005 2.76-2.49-.001-21.08.003C-.001 31.49.01 30.58 0 29.65c.79-.83 1.69-1.64 2.46-2.48.02-.6-.001-1.32.006-1.93l18.68-.002c-.004.65-.004 1.29 0 1.94zm-1.97-3.45c-.51.01-1.04.004-1.55.005l-13.18-.005 1.13-8.12c.13-.97.29-1.93.4-2.9l11.63-.002 1.56 11.03zm-.01-12.53H4.43c.004-.64.004-1.29 0-1.93h14.73l-.01 1.93zM6.1.01c.01 1.25-.001 2.54-.001 3.8 1.11.02 2.3 0 3.42.005l-.007-3.8 4.56.004v3.8l3.41-.002-.002-3.8c.32.001 3.56-.02 3.66.03l.002 7.7-18.69-.003-.004-7.72C3.61-.02 4.93.01 6.1.01z' },
+    pawn: { vb: '0 0 28 28', d: 'M14 2a4 4 0 00-4 4c0 1.2.53 2.27 1.37 3H9.5a1.5 1.5 0 000 3h1.09A5.99 5.99 0 008 17v1h12v-1a5.99 5.99 0 00-2.59-4.93H18.5a1.5 1.5 0 000-3h-1.87A3.98 3.98 0 0018 6a4 4 0 00-4-4zM6 20v2h16v-2H6zm-2 4v2h20v-2H4z' },
+    crown: { vb: '0 0 27.86 27.86', d: 'M19.85 21.59v2.79h-1.39l.7 3.48H8.71l.7-3.48H8.01v-2.79h11.84zM17.79 13.61l2.76-2.47 2.09 1.39-3.83 6.97H9.05l-3.83-6.97 2.09-1.39 2.76 2.47 3.86-3.86 3.86 3.86zM16.37 5.92l-2.44 2.44-2.44-2.44 2.44-2.44 2.44 2.44z' },
+    queen: { vb: '0 0 28 28', d: 'M14 2a3 3 0 00-1 5.83V10H9L6 5l-4 9h3l1 8h16l1-8h3L22 5l-3 5h-4V7.83A3 3 0 0014 2zM6 24v2h16v-2H6z' },
+    king: { vb: '0 0 28 28', d: 'M15 2h-2v3h-3v2h3v3h2V7h3V5h-3V2zM9 12a5 5 0 0110 0v1H9v-1zm-2 3h14l1 7H6l1-7zm-2 9h18v2H5v-2z' },
+  };
+  const LIEN_PIECE = { 'Épouse': 'queen', 'Époux': 'king', 'Concubin': 'king', 'Concubine': 'queen', 'Partenaire': 'crown', 'Enfant': 'knight', 'Parent': 'rook', 'Père': 'rook', 'Mère': 'rook', 'Frère': 'bishop', 'Sœur': 'bishop', 'Grand-parent': 'rook', 'Autre': 'pawn' };
+  const VI_AVATAR_PALETTE = [
+    { bg: '#cce6d9', fill: '#064E3B' }, // green
+    { bg: '#dbeafe', fill: '#1e3a8a' }, // blue
+    { bg: '#ece0eb', fill: '#581c87' }, // plum
+    { bg: '#efdec4', fill: '#78350f' }, // orange
+    { bg: '#ffe4e6', fill: '#881337' }, // rose/plum
+    { bg: '#eeece6', fill: '#44403c' }, // cream/stone
+  ];
+  const VD_AVATAR = { bg: '#cce6d9', fill: '#064E3B' }; // green — matching Figma
+
+  const chessPiece = (piece, fill, size) => {
+    const p = CHESS_PATHS[piece] || CHESS_PATHS.knight;
+    return (
+      <svg viewBox={p.vb} fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '80%', height: '80%', display: 'block' }}>
+        <path d={p.d} fill={fill} />
+      </svg>
+    );
+  };
+
+  const viAvatar = (vi, size = 28) => {
+    const idx = victimesIndirectes.findIndex(v => v.id === vi.id);
+    const pal = VI_AVATAR_PALETTE[(idx >= 0 ? idx : 0) % VI_AVATAR_PALETTE.length];
+    const piece = LIEN_PIECE[vi.lien] || 'knight';
+    return (
+      <div className="flex items-end justify-center flex-shrink-0 overflow-hidden" style={{ width: size, height: size, borderRadius: size <= 20 ? 4 : size <= 24 ? 6 : 8, backgroundColor: pal.bg, paddingTop: 2 }}>
+        {chessPiece(piece, pal.fill, size)}
+      </div>
+    );
+  };
+
+  const vdAvatar = (size = 32) => (
+    <div className="flex items-end justify-center flex-shrink-0 overflow-hidden" style={{ width: size, height: size, borderRadius: size <= 20 ? 4 : size <= 24 ? 6 : 8, backgroundColor: VD_AVATAR.bg, paddingTop: 2 }}>
+      {chessPiece('crown', VD_AVATAR.fill, size)}
+    </div>
+  );
+
   const typesFaitGenerateur = ['Accident de la route', 'Accident du travail', 'Accident médical', 'Agression', 'Accident domestique', 'Autre'];
 
-  // ========== DIFF-AWARE PARAMETER PILL ==========
-  const getParamDiff = (paramKey) => activeDiffs.find(d => d.paramKey === paramKey && !d.approved && !d.rejected);
+  // ========== PARAMETER PILL ==========
+  const getParamDiff = (paramKey) => null; // diff states removed
 
   const renderParamPill = ({ paramKey, label, values, enabled, onClick }) => {
-    const diff = getParamDiff(paramKey);
-    const hasDiff = !!diff;
-    const diffType = diff?.type;
-
-    // Pill color = target state: add/edit → ON (blue), delete → OFF (gray)
-    // Diamond color encodes the diff type (green/orange/red)
-    const scheme = hasDiff
-      ? (diffType === 'delete' ? PILL_SCHEMES.neutral : PILL_SCHEMES.info)
-      : (enabled ? PILL_SCHEMES.info : PILL_SCHEMES.neutral);
-
-    // Build value display text
-    let valueContent = null;
-    if (hasDiff && diff.fields) {
-      const parts = diff.fields.map(f => {
-        if (f.before && f.after) return <span key={f.key}><span style={{ textDecoration: 'line-through', opacity: 0.6 }}>{f.before}</span> → {f.after}</span>;
-        if (f.after) return <span key={f.key}>{f.after}</span>;
-        if (f.before) return <span key={f.key} style={{ textDecoration: 'line-through', opacity: 0.6 }}>{f.before}</span>;
-        return null;
-      }).filter(Boolean);
-      valueContent = parts.length > 0 ? parts.reduce((acc, part, i) => i === 0 ? [part] : [...acc, <span key={`sep-${i}`}>, </span>, part], []) : null;
-    } else if (values) {
-      valueContent = <span style={{ fontWeight: 400 }}>{values}</span>;
-    }
-
-    const handleAccept = (e) => {
-      e.stopPropagation();
-      setActiveDiffs(prev => prev.filter(d => !(d.paramKey === paramKey && !d.approved && !d.rejected)));
-      // Update enabledParams: accept add → ON, accept delete → OFF
-      if (diffType === 'add') setEnabledParams(p => ({ ...p, [paramKey]: true }));
-      if (diffType === 'delete') setEnabledParams(p => ({ ...p, [paramKey]: false }));
-    };
-    const handleReject = (e) => {
-      e.stopPropagation();
-      setActiveDiffs(prev => prev.map(d => d.paramKey === paramKey && !d.approved && !d.rejected ? { ...d, rejected: true } : d));
-      // Reject keeps original state — no enabledParams change needed
-    };
+    const scheme = enabled ? PILL_SCHEMES.info : PILL_SCHEMES.neutral;
 
     return (
       <button
@@ -1032,22 +1057,9 @@ export default function App() {
         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors"
         style={{ background: scheme.bg, borderColor: scheme.border, color: scheme.text }}
       >
-        {hasDiff && (
-          <span className="w-1.5 h-1.5 flex-shrink-0" style={{ background: DIAMOND_COLORS[diffType], transform: 'rotate(45deg)', borderRadius: '0.5px', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} />
-        )}
         <CircleArrowUp className="w-3.5 h-3.5 flex-shrink-0" />
         <span>{label}</span>
-        {valueContent && <span style={{ fontWeight: 400 }}>{valueContent}</span>}
-        {hasDiff && (
-          <span className="inline-flex items-center gap-1 ml-0.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-            <span className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)', cursor: 'pointer' }} onClick={handleAccept}>
-              <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
-            </span>
-            <span className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)', cursor: 'pointer' }} onClick={handleReject}>
-              <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
-            </span>
-          </span>
-        )}
+        {values && <span style={{ fontWeight: 400 }}>{values}</span>}
       </button>
     );
   };
@@ -1247,6 +1259,7 @@ export default function App() {
   // Collapsed sections state for PGPA/PGPF cards (collapsed by default)
   const [expandedCards, setExpandedCards] = useState({});
   const isCardExpanded = (key) => !!expandedCards[key];
+  const isIvCardExpanded = (key) => expandedCards[key] !== false; // defaults to open for IV cards
   const toggleCard = (key) => setExpandedCards(prev => ({ ...prev, [key]: !prev[key] }));
 
   // ========== PGPF ==========
@@ -1314,40 +1327,52 @@ export default function App() {
     dossierPostes: [], formPosteData: {},
     ivDossierPostes: ['pai', 'pafv', 'pepe', 'fdp', 'fo', 'prp'],
     ivPosteData: {
-      pai: { lignes: [
-        { victimeId: 'vi-1', montant: 25000, pieceIds: [], bareme: 'Mornet 2024 — Conjoint' },
-        { victimeId: 'vi-2', montant: 15000, pieceIds: [], bareme: 'Mornet 2024 — Enfant' },
-        { victimeId: 'vi-3', montant: 15000, pieceIds: [], bareme: 'Mornet 2024 — Enfant' },
+      pai: { bareme: 'mornet-2024', lignes: [
+        { victimeId: 'vi-1', montant: 25000, pieceIds: [] },
+        { victimeId: 'vi-2', montant: 15000, pieceIds: [] },
+        { victimeId: 'vi-3', montant: 15000, pieceIds: [] },
       ]},
-      pafv: { lignes: [
-        { victimeId: 'vi-1', montant: 8000, pieceIds: [], bareme: 'CA Paris 2023' },
-        { victimeId: 'vi-2', montant: 5000, pieceIds: [], bareme: 'CA Paris 2023' },
-        { victimeId: 'vi-3', montant: 5000, pieceIds: [], bareme: '' },
+      pafv: { bareme: 'cours-appel-2024', lignes: [
+        { victimeId: 'vi-1', montant: 8000, pieceIds: [] },
+        { victimeId: 'vi-2', montant: 5000, pieceIds: [] },
+        { victimeId: 'vi-3', montant: 5000, pieceIds: [] },
       ]},
-      pepe: { lignes: [
-        { victimeId: 'vi-1', montant: 10000, pieceIds: [], bareme: '', intitule: 'Syndrome de stress post-traumatique sévère' },
+      pepe: { bareme: '', lignes: [
+        { victimeId: 'vi-1', montant: 10000, pieceIds: [], intitule: 'Syndrome de stress post-traumatique sévère' },
       ]},
       fdp: { lignes: [
-        { id: 'fdp-1', victimeId: 'vi-1', montant: 1200, pieceIds: ['p-1'], intitule: 'Déplacements hôpital (48 trajets)' },
-        { id: 'fdp-2', victimeId: 'vi-1', montant: 2800, pieceIds: ['p-2'], intitule: 'Hébergement proche hôpital' },
+        { id: 'fdp-1', victimeId: 'vi-1', montant: 1200, pieceIds: ['p-1'], intitule: 'Déplacements hôpital (48 trajets)', source: 'ocr' },
+        { id: 'fdp-2', victimeId: 'vi-1', montant: 2800, pieceIds: ['p-2'], intitule: 'Hébergement proche hôpital', source: 'ocr' },
         { id: 'fdp-3', victimeId: 'vi-1', montant: 450, pieceIds: [], intitule: 'Repas sur place' },
         { id: 'fdp-4', victimeId: 'vi-2', montant: 600, pieceIds: [], intitule: 'Déplacements' },
         { id: 'fdp-5', victimeId: 'vi-3', montant: 600, pieceIds: [], intitule: 'Déplacements' },
       ]},
       fo: { lignes: [
-        { id: 'fo-1', victimeId: 'vi-1', montant: 3500, pieceIds: ['p-7'], intitule: 'Cercueil et préparation', payePar: 'vi-1' },
-        { id: 'fo-2', victimeId: 'vi-1', montant: 1800, pieceIds: ['p-8'], intitule: 'Cérémonie religieuse', payePar: 'vi-1' },
-        { id: 'fo-3', victimeId: null, montant: 4200, pieceIds: [], intitule: 'Monument funéraire', payePar: 'partage' },
-        { id: 'fo-4', victimeId: null, montant: 350, pieceIds: [], intitule: 'Fleurs et couronnes', payePar: 'partage' },
+        { id: 'fo-1', label: 'Cercueil et préparation', totalAmount: 3200, pieceIds: ['p-7'], attributions: [{ viId: 'vi-1', amount: 1600 }, { viId: 'vi-3', amount: 1600 }] },
+        { id: 'fo-2', label: 'Cérémonie religieuse', totalAmount: 800, pieceIds: [], attributions: [{ viId: 'vi-1', amount: 800 }] },
+        { id: 'fo-3', label: 'Concession funéraire', totalAmount: 2100, pieceIds: [], attributions: [{ viId: 'vi-1', amount: 714 }, { viId: 'vi-2', amount: 693 }, { viId: 'vi-3', amount: 693 }] },
+        { id: 'fo-4', label: 'Marbrerie et gravure', totalAmount: 1450, pieceIds: [], attributions: [{ viId: 'vi-3', amount: 1450 }] },
+        { id: 'fo-5', label: 'Transport du corps', totalAmount: 680, pieceIds: [], attributions: [{ viId: 'vi-1', amount: 680 }] },
       ]},
       prp: { lignes: [
-        { victimeId: 'vi-1', montant: 208125, partIndividuelle: 50, dureeIndemnisation: 'Viager', coeffCapitalisation: 18.5 },
-        { victimeId: 'vi-2', montant: 46125, partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans", coeffCapitalisation: 8.2 },
-        { victimeId: 'vi-3', montant: 33750, partIndividuelle: 15, dureeIndemnisation: "Jusqu'à 25 ans", coeffCapitalisation: 10.0 },
+        { victimeId: 'vi-1', partIndividuelle: 50, dureeIndemnisation: 'Viager', anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 20 },
+        { victimeId: 'vi-2', partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans (7 ans)", anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 6.5 },
+        { victimeId: 'vi-3', partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans (12 ans)", anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 10 },
       ]},
     },
     ivPosteSharedData: {
-      prp: { revenuDefunt: 45000, revenuConjoint: 30000, nombreParts: 2.5, partAutoConsommation: 30 },
+      prp: {
+        victimeDecedee: true,
+        revenuRefLignes: [
+          { id: 'prp-rev-1', source: 'Bulletin de salaire Déc 2022', periode: 'Déc 2022', netMensuel: 4000, pieceIds: [] },
+          { id: 'prp-rev-2', source: 'Avis d\'imposition 2022', periode: '2022', netMensuel: 4000, pieceIds: ['p-3'] },
+        ],
+        autoConsommationMethod: 'percentage',
+        revenuConjoint: 24000,
+        partAutoConsommation: 25,
+        nombreParts: 3,
+        revenuActuel: 1000,
+      },
     },
   };
 
@@ -1490,7 +1515,7 @@ export default function App() {
           if (!updated[pid]?.lignes?.length) {
             const config = IV_POSTE_CONFIG[pid];
             if (config?.type === 'A') {
-              updated[pid] = { lignes: victimesIndirectes.map(vi => ({ victimeId: vi.id, montant: 0, pieceIds: [], bareme: '' })) };
+              updated[pid] = { bareme: '', lignes: victimesIndirectes.map(vi => ({ victimeId: vi.id, montant: 0, pieceIds: [] })) };
             } else {
               updated[pid] = { lignes: [] };
             }
@@ -1948,13 +1973,24 @@ export default function App() {
     .filter(cat => cat.postes.length > 0);
 
   // IV computed helpers
-  const getIvPosteMontant = (posteId) =>
-    (ivPosteData[posteId]?.lignes || []).reduce((sum, l) => sum + (l.montant || 0), 0);
+  const getIvPosteMontant = (posteId) => {
+    const config = IV_POSTE_CONFIG[posteId];
+    const lignes = ivPosteData[posteId]?.lignes || [];
+    if (config?.type === 'C') return lignes.reduce((sum, l) => sum + (l.totalAmount || 0), 0);
+    return lignes.reduce((sum, l) => sum + (l.montant || 0), 0);
+  };
 
   const getIvVictimeTotal = (victimeId) =>
     ivDossierPostes.reduce((sum, pid) => {
-      const lignes = (ivPosteData[pid]?.lignes || []).filter(l => l.victimeId === victimeId);
-      return sum + lignes.reduce((s, l) => s + (l.montant || 0), 0);
+      const config = IV_POSTE_CONFIG[pid];
+      const lignes = ivPosteData[pid]?.lignes || [];
+      if (config?.type === 'C') {
+        return sum + lignes.reduce((s, l) => {
+          const attr = (l.attributions || []).find(a => a.viId === victimeId);
+          return s + (attr?.amount || 0);
+        }, 0);
+      }
+      return sum + lignes.filter(l => l.victimeId === victimeId).reduce((s, l) => s + (l.montant || 0), 0);
     }, 0);
 
   const allIvPostes = ivDossierPostes.map(id => {
@@ -2098,49 +2134,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2.5 ml-auto">
-            <div className="relative">
-              <button
-                onClick={() => setPiecesTypeMenuOpen(prev => !prev)}
-                className={`flex items-center gap-2 h-8 pl-8 pr-8 text-sm border rounded-md bg-white shadow-sm cursor-pointer transition-colors ${(piecesFilter.types || []).length > 0 ? 'border-[#292524] text-[#292524]' : 'border-[#e7e5e3] text-[#78716c] hover:border-[#d6d3d1]'}`}
-              >
-                {(piecesFilter.types || []).length === 0 ? 'Tous types' : `${(piecesFilter.types || []).length} type${(piecesFilter.types || []).length > 1 ? 's' : ''}`}
-              </button>
-              <ListFilter className="w-4 h-4 text-[#78716c] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
-              <ChevronDown className="w-4 h-4 text-[#78716c] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
-              {piecesTypeMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setPiecesTypeMenuOpen(false)} />
-                  <div className="absolute left-0 top-full mt-1 w-48 bg-white border border-[#e7e5e3] rounded-lg shadow-lg z-50 py-1">
-                    {PIECE_TYPE_OPTIONS.map(t => {
-                      const active = (piecesFilter.types || []).includes(t);
-                      return (
-                        <button
-                          key={t}
-                          onClick={() => setPiecesFilter(prev => ({ ...prev, types: active ? (prev.types || []).filter(x => x !== t) : [...(prev.types || []), t] }))}
-                          className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-[#292524] hover:bg-[#fafaf9] transition-colors"
-                        >
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${active ? 'bg-[#292524] border-[#292524]' : 'border-[#d6d3d1]'}`}>
-                            {active && <Check className="w-3 h-3 text-white" strokeWidth={2} />}
-                          </div>
-                          <span className={`${active ? 'font-medium' : ''}`}>{t}</span>
-                        </button>
-                      );
-                    })}
-                    {(piecesFilter.types || []).length > 0 && (
-                      <>
-                        <div className="border-t border-[#e7e5e3] my-1" />
-                        <button
-                          onClick={() => { setPiecesFilter(prev => ({ ...prev, types: [] })); setPiecesTypeMenuOpen(false); }}
-                          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#78716c] hover:bg-[#fafaf9] transition-colors"
-                        >
-                          Réinitialiser
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
             <div className="flex items-center gap-2 px-3 py-2 bg-[#eeece6] rounded-md">
               <Search className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
               <span className="text-sm text-[#78716c] opacity-70">Rechercher...</span>
@@ -3929,287 +3922,9 @@ export default function App() {
                 );
               }
 
-              // Artifact cards (diff-aware, one per poste, ghost expand/collapse)
+              // Artifact cards — removed, reasoning stepper handles diffs
               if (msg.type === 'artifact-cards') {
-                const iconMap = {
-                  FileText: FileText, Calculator: Calculator, ClipboardList: ClipboardList,
-                  HeartPulse: HeartPulse, Wallet: Wallet, Activity: Activity,
-                  Receipt: Receipt, Scale: Scale, Brain: Brain, ShieldCheck: ShieldCheck,
-                  Landmark: Landmark, Scissors: Scissors, Settings: Settings,
-                  User: User, Paperclip: Paperclip,
-                };
-                const getDiffsForCard = (card) => card.actionIds ? activeDiffs.filter(d => card.actionIds.includes(d.actionId) && d.zone === card.zone) : [];
-                const getDiffSummary = (diffs) => {
-                  const pending = diffs.filter(d => !d.approved && !d.rejected);
-                  return {
-                    adds: pending.filter(d => d.type === 'add').length,
-                    edits: pending.filter(d => d.type === 'edit').length,
-                    deletes: pending.filter(d => d.type === 'delete').length,
-                  };
-                };
-                // Group cards by zone for dividers between subgroups
-                const zoneGroups = [];
-                let currentZone = null;
-                msg.cards.forEach(card => {
-                  if (card.zone !== currentZone) {
-                    zoneGroups.push([]);
-                    currentZone = card.zone;
-                  }
-                  zoneGroups[zoneGroups.length - 1].push(card);
-                });
-
-                return (
-                  <div key={i} className="flex flex-col gap-2 pb-3 w-full" style={{ paddingRight: 20 }}>
-                    {zoneGroups.map((group, gi) => (
-                      <React.Fragment key={gi}>
-                        {gi > 0 && <div style={{ height: 1, background: '#e7e5e3', margin: '4px 0' }} />}
-                        {group.map(card => {
-                      const CardIcon = iconMap[card.icon] || FileText;
-                      const isExpanded = expandedArtifacts[card.id];
-                      const diffs = getDiffsForCard(card);
-                      const summary = getDiffSummary(diffs);
-                      const hasDiffs = diffs.length > 0;
-                      const cardTitle = card.posteLabel || ZONE_LABELS[card.zone] || card.title || card.zone;
-                      // Build subtitle chips from diff counts
-                      const diffChips = [];
-                      if (summary.adds > 0) diffChips.push({ icon: Plus, count: summary.adds, color: ROW_DIFF_COLORS.add });
-                      if (summary.edits > 0) diffChips.push({ icon: Pencil, count: summary.edits, color: ROW_DIFF_COLORS.edit });
-                      if (summary.deletes > 0) diffChips.push({ icon: Trash2, count: summary.deletes, color: ROW_DIFF_COLORS.delete });
-                      const subtitleText = card.subtitle || '';
-                      const allResolved = diffs.length > 0 && diffs.every(d => d.approved || d.rejected);
-                      const approvedCount = diffs.filter(d => d.approved).length;
-                      const rejectedCount = diffs.filter(d => d.rejected).length;
-                      const resolutionType = allResolved ? (rejectedCount === 0 ? 'all-approved' : approvedCount === 0 ? 'all-rejected' : 'mixed') : null;
-
-                      return (
-                        <div
-                          key={card.id}
-                          className="group/card rounded-lg border border-[#e7e5e3] transition-all duration-300 hover:border-[#d6d3d1] bg-white overflow-hidden"
-                          style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -2px 4px rgba(0,0,0,0.03)', opacity: allResolved ? 0.85 : 1, transition: 'opacity 0.3s ease' }}
-                        >
-                          {/* Header row — click to navigate to zone */}
-                          <div
-                            className="flex items-stretch cursor-pointer select-none group/header"
-                            onClick={() => handleNavigateToZone(card.zone, card.navigateTo)}
-                          >
-                            <div
-                              className="w-10 flex items-center justify-center flex-shrink-0"
-                              style={{ background: allResolved ? (resolutionType === 'all-approved' ? '#ecfdf5' : resolutionType === 'all-rejected' ? '#fef2f2' : '#f5f5f4') : '#f5f5f4' }}
-                            >
-                              <CardIcon className="w-3.5 h-3.5" style={{ color: allResolved ? (resolutionType === 'all-approved' ? ROW_DIFF_COLORS.add : resolutionType === 'all-rejected' ? ROW_DIFF_COLORS.delete : '#78716c') : '#78716c' }} />
-                            </div>
-                            <div className="flex items-center gap-3 flex-1 min-w-0" style={{ padding: '12px 14px 12px 12px' }}>
-                            <div className="flex-1 min-w-0">
-                              <div className="group-hover/header:underline" style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '18px', textDecorationColor: '#d6d3d1' }}>{cardTitle}</div>
-                              {allResolved ? (
-                                <div className="flex items-center gap-1 mt-0.5">
-                                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, lineHeight: '14px', color: resolutionType === 'all-approved' ? ROW_DIFF_COLORS.add : resolutionType === 'all-rejected' ? ROW_DIFF_COLORS.delete : '#78716c' }}>
-                                    {resolutionType === 'all-approved' ? 'Tout accepté' : resolutionType === 'all-rejected' ? 'Tout rejeté' : `${approvedCount}/${diffs.length} accepté${approvedCount > 1 ? 's' : ''}`}
-                                  </span>
-                                </div>
-                              ) : diffChips.length > 0 ? (
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  {diffChips.map((chip, ci) => {
-                                    const ChipIcon = chip.icon;
-                                    return (
-                                      <span key={ci} className="inline-flex items-center gap-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: chip.color, fontWeight: 500, lineHeight: '14px' }}>
-                                        <ChipIcon className="w-2.5 h-2.5" strokeWidth={2.5} />{chip.count}
-                                      </span>
-                                    );
-                                  })}
-                                </div>
-                              ) : subtitleText ? (
-                                <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', lineHeight: '16px' }}>{subtitleText}</div>
-                              ) : null}
-                            </div>
-                            {/* Expand/collapse toggle — stops propagation so it doesn't navigate */}
-                            {hasDiffs ? (
-                              <button
-                                className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0 transition-colors hover:bg-[#e7e5e3]"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setExpandedArtifacts(prev => ({ ...prev, [card.id]: !prev[card.id] }));
-                                }}
-                                title={isExpanded ? 'Masquer les détails' : 'Voir les détails'}
-                              >
-                                <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" style={{ color: '#78716c', transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' }} />
-                              </button>
-                            ) : null}
-                            </div>
-                          </div>
-
-                          {/* Expanded diff rows — remain visible for review after resolution */}
-                          {isExpanded && hasDiffs && (
-                            <div style={{ borderTop: '1px solid #f0efed' }}>
-                              {diffs.map((diff, di) => {
-                                const dotColor = ROW_DIFF_COLORS[diff.type] || ROW_DIFF_COLORS.edit;
-                                // Multi-field rendering
-                                if (diff.fields && diff.fields.length > 0) {
-                                  return (
-                                    <div
-                                      key={di}
-                                      className={`group/diff cursor-pointer transition-colors ${diff.approved ? 'diff-row-accepted' : diff.rejected ? 'diff-row-rejected' : 'hover:bg-[#fafaf9]'}`}
-                                      style={{ padding: '8px 14px', fontSize: 12, lineHeight: '18px', borderBottom: di < diffs.length - 1 ? '1px solid #f0efed' : 'none' }}
-                                      onClick={() => handleNavigateToEntity(diff.entityId, card.zone, card.navigateTo)}
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        {diff.approved
-                                          ? <Check className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.add }} strokeWidth={3} />
-                                          : diff.rejected
-                                            ? (diff.type === 'delete'
-                                              ? <RotateCcw className="w-2.5 h-2.5 flex-shrink-0" style={{ color: '#a8a29e' }} strokeWidth={2.5} />
-                                              : <X className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.delete }} strokeWidth={3} />)
-                                            : <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dotColor, transform: 'rotate(45deg)' }} />
-                                        }
-                                        <span style={{ color: (diff.approved || diff.rejected) ? '#a8a29e' : diff.type === 'delete' ? '#a8a29e' : '#44403c', fontWeight: 500, flex: 1, textDecoration: (diff.type === 'delete' && !diff.rejected) || (diff.rejected && diff.type !== 'delete') ? 'line-through' : 'none' }}>{diff.entityLabel}</span>
-                                        {!diff.approved && !diff.rejected && (
-                                          <span className="flex items-center gap-1.5 opacity-0 group-hover/diff:opacity-100 transition-opacity flex-shrink-0">
-                                            <button
-                                              className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#ecfdf5] hover:border-[#a5c9b7]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
-                                              onClick={(e) => { e.stopPropagation(); setActiveDiffs(prev => prev.filter(d => !(d.entityId === diff.entityId && d.actionId === diff.actionId))); }}
-                                              title="Approuver"
-                                            >
-                                              <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
-                                            </button>
-                                            <button
-                                              className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#fef2f2] hover:border-[#cf9d9d]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
-                                              onClick={(e) => { e.stopPropagation(); setActiveDiffs(prev => prev.map(d => d.entityId === diff.entityId && d.actionId === diff.actionId ? { ...d, rejected: true } : d)); }}
-                                              title="Rejeter"
-                                            >
-                                              <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
-                                            </button>
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 items-center" style={{ paddingLeft: 14 }}>
-                                        {diff.fields.map((f, fi) => {
-                                          const badgeStyle = f.badge ? { display: 'inline-flex', alignItems: 'center', padding: '1px 6px', borderRadius: 6, fontSize: 11, fontWeight: 500, lineHeight: '16px', ...(f.badge === 'success' ? { background: '#cce6d9', color: '#064e3b' } : { background: '#eeece6', color: '#44403c' }) } : null;
-                                          const renderVal = (val, style) => f.badge
-                                            ? <span style={{ ...badgeStyle, ...style }}>{val}</span>
-                                            : <span style={style}>{val}</span>;
-                                          return (
-                                          <span key={fi} className="inline-flex items-center gap-1" style={{ fontSize: 12, color: (diff.approved || diff.rejected) ? '#a8a29e' : '#78716c', lineHeight: '16px' }}>
-                                            <span style={{ color: '#a8a29e' }}>{f.label}:</span>{' '}
-                                            {diff.rejected ? (
-                                              diff.type === 'delete' ? (
-                                                renderVal(f.before || f.after, { color: '#78716c' })
-                                              ) : diff.type === 'add' ? (
-                                                <>{f.after && renderVal(f.after, { textDecoration: 'line-through', color: '#a8a29e', opacity: f.badge ? 0.5 : 1 })}</>
-                                              ) : (<>
-                                                {f.after && renderVal(f.after, { textDecoration: 'line-through', color: '#a8a29e', opacity: f.badge ? 0.5 : 1 })}
-                                                {f.before && <span style={{ color: '#a8a29e' }}> → </span>}
-                                                {f.before && renderVal(f.before, { color: '#78716c' })}
-                                              </>)
-                                            ) : (<>
-                                              {f.before && renderVal(f.before, { textDecoration: 'line-through', color: '#a8a29e', opacity: f.badge ? 0.5 : 1 })}
-                                              {f.before && f.after && <span style={{ color: '#a8a29e' }}> → </span>}
-                                              {f.after && renderVal(f.after, f.badge ? {} : { color: diff.approved ? '#a8a29e' : '#44403c', fontWeight: 500 })}
-                                            </>)}
-                                            {/* Hypothese peels */}
-                                            {f.variants && f.variants.length > 1 && !diff.approved && !diff.rejected && (
-                                              <span className="inline-flex items-center gap-1 ml-1.5">
-                                                {f.variants.map((v, vi) => (
-                                                  <span key={vi} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ fontSize: 10, fontWeight: 500, background: vi === 0 ? '#eef3fa' : '#f5f5f4', border: `1px solid ${vi === 0 ? '#aabcd5' : '#e7e5e3'}`, color: vi === 0 ? '#1e3a8a' : '#78716c', boxShadow: vi === 0 ? '0 1px 2px rgba(0,0,0,0.06)' : 'none' }}>
-                                                    <CircleArrowUp className="w-2.5 h-2.5" />{v.source}: {v.value}
-                                                  </span>
-                                                ))}
-                                              </span>
-                                            )}
-                                          </span>
-                                        ); })}
-                                      </div>
-                                    </div>
-                                  );
-                                }
-                                // Legacy single-value rendering
-                                return (
-                                  <div
-                                    key={di}
-                                    className={`group/diff flex items-center gap-2 cursor-pointer transition-colors ${diff.approved ? 'diff-row-accepted' : diff.rejected ? 'diff-row-rejected' : 'hover:bg-[#fafaf9]'}`}
-                                    style={{ padding: '8px 14px', fontSize: 12, lineHeight: '18px', borderBottom: di < diffs.length - 1 ? '1px solid #f0efed' : 'none' }}
-                                    onClick={() => handleNavigateToEntity(diff.entityId, card.zone, card.navigateTo)}
-                                  >
-                                    {diff.approved
-                                      ? <Check className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.add }} strokeWidth={3} />
-                                      : diff.rejected
-                                        ? <X className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ROW_DIFF_COLORS.delete }} strokeWidth={3} />
-                                        : <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: dotColor, transform: 'rotate(45deg)' }} />
-                                    }
-                                    <span style={{ color: (diff.approved || diff.rejected) ? '#a8a29e' : '#78716c', fontWeight: 500, flexShrink: 0, textDecoration: (diff.type === 'delete' && !diff.rejected) || (diff.rejected && diff.type !== 'delete') ? 'line-through' : 'none' }}>{diff.entityLabel}</span>
-                                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                      {diff.rejected ? (
-                                        diff.type === 'delete' ? (
-                                          <span className="truncate" style={{ color: '#78716c' }}>{diff.before || diff.after}</span>
-                                        ) : diff.type === 'add' ? (
-                                          <span className="truncate" style={{ color: '#a8a29e', textDecoration: 'line-through' }}>{diff.after}</span>
-                                        ) : (<>
-                                          <span className="truncate" style={{ color: '#a8a29e', textDecoration: 'line-through' }}>{diff.after}</span>
-                                          {diff.before && <><span style={{ color: '#a8a29e' }}>→</span><span className="truncate" style={{ color: '#78716c' }}>{diff.before}</span></>}
-                                        </>)
-                                      ) : (<>
-                                        {diff.before && <span className="truncate" style={{ color: '#a8a29e', textDecoration: 'line-through' }}>{diff.before}</span>}
-                                        {diff.before && <span style={{ color: '#a8a29e' }}>→</span>}
-                                        <span className="truncate" style={{ color: diff.approved ? '#a8a29e' : '#292524', fontWeight: 500 }}>{diff.after}</span>
-                                      </>)}
-                                    </div>
-                                    {!diff.approved && !diff.rejected && (
-                                      <span className="flex items-center gap-1.5 opacity-0 group-hover/diff:opacity-100 transition-opacity flex-shrink-0">
-                                        <button className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#ecfdf5] hover:border-[#a5c9b7]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} onClick={(e) => { e.stopPropagation(); setActiveDiffs(prev => prev.filter(d => !(d.entityId === diff.entityId && d.actionId === diff.actionId))); }} title="Approuver">
-                                          <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
-                                        </button>
-                                        <button className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[#fef2f2] hover:border-[#cf9d9d]" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} onClick={(e) => { e.stopPropagation(); setActiveDiffs(prev => prev.map(d => d.entityId === diff.entityId && d.actionId === diff.actionId ? { ...d, rejected: true } : d)); }} title="Rejeter">
-                                          <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
-                                        </button>
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-
-                          {/* Footer — bulk actions (hidden once all resolved) */}
-                          {hasDiffs && !allResolved && (
-                            <div style={{ borderTop: '1px solid #f0efed' }} className="flex items-center">
-                              {/* Accept all */}
-                              <button
-                                className="flex-1 flex items-center justify-center gap-1.5 py-2 transition-colors hover:bg-[#fafaf9]"
-                                style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveDiffs(prev => prev.filter(d => !(card.actionIds?.includes(d.actionId) && d.zone === card.zone)));
-                                }}
-                                title="Accepter tous les changements"
-                              >
-                                <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
-                                Tout accepter
-                              </button>
-                              <div style={{ width: 1, height: 16, background: '#e7e5e3' }} />
-                              {/* Reject all */}
-                              <button
-                                className="flex-1 flex items-center justify-center gap-1.5 py-2 transition-colors hover:bg-[#fafaf9]"
-                                style={{ fontSize: 12, fontWeight: 500, color: '#a8a29e' }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveDiffs(prev => prev.map(d => {
-                                    if (card.actionIds?.includes(d.actionId) && d.zone === card.zone) return { ...d, rejected: true };
-                                    return d;
-                                  }));
-                                }}
-                                title="Annuler tous les changements"
-                              >
-                                <RotateCcw className="w-3 h-3" />
-                                Tout annuler
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                      </React.Fragment>
-                    ))}
-                  </div>
-                );
+                return null;
               }
 
               // AI proposal — agent proposes, user validates
@@ -5448,10 +5163,6 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                    <div>
-                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Barème / Référence</h4>
-                      <input type="text" id="iv-ligne-bareme" defaultValue={data?.bareme || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="Ex : Cour d'appel de Paris 2024" />
-                    </div>
                   </div>
                 )}
 
@@ -5472,28 +5183,39 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Panel IV ligne — Type C (flat expense) */}
+                {/* Panel IV ligne — Type C (shared expense with attributions) */}
                 {editPanel.type === 'iv-ligne-c' && (
                   <div className="space-y-6">
                     <div>
                       <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Description</h4>
-                      <input type="text" id="iv-ligne-intitule" defaultValue={data?.intitule || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="Ex : Cercueil, cérémonie, monument..." />
+                      <input type="text" id="iv-ligne-label" defaultValue={data?.label || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="Ex : Cercueil, cérémonie, monument..." />
                     </div>
                     <div>
-                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Montant</h4>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Montant total</h4>
                       <div className="relative">
-                        <input type="number" id="iv-ligne-montant" defaultValue={data?.montant || ''} className="w-full px-3 py-2 border rounded-lg pr-8" placeholder="0" step="any" min="0" />
+                        <input type="number" id="iv-ligne-total-amount" defaultValue={data?.totalAmount || ''} className="w-full px-3 py-2 border rounded-lg pr-8" placeholder="0" step="any" min="0" />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
                       </div>
                     </div>
                     <div>
-                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Payé par</h4>
-                      <select id="iv-ligne-paye-par" defaultValue={data?.payePar || ''} className="w-full px-3 py-2 border rounded-lg bg-white">
-                        <option value="">— Non attribué —</option>
-                        {victimesIndirectes.map(vi => (
-                          <option key={vi.id} value={vi.id}>{vi.prenom} {vi.nom} ({vi.lien})</option>
-                        ))}
-                      </select>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Attributions par victime</h4>
+                      <div className="space-y-2">
+                        {victimesIndirectes.map(vi => {
+                          const existing = (data?.attributions || []).find(a => a.viId === vi.id);
+                          return (
+                            <div key={vi.id} className="flex items-center gap-3">
+                              <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#f5f5f4' }}>
+                                <span style={{ fontSize: 10, fontWeight: 600, color: '#78716c' }}>{`${(vi.prenom || '')[0] || ''}${(vi.nom || '')[0] || ''}`.toUpperCase()}</span>
+                              </div>
+                              <span className="flex-1 text-body text-[#44403c] truncate">{vi.prenom} {vi.nom}</span>
+                              <div className="relative w-[100px]">
+                                <input type="number" data-vi-attr={vi.id} defaultValue={existing?.amount || ''} className="w-full px-3 py-1.5 border rounded-lg pr-6 text-right text-body" placeholder="0" step="any" min="0" />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[#a8a29e] text-caption">€</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -5578,23 +5300,10 @@ export default function App() {
                 
                 {/* Panel PGPA - Revenu de référence */}
                 {editPanel.type === 'pgpa-revenu' && (() => {
-                  const pgpaRevDiffColor = data.diffType ? ROW_DIFF_COLORS[data.diffType] : null;
-                  const pgpaRevDiffLabel = data.diffType === 'add' ? 'Ligne ajoutée par l\'agent' : data.diffType === 'edit' ? 'Ligne modifiée par l\'agent' : data.diffType === 'delete' ? 'Ligne supprimée par l\'agent' : null;
-                  const pgpaRevDiffBg = data.diffType === 'add' ? '#f0fdf4' : data.diffType === 'edit' ? '#fff7ed' : '#fef2f2';
-                  const pgpaRevDiffBorder = data.diffType === 'add' ? '#bbf7d0' : data.diffType === 'edit' ? '#fed7aa' : '#fecaca';
-                  const pgpaRevOv = data.oldValues || {};
-                  const pgpaRevHasDiff = (key) => data.diffType === 'edit' && pgpaRevOv[key] != null;
                   const pgpaRevInputCls = "w-full px-3 py-2 text-body border border-[#e7e5e3] rounded-lg bg-white focus:outline-none focus:border-[#292524] focus:shadow-[0_0_0_3px_rgba(163,163,163,0.5)]";
                   const pgpaRevInputShadow = { boxShadow: '0 1px 2px rgba(26,26,26,0.05)' };
-                  const pgpaRevDescP = (text) => <p style={{ fontSize: 12, color: '#78716c', marginTop: 6, letterSpacing: '0.12px' }}>Ancien : {text}</p>;
                   return (
-                  <div className="space-y-6" style={data.diffType === 'delete' ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>
-                    {pgpaRevDiffColor && (
-                      <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: pgpaRevDiffBg, border: `1px solid ${pgpaRevDiffBorder}` }}>
-                        <div className="w-1.5 h-1.5" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />
-                        <span style={{ fontSize: 12, fontWeight: 500, color: pgpaRevDiffColor }}>{pgpaRevDiffLabel}</span>
-                      </div>
-                    )}
+                  <div className="space-y-6">
 
                     {/* Section Pièces justificatives */}
                     <div>
@@ -5656,44 +5365,36 @@ export default function App() {
                         <div>
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <label className="text-body-medium text-[#292524]">Type</label>
-                            {(data.diffType === 'add' || pgpaRevHasDiff('type')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />}
                           </div>
                           <select id="pgpa-revenu-type" defaultValue={data.type || 'revenu'} className={pgpaRevInputCls} style={pgpaRevInputShadow}>
                             <option value="revenu">Revenu professionnel</option>
                             <option value="gain">Gain supplémentaire (prime, indemnité...)</option>
                           </select>
-                          {pgpaRevHasDiff('type') && pgpaRevDescP(pgpaRevOv.type)}
                         </div>
 
                         <div>
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <label className="text-body-medium text-[#292524]">Intitulé</label>
-                            {(data.diffType === 'add' || pgpaRevHasDiff('label')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />}
                           </div>
                           <input id="pgpa-revenu-label" type="text" defaultValue={data.label || ''} placeholder="Ex: Salaire net imposable" className={pgpaRevInputCls} style={pgpaRevInputShadow} />
-                          {pgpaRevHasDiff('label') && pgpaRevDescP(pgpaRevOv.label)}
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <div className="flex items-center gap-1.5 mb-1.5">
                               <label className="text-body-medium text-[#292524]">Année</label>
-                              {(data.diffType === 'add' || pgpaRevHasDiff('annee')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />}
                             </div>
                             <input id="pgpa-revenu-annee" type="text" defaultValue={data.annee || ''} placeholder="2022" className={pgpaRevInputCls} style={pgpaRevInputShadow} />
-                            {pgpaRevHasDiff('annee') && pgpaRevDescP(pgpaRevOv.annee)}
                           </div>
                           <div>
                             <div className="flex items-center gap-1.5 mb-1.5">
                               <label className="text-body-medium text-[#292524]">Unité de temps</label>
-                              {(data.diffType === 'add' || pgpaRevHasDiff('unite')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />}
                             </div>
                             <select id="pgpa-revenu-unite" defaultValue={data.unite || 'annuel'} className={pgpaRevInputCls} style={pgpaRevInputShadow}>
                               <option value="annuel">Annuel</option>
                               <option value="mensuel">Mensuel</option>
                               <option value="journalier">Journalier</option>
                             </select>
-                            {pgpaRevHasDiff('unite') && pgpaRevDescP(pgpaRevOv.unite)}
                           </div>
                         </div>
 
@@ -5714,13 +5415,11 @@ export default function App() {
                           <div>
                             <div className="flex items-center gap-1.5 mb-1.5">
                               <label className="text-body-medium text-[#292524]">Revenu net payé</label>
-                              {(data.diffType === 'add' || pgpaRevHasDiff('montant')) && <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: pgpaRevDiffColor, transform: 'rotate(45deg)' }} />}
                             </div>
                             <div className="relative">
                               <input id="pgpa-revenu-montant" type="number" step="0.01" defaultValue={data.montant || ''} readOnly className={`${pgpaRevInputCls} pr-8 bg-[#F8F7F5] text-[#78716c] cursor-default`} style={pgpaRevInputShadow} />
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€</span>
                             </div>
-                            {pgpaRevHasDiff('montant') && pgpaRevDescP(`${pgpaRevOv.montant} €`)}
                           </div>
                           <div>
                             <div className="flex items-center gap-1.5 mb-1.5">
@@ -6519,13 +6218,12 @@ export default function App() {
                   <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                   <button onClick={() => {
                     const montant = parseFloat(document.getElementById('iv-ligne-montant')?.value) || 0;
-                    const bareme = document.getElementById('iv-ligne-bareme')?.value || '';
                     const intitule = document.getElementById('iv-ligne-intitule')?.value || '';
                     const { victimeId, posteId, pieceIds = [] } = data;
                     setIvPosteData(prev => {
                       const existing = prev[posteId]?.lignes || [];
                       const ligneIdx = existing.findIndex(l => l.victimeId === victimeId);
-                      const newLigne = { victimeId, montant, pieceIds, bareme, intitule };
+                      const newLigne = { victimeId, montant, pieceIds, intitule };
                       const newLignes = ligneIdx >= 0
                         ? existing.map((l, i) => i === ligneIdx ? newLigne : l)
                         : [...existing, newLigne];
@@ -6561,15 +6259,18 @@ export default function App() {
                 <div className="px-5 py-4 flex justify-end gap-2">
                   <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
                   <button onClick={() => {
-                    const montant = parseFloat(document.getElementById('iv-ligne-montant')?.value) || 0;
-                    const intitule = document.getElementById('iv-ligne-intitule')?.value || '';
-                    const payePar = document.getElementById('iv-ligne-paye-par')?.value || '';
+                    const totalAmount = parseFloat(document.getElementById('iv-ligne-total-amount')?.value) || 0;
+                    const label = document.getElementById('iv-ligne-label')?.value || '';
                     const { id, posteId, pieceIds = [] } = data;
-                    const victimeId = payePar || null;
+                    const attributions = [];
+                    document.querySelectorAll('[data-vi-attr]').forEach(el => {
+                      const amount = parseFloat(el.value) || 0;
+                      if (amount > 0) attributions.push({ viId: el.dataset.viAttr, amount });
+                    });
                     setIvPosteData(prev => {
                       const existing = prev[posteId]?.lignes || [];
                       const ligneIdx = existing.findIndex(l => l.id === id);
-                      const newLigne = { id: id || crypto.randomUUID(), victimeId, montant, pieceIds, intitule, payePar };
+                      const newLigne = { id: id || crypto.randomUUID(), label, totalAmount, pieceIds, attributions };
                       const newLignes = ligneIdx >= 0
                         ? existing.map((l, i) => i === ligneIdx ? newLigne : l)
                         : [...existing, newLigne];
@@ -7222,9 +6923,7 @@ export default function App() {
                     {victimesIndirectes.map(vi => (
                       <div key={vi.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-[#fafaf9] group transition-colors">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-[#eeece6] flex items-center justify-center text-caption text-[#78716c] font-medium">
-                            {vi.prenom[0]}{vi.nom[0]}
-                          </div>
+                          {viAvatar(vi, 32)}
                           <div>
                             <div className="text-body text-[#44403c]">{vi.prenom} {vi.nom}</div>
                             <div className="text-caption text-[#a8a29e]">{vi.lien} {vi.dateNaissance ? `• ${calcAge(vi.dateNaissance)} ans` : ''}</div>
@@ -7427,9 +7126,7 @@ export default function App() {
                     {victimesIndirectes.map(vi => (
                       <div key={vi.id} className="flex items-center justify-between p-3 hover:bg-[#fafaf9] group transition-colors">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-[#eeece6] flex items-center justify-center text-caption text-[#78716c] font-medium">
-                            {vi.prenom[0]}{vi.nom[0]}
-                          </div>
+                          {viAvatar(vi, 32)}
                           <div>
                             <div className="text-body text-[#44403c]">{vi.prenom} {vi.nom}</div>
                             <div className="text-caption text-[#a8a29e]">{vi.lien} • {calcAge(vi.dateNaissance)} ans</div>
@@ -7624,26 +7321,25 @@ export default function App() {
             {/* Extraction progress banner (non-blocking) */}
             {extractionBanner}
 
-            {/* Toolbar: total pill + actions */}
-            <div className="flex items-center gap-3 px-px">
-              <div className="relative group">
-                <div className="h-9 px-3 flex items-center gap-2 border border-[#e7e5e3] rounded-lg whitespace-nowrap cursor-default" style={{ backgroundColor: '#eeece6' }}>
-                  <span style={{ fontSize: 12, fontWeight: 400, color: '#292524', letterSpacing: 0.12, lineHeight: '16px' }}>Indemnisation totale</span>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(totalIndem)}</span>
+            {/* Toolbar: summary pills + actions */}
+            <div className="flex items-center gap-2 px-px">
+              {/* Breakdown pills — compact, white bg */}
+              {[
+                { label: 'Victime directe', amount: totalVd },
+                ...(totalIv > 0 ? [{ label: 'Victimes indirectes', amount: totalIv }] : []),
+                { label: 'Tiers payeurs', amount: totalTiers, muted: totalTiers === 0, negative: totalTiers > 0 },
+              ].map((item, i) => (
+                <div key={i} className="h-8 px-2.5 flex items-center gap-1.5 border border-[#e7e5e3] rounded-lg whitespace-nowrap cursor-default">
+                  <span style={{ fontSize: 11, fontWeight: 400, color: item.muted ? '#a8a29e' : '#78716c', letterSpacing: 0.1, lineHeight: '16px' }}>{item.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: item.muted ? '#a8a29e' : '#292524', lineHeight: '18px' }}>
+                    {item.muted && item.amount === 0 ? '—' : `${item.negative ? '− ' : ''}${fmt(item.amount)}`}
+                  </span>
                 </div>
-                {/* Hover popover — breakdown */}
-                <div className="absolute top-full left-0 mt-1.5 z-30 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-150">
-                  <div className="w-[280px]">
-                    {renderTotalCard(
-                      [
-                        { label: 'Victime directe', amount: totalVd },
-                        ...(totalIv > 0 ? [{ label: 'Victimes indirectes', amount: totalIv }] : []),
-                        { label: 'Tiers payeurs', amount: totalTiers, muted: totalTiers === 0, negative: totalTiers > 0 },
-                      ],
-                      { label: 'Indemnisation totale', amount: totalIndem }
-                    )}
-                  </div>
-                </div>
+              ))}
+              {/* Total pill — cream bg, prominent */}
+              <div className="h-8 px-2.5 flex items-center gap-1.5 border border-[#e7e5e3] rounded-lg whitespace-nowrap cursor-default" style={{ backgroundColor: '#eeece6' }}>
+                <span style={{ fontSize: 11, fontWeight: 500, color: '#292524', letterSpacing: 0.1, lineHeight: '16px' }}>Indemnisation totale</span>
+                <span style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{fmt(totalIndem)}</span>
               </div>
               <div className="flex-1" />
               <button
@@ -7669,30 +7365,22 @@ export default function App() {
               {/* --- Section: Victime directe --- */}
               {vdCategories.length > 0 && (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3 px-1">
-                    <div className="w-8 h-8 rounded-full bg-[#eeece6] flex items-center justify-center text-caption text-[#78716c] font-medium">
-                      {victimeData.prenom?.[0] || '?'}{victimeData.nom?.[0] || '?'}
+                  <div className="flex items-center justify-between px-1.5">
+                    <div className="flex items-center gap-3">
+                      {vdAvatar(32)}
+                      <div className="flex flex-col gap-1.5">
+                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', lineHeight: '1' }}>Victime directe</span>
+                        <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{victimeData.prenom} {victimeData.nom}</span>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-body-medium text-[#292524]">Victime directe — {victimeData.prenom} {victimeData.nom}</div>
-                    </div>
-                    <div className="flex-1" />
-                    <span className="text-body text-[#78716c]">{fmt(allPostes.reduce((s, p) => s + (p.montant || 0), 0))}</span>
+                    <span style={{ ...serifAmountStyle, color: '#292524' }}>{fmt(allPostes.reduce((s, p) => s + (p.montant || 0), 0))}</span>
                   </div>
                   <div className="space-y-4">
                     {vdCategories.map((cat) => (
                       <div key={cat.id} className="border border-[#e7e5e3] rounded-xl overflow-hidden" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                        {/* RowCalculation Header/Direct — category label */}
                         <div className="h-10 px-4 flex items-center border-b border-[#e7e5e3]" style={{ backgroundColor: '#f8f7f5' }}>
-                          <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{cat.title}</span>
-                        </div>
-                        <div className="flex items-center h-10 bg-white border-b border-[#e7e5e3]">
-                          <div className="flex-1 px-4">
-                            <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Nom du poste</span>
-                          </div>
-                          <div className="w-[160px] px-3 text-right">
-                            <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>Montant</span>
-                          </div>
-                          <div className="w-11" />
+                          <span style={colHeaderStyle}>{cat.title}</span>
                         </div>
                         {cat.postes.map((p, pIdx) => {
                           const isLast = pIdx === cat.postes.length - 1;
@@ -7701,23 +7389,35 @@ export default function App() {
                               key={p.id}
                               data-entity-id={p.id}
                               onClick={() => navigateTo(p)}
-                              className={`w-full flex items-center h-14 bg-white hover:bg-[#fafaf9] transition-colors ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}
+                              className={`w-full flex items-center h-14 bg-white hover:bg-[#fafaf9] transition-colors group ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}
                             >
-                              <div className="pl-4 pr-1 w-[52px] flex items-center">
+                              {/* Acronym cell */}
+                              <div className="w-16 px-4 flex items-center">
                                 <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{p.title}</span>
                               </div>
+                              {/* Text cell */}
                               <div className="flex-1 px-3 flex items-center min-w-0">
                                 <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{p.fullTitle}</span>
                               </div>
-                              <div className="w-[160px] px-3 flex items-center justify-end">
+                              {/* Total column */}
+                              <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
+                                <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
+                              </div>
+                              {/* Tiers payeur column */}
+                              <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
+                                <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
+                              </div>
+                              {/* Indemnisation amount cell */}
+                              <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
                                 {p.montant > 0 ? (
                                   <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(p.montant)}</span>
                                 ) : (
                                   <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
                                 )}
                               </div>
-                              <div className="w-11 pr-4 pl-3 flex items-center justify-end">
-                                <ChevronRight className="w-4 h-4 text-[#d6d3d1]" strokeWidth={1.5} />
+                              {/* Actions cell */}
+                              <div className="w-11 flex items-center justify-center flex-shrink-0 pl-3 pr-4">
+                                <MoreVertical className="w-4 h-4 text-[#a8a29e] opacity-0 group-hover:opacity-100 transition-opacity" />
                               </div>
                             </button>
                           );
@@ -7731,39 +7431,42 @@ export default function App() {
               {/* --- Section: Victimes indirectes (single section, expandable rows) --- */}
               {(ivDossierPostes.length > 0 || victimesIndirectes.length > 0) && (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3 px-1">
-                    <div className="w-8 h-8 rounded-full bg-[#eeece6] flex items-center justify-center">
-                      <svg className="w-4 h-4 text-[#78716c]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="text-body-medium text-[#292524]">Victimes indirectes</div>
+                  <div className="flex items-center justify-between px-1.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center" style={{ backgroundColor: '#eeece6' }}>
+                        <svg className="w-4 h-4 text-[#78716c]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                        </svg>
+                      </div>
+                      <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', lineHeight: '1' }}>Victime indirectes</span>
                       {victimesIndirectes.length > 0 && (
-                        <div className="text-caption text-[#a8a29e]">{victimesIndirectes.length} victime{victimesIndirectes.length > 1 ? 's' : ''}</div>
+                        <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full border border-[#e7e5e3]" style={{ fontSize: 12, fontWeight: 500, color: '#292524' }}>
+                          {victimesIndirectes.length}
+                        </span>
                       )}
                     </div>
-                    <div className="flex-1" />
-                    {/* View mode toggle — Plato tab component */}
-                    {victimesIndirectes.length > 0 && ivDossierPostes.length > 0 && (
-                      <div className="flex items-center gap-0 h-8 rounded-lg p-1 mr-3" style={{ backgroundColor: '#eeece6' }}>
-                        <button
-                          onClick={() => setIvViewMode('poste')}
-                          className={`h-full px-2 min-w-[56px] flex items-center justify-center rounded-md transition-all ${ivViewMode === 'poste' ? 'bg-white shadow-[0_1px_4px_0_rgba(26,26,26,0.05),0_1px_2px_0_rgba(26,26,26,0.05)]' : ''}`}
-                          style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}
-                        >
-                          Par poste
-                        </button>
-                        <button
-                          onClick={() => setIvViewMode('victime')}
-                          className={`h-full px-2 min-w-[56px] flex items-center justify-center rounded-md transition-all ${ivViewMode === 'victime' ? 'bg-white shadow-[0_1px_4px_0_rgba(26,26,26,0.05),0_1px_2px_0_rgba(26,26,26,0.05)]' : ''}`}
-                          style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}
-                        >
-                          Par victime
-                        </button>
-                      </div>
-                    )}
-                    {totalIvChiffrage > 0 && <span className="text-body text-[#78716c]">{fmt(totalIvChiffrage)}</span>}
+                    <div className="flex items-center gap-3">
+                      {/* View mode toggle */}
+                      {victimesIndirectes.length > 0 && ivDossierPostes.length > 0 && (
+                        <div className="flex items-center gap-0 h-8 rounded-lg p-1" style={{ backgroundColor: '#eeece6' }}>
+                          <button
+                            onClick={() => setIvViewMode('poste')}
+                            className={`h-full px-2 min-w-[56px] flex items-center justify-center rounded-md transition-all ${ivViewMode === 'poste' ? 'bg-white shadow-[0_1px_4px_0_rgba(26,26,26,0.05),0_1px_2px_0_rgba(26,26,26,0.05)] border border-transparent' : ''}`}
+                            style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: ivViewMode === 'poste' ? '#292524' : '#78716c', textTransform: 'uppercase', whiteSpace: 'nowrap' }}
+                          >
+                            Par poste
+                          </button>
+                          <button
+                            onClick={() => setIvViewMode('victime')}
+                            className={`h-full px-2 min-w-[56px] flex items-center justify-center rounded-md transition-all ${ivViewMode === 'victime' ? 'bg-white shadow-[0_1px_4px_0_rgba(26,26,26,0.05),0_1px_2px_0_rgba(26,26,26,0.05)] border border-transparent' : ''}`}
+                            style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: ivViewMode === 'victime' ? '#292524' : '#78716c', textTransform: 'uppercase', whiteSpace: 'nowrap' }}
+                          >
+                            Par victime
+                          </button>
+                        </div>
+                      )}
+                      <span style={{ ...serifAmountStyle, color: totalIvChiffrage > 0 ? '#292524' : '#a8a29e' }}>{totalIvChiffrage > 0 ? fmt(totalIvChiffrage) : '—'}</span>
+                    </div>
                   </div>
 
                   {victimesIndirectes.length > 0 && ivDossierPostes.length > 0 ? (
@@ -7773,38 +7476,61 @@ export default function App() {
                         <div className="space-y-4">
                           {ivCategories.map(cat => (
                             <div key={cat.id} className="border border-[#e7e5e3] rounded-xl overflow-hidden" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                              {/* RowCalculation Header/Direct — category label */}
                               <div className="h-10 px-4 flex items-center border-b border-[#e7e5e3]" style={{ backgroundColor: '#f8f7f5' }}>
-                                <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{cat.title}</span>
+                                <span style={colHeaderStyle}>{cat.title}</span>
                               </div>
                               {cat.postes.map((p, pIdx) => {
                                 const isLast = pIdx === cat.postes.length - 1;
                                 const isExpanded = ivOverviewExpanded[p.id];
                                 return (
                                   <div key={p.id}>
-                                    <button
+                                    <div
                                       data-entity-id={p.id}
-                                      onClick={() => setIvOverviewExpanded(prev => ({ ...prev, [p.id]: !prev[p.id] }))}
-                                      className={`w-full flex items-center h-12 bg-white hover:bg-[#fafaf9] transition-colors ${!isLast && !isExpanded ? 'border-b border-[#e7e5e3]' : ''}`}
+                                      className={`w-full flex items-center h-14 bg-white hover:bg-[#fafaf9] transition-colors group ${!isLast && !isExpanded ? 'border-b border-[#e7e5e3]' : ''}`}
                                     >
-                                      <div className="pl-4 pr-1 w-[52px] flex items-center">
-                                        <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{p.title}</span>
-                                      </div>
-                                      <div className="flex-1 px-3 flex items-center min-w-0">
-                                        <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{p.fullTitle}</span>
-                                      </div>
-                                      <div className="px-3 flex items-center justify-end">
-                                        {p.montant > 0 ? (
-                                          <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(p.montant)}</span>
-                                        ) : (
+                                      {/* Chevron cell */}
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setIvOverviewExpanded(prev => ({ ...prev, [p.id]: !prev[p.id] })); }}
+                                        className="pl-4 pr-3 h-14 flex items-center justify-center hover:bg-[#f5f5f4] transition-colors rounded-l-xl"
+                                      >
+                                        <ChevronRight className={`w-3.5 h-3.5 text-[#a8a29e] transition-transform ${isExpanded ? 'rotate-90' : ''}`} strokeWidth={2} />
+                                      </button>
+                                      <button
+                                        onClick={() => navigateTo({ ...p, type: 'poste-iv' })}
+                                        className="flex-1 flex items-center h-14 min-w-0"
+                                      >
+                                        {/* Acronym cell */}
+                                        <div className="w-16 flex items-center">
+                                          <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{p.title}</span>
+                                        </div>
+                                        {/* Text cell */}
+                                        <div className="flex-1 px-3 flex items-center min-w-0">
+                                          <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{p.fullTitle}</span>
+                                        </div>
+                                        {/* Two empty amount columns (Total, Tiers) */}
+                                        <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
                                           <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
-                                        )}
+                                        </div>
+                                        <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
+                                          <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
+                                        </div>
+                                        {/* Amount cell */}
+                                        <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
+                                          {p.montant > 0 ? (
+                                            <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(p.montant)}</span>
+                                          ) : (
+                                            <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
+                                          )}
+                                        </div>
+                                      </button>
+                                      {/* Actions cell */}
+                                      <div className="w-11 flex items-center justify-center flex-shrink-0 pl-3 pr-4">
+                                        <MoreVertical className="w-4 h-4 text-[#a8a29e] opacity-0 group-hover:opacity-100 transition-opacity" />
                                       </div>
-                                      <div className="w-10 pr-3 pl-2 flex items-center justify-end">
-                                        <ChevronRight className={`w-4 h-4 text-[#d6d3d1] transition-transform ${isExpanded ? 'rotate-90' : ''}`} strokeWidth={1.5} />
-                                      </div>
-                                    </button>
+                                    </div>
                                     {isExpanded && (
-                                      <div className={`bg-[#fafaf9] ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}>
+                                      <div className={`bg-[#f8f7f5] ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}>
                                         {victimesIndirectes.map((vi, viIdx) => {
                                           const viLigne = (ivPosteData[p.id]?.lignes || []).find(l => l.victimeId === vi.id);
                                           const viMontant = viLigne?.montant || 0;
@@ -7813,24 +7539,26 @@ export default function App() {
                                             <button
                                               key={vi.id}
                                               onClick={() => navigateTo({ ...p, type: 'poste-iv' })}
-                                              className={`w-full flex items-center h-11 hover:bg-[#f5f5f4] transition-colors ${!isLastVi ? 'border-b border-[#e7e5e3]/50' : ''}`}
+                                              className={`w-full flex items-center h-14 hover:bg-[#f5f5f4]/80 transition-colors ${!isLastVi ? 'border-b border-[#e7e5e3]' : ''}`}
                                             >
-                                              <div className="pl-10 flex-1 flex items-center gap-2 min-w-0">
-                                                <div className="w-6 h-6 rounded-full bg-[#e7e5e3] flex items-center justify-center text-[9px] text-[#78716c] font-medium flex-shrink-0">
-                                                  {vi.prenom[0]}{vi.nom[0]}
-                                                </div>
-                                                <span className="truncate" style={{ fontSize: 13, fontWeight: 400, color: '#44403c' }}>{vi.prenom} {vi.nom}</span>
-                                                <span className="text-caption text-[#a8a29e] flex-shrink-0">({vi.lien})</span>
+                                              {/* Indent spacers to match RowCalculation Subline */}
+                                              <div className="w-[42px] flex-shrink-0" />
+                                              <div className="w-16 flex-shrink-0" />
+                                              {/* CellIV: avatar + name + lien */}
+                                              <div className="flex-1 flex items-center gap-3 px-3 min-w-0">
+                                                {viAvatar(vi, 28)}
+                                                <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524' }}>{vi.prenom} {vi.nom}</span>
+                                                <span className="flex-shrink-0" style={{ fontSize: 12, fontWeight: 400, color: '#78716c', letterSpacing: '0.12px' }}>({vi.lien})</span>
                                               </div>
-                                              <div className="px-3 flex items-center justify-end">
+                                              <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
                                                 {viMontant > 0 ? (
-                                                  <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmt(viMontant)}</span>
+                                                  <span style={{ fontSize: 14, fontWeight: 400, color: '#292524' }}>{fmt(viMontant)}</span>
                                                 ) : (
-                                                  <span style={{ fontSize: 13, fontWeight: 400, color: '#a8a29e' }}>—</span>
+                                                  <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e' }}>—</span>
                                                 )}
                                               </div>
-                                              <div className="w-10 pr-3 pl-2 flex items-center justify-end">
-                                                <ChevronRight className="w-3.5 h-3.5 text-[#d6d3d1]" strokeWidth={1.5} />
+                                              <div className="w-11 flex items-center justify-center flex-shrink-0">
+                                                <MoreVertical className="w-4 h-4 text-[#a8a29e] opacity-0 group-hover:opacity-100" />
                                               </div>
                                             </button>
                                           );
@@ -7853,13 +7581,11 @@ export default function App() {
                             return (
                               <div key={vi.id} className="border border-[#e7e5e3] rounded-xl overflow-hidden" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
                                 <div className="px-4 py-3 flex items-center justify-between border-b border-[#e7e5e3]" style={{ backgroundColor: '#f8f7f5' }}>
-                                  <div className="flex items-center gap-2.5">
-                                    <div className="w-7 h-7 rounded-full bg-[#eeece6] flex items-center justify-center text-[10px] text-[#78716c] font-medium">
-                                      {vi.prenom[0]}{vi.nom[0]}
-                                    </div>
-                                    <div>
-                                      <div className="text-body-medium text-[#292524]">{vi.prenom} {vi.nom}</div>
-                                      <div className="text-caption text-[#a8a29e]">{vi.lien} {vi.dateNaissance ? `• ${calcAge(vi.dateNaissance)} ans` : ''}</div>
+                                  <div className="flex items-center gap-3">
+                                    {viAvatar(vi, 32)}
+                                    <div className="flex items-center gap-3">
+                                      <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{vi.prenom} {vi.nom}</span>
+                                      <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c', lineHeight: '16px', letterSpacing: '0.12px' }}>{vi.lien} {vi.dateNaissance ? `\u2022 ${calcAge(vi.dateNaissance)} ans` : ''}</span>
                                     </div>
                                   </div>
                                   <span style={serifAmountStyle} className="text-[#292524]">{fmt(viTotal)}</span>
@@ -7874,17 +7600,34 @@ export default function App() {
                                     <button
                                       key={pid}
                                       onClick={() => navigateTo({ id: pid, type: 'poste-iv', title: taxo.acronym || pid.toUpperCase(), fullTitle: taxo.label })}
-                                      className={`w-full flex items-center justify-between px-4 py-2.5 bg-white hover:bg-[#fafaf9] transition-colors ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}
+                                      className={`w-full flex items-center h-14 bg-white hover:bg-[#fafaf9] transition-colors group ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}
                                     >
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-caption text-[#78716c] w-10">{taxo.acronym || pid.toUpperCase()}</span>
-                                        <span className="text-body text-[#44403c]">{taxo.label}</span>
+                                      {/* Acronym cell */}
+                                      <div className="w-16 pl-4 flex items-center">
+                                        <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', lineHeight: '16px' }}>{taxo.acronym || pid.toUpperCase()}</span>
                                       </div>
-                                      <div className="flex items-center gap-3">
-                                        <span className={`text-body ${montant > 0 ? 'text-[#292524] font-medium' : 'text-[#a8a29e]'}`}>
-                                          {montant > 0 ? fmt(montant) : '—'}
-                                        </span>
-                                        <ChevronRight className="w-3.5 h-3.5 text-[#d6d3d1]" strokeWidth={1.5} />
+                                      {/* Text cell */}
+                                      <div className="flex-1 px-3 flex items-center min-w-0">
+                                        <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{taxo.label}</span>
+                                      </div>
+                                      {/* Two empty amount columns (Total, Tiers) */}
+                                      <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
+                                        <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
+                                      </div>
+                                      <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
+                                        <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
+                                      </div>
+                                      {/* Amount cell */}
+                                      <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
+                                        {montant > 0 ? (
+                                          <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(montant)}</span>
+                                        ) : (
+                                          <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
+                                        )}
+                                      </div>
+                                      {/* Actions cell */}
+                                      <div className="w-11 flex items-center justify-center flex-shrink-0 pl-3 pr-4">
+                                        <MoreVertical className="w-4 h-4 text-[#a8a29e] opacity-0 group-hover:opacity-100 transition-opacity" />
                                       </div>
                                     </button>
                                   );
@@ -8257,11 +8000,7 @@ export default function App() {
 
                 {/* Lignes */}
                 {allLignes.map(l => {
-                  const diffColor = l.diffType ? ROW_DIFF_COLORS[l.diffType] : null;
                   const pieceCount = l.pieceIds?.length || 0;
-                  const isDeleted = l.diffType === 'delete';
-                  const isEdited = l.diffType === 'edit';
-                  const old = l.oldValues || {};
 
                   return (
                     <div
@@ -8269,16 +8008,9 @@ export default function App() {
                       onClick={() => openDsaEditPanel(l)}
                       className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
                     >
-                      {/* Left strip — 4px solid, diff-colored */}
-                      {diffColor && <div className="absolute left-0 top-0 bottom-0 w-1 pointer-events-none" style={{ background: diffColor }} />}
-
                       {/* Doc indicator */}
                       <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
-                        {isDeleted ? (
-                          <span className="inline-flex items-center justify-center w-7 h-7 bg-white rounded-md border border-dashed border-[#a8a29e]" style={{ opacity: 0.4 }}>
-                            <FileText className="w-3.5 h-3.5 text-[#a8a29e]" />
-                          </span>
-                        ) : pieceCount > 0 ? (
+                        {pieceCount > 0 ? (
                           <div className="relative group/piece">
                             <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
                               <FileText className="w-4 h-4 text-[#2563eb]" />
@@ -8303,37 +8035,18 @@ export default function App() {
 
                       {/* Libellé */}
                       <div className="flex-1 min-w-0 px-3">
-                        {isEdited && old.label ? (
-                          <div className="flex flex-col">
-                            <span style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through', letterSpacing: '0.12px' }} className="truncate block">{old.label}</span>
-                            <span className="text-body-medium truncate block" style={{ color: '#292524' }}>{l.label || 'Sans libellé'}</span>
-                          </div>
-                        ) : (
-                          <span className="text-body-medium truncate block" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{l.label || 'Sans libellé'}</span>
-                        )}
+                        <span className="text-body-medium truncate block" style={{ color: '#292524' }}>{l.label || 'Sans libellé'}</span>
                       </div>
 
                       {/* Date */}
                       <div className="flex-1 min-w-0 px-3 text-right">
-                        {isEdited && old.date ? (
-                          <div className="flex flex-col items-end">
-                            <span style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through', letterSpacing: '0.12px' }}>{old.date}</span>
-                            <span className="text-body-medium" style={{ color: '#292524' }}>{l.date}</span>
-                          </div>
-                        ) : (
-                          <span className="text-body" style={{ color: isDeleted ? '#a8a29e' : '#78716c', textDecoration: isDeleted ? 'line-through' : 'none' }}>{l.date || '—'}</span>
-                        )}
+                        <span className="text-body" style={{ color: '#78716c' }}>{l.date || '—'}</span>
                       </div>
 
                       {/* Montant */}
                       <div className="w-[254px] px-3 text-right flex-shrink-0">
-                        {isEdited && old.montant != null ? (
-                          <div className="flex flex-col items-end">
-                            <span style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through', letterSpacing: '0.12px' }}>{fmt(old.montant)}</span>
-                            <span className="text-body-medium" style={{ color: '#292524' }}>{fmt(l.montant)}</span>
-                          </div>
-                        ) : l.montant != null ? (
-                          <span className="text-body" style={{ color: isDeleted ? '#a8a29e' : '#44403c', textDecoration: isDeleted ? 'line-through' : 'none' }}>{fmt(l.montant)}</span>
+                        {l.montant != null ? (
+                          <span className="text-body" style={{ color: '#44403c' }}>{fmt(l.montant)}</span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#f9ecd6] rounded-md text-caption-medium text-[#855b31]">
                             <AlertCircle className="w-3 h-3" /> Compléter
@@ -8343,13 +8056,8 @@ export default function App() {
 
                       {/* Reste à charge */}
                       <div className="flex-1 min-w-0 px-2 text-right">
-                        {isEdited && old.montant != null ? (
-                          <div className="flex flex-col items-end">
-                            <span style={{ fontSize: 12, lineHeight: '16px', color: '#a8a29e', textDecoration: 'line-through', letterSpacing: '0.12px' }}>{fmt((old.montant || 0) - (old.dejaRembourse ?? l.dejaRembourse ?? 0))}</span>
-                            <span className="text-body-medium" style={{ color: '#292524' }}>{fmt((l.montant || 0) - (l.dejaRembourse || 0))}</span>
-                          </div>
-                        ) : l.montant != null ? (
-                          <span className="text-body-medium" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{fmt((l.montant || 0) - (l.dejaRembourse || 0))}</span>
+                        {l.montant != null ? (
+                          <span className="text-body-medium" style={{ color: '#292524' }}>{fmt((l.montant || 0) - (l.dejaRembourse || 0))}</span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#f9ecd6] rounded-md text-caption-medium text-[#855b31]">
                             <AlertCircle className="w-3 h-3" /> Compléter
@@ -8357,34 +8065,6 @@ export default function App() {
                         )}
                       </div>
 
-                      {/* Actions — overlapping the table right edge */}
-                      {l.diffType ? (
-                        <span className="absolute right-[-20px] top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleApproveDiff(l.id, 'dsa'); }}
-                            className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors"
-                            style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
-                            title="Approuver"
-                          >
-                            <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleRejectDiff(l.id, 'dsa'); }}
-                            className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors"
-                            style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
-                            title="Rejeter"
-                          >
-                            <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
-                          </button>
-                        </span>
-                      ) : (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleRejectLigne(l.id); }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </button>
-                      )}
                     </div>
                   );
                 })}
@@ -8567,14 +8247,11 @@ export default function App() {
             )}
             {/* Data rows */}
             {allRevenuRefLignes.map(l => {
-              const diffColor = l.diffType ? ROW_DIFF_COLORS[l.diffType] : null;
               const pieceCount = l.pieceIds?.length || 0;
-              const isDeleted = l.diffType === 'delete';
               return (
                 <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'pgpa-revenu', title: 'Éditer le revenu', data: l }); }}
                   className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
                   >
-                  {diffColor && <div className="absolute left-0 top-0 bottom-0 w-1 pointer-events-none" style={{ background: diffColor }} />}
                   <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
                     {pieceCount > 0 ? (
                       <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
@@ -8586,19 +8263,11 @@ export default function App() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0 px-3">
-                    <span className="text-body-medium block" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{l.label || l.annee || 'Sans libellé'}</span>
+                    <span className="text-body-medium block text-[#292524]">{l.label || l.annee || 'Sans libellé'}</span>
                   </div>
                   <div className="w-[200px] px-3 text-right flex-shrink-0">
-                    <span className="text-body-medium font-semibold tabular-nums" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{fmt(l.revalorise || l.montant || 0)}</span>
+                    <span className="text-body-medium font-semibold tabular-nums text-[#292524]">{fmt(l.revalorise || l.montant || 0)}</span>
                   </div>
-                  {l.diffType ? (
-                    <span className="absolute right-[-20px] top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                      <button onClick={(e) => { e.stopPropagation(); handleApproveDiff(l.id, 'pgpa'); }} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} title="Approuver"><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
-                      <button onClick={(e) => { e.stopPropagation(); handleRejectDiff(l.id, 'pgpa'); }} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} title="Rejeter"><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
-                    </span>
-                  ) : (
-                    <button onClick={(e) => { e.stopPropagation(); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></button>
-                  )}
                 </div>
               );
             })}
@@ -8671,7 +8340,6 @@ export default function App() {
                   <div className="w-[200px] px-3 text-right flex-shrink-0">
                     <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.montant)}</span>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></button>
                 </div>
               );
             })}
@@ -8917,7 +8585,6 @@ export default function App() {
                     <div className="w-[200px] px-3 text-right flex-shrink-0">
                       <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.montant)}</span>
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></button>
                   </div>
                 );
               })}
@@ -9171,17 +8838,11 @@ export default function App() {
 
               {/* Rows */}
               {dftLignes.map(l => {
-                const diffColor = l.diffType ? ROW_DIFF_COLORS[l.diffType] : null;
                 const pieceCount = l.pieceIds?.length || 0;
-
-                const isDeleted = l.diffType === 'delete';
                 return (
                   <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'dft-ligne', title: 'Éditer la dépense', data: l }); }}
                     className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
                     >
-                    {/* Left inset border — diff-colored */}
-                    {diffColor && <div className="absolute left-0 top-0 bottom-0 w-1 pointer-events-none" style={{ background: diffColor }} />}
-
                     {/* Doc indicator */}
                     <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
                       {pieceCount > 0 ? (
@@ -9206,19 +8867,19 @@ export default function App() {
 
                     {/* Période & jours */}
                     <div className="flex-1 min-w-0 px-3">
-                      <span className="text-body-medium block" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{l.label || 'Sans libellé'}</span>
-                      <span className="text-caption" style={{ color: '#78716c', textDecoration: isDeleted ? 'line-through' : 'none' }}>{l.debut} → {l.fin} · {l.jours}j</span>
+                      <span className="text-body-medium block text-[#292524]">{l.label || 'Sans libellé'}</span>
+                      <span className="text-caption text-[#78716c]">{l.debut} → {l.fin} · {l.jours}j</span>
                     </div>
 
                     {/* Taux */}
                     <div className="w-20 px-3 text-center flex-shrink-0">
-                      <span className={`text-caption-medium px-2 py-0.5 rounded-full ${isDeleted ? 'bg-red-50 text-red-400 border border-red-200' : l.taux === 100 ? 'bg-[#eeece6] text-[#44403c]' : 'bg-amber-50 text-amber-700 border border-amber-200'}`} style={isDeleted ? { textDecoration: 'line-through' } : undefined}>{l.taux || 100}%</span>
+                      <span className={`text-caption-medium px-2 py-0.5 rounded-full ${l.taux === 100 ? 'bg-[#eeece6] text-[#44403c]' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>{l.taux || 100}%</span>
                     </div>
 
                     {/* Montant */}
                     <div className="w-[200px] px-3 text-right flex-shrink-0">
                       {l.montant != null ? (
-                        <span className="text-body-medium font-semibold tabular-nums" style={{ color: isDeleted ? '#a8a29e' : '#292524', textDecoration: isDeleted ? 'line-through' : 'none' }}>{fmt(l.montant)}</span>
+                        <span className="text-body-medium font-semibold tabular-nums text-[#292524]">{fmt(l.montant)}</span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#f9ecd6] rounded-md text-caption-medium text-[#855b31]">
                           <AlertCircle className="w-3 h-3" /> Compléter
@@ -9226,17 +8887,6 @@ export default function App() {
                       )}
                     </div>
 
-                    {/* Actions — overlapping the table right edge */}
-                    {l.diffType ? (
-                      <span className="absolute right-[-20px] top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                        <button onClick={(e) => { e.stopPropagation(); handleApproveDiff(l.id, 'dft'); }} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} title="Approuver"><Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
-                        <button onClick={(e) => { e.stopPropagation(); handleRejectDiff(l.id, 'dft'); }} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors" style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }} title="Rejeter"><X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} /></button>
-                      </span>
-                    ) : (
-                      <button onClick={(e) => { e.stopPropagation(); handleRejectLigne(l.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#78716c] hover:text-[#292524] opacity-0 group-hover:opacity-100 transition-opacity">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                    )}
                   </div>
                 );
               })}
@@ -9751,15 +9401,19 @@ export default function App() {
       const ivPosteId = currentLevel.id;
       const ivTaxo = allTaxoPostes.find(p => p.id === ivPosteId);
       const ivLignes = ivPosteData[ivPosteId]?.lignes || [];
-      const ivTotal = ivLignes.reduce((s, l) => s + (l.montant || 0), 0);
       const config = IV_POSTE_CONFIG[ivPosteId] || { type: 'A', columns: ['victime', 'lien', 'montant', 'bareme'] };
+      const ivTotal = config.type === 'C'
+        ? ivLignes.reduce((s, l) => s + (l.totalAmount || 0), 0)
+        : ivLignes.reduce((s, l) => s + (l.montant || 0), 0);
       const hasIntitule = config.columns.includes('intitule');
 
       // Helper: add a new empty ligne for Type B/C
       const addIvLigne = (victimeId = null) => {
         setIvPosteData(prev => {
           const existing = prev[ivPosteId]?.lignes || [];
-          const newLigne = { id: crypto.randomUUID(), victimeId, montant: 0, pieceIds: [], intitule: '', ...(config.type === 'C' ? { payePar: victimeId || '' } : {}) };
+          const newLigne = config.type === 'C'
+            ? { id: crypto.randomUUID(), label: '', totalAmount: 0, pieceIds: [], attributions: [] }
+            : { id: crypto.randomUUID(), victimeId, montant: 0, pieceIds: [], intitule: '' };
           return { ...prev, [ivPosteId]: { ...prev[ivPosteId], lignes: [...existing, newLigne] } };
         });
       };
@@ -9777,501 +9431,741 @@ export default function App() {
           {/* Per-victim / expense table */}
           <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
             <div className="p-4">
-              <div style={sectionHeaderStyle} className="mb-[17px]">
-                {config.type === 'C' ? 'DÉTAIL DES DÉPENSES' : 'DÉTAIL PAR VICTIME'}
-              </div>
 
               {/* ===== TYPE A: one row per VI ===== */}
-              {config.type === 'A' && (
+              {config.type === 'A' && (() => {
+                const selectedBareme = baremesLibrary.find(b => b.id === (ivPosteData[ivPosteId]?.bareme || ''));
+                const baremeParamKey = `iv-${ivPosteId}-bareme`;
+                return (
                 <>
-                  <div className="bg-white border border-[#e7e5e3] rounded-lg overflow-hidden">
-                    {/* Column headers */}
-                    <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
-                      <div className="flex-1 px-3">
-                        <span style={colHeaderStyle}>Victime</span>
+                  {/* Param chips block */}
+                  <div className={cardBlockClass + ' mb-4'}>
+                    <div className="flex items-center gap-3 px-4 h-[52px]">
+                      <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center flex-shrink-0">
+                        <Settings className="w-3.5 h-3.5 text-[#78716c]" />
                       </div>
-                      <div className="w-[90px] px-3">
-                        <span style={colHeaderStyle}>Lien</span>
+                      <button
+                        onClick={() => setActiveParamChip(activeParamChip === baremeParamKey ? null : baremeParamKey)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors"
+                        style={{
+                          background: selectedBareme ? PILL_SCHEMES.info.bg : PILL_SCHEMES.neutral.bg,
+                          borderColor: selectedBareme ? PILL_SCHEMES.info.border : PILL_SCHEMES.neutral.border,
+                          color: selectedBareme ? PILL_SCHEMES.info.text : PILL_SCHEMES.neutral.text,
+                        }}
+                      >
+                        <Scale className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span>Barême</span>
+                        {selectedBareme && <span style={{ fontWeight: 400 }}>{selectedBareme.label}</span>}
+                      </button>
+                    </div>
+                    {activeParamChip === baremeParamKey && (
+                      <div className="px-4 py-2.5 border-t border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+                        <div className="flex items-center gap-3">
+                          <div className="flex gap-1 items-baseline flex-shrink-0">
+                            <span className="text-sm font-medium text-[#78716c]">Barême</span>
+                            {selectedBareme && (
+                              <button onClick={() => setBaremeViewerOpen(selectedBareme.id)} className="text-xs font-medium text-[#1e3a8a]">Voir</button>
+                            )}
+                          </div>
+                          <div className="relative" style={{ width: 240 }}>
+                            {renderBaremePopoverSelect({
+                              popoverId: `iv-${ivPosteId}-bareme`,
+                              value: ivPosteData[ivPosteId]?.bareme || '',
+                              onChange: (id) => setIvPosteData(prev => ({ ...prev, [ivPosteId]: { ...prev[ivPosteId], bareme: id } })),
+                              filterType: 'referentiel',
+                              label: '',
+                              variant: 'horizontal',
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={cardBlockClass}>
+                    {/* Column headers — RowPostIV Header */}
+                    <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                      <div className={hasIntitule ? 'w-[240px] px-3' : 'flex-1 px-3'}>
+                        <span style={colHeaderStyle}>Nom victime indirecte</span>
                       </div>
                       {hasIntitule && (
-                        <div className="w-[160px] px-3">
-                          <span style={colHeaderStyle}>Intitulé</span>
+                        <div className="flex-1 px-3">
+                          <span style={colHeaderStyle}>Libellé</span>
                         </div>
                       )}
-                      <div className="w-[130px] px-3 text-right">
+                      <div className="w-[160px] px-3 text-right">
                         <span style={colHeaderStyle}>Montant</span>
                       </div>
-                      <div className="w-[160px] px-3">
-                        <span style={colHeaderStyle}>Barème / réf.</span>
-                      </div>
-                      <div className="w-10" />
+                      <div className="w-11" />
                     </div>
 
-                    {/* Data rows — one per declared VI */}
+                    {/* Data rows — one per declared VI — RowPostIV Line */}
                     {victimesIndirectes.map((vi, idx) => {
                       const ligne = ivLignes.find(l => l.victimeId === vi.id);
                       const montant = ligne?.montant || 0;
-                      const isLast = idx === victimesIndirectes.length - 1;
                       return (
                         <div
                           key={vi.id}
-                          className={`flex items-center h-14 bg-white hover:bg-[#fafaf9] transition-colors group cursor-pointer ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}
+                          className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
                           onClick={() => setEditPanel({
                             type: 'iv-ligne-a',
                             title: `${vi.prenom} ${vi.nom} — ${ivTaxo?.label || ivPosteId}`,
-                            data: { victimeId: vi.id, posteId: ivPosteId, montant, pieceIds: ligne?.pieceIds || [], bareme: ligne?.bareme || '', intitule: ligne?.intitule || '', hasIntitule }
+                            data: { victimeId: vi.id, posteId: ivPosteId, montant, pieceIds: ligne?.pieceIds || [], intitule: ligne?.intitule || '', hasIntitule }
                           })}
                         >
-                          <div className="flex-1 px-3 flex items-center gap-2 min-w-0">
-                            <div className="w-7 h-7 rounded-full bg-[#eeece6] flex items-center justify-center text-[10px] text-[#78716c] font-medium flex-shrink-0">
-                              {vi.prenom[0]}{vi.nom[0]}
-                            </div>
+                          {/* CellIV: avatar + name + (lien) */}
+                          <div className={`${hasIntitule ? 'w-[240px]' : 'flex-1'} px-3 flex items-center gap-3 min-w-0`}>
+                            {viAvatar(vi, 28)}
                             <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524' }}>{vi.prenom} {vi.nom}</span>
-                          </div>
-                          <div className="w-[90px] px-3">
-                            <span className="text-caption text-[#78716c]">{vi.lien}</span>
+                            <span className="flex-shrink-0" style={{ fontSize: 12, fontWeight: 400, color: '#78716c', letterSpacing: '0.12px' }}>({vi.lien})</span>
                           </div>
                           {hasIntitule && (
-                            <div className="w-[160px] px-3">
-                              <span className="text-caption text-[#78716c] truncate block">{ligne?.intitule || '—'}</span>
+                            <div className="flex-1 px-3 min-w-0">
+                              <span className="truncate block" style={{ fontSize: 14, fontWeight: 400, color: ligne?.intitule ? '#44403c' : '#a8a29e' }}>{ligne?.intitule || '—'}</span>
                             </div>
                           )}
-                          <div className="w-[130px] px-3 text-right">
+                          <div className="w-[160px] px-3 flex items-center justify-end">
                             {montant > 0 ? (
                               <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(montant)}</span>
                             ) : (
-                              <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e' }}>À chiffrer</span>
+                              <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e' }}>—</span>
                             )}
                           </div>
-                          <div className="w-[160px] px-3">
-                            <span className="text-caption text-[#78716c] truncate block">{ligne?.bareme || '—'}</span>
-                          </div>
-                          <div className="w-10 flex items-center justify-center">
-                            <Edit3 className="w-3.5 h-3.5 text-[#d6d3d1] opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                          <div className="w-11 flex items-center justify-center flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <MoreVertical className="w-4 h-4 text-[#a8a29e]" />
                           </div>
                         </div>
                       );
                     })}
 
                     {victimesIndirectes.length === 0 && (
-                      <div className="p-6 text-center">
-                        <span className="text-body text-[#a8a29e]">Ajoutez des victimes indirectes depuis l'onglet Dossier</span>
-                      </div>
+                      <div className="p-6 text-center"><span className="text-body text-[#a8a29e]">Aucune dépense enregistrée</span></div>
                     )}
                   </div>
 
-                  <button
-                    onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Nouvelle victime indirecte', data: null })}
-                    className="mt-3 flex items-center gap-2 px-3 py-2 text-caption text-[#78716c] hover:bg-[#eeece6] rounded-lg transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
-                    Ajouter une victime indirecte
-                  </button>
                 </>
-              )}
+                );
+              })()}
 
-              {/* ===== TYPE B: grouped by victim ===== */}
-              {config.type === 'B' && (
-                <>
-                  {victimesIndirectes.map((vi) => {
-                    const viLignes = ivLignes.filter(l => l.victimeId === vi.id);
-                    const viSubtotal = viLignes.reduce((s, l) => s + (l.montant || 0), 0);
-                    return (
-                      <div key={vi.id} className="bg-white border border-[#e7e5e3] rounded-lg overflow-hidden mb-3">
-                        {/* Group header */}
-                        <div className="flex items-center justify-between h-11 px-3 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-[#eeece6] flex items-center justify-center text-[10px] text-[#78716c] font-medium flex-shrink-0">
-                              {vi.prenom[0]}{vi.nom[0]}
-                            </div>
-                            <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{vi.prenom} {vi.nom}</span>
-                            <span className="text-caption text-[#a8a29e]">({vi.lien})</span>
-                          </div>
-                          <span style={{ fontSize: 13, fontWeight: 500, color: '#78716c' }}>
-                            {viSubtotal > 0 ? fmt(viSubtotal) : '—'}
+              {/* ===== TYPE B: flat list sorted by VI ===== */}
+              {config.type === 'B' && (() => {
+                // Flatten: sorted by VI, then by line order
+                const flatRows = [];
+                victimesIndirectes.forEach(vi => {
+                  ivLignes.filter(l => l.victimeId === vi.id).forEach(ligne => {
+                    flatRows.push({ vi, ligne });
+                  });
+                });
+
+                return (
+                  <div className={cardBlockClass}>
+                    {/* Column headers — RowPostIV Header */}
+                    <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                      <div className="w-[52px] px-3"><span style={colHeaderStyle}></span></div>
+                      <div className="flex-1 px-3"><span style={colHeaderStyle}>Nom victime indirecte</span></div>
+                      <div className="flex-1 px-3"><span style={colHeaderStyle}>Libellé</span></div>
+                      <div className="w-[160px] px-3 text-right"><span style={colHeaderStyle}>Montant</span></div>
+                      <div className="w-11" />
+                    </div>
+
+                    {/* Flat rows — RowPostIV Line */}
+                    {flatRows.map((row, idx) => {
+                      const pieceCount = (row.ligne.pieceIds || []).length;
+                      return (
+                      <div
+                        key={row.ligne.id || idx}
+                        className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                        onClick={() => setEditPanel({
+                          type: 'iv-ligne-b',
+                          title: `${row.vi.prenom} ${row.vi.nom} — Dépense`,
+                          data: { id: row.ligne.id, victimeId: row.vi.id, posteId: ivPosteId, intitule: row.ligne.intitule || '', montant: row.ligne.montant || 0, pieceIds: row.ligne.pieceIds || [] }
+                        })}
+                      >
+                        {/* Doc holder cell */}
+                        <div className="w-[52px] flex items-center justify-center flex-shrink-0 px-3">
+                          {pieceCount > 0 ? (
+                            <span className="inline-flex items-center justify-center w-[26px] h-[26px] bg-[#DFE8F5] rounded-md relative">
+                              <FileText className="w-4 h-4 text-[#2563eb]" />
+                              <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#1e3a8a] text-white font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5" style={{ fontSize: 10 }}>{pieceCount}</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center justify-center w-[26px] h-[26px] bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]">
+                              <FileText className="w-3.5 h-3.5" />
+                            </span>
+                          )}
+                        </div>
+                        {/* CellIV: avatar + name + (lien) */}
+                        <div className="flex-1 px-3 flex items-center gap-3 min-w-0">
+                          {viAvatar(row.vi, 28)}
+                          <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524' }}>{row.vi.prenom} {row.vi.nom}</span>
+                          <span className="flex-shrink-0" style={{ fontSize: 12, fontWeight: 400, color: '#78716c', letterSpacing: '0.12px' }}>({row.vi.lien})</span>
+                        </div>
+                        {/* Libellé */}
+                        <div className="flex-1 px-3 min-w-0">
+                          <span className="truncate block" style={{ fontSize: 14, fontWeight: 400, color: row.ligne.intitule ? '#44403c' : '#a8a29e' }}>
+                            {row.ligne.intitule || 'Sans intitulé'}
                           </span>
                         </div>
-
-                        {/* Expense lines */}
-                        {viLignes.map((ligne, idx) => (
-                          <div
-                            key={ligne.id || idx}
-                            className={`flex items-center h-12 px-3 bg-white hover:bg-[#fafaf9] transition-colors group cursor-pointer ${idx < viLignes.length - 1 ? 'border-b border-[#f5f5f4]' : ''}`}
-                            onClick={() => setEditPanel({
-                              type: 'iv-ligne-b',
-                              title: `${vi.prenom} ${vi.nom} — Dépense`,
-                              data: { id: ligne.id, victimeId: vi.id, posteId: ivPosteId, intitule: ligne.intitule || '', montant: ligne.montant || 0, pieceIds: ligne.pieceIds || [] }
-                            })}
-                          >
-                            {/* Pièce icon — start of line */}
-                            <div className="w-[30px] flex items-center justify-center flex-shrink-0">
-                              {ligne.pieceIds?.length > 0 ? (
-                                <div className="relative w-[22px] h-[22px] rounded-md flex items-center justify-center" style={{ backgroundColor: '#dfe8f5' }}>
-                                  <FileText className="w-3.5 h-3.5 text-[#5593ea]" strokeWidth={1.5} />
-                                  <div className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] rounded-full flex items-center justify-center border-2 border-white" style={{ backgroundColor: '#5593ea' }}>
-                                    <span style={{ fontSize: 9, fontWeight: 600, color: 'white' }}>{ligne.pieceIds.length}</span>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="w-[22px] h-[22px] rounded-md border border-dashed border-[#a8a29e] flex items-center justify-center opacity-40">
-                                  <FileText className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 px-2 min-w-0">
-                              <span className="truncate block" style={{ fontSize: 14, fontWeight: 400, color: ligne.intitule ? '#292524' : '#a8a29e' }}>
-                                {ligne.intitule || 'Sans intitulé'}
-                              </span>
-                            </div>
-                            <div className="w-[120px] px-2 text-right">
-                              {ligne.montant > 0 ? (
-                                <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(ligne.montant)}</span>
-                              ) : (
-                                <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e' }}>—</span>
-                              )}
-                            </div>
-                            <div className="w-8 flex items-center justify-center">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); deleteIvLigne(ligne.id); }}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-[#d6d3d1] hover:text-red-400" strokeWidth={1.5} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-
-                        {/* Empty state within group */}
-                        {viLignes.length === 0 && (
-                          <div className="px-3 py-4 text-center">
-                            <span className="text-caption text-[#a8a29e]">Aucune dépense</span>
-                          </div>
-                        )}
-
-                        {/* Add expense within group */}
-                        <div className="border-t border-[#f5f5f4]">
-                          <button
-                            onClick={() => addIvLigne(vi.id)}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-caption text-[#78716c] hover:bg-[#fafaf9] transition-colors"
-                          >
-                            <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
-                            Ajouter une dépense
-                          </button>
+                        {/* Amount */}
+                        <div className="w-[160px] px-3 flex items-center justify-end">
+                          {row.ligne.montant > 0 ? (
+                            <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(row.ligne.montant)}</span>
+                          ) : (
+                            <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e' }}>—</span>
+                          )}
+                        </div>
+                        {/* Actions */}
+                        <div className="w-11 flex items-center justify-center flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <MoreVertical className="w-4 h-4 text-[#a8a29e]" />
                         </div>
                       </div>
-                    );
-                  })}
-
-                  {victimesIndirectes.length === 0 && (
-                    <div className="bg-white border border-[#e7e5e3] rounded-lg p-6 text-center">
-                      <span className="text-body text-[#a8a29e]">Ajoutez des victimes indirectes depuis l'onglet Dossier</span>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Nouvelle victime indirecte', data: null })}
-                    className="mt-3 flex items-center gap-2 px-3 py-2 text-caption text-[#78716c] hover:bg-[#eeece6] rounded-lg transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
-                    Ajouter une victime indirecte
-                  </button>
-                </>
-              )}
-
-              {/* ===== TYPE C: flat expense list ===== */}
-              {config.type === 'C' && (
-                <>
-                  <div className="bg-white border border-[#e7e5e3] rounded-lg overflow-hidden">
-                    {/* Column headers */}
-                    <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
-                      <div className="w-[38px]" />
-                      <div className="flex-1 px-3">
-                        <span style={colHeaderStyle}>Intitulé</span>
-                      </div>
-                      <div className="w-[120px] px-3 text-right">
-                        <span style={colHeaderStyle}>Montant</span>
-                      </div>
-                      <div className="w-[120px] px-3">
-                        <span style={colHeaderStyle}>Payé par</span>
-                      </div>
-                      <div className="w-8" />
-                    </div>
-
-                    {/* Data rows */}
-                    {ivLignes.map((ligne, idx) => {
-                      const payeParVi = victimesIndirectes.find(v => v.id === ligne.payePar);
-                      const payeParLabel = !ligne.payePar || ligne.payePar === 'partage' ? '' : payeParVi ? payeParVi.prenom : '—';
-                      const isLast = idx === ivLignes.length - 1;
-                      return (
-                        <div
-                          key={ligne.id || idx}
-                          className={`flex items-center h-12 bg-white hover:bg-[#fafaf9] transition-colors group cursor-pointer ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}
-                          onClick={() => setEditPanel({
-                            type: 'iv-ligne-c',
-                            title: ligne.intitule || 'Dépense',
-                            data: { id: ligne.id, posteId: ivPosteId, intitule: ligne.intitule || '', montant: ligne.montant || 0, payePar: ligne.payePar || '', pieceIds: ligne.pieceIds || [] }
-                          })}
-                        >
-                          {/* Pièce icon — start of line */}
-                          <div className="w-[38px] flex items-center justify-center flex-shrink-0">
-                            {ligne.pieceIds?.length > 0 ? (
-                              <div className="relative w-[22px] h-[22px] rounded-md flex items-center justify-center" style={{ backgroundColor: '#dfe8f5' }}>
-                                <FileText className="w-3.5 h-3.5 text-[#5593ea]" strokeWidth={1.5} />
-                                <div className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] rounded-full flex items-center justify-center border-2 border-white" style={{ backgroundColor: '#5593ea' }}>
-                                  <span style={{ fontSize: 9, fontWeight: 600, color: 'white' }}>{ligne.pieceIds.length}</span>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="w-[22px] h-[22px] rounded-md border border-dashed border-[#a8a29e] flex items-center justify-center opacity-40">
-                                <FileText className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 px-3 min-w-0">
-                            <span className="truncate block" style={{ fontSize: 14, fontWeight: 400, color: ligne.intitule ? '#292524' : '#a8a29e' }}>
-                              {ligne.intitule || 'Sans intitulé'}
-                            </span>
-                          </div>
-                          <div className="w-[120px] px-3 text-right">
-                            {ligne.montant > 0 ? (
-                              <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(ligne.montant)}</span>
-                            ) : (
-                              <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e' }}>—</span>
-                            )}
-                          </div>
-                          <div className="w-[120px] px-3">
-                            {payeParLabel ? (
-                              <span className="text-caption text-[#78716c]">{payeParLabel}</span>
-                            ) : (
-                              <span className="text-caption text-[#d6d3d1]">—</span>
-                            )}
-                          </div>
-                          <div className="w-8 flex items-center justify-center">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); deleteIvLigne(ligne.id); }}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
-                            >
-                              <Trash2 className="w-3.5 h-3.5 text-[#d6d3d1] hover:text-red-400" strokeWidth={1.5} />
-                            </button>
-                          </div>
-                        </div>
                       );
                     })}
 
-                    {/* Empty state */}
-                    {ivLignes.length === 0 && (
-                      <div className="p-6 text-center">
-                        <span className="text-body text-[#a8a29e]">Aucune dépense enregistrée</span>
-                      </div>
+                    {flatRows.length === 0 && (
+                      <div className="p-6 text-center"><span className="text-body text-[#a8a29e]">Aucune dépense enregistrée</span></div>
                     )}
+
+                    {/* Add expense */}
+                    <button
+                      onClick={() => addIvLigne(null)}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-body-medium text-[#1e3a8a] hover:bg-[#fafaf9] transition-colors border-t border-[#e7e5e3]"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Ajouter une dépense
+                    </button>
                   </div>
+                );
+              })()}
 
-                  <button
-                    onClick={() => addIvLigne(null)}
-                    className="mt-3 flex items-center gap-2 px-3 py-2 text-caption text-[#78716c] hover:bg-[#eeece6] rounded-lg transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
-                    Ajouter une dépense
-                  </button>
-                </>
-              )}
+              {/* ===== TYPE C: flat list — one row per VI attribution ===== */}
+              {config.type === 'C' && (() => {
+                const viInitials = (vi) => `${(vi.prenom || '')[0] || ''}${(vi.nom || '')[0] || ''}`.toUpperCase();
+                const grandTotal = ivLignes.reduce((s, l) => s + (l.totalAmount || 0), 0);
 
-              {/* ===== TYPE D: shared foyer bloc + per-VI ventilation ===== */}
-              {config.type === 'D' && (() => {
-                const shared = ivPosteSharedData[ivPosteId] || {};
-                const revenuDefunt = shared.revenuDefunt || 0;
-                const revenuConjoint = shared.revenuConjoint || 0;
-                const revenuTotal = revenuDefunt + revenuConjoint;
-                const nombreParts = shared.nombreParts || 0;
-                const partAutoConsommation = shared.partAutoConsommation || 0;
-                const perteAnnuelle = revenuTotal * (partAutoConsommation / 100);
-                const sumParts = ivLignes.reduce((s, l) => s + (l.partIndividuelle || 0), 0);
-                const partsWarning = (sumParts + partAutoConsommation) !== 100 && sumParts > 0;
+                const openExpensePanel = (ligne) => setEditPanel({
+                  type: 'iv-ligne-c',
+                  title: ligne.label || 'Dépense',
+                  data: { id: ligne.id, posteId: ivPosteId, label: ligne.label || '', totalAmount: ligne.totalAmount || 0, attributions: ligne.attributions || [], pieceIds: ligne.pieceIds || [] }
+                });
+
+                // Flatten: one row per VI attribution, sorted by VI then by expense order
+                const flatRows = [];
+                victimesIndirectes.forEach(vi => {
+                  ivLignes.forEach(ligne => {
+                    const attr = (ligne.attributions || []).find(a => a.viId === vi.id);
+                    if (attr) flatRows.push({ vi, ligne, amount: attr.amount });
+                  });
+                });
 
                 return (
                   <>
-                    {/* BLOC FOYER — shared computation */}
-                    <div className="bg-white border border-[#e7e5e3] rounded-lg overflow-hidden mb-4">
-                      <div className="flex items-center h-10 px-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
-                        <span style={{ ...colHeaderStyle, fontSize: 12 }}>DONNÉES DU FOYER</span>
-                      </div>
-                      <div className="p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span style={{ fontSize: 13, color: '#78716c' }}>Revenu annuel du défunt</span>
-                          <div className="relative w-[160px]">
-                            <input
-                              type="number"
-                              value={revenuDefunt || ''}
-                              onChange={(e) => setIvPosteSharedData(prev => ({
-                                ...prev, [ivPosteId]: { ...prev[ivPosteId], revenuDefunt: parseFloat(e.target.value) || 0 }
-                              }))}
-                              className="w-full px-3 py-1.5 border border-[#e7e5e3] rounded-md text-right pr-7"
-                              style={{ fontSize: 14 }}
-                              placeholder="0"
-                            />
-                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#a8a29e] text-xs">€</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span style={{ fontSize: 13, color: '#78716c' }}>Revenu annuel du conjoint survivant</span>
-                          <div className="relative w-[160px]">
-                            <input
-                              type="number"
-                              value={revenuConjoint || ''}
-                              onChange={(e) => setIvPosteSharedData(prev => ({
-                                ...prev, [ivPosteId]: { ...prev[ivPosteId], revenuConjoint: parseFloat(e.target.value) || 0 }
-                              }))}
-                              className="w-full px-3 py-1.5 border border-[#e7e5e3] rounded-md text-right pr-7"
-                              style={{ fontSize: 14 }}
-                              placeholder="0"
-                            />
-                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#a8a29e] text-xs">€</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between py-1 border-t border-[#f5f5f4]">
-                          <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>Revenu total du foyer</span>
-                          <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(revenuTotal)}</span>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-2">
-                          <span style={{ fontSize: 13, color: '#78716c' }}>Nombre de parts</span>
-                          <input
-                            type="number"
-                            value={nombreParts || ''}
-                            onChange={(e) => setIvPosteSharedData(prev => ({
-                              ...prev, [ivPosteId]: { ...prev[ivPosteId], nombreParts: parseFloat(e.target.value) || 0 }
-                            }))}
-                            className="w-[80px] px-3 py-1.5 border border-[#e7e5e3] rounded-md text-right"
-                            style={{ fontSize: 14 }}
-                            placeholder="0"
-                            step="0.5"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span style={{ fontSize: 13, color: '#78716c' }}>Part d'auto-consommation du défunt</span>
-                          <div className="relative w-[80px]">
-                            <input
-                              type="number"
-                              value={partAutoConsommation || ''}
-                              onChange={(e) => setIvPosteSharedData(prev => ({
-                                ...prev, [ivPosteId]: { ...prev[ivPosteId], partAutoConsommation: parseFloat(e.target.value) || 0 }
-                              }))}
-                              className="w-full px-3 py-1.5 border border-[#e7e5e3] rounded-md text-right pr-7"
-                              style={{ fontSize: 14 }}
-                              placeholder="0"
-                              min="0" max="100"
-                            />
-                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#a8a29e] text-xs">%</span>
-                          </div>
-                        </div>
-
-                        {/* Résultat */}
-                        <div className="pt-3 mt-2 border-t border-[#e7e5e3] space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>Perte annuelle du foyer</span>
-                            <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(perteAnnuelle)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* VENTILATION PAR VICTIME */}
-                    <div style={sectionHeaderStyle} className="mb-[17px] mt-6">VENTILATION PAR VICTIME</div>
-                    <div className="bg-white border border-[#e7e5e3] rounded-lg overflow-hidden">
+                    <div className={cardBlockClass}>
                       {/* Column headers */}
                       <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
-                        <div className="flex-1 px-3">
-                          <span style={colHeaderStyle}>Victime</span>
-                        </div>
-                        <div className="w-[70px] px-2">
-                          <span style={colHeaderStyle}>Lien</span>
-                        </div>
-                        <div className="w-[70px] px-2 text-right">
-                          <span style={colHeaderStyle}>Part %</span>
-                        </div>
-                        <div className="w-[110px] px-2">
-                          <span style={colHeaderStyle}>Durée</span>
-                        </div>
-                        <div className="w-[70px] px-2 text-right">
-                          <span style={colHeaderStyle}>Coeff.</span>
-                        </div>
-                        <div className="w-[120px] px-2 text-right">
-                          <span style={colHeaderStyle}>Total</span>
-                        </div>
-                        <div className="w-10" />
+                        <div className="w-[52px] pl-3"><span style={colHeaderStyle}>Pj</span></div>
+                        <div className="w-[200px] px-3"><span style={colHeaderStyle}>Victime</span></div>
+                        <div className="flex-1 px-3"><span style={colHeaderStyle}>Dépense</span></div>
+                        <div className="w-[130px] px-3 text-right"><span style={colHeaderStyle}>Montant</span></div>
                       </div>
 
-                      {/* Data rows — one per declared VI */}
-                      {victimesIndirectes.map((vi, idx) => {
-                        const ligne = ivLignes.find(l => l.victimeId === vi.id);
-                        const part = ligne?.partIndividuelle || 0;
-                        const coeff = ligne?.coeffCapitalisation || 0;
-                        const lineTotal = perteAnnuelle * (part / 100) * coeff;
-                        const isLast = idx === victimesIndirectes.length - 1;
+                      {/* Flat rows */}
+                      {flatRows.map((row, idx) => {
+                        const pieceCount = (row.ligne.pieceIds || []).length;
                         return (
-                          <div
-                            key={vi.id}
-                            className={`flex items-center h-14 bg-white hover:bg-[#fafaf9] transition-colors group cursor-pointer ${!isLast ? 'border-b border-[#e7e5e3]' : ''}`}
-                            onClick={() => setEditPanel({
-                              type: 'iv-ligne-d',
-                              title: `${vi.prenom} ${vi.nom} — Pertes de revenus`,
-                              data: {
-                                victimeId: vi.id, posteId: ivPosteId,
-                                partIndividuelle: part,
-                                dureeIndemnisation: ligne?.dureeIndemnisation || '',
-                                coeffCapitalisation: coeff,
-                                perteAnnuelle,
-                              }
-                            })}
-                          >
-                            <div className="flex-1 px-3 flex items-center gap-2 min-w-0">
-                              <div className="w-7 h-7 rounded-full bg-[#eeece6] flex items-center justify-center text-[10px] text-[#78716c] font-medium flex-shrink-0">
-                                {vi.prenom[0]}{vi.nom[0]}
-                              </div>
-                              <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524' }}>{vi.prenom} {vi.nom}</span>
-                            </div>
-                            <div className="w-[70px] px-2">
-                              <span className="text-caption text-[#78716c]">{vi.lien}</span>
-                            </div>
-                            <div className="w-[70px] px-2 text-right">
-                              {part > 0 ? (
-                                <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{part} %</span>
-                              ) : (
-                                <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e' }}>—</span>
-                              )}
-                            </div>
-                            <div className="w-[110px] px-2">
-                              <span className="text-caption text-[#78716c] truncate block">{ligne?.dureeIndemnisation || '—'}</span>
-                            </div>
-                            <div className="w-[70px] px-2 text-right">
-                              {coeff > 0 ? (
-                                <span style={{ fontSize: 14, fontWeight: 400, color: '#292524' }}>{coeff}</span>
-                              ) : (
-                                <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e' }}>—</span>
-                              )}
-                            </div>
-                            <div className="w-[120px] px-2 text-right">
-                              {lineTotal > 0 ? (
-                                <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(lineTotal)}</span>
-                              ) : (
-                                <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e' }}>À chiffrer</span>
-                              )}
-                            </div>
-                            <div className="w-10 flex items-center justify-center">
-                              <Edit3 className="w-3.5 h-3.5 text-[#d6d3d1] opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
-                            </div>
+                        <div
+                          key={`${row.vi.id}-${row.ligne.id}`}
+                          className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                          onClick={() => openExpensePanel(row.ligne)}
+                        >
+                          <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
+                            {pieceCount > 0 ? (
+                              <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
+                                <FileText className="w-4 h-4 text-[#2563eb]" />
+                                {pieceCount > 1 && <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#1e3a8a] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceCount}</span>}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]">
+                                <FileText className="w-3.5 h-3.5" />
+                              </span>
+                            )}
                           </div>
+                          <div className="w-[200px] px-3 flex items-center gap-2 min-w-0">
+                            {viAvatar(row.vi, 28)}
+                            <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524' }}>{row.vi.prenom} {row.vi.nom}</span>
+                          </div>
+                          <div className="flex-1 px-3 min-w-0">
+                            <span className="truncate block" style={{ fontSize: 14, fontWeight: 400, color: row.ligne.label ? '#44403c' : '#a8a29e' }}>
+                              {row.ligne.label || 'Sans intitulé'}
+                            </span>
+                          </div>
+                          <div className="w-[130px] px-3 text-right">
+                            <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(row.amount)}</span>
+                          </div>
+                        </div>
                         );
                       })}
 
-                      {victimesIndirectes.length === 0 && (
-                        <div className="p-6 text-center">
-                          <span className="text-body text-[#a8a29e]">Ajoutez des victimes indirectes depuis l'onglet Dossier</span>
+                      {flatRows.length === 0 && (
+                        <div className="p-6 text-center"><span className="text-body text-[#a8a29e]">Aucune dépense enregistrée</span></div>
+                      )}
+
+                      {/* Add expense */}
+                      <button
+                        onClick={() => addIvLigne(null)}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-body-medium text-[#1e3a8a] hover:bg-[#fafaf9] transition-colors border-t border-[#e7e5e3]"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Ajouter une dépense
+                      </button>
+                    </div>
+
+                  </>
+                );
+              })()}
+
+              {/* ===== TYPE D: toggle + revenu ref + calcul perte + ventilation ===== */}
+              {config.type === 'D' && (() => {
+                const shared = ivPosteSharedData[ivPosteId] || {};
+                const isDecede = shared.victimeDecedee !== false;
+                const revenuRefLignes = shared.revenuRefLignes || [];
+                const revenuRefMoyen = revenuRefLignes.length > 0
+                  ? revenuRefLignes.reduce((s, l) => s + (l.netMensuel || 0), 0) / revenuRefLignes.length
+                  : 0;
+                const revenuConjoint = shared.revenuConjoint || 0;
+                const revenuAnnuelRef = revenuRefMoyen * 12;
+                const revenuTotal = revenuAnnuelRef + revenuConjoint;
+                const autoMethod = shared.autoConsommationMethod || 'percentage';
+                const nombreParts = shared.nombreParts || 0;
+                const partAutoConsommation = autoMethod === 'parts' && nombreParts > 0
+                  ? Math.round((1 / nombreParts) * 1000) / 10
+                  : (shared.partAutoConsommation || 0);
+                const perteAnnuelleBrute = isDecede ? revenuAnnuelRef : 0;
+                const perteAnnuelle = isDecede
+                  ? revenuAnnuelRef * (1 - partAutoConsommation / 100)
+                  : Math.max(0, revenuRefMoyen - (shared.revenuActuel || 0)) * 12;
+                const sumParts = ivLignes.reduce((s, l) => s + (l.partIndividuelle || 0), 0);
+                const partsWarning = isDecede && (sumParts + partAutoConsommation) !== 100 && sumParts > 0;
+                const computeLineAmounts = (l) => {
+                  const part = l.partIndividuelle || 0;
+                  const perteVI = perteAnnuelle * (part / 100);
+                  const anneesEchues = l.anneesEchues || 0;
+                  const echu = perteVI * anneesEchues;
+                  const coeff = l.coeffCapitalisation || 0;
+                  const mode = l.mode || 'capitalisation';
+                  const aEchoir = mode === 'capitalisation' ? perteVI * coeff : 0;
+                  const total = mode === 'capitalisation' ? echu + aEchoir : echu;
+                  return { perteVI, echu, aEchoir, total, mode, coeff, anneesEchues };
+                };
+                const totalDistribue = ivLignes.reduce((s, l) => s + computeLineAmounts(l).total, 0);
+
+                const updateShared = (updates) => setIvPosteSharedData(prev => ({
+                  ...prev, [ivPosteId]: { ...prev[ivPosteId], ...updates }
+                }));
+
+                const addRevenuRef = () => updateShared({
+                  revenuRefLignes: [...revenuRefLignes, { id: crypto.randomUUID(), source: '', periode: '', netMensuel: 0, pieceIds: [] }]
+                });
+
+                const updateRevenuRef = (ligneId, field, value) => updateShared({
+                  revenuRefLignes: revenuRefLignes.map(l => l.id === ligneId ? { ...l, [field]: value } : l)
+                });
+
+                const deleteRevenuRef = (ligneId) => updateShared({
+                  revenuRefLignes: revenuRefLignes.filter(l => l.id !== ligneId)
+                });
+
+                return (
+                  <>
+                    {/* Use case preset selector */}
+                    <div className="flex items-center gap-2 mb-4">
+                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', letterSpacing: '0.02em' }}>Scénario</span>
+                      <select
+                        value={prpUseCase}
+                        onChange={(e) => {
+                          const uc = e.target.value;
+                          setPrpUseCase(uc);
+                          const isDec = uc.startsWith('decede');
+                          const hasEchu = !uc.includes('sans-echu');
+                          const anneesVal = hasEchu ? 3 : 0;
+                          const modeMap = {
+                            'decede-capital-echu': ['capitalisation', 'capitalisation', 'capitalisation'],
+                            'decede-rente': ['rente', 'rente', 'rente'],
+                            'decede-mixte': ['capitalisation', 'rente', 'rente'],
+                            'decede-sans-echu': ['capitalisation', 'capitalisation', 'capitalisation'],
+                            'blesse-capital': ['capitalisation', 'capitalisation', 'capitalisation'],
+                            'blesse-rente': ['rente', 'rente', 'rente'],
+                          };
+                          const modes = modeMap[uc] || ['capitalisation', 'capitalisation', 'capitalisation'];
+                          updateShared({ victimeDecedee: isDec, revenuActuel: isDec ? 0 : 1000 });
+                          setIvPosteData(prev => ({
+                            ...prev,
+                            [ivPosteId]: {
+                              ...prev[ivPosteId],
+                              lignes: (prev[ivPosteId]?.lignes || []).map((l, i) => ({
+                                ...l, mode: modes[i] || modes[0], anneesEchues: anneesVal,
+                              }))
+                            }
+                          }));
+                        }}
+                        className="text-caption px-2.5 py-1.5 border border-[#e7e5e3] rounded-lg bg-white text-[#292524] focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                      >
+                        <option value="decede-capital-echu">Décédé + capital + échu</option>
+                        <option value="decede-rente">Décédé + rente</option>
+                        <option value="decede-mixte">Décédé + mixte</option>
+                        <option value="decede-sans-echu">Décédé + sans échu</option>
+                        <option value="blesse-capital">Blessé + capital</option>
+                        <option value="blesse-rente">Blessé + rente</option>
+                      </select>
+                    </div>
+
+                    {/* TABLE 1 — Revenu de référence */}
+                    <div className={cardBlockClass + ' mb-4'}>
+                      <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard(`iv-${ivPosteId}-d-revref`)}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                            <Calculator className="w-3.5 h-3.5 text-[#78716c]" />
+                          </div>
+                          <span className="text-[14px] font-medium text-[#292524]">Revenu de référence</span>
                         </div>
+                        <div className="flex items-center gap-2">
+                          {revenuRefMoyen > 0 ? (
+                            <span style={serifAmountStyle} className="text-[#292524]">{fmt(Math.round(revenuRefMoyen))}<span className="text-[14px] text-[#78716c] ml-1">/ mois</span></span>
+                          ) : (
+                            <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
+                          )}
+                          {isIvCardExpanded(`iv-${ivPosteId}-d-revref`) ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+                        </div>
+                      </div>
+                      {isIvCardExpanded(`iv-${ivPosteId}-d-revref`) && (<>
+                        <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                          <div className="w-[52px] pl-3" />
+                          <div className="flex-1 px-3"><span style={colHeaderStyle}>Source</span></div>
+                          <div className="w-[110px] px-3"><span style={colHeaderStyle}>Période</span></div>
+                          <div className="w-[130px] px-3 text-right"><span style={colHeaderStyle}>Net mensuel</span></div>
+                        </div>
+                        {revenuRefLignes.map((ligne, idx) => (
+                          <div key={ligne.id} className={`relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors`}>
+                            <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
+                              {ligne.pieceIds?.length > 0 ? (
+                                <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
+                                  <FileText className="w-4 h-4 text-[#2563eb]" />
+                                  {ligne.pieceIds.length > 1 && <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#1e3a8a] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{ligne.pieceIds.length}</span>}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] rounded-md border border-dashed border-[#e7e5e3]">
+                                  <FileText className="w-3.5 h-3.5 text-[#d6d3d1]" />
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 px-3">
+                              <span className="truncate block" style={{ fontSize: 14, color: ligne.source ? '#292524' : '#a8a29e' }}>{ligne.source || '—'}</span>
+                            </div>
+                            <div className="w-[110px] px-3">
+                              <span style={{ fontSize: 14, color: ligne.periode ? '#292524' : '#a8a29e' }}>{ligne.periode || '—'}</span>
+                            </div>
+                            <div className="w-[130px] px-3 text-right">
+                              <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(ligne.netMensuel || 0)}</span>
+                            </div>
+                          </div>
+                        ))}
+                        {revenuRefLignes.length === 0 && (
+                          <div className="p-6 text-center">
+                            <span className="text-body text-[#a8a29e]">Aucun revenu de référence</span>
+                          </div>
+                        )}
+                        {revenuRefLignes.length > 0 && (
+                          <div className="flex items-center justify-between h-10 px-4 border-t border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                            <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}>Moyenne mensuelle</span>
+                            <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(revenuRefMoyen)}</span>
+                          </div>
+                        )}
+                        <button
+                          onClick={addRevenuRef}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-body-medium text-[#1e3a8a] hover:bg-[#fafaf9] transition-colors border-t border-[#e7e5e3]"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Ajouter un revenu
+                        </button>
+                      </>)}
+                    </div>
+
+                    {/* TABLE 2 — Calcul de la perte */}
+                    <div className={cardBlockClass + ' mb-4'}>
+                      <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard(`iv-${ivPosteId}-d-calcul`)}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                            <Calculator className="w-3.5 h-3.5 text-[#78716c]" />
+                          </div>
+                          <span className="text-[14px] font-medium text-[#292524]">Calcul de la perte</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {perteAnnuelle > 0 ? (
+                            <span style={serifAmountStyle} className="text-[#292524]">{fmt(Math.round(perteAnnuelle))}<span className="text-[14px] text-[#78716c] ml-1">/ an</span></span>
+                          ) : (
+                            <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
+                          )}
+                          {isIvCardExpanded(`iv-${ivPosteId}-d-calcul`) ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+                        </div>
+                      </div>
+                      {isIvCardExpanded(`iv-${ivPosteId}-d-calcul`) && (
+                      <div className="p-4 space-y-3">
+                        {/* Revenu de référence — auto from Table 1 */}
+                        <div className="flex items-center justify-between">
+                          <span style={{ fontSize: 13, color: '#78716c' }}>{isDecede ? 'Revenu de référence annuel' : 'Revenu de référence mensuel'}</span>
+                          <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(isDecede ? revenuAnnuelRef : revenuRefMoyen)}</span>
+                        </div>
+
+                        {isDecede ? (
+                          <>
+                            {/* Décédé mode */}
+                            <div className="flex items-center justify-between">
+                              <span style={{ fontSize: 13, color: '#78716c' }}>Revenu annuel du conjoint survivant</span>
+                              <span style={{ fontSize: 14, color: '#292524' }}>{fmt(revenuConjoint)}</span>
+                            </div>
+                            <div className="flex items-center justify-between py-1 border-t border-[#e7e5e3]">
+                              <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>Revenu total du foyer</span>
+                              <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(revenuTotal)}</span>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2">
+                              <span style={{ fontSize: 13, color: '#78716c' }}>Méthode de calcul</span>
+                              <span style={{ fontSize: 14, color: '#292524' }}>{autoMethod === 'percentage' ? '% libre' : 'Par parts'}</span>
+                            </div>
+
+                            {autoMethod === 'parts' && (
+                              <div className="flex items-center justify-between">
+                                <span style={{ fontSize: 13, color: '#78716c' }}>Nombre de parts</span>
+                                <span style={{ fontSize: 14, color: '#292524' }}>{nombreParts}</span>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between">
+                              <span style={{ fontSize: 13, color: '#78716c' }}>Part d'auto-consommation</span>
+                              <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{partAutoConsommation} %</span>
+                            </div>
+
+                            <div className="pt-3 mt-2 border-t border-[#e7e5e3] space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span style={{ fontSize: 13, color: '#78716c' }}>Perte annuelle brute</span>
+                                <span style={{ fontSize: 14, color: '#292524' }}>{fmt(perteAnnuelleBrute)}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>Perte annuelle nette (à répartir)</span>
+                                <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(perteAnnuelle)}</span>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* Blessé mode — simplified */}
+                            <div className="flex items-center justify-between">
+                              <span style={{ fontSize: 13, color: '#78716c' }}>Revenu actuel (victime)</span>
+                              <span style={{ fontSize: 14, color: '#292524' }}>{fmt(shared.revenuActuel || 0)}/mois</span>
+                            </div>
+                            <div className="flex items-center justify-between py-1 border-t border-[#e7e5e3]">
+                              <span style={{ fontSize: 13, color: '#78716c' }}>Perte mensuelle</span>
+                              <span style={{ fontSize: 14, color: '#292524' }}>{fmt(Math.max(0, revenuRefMoyen - (shared.revenuActuel || 0)))}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>Perte annuelle</span>
+                              <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(perteAnnuelle)}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
                       )}
                     </div>
 
-                    {/* Parts validation warning */}
+                    {/* TABLE 3a — Échu (past losses) */}
+                    {ivLignes.some(l => (l.anneesEchues || 0) > 0) && (
+                      <div className={cardBlockClass + ' mb-4'}>
+                        <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard(`iv-${ivPosteId}-d-echu`)}>
+                          <div className="flex items-center gap-3">
+                            <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                              <Clock className="w-3.5 h-3.5 text-[#78716c]" />
+                            </div>
+                            <span className="text-[14px] font-medium text-[#292524]">Échu</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span style={serifAmountStyle} className="text-[#292524]">{fmt(ivLignes.reduce((s, l) => s + computeLineAmounts(l).echu, 0))}</span>
+                            {isIvCardExpanded(`iv-${ivPosteId}-d-echu`) ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+                          </div>
+                        </div>
+                        {isIvCardExpanded(`iv-${ivPosteId}-d-echu`) && (<>
+                          <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                            <div className="flex-1 px-3"><span style={colHeaderStyle}>Victime</span></div>
+                            <div className="w-[70px] px-2 text-right"><span style={colHeaderStyle}>Part</span></div>
+                            <div className="w-[100px] px-2 text-right"><span style={colHeaderStyle}>Perte/an</span></div>
+                            <div className="w-[70px] px-2 text-right"><span style={colHeaderStyle}>Années</span></div>
+                            <div className="w-[110px] px-2 text-right"><span style={colHeaderStyle}>Échu</span></div>
+                          </div>
+                          {victimesIndirectes.map(vi => {
+                            const ligne = ivLignes.find(l => l.victimeId === vi.id);
+                            if (!ligne) return null;
+                            const amounts = computeLineAmounts(ligne);
+                            return (
+                              <div key={vi.id} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                                onClick={() => setEditPanel({ type: 'iv-ligne-d', title: `${vi.prenom} ${vi.nom} — Échu`, data: { victimeId: vi.id, posteId: ivPosteId, partIndividuelle: ligne.partIndividuelle || 0, dureeIndemnisation: ligne.dureeIndemnisation || '', anneesEchues: ligne.anneesEchues || 0, mode: amounts.mode, coeffCapitalisation: amounts.coeff, perteAnnuelle } })}
+                              >
+                                <div className="flex-1 px-3 flex items-center gap-2 min-w-0">
+                                  {viAvatar(vi, 24)}
+                                  <span className="truncate" style={{ fontSize: 13, color: '#292524' }}>{vi.prenom} {vi.nom}</span>
+                                </div>
+                                <div className="w-[70px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{ligne.partIndividuelle}%</span></div>
+                                <div className="w-[100px] px-2 text-right"><span style={{ fontSize: 13, color: '#292524' }}>{fmt(amounts.perteVI)}</span></div>
+                                <div className="w-[70px] px-2 text-right"><span style={{ fontSize: 13, color: '#78716c' }}>{amounts.anneesEchues} ans</span></div>
+                                <div className="w-[110px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmt(amounts.echu)}</span></div>
+                              </div>
+                            );
+                          })}
+                          {/* Footer */}
+                          <div className="flex items-center h-10 border-t border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                            <div className="flex-1 px-3"><span style={{ fontSize: 12, fontWeight: 600, color: '#44403c' }}>Total échu</span></div>
+                            <div className="w-[70px] px-2 text-right"><span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>{sumParts}%</span></div>
+                            <div className="w-[100px] px-2 text-right"><span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>{fmt(perteAnnuelle)}</span></div>
+                            <div className="w-[70px] px-2" />
+                            <div className="w-[110px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 600, color: '#292524' }}>{fmt(ivLignes.reduce((s, l) => s + computeLineAmounts(l).echu, 0))}</span></div>
+                          </div>
+                        </>)}
+                      </div>
+                    )}
+
+                    {/* TABLE 3b — À échoir (future losses) */}
+                    <div className={cardBlockClass + ' mb-4'}>
+                      <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard(`iv-${ivPosteId}-d-aechoir`)}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                            <TrendingUp className="w-3.5 h-3.5 text-[#78716c]" />
+                          </div>
+                          <span className="text-[14px] font-medium text-[#292524]">À échoir</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const totAEchoir = ivLignes.reduce((s, l) => s + computeLineAmounts(l).aEchoir, 0);
+                            const hasRente = ivLignes.some(l => (l.mode || 'capitalisation') === 'rente');
+                            return totAEchoir > 0 ? (
+                              <span style={serifAmountStyle} className="text-[#292524]">{fmt(totAEchoir)}</span>
+                            ) : hasRente ? (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>RENTE</span>
+                            ) : (
+                              <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
+                            );
+                          })()}
+                          {isIvCardExpanded(`iv-${ivPosteId}-d-aechoir`) ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+                        </div>
+                      </div>
+                      {isIvCardExpanded(`iv-${ivPosteId}-d-aechoir`) && (<>
+                        <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                          <div className="flex-1 px-3"><span style={colHeaderStyle}>Victime</span></div>
+                          <div className="w-[70px] px-2 text-right"><span style={colHeaderStyle}>Part</span></div>
+                          <div className="w-[100px] px-2 text-right"><span style={colHeaderStyle}>Perte/an</span></div>
+                          <div className="w-[100px] px-2"><span style={colHeaderStyle}>Durée</span></div>
+                          <div className="w-[70px] px-2"><span style={colHeaderStyle}>Mode</span></div>
+                          <div className="w-[55px] px-2 text-right"><span style={colHeaderStyle}>Coeff.</span></div>
+                          <div className="w-[110px] px-2 text-right"><span style={colHeaderStyle}>À échoir</span></div>
+                        </div>
+                        {victimesIndirectes.map(vi => {
+                          const ligne = ivLignes.find(l => l.victimeId === vi.id);
+                          if (!ligne) return null;
+                          const amounts = computeLineAmounts(ligne);
+                          return (
+                            <div key={vi.id} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                              onClick={() => setEditPanel({ type: 'iv-ligne-d', title: `${vi.prenom} ${vi.nom} — À échoir`, data: { victimeId: vi.id, posteId: ivPosteId, partIndividuelle: ligne.partIndividuelle || 0, dureeIndemnisation: ligne.dureeIndemnisation || '', anneesEchues: ligne.anneesEchues || 0, mode: amounts.mode, coeffCapitalisation: amounts.coeff, perteAnnuelle } })}
+                            >
+                              <div className="flex-1 px-3 flex items-center gap-2 min-w-0">
+                                {viAvatar(vi, 24)}
+                                <span className="truncate" style={{ fontSize: 13, color: '#292524' }}>{vi.prenom} {vi.nom}</span>
+                              </div>
+                              <div className="w-[70px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{ligne.partIndividuelle}%</span></div>
+                              <div className="w-[100px] px-2 text-right"><span style={{ fontSize: 13, color: '#292524' }}>{fmt(amounts.perteVI)}</span></div>
+                              <div className="w-[100px] px-2"><span className="truncate block" style={{ fontSize: 12, color: '#78716c' }}>{ligne.dureeIndemnisation || '—'}</span></div>
+                              <div className="w-[70px] px-2"><span style={{ fontSize: 12, color: '#78716c' }}>{amounts.mode === 'capitalisation' ? 'Capital' : 'Rente'}</span></div>
+                              <div className="w-[55px] px-2 text-right">
+                                {amounts.mode === 'capitalisation' ? (
+                                  <span style={{ fontSize: 13, color: '#292524' }}>{amounts.coeff}</span>
+                                ) : (
+                                  <span style={{ fontSize: 13, color: '#d6d3d1' }}>—</span>
+                                )}
+                              </div>
+                              <div className="w-[110px] px-2 text-right">
+                                {amounts.mode === 'capitalisation' ? (
+                                  <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmt(amounts.aEchoir)}</span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                                    RENTE {fmt(amounts.perteVI)}/an
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {/* Footer */}
+                        {(() => {
+                          const totAEchoir = ivLignes.reduce((s, l) => s + computeLineAmounts(l).aEchoir, 0);
+                          return (
+                            <div className="flex items-center h-10 border-t border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                              <div className="flex-1 px-3"><span style={{ fontSize: 12, fontWeight: 600, color: '#44403c' }}>Total à échoir</span></div>
+                              <div className="w-[70px] px-2" />
+                              <div className="w-[100px] px-2" />
+                              <div className="w-[100px] px-2" />
+                              <div className="w-[70px] px-2" />
+                              <div className="w-[55px] px-2" />
+                              <div className="w-[110px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 600, color: '#292524' }}>{totAEchoir > 0 ? fmt(totAEchoir) : '—'}</span></div>
+                            </div>
+                          );
+                        })()}
+                      </>)}
+                    </div>
+
+                    {/* TABLE 3c — Total par bénéficiaire (beige total block) */}
+                    <div className={totalBlockClass}>
+                      <button onClick={() => toggleCard(`iv-${ivPosteId}-d-recap`)} className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                            <User className="w-3.5 h-3.5 text-[#78716c]" />
+                          </div>
+                          <span className="text-[14px] font-medium text-[#292524]">Total par bénéficiaire</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {totalDistribue > 0 ? (
+                            <span style={serifAmountStyle} className="text-[#292524]">{fmt(Math.round(totalDistribue))}</span>
+                          ) : (
+                            <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
+                          )}
+                          <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${isIvCardExpanded(`iv-${ivPosteId}-d-recap`) ? 'rotate-90' : ''}`} />
+                        </div>
+                      </button>
+                      {isIvCardExpanded(`iv-${ivPosteId}-d-recap`) && (<>
+                        <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
+                        <div className="space-y-2">
+                          {victimesIndirectes.map(vi => {
+                            const ligne = ivLignes.find(l => l.victimeId === vi.id);
+                            if (!ligne) return null;
+                            const amounts = computeLineAmounts(ligne);
+                            return (
+                              <div key={vi.id} className="flex justify-between items-center">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {viAvatar(vi, 24)}
+                                  <span style={{ fontSize: 14, color: '#78716c' }}>{vi.prenom} {vi.nom}</span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  {amounts.echu > 0 && <span style={{ fontSize: 12, color: '#a8a29e' }}>échu {fmt(amounts.echu)}</span>}
+                                  {amounts.mode === 'capitalisation' && amounts.aEchoir > 0 && <span style={{ fontSize: 12, color: '#a8a29e' }}>à échoir {fmt(amounts.aEchoir)}</span>}
+                                  {amounts.mode === 'rente' && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                                      RENTE {fmt(amounts.perteVI)}/an
+                                    </span>
+                                  )}
+                                  <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(amounts.total)}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>)}
+                    </div>
+
                     {partsWarning && (
                       <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
                         <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" strokeWidth={1.5} />
@@ -10281,27 +10175,48 @@ export default function App() {
                       </div>
                     )}
 
-                    <button
-                      onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Nouvelle victime indirecte', data: null })}
-                      className="mt-3 flex items-center gap-2 px-3 py-2 text-caption text-[#78716c] hover:bg-[#eeece6] rounded-lg transition-colors"
-                    >
-                      <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
-                      Ajouter une victime indirecte
-                    </button>
                   </>
                 );
               })()}
             </div>
 
-            {/* Total block */}
-            <div className="p-4 pt-0">
-              <div className="bg-white rounded-lg border border-[#e7e5e3] p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-body-medium text-[#292524]">Total — {ivTaxo?.label || ivPosteId}</span>
-                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(ivTotal)}</span>
-                </div>
+            {/* Total block — hidden for Type D (PRP uses Table 3c as total) */}
+            {config.type !== 'D' && <div className="p-4 pt-0">
+              <div className={totalBlockClass}>
+                <button onClick={() => setTotalExpanded(prev => ({...prev, [ivPosteId]: !prev[ivPosteId]}))} className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                      <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+                    </div>
+                    <span className="text-[14px] font-medium text-[#292524]">Total</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span style={serifAmountStyle} className="text-[#292524]">{fmt(ivTotal)}</span>
+                    <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded[ivPosteId] ? 'rotate-90' : ''}`} />
+                  </div>
+                </button>
+                {totalExpanded[ivPosteId] && (
+                  <>
+                    <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
+                    <div className="space-y-2">
+                      {victimesIndirectes.map(vi => {
+                        const viAmount = config.type === 'C'
+                          ? (ivLignes.reduce((s, l) => s + ((l.attributions || []).filter(a => a.viId === vi.id).reduce((ss, a) => ss + a.amount, 0)), 0))
+                          : config.type === 'B'
+                            ? ivLignes.filter(l => l.victimeId === vi.id).reduce((s, l) => s + (l.montant || 0), 0)
+                            : (ivLignes.find(l => l.victimeId === vi.id)?.montant || 0);
+                        return viAmount > 0 ? (
+                          <div key={vi.id} className="flex justify-between">
+                            <span className="text-[14px] text-[#78716c]">{vi.prenom} {vi.nom}</span>
+                            <span className="text-[14px] text-[#292524]">{fmt(viAmount)}</span>
+                          </div>
+                        ) : null;
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
+            </div>}
           </div>
 
           {/* NOTES / ARGUMENTAIRE */}
@@ -12526,6 +12441,9 @@ export default function App() {
               <button onClick={() => setCurrentPage('diff-engine')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
                 <FileText className="w-3.5 h-3.5" /> Diff Engine
               </button>
+              <button onClick={() => setCurrentPage('iv-structures')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
+                <Table2 className="w-3.5 h-3.5" /> IV Table Structures
+              </button>
             </div>
           </nav>
         </div>
@@ -14271,6 +14189,571 @@ export default function App() {
     );
   };
 
+  // ========== RENDER IV TABLE STRUCTURES PAGE ==========
+  const renderIvStructuresPage = () => {
+    const prose = (text) => <p style={{ fontSize: 14, color: '#44403c', lineHeight: '24px', maxWidth: 680, marginBottom: 16 }}>{text}</p>;
+    const codeInline = (text) => <code style={{ fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", backgroundColor: '#f5f5f4', padding: '2px 6px', borderRadius: 4, color: '#292524' }}>{text}</code>;
+    const badge = (text, color) => <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ backgroundColor: color === 'amber' ? '#fef3c7' : color === 'blue' ? '#dbeafe' : color === 'green' ? '#dcfce7' : '#f5f5f4', color: color === 'amber' ? '#92400e' : color === 'blue' ? '#1e40af' : color === 'green' ? '#166534' : '#44403c' }}>{text}</span>;
+
+    // Sample data for live tables
+    const demoVis = [
+      { id: 'vi-1', nom: 'Dupont', prenom: 'Marie', sexe: 'Femme', lien: 'Épouse' },
+      { id: 'vi-2', nom: 'Dupont', prenom: 'Lucas', sexe: 'Homme', lien: 'Enfant' },
+      { id: 'vi-3', nom: 'Dupont', prenom: 'Emma', sexe: 'Femme', lien: 'Enfant' },
+    ];
+    const demoViInitials = (vi) => `${(vi.prenom || '')[0] || ''}${(vi.nom || '')[0] || ''}`.toUpperCase();
+
+    // Type A data
+    const demoTypeA = [
+      { victimeId: 'vi-1', montant: 25000, pieceIds: ['p-1'] },
+      { victimeId: 'vi-2', montant: 15000, pieceIds: [] },
+      { victimeId: 'vi-3', montant: 15000, pieceIds: [] },
+    ];
+
+    // Type B data
+    const demoTypeB = [
+      { id: 'fdp-1', victimeId: 'vi-1', montant: 1200, pieceIds: ['p-1'], intitule: 'Déplacements hôpital (48 trajets)' },
+      { id: 'fdp-2', victimeId: 'vi-1', montant: 2800, pieceIds: ['p-2'], intitule: 'Hébergement proche hôpital' },
+      { id: 'fdp-3', victimeId: 'vi-1', montant: 450, pieceIds: [], intitule: 'Repas sur place' },
+      { id: 'fdp-4', victimeId: 'vi-2', montant: 600, pieceIds: [], intitule: 'Déplacements' },
+    ];
+
+    // Type C data
+    const demoTypeC = [
+      { id: 'fo-1', label: 'Cercueil et préparation', totalAmount: 3200, pieceIds: ['p-7'], attributions: [{ viId: 'vi-1', amount: 1600 }, { viId: 'vi-3', amount: 1600 }] },
+      { id: 'fo-2', label: 'Cérémonie religieuse', totalAmount: 800, pieceIds: [], attributions: [{ viId: 'vi-1', amount: 800 }] },
+      { id: 'fo-3', label: 'Concession funéraire', totalAmount: 2100, pieceIds: [], attributions: [{ viId: 'vi-1', amount: 714 }, { viId: 'vi-2', amount: 693 }, { viId: 'vi-3', amount: 693 }] },
+    ];
+    const demoViTotalsC = {};
+    demoVis.forEach(vi => { demoViTotalsC[vi.id] = 0; });
+    demoTypeC.forEach(l => (l.attributions || []).forEach(a => { demoViTotalsC[a.viId] = (demoViTotalsC[a.viId] || 0) + a.amount; }));
+    const demoGrandTotalC = demoTypeC.reduce((s, l) => s + (l.totalAmount || 0), 0);
+
+    // Type D (PRP) data
+    const demoRevenuRefLignes = [
+      { id: 'prp-rev-1', source: 'Bulletin de salaire Déc 2022', periode: 'Déc 2022', netMensuel: 4000, pieceIds: [] },
+      { id: 'prp-rev-2', source: 'Avis d\'imposition 2022', periode: '2022', netMensuel: 4000, pieceIds: ['p-3'] },
+    ];
+    const demoRevenuRefMoyen = 4000;
+    const demoPerteAnnuelle = 36000;
+    const demoPrpLignes = [
+      { victimeId: 'vi-1', partIndividuelle: 50, dureeIndemnisation: 'Viager', anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 20 },
+      { victimeId: 'vi-2', partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans (7 ans)", anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 6.5 },
+      { victimeId: 'vi-3', partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans (12 ans)", anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 10 },
+    ];
+    const demoComputeLine = (l) => {
+      const part = l.partIndividuelle || 0;
+      const perteVI = demoPerteAnnuelle * (part / 100);
+      const anneesEchues = l.anneesEchues || 0;
+      const echu = perteVI * anneesEchues;
+      const coeff = l.coeffCapitalisation || 0;
+      const mode = l.mode || 'capitalisation';
+      const aEchoir = mode === 'capitalisation' ? perteVI * coeff : 0;
+      const total = mode === 'capitalisation' ? echu + aEchoir : echu;
+      return { perteVI, echu, aEchoir, total, mode, coeff, anneesEchues };
+    };
+
+    // Doc badge helper
+    const docBadge = (pieceIds) => (
+      <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
+        {pieceIds?.length > 0 ? (
+          <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
+            <FileText className="w-4 h-4 text-[#2563eb]" />
+            {pieceIds.length > 1 && <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#1e3a8a] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceIds.length}</span>}
+          </span>
+        ) : (
+          <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] rounded-md border border-dashed border-[#e7e5e3]">
+            <FileText className="w-3.5 h-3.5 text-[#d6d3d1]" />
+          </span>
+        )}
+      </div>
+    );
+
+    // Use existing expandedCards state for demo collapse — keys prefixed with 'uikit-'
+    const isDemoExpanded = (key) => expandedCards[`uikit-${key}`] !== false;
+    const toggleDemoExpanded = (key) => setExpandedCards(prev => ({ ...prev, [`uikit-${key}`]: prev[`uikit-${key}`] === false ? true : false }));
+
+    return (
+      <div className="h-screen flex" style={{ backgroundColor: '#F8F7F5', fontFamily: "'Inter', system-ui, sans-serif" }}>
+        {/* Sidebar */}
+        <div className="w-[220px] flex-shrink-0 border-r border-[#e7e5e3] bg-white overflow-y-auto" style={{ padding: '20px 16px' }}>
+          <button onClick={() => setCurrentPage('components')} className="flex items-center gap-2 text-body-medium text-[#78716c] hover:text-[#292524] mb-6 transition-colors">
+            <ChevronRight className="w-4 h-4 rotate-180" /> Retour
+          </button>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#292524', marginBottom: 16 }}>IV Table Structures</div>
+          <nav className="flex flex-col gap-1">
+            {['Vue d\'ensemble', 'Type A — Simple', 'Type B — Groupé', 'Type C — Frais partagés', 'Type D — Foyer (PRP)', 'Scénarios PRP', 'Adaptation IA'].map(s => (
+              <a key={s} href={`#iv-${s.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`} className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">{s}</a>
+            ))}
+          </nav>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto" style={{ padding: '32px 48px' }}>
+          <div>
+            <h1 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 28, fontWeight: 400, color: '#18181b', marginBottom: 4 }}>Victimes indirectes — Table Structures</h1>
+            <p style={{ fontSize: 14, color: '#78716c', marginBottom: 40 }}>Architecture des 4 types de tables IV, modes d'affichage, scénarios PRP, et logique d'adaptation IA.</p>
+
+            {/* ====== VUE D'ENSEMBLE ====== */}
+            <div id="iv-vue-d-ensemble" className="mb-12">
+              <h2 style={{ fontSize: 20, fontWeight: 600, color: '#292524', marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>Vue d'ensemble</h2>
+              {prose('Les postes de victimes indirectes utilisent 4 structures de table, chacune adaptée à un type de données. La structure est définie par IV_POSTE_CONFIG et détermine le rendu, les colonnes, et les interactions.')}
+              <div className={cardBlockClass + ' mb-6'} style={{ maxWidth: 680 }}>
+                <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                  <div className="flex-1 px-3"><span style={colHeaderStyle}>Type</span></div>
+                  <div className="w-[200px] px-3"><span style={colHeaderStyle}>Structure</span></div>
+                  <div className="w-[160px] px-3"><span style={colHeaderStyle}>Postes</span></div>
+                </div>
+                {[
+                  { type: 'A — Simple', desc: '1 ligne par VI, montant direct', codes: ['pai', 'pafv', 'pepe'] },
+                  { type: 'B — Groupé', desc: 'Lignes groupées par VI', codes: ['fdp'] },
+                  { type: 'C — Frais partagés', desc: 'Dépenses communes, réparties', codes: ['fo'] },
+                  { type: 'D — Foyer (PRP)', desc: 'Revenu → perte → répartition', codes: ['prp'] },
+                ].map((row, idx) => (
+                  <div key={idx} className="flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white">
+                    <div className="flex-1 px-3"><span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{row.type}</span></div>
+                    <div className="w-[200px] px-3"><span style={{ fontSize: 13, color: '#44403c' }}>{row.desc}</span></div>
+                    <div className="w-[160px] px-3 flex gap-1">{row.codes.map(c => <span key={c}>{codeInline(c)}</span>)}</div>
+                  </div>
+                ))}
+              </div>
+              {prose('Toutes les tables utilisent le même cardBlockClass (blanc, border-radius, shadow), les mêmes hauteurs de ligne (52px data, 44px sub-rows, 40px headers), et la même palette de couleurs.')}
+            </div>
+
+            {/* ====== TYPE A — LIVE TABLE ====== */}
+            <div id="iv-type-a---simple" className="mb-12">
+              <h2 style={{ fontSize: 20, fontWeight: 600, color: '#292524', marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>Type A — Simple</h2>
+              {prose('Une ligne par victime indirecte. Le montant est saisi individuellement. Utilisé pour les postes où chaque VI a une indemnisation distincte (PAI, PAFV, PEPE).')}
+
+              <div className={cardBlockClass} style={{ maxWidth: 680 }}>
+                {/* Column headers */}
+                <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                  <div className="flex-1 px-3"><span style={colHeaderStyle}>Victime</span></div>
+                  <div className="w-[130px] px-3 text-right"><span style={colHeaderStyle}>Montant</span></div>
+                  <div className="w-10" />
+                </div>
+                {/* Data rows */}
+                {demoVis.map((vi) => {
+                  const ligne = demoTypeA.find(l => l.victimeId === vi.id);
+                  const montant = ligne?.montant || 0;
+                  return (
+                    <div key={vi.id} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
+                      <div className="flex-1 px-3 flex items-center gap-2 min-w-0">
+                        {viAvatar(vi, 28)}
+                        <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524' }}>{vi.prenom} {vi.nom}</span>
+                      </div>
+                      <div className="w-[130px] px-3 text-right">
+                        <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(montant)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-4">{prose('Colonnes : avatar + prénom nom, montant aligné à droite. Hauteur de ligne 52px. Clic sur la ligne → side panel d\'édition.')}</div>
+            </div>
+
+            {/* ====== TYPE B — LIVE TABLE ====== */}
+            <div id="iv-type-b---group-" className="mb-12">
+              <h2 style={{ fontSize: 20, fontWeight: 600, color: '#292524', marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>Type B — Frais divers (FDP)</h2>
+              {prose('Plusieurs lignes de dépenses par victime indirecte. Même table plate que les autres types, triée par victime puis par dépense.')}
+
+              {(() => {
+                const demoFlatB = [];
+                demoVis.forEach(vi => {
+                  demoTypeB.filter(l => l.victimeId === vi.id).forEach(ligne => {
+                    demoFlatB.push({ vi, ligne });
+                  });
+                });
+                return (
+                  <div className={cardBlockClass} style={{ maxWidth: 680 }}>
+                    <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                      <div className="w-[200px] px-3"><span style={colHeaderStyle}>Victime</span></div>
+                      <div className="flex-1 px-3"><span style={colHeaderStyle}>Dépense</span></div>
+                      <div className="w-[130px] px-3 text-right"><span style={colHeaderStyle}>Montant</span></div>
+                    </div>
+                    {demoFlatB.map((row) => (
+                      <div key={row.ligne.id} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
+                        <div className="w-[200px] px-3 flex items-center gap-2 min-w-0">
+                          {viAvatar(row.vi, 28)}
+                          <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524' }}>{row.vi.prenom} {row.vi.nom}</span>
+                        </div>
+                        <div className="flex-1 px-3 min-w-0">
+                          <span className="truncate block" style={{ fontSize: 14, fontWeight: 400, color: row.ligne.intitule ? '#44403c' : '#a8a29e' }}>
+                            {row.ligne.intitule || 'Sans intitulé'}
+                          </span>
+                        </div>
+                        <div className="w-[130px] px-3 text-right">
+                          <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(row.ligne.montant)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+              <div className="mt-4">{prose('Même structure que Type A et C : Victime (w-[200px]) | Dépense (flex-1) | Montant. Plusieurs lignes par VI, triées par victime. Marie apparaît 3 fois, Lucas 1 fois.')}</div>
+            </div>
+
+            {/* ====== TYPE C — FLAT LIST ====== */}
+            <div id="iv-type-c---frais-partag-s" className="mb-12">
+              <h2 style={{ fontSize: 20, fontWeight: 600, color: '#292524', marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>Type C — Frais partagés (Obsèques)</h2>
+              {prose('Les frais d\'obsèques sont des dépenses communes réparties entre plusieurs VI. Chaque ligne = une attribution VI, triée par victime puis par dépense.')}
+
+              {(() => {
+                const demoFlatRows = [];
+                demoVis.forEach(vi => {
+                  demoTypeC.forEach(ligne => {
+                    const attr = (ligne.attributions || []).find(a => a.viId === vi.id);
+                    if (attr) demoFlatRows.push({ vi, ligne, amount: attr.amount });
+                  });
+                });
+                return (
+                  <div className={cardBlockClass} style={{ maxWidth: 680 }}>
+                    <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                      <div className="w-[200px] px-3"><span style={colHeaderStyle}>Victime</span></div>
+                      <div className="flex-1 px-3"><span style={colHeaderStyle}>Dépense</span></div>
+                      <div className="w-[130px] px-3 text-right"><span style={colHeaderStyle}>Montant</span></div>
+                    </div>
+                    {demoFlatRows.map((row) => (
+                      <div key={`${row.vi.id}-${row.ligne.id}`} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
+                        <div className="w-[200px] px-3 flex items-center gap-2 min-w-0">
+                          {viAvatar(row.vi, 28)}
+                          <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524' }}>{row.vi.prenom} {row.vi.nom}</span>
+                        </div>
+                        <div className="flex-1 px-3 min-w-0">
+                          <span className="truncate block" style={{ fontSize: 14, fontWeight: 400, color: '#44403c' }}>{row.ligne.label}</span>
+                        </div>
+                        <div className="w-[130px] px-3 text-right">
+                          <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(row.amount)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+              <div className="mt-4">{prose('Colonnes : avatar + nom VI (w-[200px]), intitulé dépense (flex-1), montant. Lignes triées par victime — toutes les dépenses de Marie, puis Lucas, puis Emma. Clic → side panel d\'édition.')}</div>
+            </div>
+
+            {/* ====== TYPE D — LIVE PRP TABLES ====== */}
+            <div id="iv-type-d---foyer--prp-" className="mb-12">
+              <h2 style={{ fontSize: 20, fontWeight: 600, color: '#292524', marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>Type D — Foyer (PRP)</h2>
+              {prose('Le poste Pertes de Revenus des Proches suit une logique économique en 3 étapes : établir le revenu de référence, calculer la perte, puis la répartir entre bénéficiaires.')}
+
+              {/* Table 1 — Revenu de référence */}
+              <div className="mb-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <Calculator className="w-4 h-4 text-[#78716c]" />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#292524' }}>Table 1 — Revenu de référence</span>
+                </div>
+                <div className={cardBlockClass} style={{ maxWidth: 680 }}>
+                  <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                    <div className="w-[52px] pl-3" />
+                    <div className="flex-1 px-3"><span style={colHeaderStyle}>Source</span></div>
+                    <div className="w-[110px] px-3"><span style={colHeaderStyle}>Période</span></div>
+                    <div className="w-[130px] px-3 text-right"><span style={colHeaderStyle}>Net mensuel</span></div>
+                  </div>
+                  {demoRevenuRefLignes.map((ligne) => (
+                    <div key={ligne.id} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
+                      {docBadge(ligne.pieceIds)}
+                      <div className="flex-1 px-3">
+                        <span className="truncate block" style={{ fontSize: 14, color: '#292524' }}>{ligne.source}</span>
+                      </div>
+                      <div className="w-[110px] px-3">
+                        <span style={{ fontSize: 14, color: '#292524' }}>{ligne.periode}</span>
+                      </div>
+                      <div className="w-[130px] px-3 text-right">
+                        <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(ligne.netMensuel)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {/* Footer */}
+                  <div className="flex items-center justify-between h-10 px-4 border-t border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}>Moyenne mensuelle</span>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(demoRevenuRefMoyen)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table 2 — Calcul de la perte */}
+              <div className="mb-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <Calculator className="w-4 h-4 text-[#78716c]" />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#292524' }}>Table 2 — Calcul de la perte</span>
+                  {badge('DÉCÉDÉ', 'amber')}
+                </div>
+                <div className={cardBlockClass} style={{ maxWidth: 680 }}>
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span style={{ fontSize: 13, color: '#78716c' }}>Revenu de référence annuel</span>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(48000)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span style={{ fontSize: 13, color: '#78716c' }}>Revenu annuel du conjoint survivant</span>
+                      <span style={{ fontSize: 14, color: '#292524' }}>{fmt(24000)}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-1 border-t border-[#e7e5e3]">
+                      <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>Revenu total du foyer</span>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(72000)}</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2">
+                      <span style={{ fontSize: 13, color: '#78716c' }}>Méthode de calcul</span>
+                      <span style={{ fontSize: 14, color: '#292524' }}>% libre</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span style={{ fontSize: 13, color: '#78716c' }}>Part d'auto-consommation</span>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>25 %</span>
+                    </div>
+                    <div className="pt-3 mt-2 border-t border-[#e7e5e3] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span style={{ fontSize: 13, color: '#78716c' }}>Perte annuelle brute</span>
+                        <span style={{ fontSize: 14, color: '#292524' }}>{fmt(48000)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>Perte annuelle nette (à répartir)</span>
+                        <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(36000)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table 3a — Échu */}
+              <div className="mb-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="w-4 h-4 text-[#78716c]" />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#292524' }}>Table 3a — Échu</span>
+                </div>
+                <div className={cardBlockClass} style={{ maxWidth: 680 }}>
+                  <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                    <div className="flex-1 px-3"><span style={colHeaderStyle}>Victime</span></div>
+                    <div className="w-[70px] px-2 text-right"><span style={colHeaderStyle}>Part</span></div>
+                    <div className="w-[100px] px-2 text-right"><span style={colHeaderStyle}>Perte/an</span></div>
+                    <div className="w-[70px] px-2 text-right"><span style={colHeaderStyle}>Années</span></div>
+                    <div className="w-[110px] px-2 text-right"><span style={colHeaderStyle}>Échu</span></div>
+                  </div>
+                  {demoVis.map(vi => {
+                    const ligne = demoPrpLignes.find(l => l.victimeId === vi.id);
+                    if (!ligne) return null;
+                    const amounts = demoComputeLine(ligne);
+                    return (
+                      <div key={vi.id} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
+                        <div className="flex-1 px-3 flex items-center gap-2 min-w-0">
+                          {viAvatar(vi, 24)}
+                          <span className="truncate" style={{ fontSize: 13, color: '#292524' }}>{vi.prenom} {vi.nom}</span>
+                        </div>
+                        <div className="w-[70px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{ligne.partIndividuelle}%</span></div>
+                        <div className="w-[100px] px-2 text-right"><span style={{ fontSize: 13, color: '#292524' }}>{fmt(amounts.perteVI)}</span></div>
+                        <div className="w-[70px] px-2 text-right"><span style={{ fontSize: 13, color: '#78716c' }}>{amounts.anneesEchues} ans</span></div>
+                        <div className="w-[110px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmt(amounts.echu)}</span></div>
+                      </div>
+                    );
+                  })}
+                  <div className="flex items-center h-10 border-t border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                    <div className="flex-1 px-3"><span style={{ fontSize: 12, fontWeight: 600, color: '#44403c' }}>Total échu</span></div>
+                    <div className="w-[70px] px-2 text-right"><span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>100%</span></div>
+                    <div className="w-[100px] px-2 text-right"><span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>{fmt(demoPerteAnnuelle)}</span></div>
+                    <div className="w-[70px] px-2" />
+                    <div className="w-[110px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 600, color: '#292524' }}>{fmt(demoPrpLignes.reduce((s, l) => s + demoComputeLine(l).echu, 0))}</span></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table 3b — À échoir */}
+              <div className="mb-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <TrendingUp className="w-4 h-4 text-[#78716c]" />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#292524' }}>Table 3b — À échoir</span>
+                  <div className="flex items-center gap-2 ml-2">{badge('CAPITAL', 'green')} {badge('RENTE', 'amber')}</div>
+                </div>
+                <div className={cardBlockClass} style={{ maxWidth: 740 }}>
+                  <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                    <div className="flex-1 px-3"><span style={colHeaderStyle}>Victime</span></div>
+                    <div className="w-[70px] px-2 text-right"><span style={colHeaderStyle}>Part</span></div>
+                    <div className="w-[100px] px-2 text-right"><span style={colHeaderStyle}>Perte/an</span></div>
+                    <div className="w-[100px] px-2"><span style={colHeaderStyle}>Durée</span></div>
+                    <div className="w-[70px] px-2"><span style={colHeaderStyle}>Mode</span></div>
+                    <div className="w-[55px] px-2 text-right"><span style={colHeaderStyle}>Coeff.</span></div>
+                    <div className="w-[110px] px-2 text-right"><span style={colHeaderStyle}>À échoir</span></div>
+                  </div>
+                  {demoVis.map(vi => {
+                    const ligne = demoPrpLignes.find(l => l.victimeId === vi.id);
+                    if (!ligne) return null;
+                    const amounts = demoComputeLine(ligne);
+                    return (
+                      <div key={vi.id} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
+                        <div className="flex-1 px-3 flex items-center gap-2 min-w-0">
+                          {viAvatar(vi, 24)}
+                          <span className="truncate" style={{ fontSize: 13, color: '#292524' }}>{vi.prenom} {vi.nom}</span>
+                        </div>
+                        <div className="w-[70px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{ligne.partIndividuelle}%</span></div>
+                        <div className="w-[100px] px-2 text-right"><span style={{ fontSize: 13, color: '#292524' }}>{fmt(amounts.perteVI)}</span></div>
+                        <div className="w-[100px] px-2"><span className="truncate block" style={{ fontSize: 12, color: '#78716c' }}>{ligne.dureeIndemnisation}</span></div>
+                        <div className="w-[70px] px-2"><span style={{ fontSize: 12, color: '#78716c' }}>{amounts.mode === 'capitalisation' ? 'Capital' : 'Rente'}</span></div>
+                        <div className="w-[55px] px-2 text-right">
+                          {amounts.mode === 'capitalisation' ? (
+                            <span style={{ fontSize: 13, color: '#292524' }}>{amounts.coeff}</span>
+                          ) : (
+                            <span style={{ fontSize: 13, color: '#d6d3d1' }}>—</span>
+                          )}
+                        </div>
+                        <div className="w-[110px] px-2 text-right">
+                          {amounts.mode === 'capitalisation' ? (
+                            <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmt(amounts.aEchoir)}</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                              RENTE {fmt(amounts.perteVI)}/an
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="flex items-center h-10 border-t border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                    <div className="flex-1 px-3"><span style={{ fontSize: 12, fontWeight: 600, color: '#44403c' }}>Total à échoir</span></div>
+                    <div className="w-[70px] px-2" />
+                    <div className="w-[100px] px-2" />
+                    <div className="w-[100px] px-2" />
+                    <div className="w-[70px] px-2" />
+                    <div className="w-[55px] px-2" />
+                    <div className="w-[110px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 600, color: '#292524' }}>{fmt(demoPrpLignes.reduce((s, l) => s + demoComputeLine(l).aEchoir, 0))}</span></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table 3c — Total par bénéficiaire (beige total block) */}
+              <div className="mb-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <User className="w-4 h-4 text-[#78716c]" />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#292524' }}>Table 3c — Total par bénéficiaire</span>
+                </div>
+                {(() => {
+                  const demoTotalDistribue = demoPrpLignes.reduce((s, l) => s + demoComputeLine(l).total, 0);
+                  return (
+                    <div className={totalBlockClass} style={{ maxWidth: 680 }}>
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+                            <User className="w-3.5 h-3.5 text-[#78716c]" />
+                          </div>
+                          <span className="text-[14px] font-medium text-[#292524]">Total par bénéficiaire</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span style={serifAmountStyle} className="text-[#292524]">{fmt(demoTotalDistribue)}</span>
+                          <ChevronRight className="w-4 h-4 text-[#78716c] rotate-90" />
+                        </div>
+                      </div>
+                      <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
+                      <div className="space-y-2">
+                        {demoVis.map(vi => {
+                          const ligne = demoPrpLignes.find(l => l.victimeId === vi.id);
+                          if (!ligne) return null;
+                          const amounts = demoComputeLine(ligne);
+                          return (
+                            <div key={vi.id} className="flex justify-between items-center">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {viAvatar(vi, 24)}
+                                <span style={{ fontSize: 14, color: '#78716c' }}>{vi.prenom} {vi.nom}</span>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                {amounts.echu > 0 && <span style={{ fontSize: 12, color: '#a8a29e' }}>échu {fmt(amounts.echu)}</span>}
+                                {amounts.mode === 'capitalisation' && amounts.aEchoir > 0 && <span style={{ fontSize: 12, color: '#a8a29e' }}>à échoir {fmt(amounts.aEchoir)}</span>}
+                                <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(amounts.total)}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* ====== SCÉNARIOS PRP ====== */}
+            <div id="iv-sc-narios-prp" className="mb-12">
+              <h2 style={{ fontSize: 20, fontWeight: 600, color: '#292524', marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>Scénarios PRP</h2>
+              {prose('Le sélecteur « Scénario » en haut du poste PRP applique des presets de données pour tester les 6 combinaisons possibles. Il met à jour victimeDecedee, mode par ligne, et anneesEchues.')}
+
+              <div className="grid grid-cols-2 gap-4 mb-6" style={{ maxWidth: 680 }}>
+                {[
+                  { key: 'decede-capital-echu', label: 'Décédé + capital + échu', desc: 'Scénario de base. 3 ans écoulés, tous en capitalisation. Total = 616 500 €.', color: 'amber' },
+                  { key: 'decede-rente', label: 'Décédé + rente', desc: 'Tous les VI en rente. Échu = 108 000 €. À échoir affiché en badges RENTE avec montant/an.', color: 'amber' },
+                  { key: 'decede-mixte', label: 'Décédé + mixte', desc: 'Marie en capital (Viager × 20), Lucas et Emma en rente. Teste le mode par ligne.', color: 'amber' },
+                  { key: 'decede-sans-echu', label: 'Décédé + sans échu', desc: 'anneesEchues = 0. Table 3a masquée. Seuls 3b et 3c s\'affichent.', color: 'amber' },
+                  { key: 'blesse-capital', label: 'Blessé + capital', desc: 'VD vivante, revenu actuel 1 000 €/mois. Pas d\'auto-consommation. Même perte nette.', color: 'blue' },
+                  { key: 'blesse-rente', label: 'Blessé + rente', desc: 'Blessé, tous en rente. Mode calcul simplifié (pas d\'auto-conso).', color: 'blue' },
+                ].map(s => (
+                  <div key={s.key} className="border border-[#e7e5e3] rounded-lg p-4 bg-white">
+                    <div className="flex items-center gap-2 mb-2">
+                      {badge(s.label, s.color)}
+                    </div>
+                    <p style={{ fontSize: 12, color: '#78716c', lineHeight: '18px' }}>{s.desc}</p>
+                    <div className="mt-2"><span style={{ fontSize: 11, color: '#a8a29e' }}>{codeInline(s.key)}</span></div>
+                  </div>
+                ))}
+              </div>
+
+              <div className={cardBlockClass + ' mb-6'} style={{ maxWidth: 680 }}>
+                <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                  <div className="flex-1 px-3"><span style={colHeaderStyle}>Scénario</span></div>
+                  <div className="w-[100px] px-3"><span style={colHeaderStyle}>Auto-conso</span></div>
+                  <div className="w-[100px] px-3"><span style={colHeaderStyle}>Rev. actuel</span></div>
+                  <div className="w-[140px] px-3"><span style={colHeaderStyle}>À échoir</span></div>
+                </div>
+                {[
+                  { s: 'Décédé + capital', ac: '25%', ra: 'N/A', ae: 'perte × part × coeff' },
+                  { s: 'Décédé + rente', ac: '25%', ra: 'N/A', ae: 'badge RENTE /an' },
+                  { s: 'Blessé + capital', ac: '—', ra: '1 000 €/mois', ae: 'perte × part × coeff' },
+                  { s: 'Blessé + rente', ac: '—', ra: '1 000 €/mois', ae: 'badge RENTE /an' },
+                ].map((row, idx) => (
+                  <div key={idx} className="flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white">
+                    <div className="flex-1 px-3"><span style={{ fontSize: 13, color: '#292524' }}>{row.s}</span></div>
+                    <div className="w-[100px] px-3"><span style={{ fontSize: 13, color: '#78716c' }}>{row.ac}</span></div>
+                    <div className="w-[100px] px-3"><span style={{ fontSize: 13, color: '#78716c' }}>{row.ra}</span></div>
+                    <div className="w-[140px] px-3"><span style={{ fontSize: 12, color: '#78716c' }}>{row.ae}</span></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ====== AFFICHAGE OBSÈQUES ====== */}
+            {/* ====== ADAPTATION IA ====== */}
+            <div id="iv-adaptation-ia" className="mb-12">
+              <h2 style={{ fontSize: 20, fontWeight: 600, color: '#292524', marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>Adaptation aux requêtes IA</h2>
+              {prose('Le chat IA peut naviguer vers un poste IV et adapter la visualisation en fonction du contexte de la question. Exemples de mapping intention → action :')}
+
+              <div className="space-y-3 mb-8" style={{ maxWidth: 680 }}>
+                {[
+                  { query: '« Combien pour les obsèques de Marie ? »', action: 'Naviguer vers FO → filtrer / scroll aux lignes de Marie', mode: 'fo' },
+                  { query: '« Détail cercueil et préparation »', action: 'Naviguer vers FO → highlight la ligne Cercueil', mode: 'fo' },
+                  { query: '« Calcule la capitalisation de Marie (PRP) »', action: 'Naviguer vers PRP → scénario decede-capital-echu → table 3b visible', mode: 'prp' },
+                  { query: '« Passe Lucas en rente »', action: 'Naviguer vers PRP → modifier ligne vi-2 mode=rente → badge RENTE apparaît', mode: 'prp' },
+                  { query: '« Combien d\'échu pour toute la famille ? »', action: 'Naviguer vers PRP → table 3a → lire footer total échu', mode: 'prp' },
+                  { query: '« Compare les indemnités des enfants »', action: 'Naviguer vers PRP → table 3c (recap) → Lucas vs Emma côte à côte', mode: 'prp' },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-4 items-start border border-[#e7e5e3] rounded-lg p-3.5 bg-white">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Brain className="w-4 h-4 text-[#78716c]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div style={{ fontSize: 13, fontWeight: 500, color: '#292524', marginBottom: 4 }}>{item.query}</div>
+                      <div style={{ fontSize: 12, color: '#78716c', lineHeight: '18px' }}>{item.action}</div>
+                    </div>
+                    <div className="flex-shrink-0">
+                      {badge(item.mode, item.mode === 'prp' ? 'amber' : 'blue')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {prose('L\'IA utilise setPrpUseCase() et la navigation (navigateTo) pour adapter l\'affichage. Le scénario est un paramètre d\'affichage, pas une modification de données — la source de vérité reste ivPosteData.')}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ========== RENDER BARÈMES LIBRARY PAGE ==========
   const renderBaremesLibraryPage = () => (
     <div className="h-screen flex relative" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: '#27272a' }}>
@@ -15103,6 +15586,9 @@ export default function App() {
   }
   if (currentPage === 'components') {
     return renderComponentsPage();
+  }
+  if (currentPage === 'iv-structures') {
+    return renderIvStructuresPage();
   }
   if (currentPage === 'list') {
     return renderDossierListPage();
