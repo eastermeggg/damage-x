@@ -13,14 +13,28 @@ const initialState = {
 function jpReducer(state, action) {
   switch (action.type) {
     case 'PIN_DECISION': {
-      if (state.pinnedJP.some(p => p.decisionId === action.decisionId && p.dossierId === action.dossierId)) return state;
+      const existing = state.pinnedJP.find(p => p.decisionId === action.decisionId);
+      if (existing) {
+        // Already pinned — add posteId if provided and not already present
+        if (action.posteId && !existing.posteIds.includes(action.posteId)) {
+          return {
+            ...state,
+            pinnedJP: state.pinnedJP.map(p =>
+              p.decisionId === action.decisionId
+                ? { ...p, posteIds: [...p.posteIds, action.posteId] }
+                : p
+            ),
+          };
+        }
+        return state;
+      }
       return {
         ...state,
         pinnedJP: [...state.pinnedJP, {
           id: `pin-${Date.now()}`,
           decisionId: action.decisionId,
           dossierId: action.dossierId || 'dossier-1',
-          posteId: action.posteId || null,
+          posteIds: action.posteId ? [action.posteId] : [],
           impact: action.impact || '',
           addedAt: new Date().toISOString(),
           addedBy: 'user',
@@ -30,11 +44,27 @@ function jpReducer(state, action) {
     case 'UNPIN_DECISION':
       return { ...state, pinnedJP: state.pinnedJP.filter(p => p.decisionId !== action.decisionId) };
 
+    case 'TOGGLE_POSTE': {
+      const pin = state.pinnedJP.find(p => p.decisionId === action.decisionId);
+      if (!pin) return state;
+      const has = pin.posteIds.includes(action.posteId);
+      return {
+        ...state,
+        pinnedJP: state.pinnedJP.map(p =>
+          p.decisionId === action.decisionId
+            ? { ...p, posteIds: has ? p.posteIds.filter(id => id !== action.posteId) : [...p.posteIds, action.posteId] }
+            : p
+        ),
+      };
+    }
+
     case 'ATTACH_TO_POSTE':
       return {
         ...state,
         pinnedJP: state.pinnedJP.map(p =>
-          p.decisionId === action.decisionId ? { ...p, posteId: action.posteId } : p
+          p.decisionId === action.decisionId
+            ? { ...p, posteIds: p.posteIds.includes(action.posteId) ? p.posteIds : [...(p.posteIds || []), action.posteId] }
+            : p
         ),
       };
 
@@ -174,12 +204,16 @@ export default function useDemoCommands({ setChatMessages, setNavStack, tabsConf
     dispatch({ type: 'ATTACH_TO_POSTE', decisionId, posteId });
   }, []);
 
+  const togglePoste = useCallback((decisionId, posteId) => {
+    dispatch({ type: 'TOGGLE_POSTE', decisionId, posteId });
+  }, []);
+
   const isDecisionPinned = useCallback((decisionId) => {
     return jpState.pinnedJP.some(p => p.decisionId === decisionId);
   }, [jpState.pinnedJP]);
 
   const getPinnedForPoste = useCallback((posteId) => {
-    return jpState.pinnedJP.filter(p => p.posteId === posteId);
+    return jpState.pinnedJP.filter(p => p.posteIds && p.posteIds.includes(posteId));
   }, [jpState.pinnedJP]);
 
   const openStepper = useCallback((type) => dispatch({ type: 'SET_STEPPER', stepperType: type }), []);
@@ -196,6 +230,7 @@ export default function useDemoCommands({ setChatMessages, setNavStack, tabsConf
     pinDecision,
     unpinDecision,
     attachToPoste,
+    togglePoste,
     isDecisionPinned,
     getPinnedForPoste,
     openStepper,

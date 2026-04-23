@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   X, ChevronRight, ChevronDown, ExternalLink, Download, Bookmark, Search, Tag,
-  Landmark, Calendar, Hash, FileText, Heart, Scale, ArrowRight, LinkIcon,
-  User, Car,
+  Landmark, Calendar, Hash, FileText, Heart, Scale, LinkIcon,
+  User,
 } from 'lucide-react';
 import { getDecisionById, getPrimaryAmount, formatDateLong } from '../../data/mockDecisions';
 
@@ -15,7 +15,7 @@ function SidebarSectionHeader({ label, icon }) {
     <div className="flex items-center gap-1.5">
       {icon && <span className="text-[#a8a29e]">{icon}</span>}
       <span style={{
-        fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 600,
+        fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600,
         color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.05em',
       }}>
         {label}
@@ -24,38 +24,6 @@ function SidebarSectionHeader({ label, icon }) {
   );
 }
 
-function VictimeRow({ icon, label, value }) {
-  return (
-    <div className="flex items-center gap-2.5 py-2" style={{ borderBottom: '1px solid #f0efed' }}>
-      <span className="text-[#a8a29e] flex-shrink-0">{icon}</span>
-      <span style={{
-        width: 68, fontSize: 10, fontWeight: 500, fontFamily: "'IBM Plex Mono', monospace",
-        color: '#a8a29e', textTransform: 'uppercase', flexShrink: 0,
-      }}>
-        {label}
-      </span>
-      <span style={{ fontSize: 12, color: '#292524', lineHeight: '16px', flex: 1 }}>
-        {value || '—'}
-      </span>
-    </div>
-  );
-}
-
-function MetaRow({ label, value, highlight }) {
-  return (
-    <div className="flex py-2" style={{ borderBottom: '1px solid #f0efed' }}>
-      <span style={{
-        width: 80, fontSize: 10, fontWeight: 500, fontFamily: "'IBM Plex Mono', monospace",
-        color: '#a8a29e', textTransform: 'uppercase', flexShrink: 0, paddingTop: 2,
-      }}>
-        {label}
-      </span>
-      <span style={{ fontSize: 12, color: highlight ? '#b9703f' : '#292524', lineHeight: '18px', flex: 1 }}>
-        {value || '—'}
-      </span>
-    </div>
-  );
-}
 
 export default function DecisionDrawer({
   decisionId,
@@ -69,6 +37,7 @@ export default function DecisionDrawer({
   onUnpin,
   onAttachToPoste,
   posteOptions = [],
+  pinnedPosteIds = [],
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSection, setActiveSection] = useState(null);
@@ -198,7 +167,7 @@ export default function DecisionDrawer({
         {/* ═══════════ HEADER ═══════════ */}
         <div className="px-5 pt-4 pb-3 border-b border-[#e7e5e3] flex-shrink-0" style={{ backgroundColor: '#fafaf9' }}>
           <div className="flex items-baseline gap-2 mb-1">
-            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 500, color: '#b9703f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#b9703f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {decision.jurisdiction}{decision.chambre ? ` · ${decision.chambre}` : ''}
             </span>
           </div>
@@ -217,49 +186,64 @@ export default function DecisionDrawer({
               </div>
             </div>
 
-            {/* Actions — pin + assign poste */}
+            {/* Actions — unified save */}
             <div className="flex items-center gap-2">
-              {isPinned ? (
-                <button onClick={() => onUnpin?.(decision.id)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-colors hover:bg-[#fef2f2] hover:text-[#ef4444]"
-                  style={{ backgroundColor: '#fdf8f4', color: '#b9703f' }}
-                  title="Retirer du dossier">
-                  <Bookmark className="w-3 h-3" style={{ fill: 'currentColor' }} />
-                  Épinglée
-                </button>
-              ) : (
-                <button onClick={() => onPin?.(decision.id)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-all hover:opacity-90"
-                  style={{ backgroundColor: '#292524', color: 'white' }}>
-                  <Bookmark className="w-3 h-3" />
-                  Sauvegarder
-                </button>
-              )}
-
               <div className="relative">
                 <button onClick={() => setShowPosteDropdown(!showPosteDropdown)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium border border-[#e7e5e3] text-[#44403c] hover:bg-white transition-colors">
-                  <Tag className="w-3 h-3" />
-                  Assigner
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-all hover:opacity-90"
+                  style={isPinned ? { backgroundColor: '#fdf8f4', color: '#b9703f' } : { backgroundColor: '#292524', color: 'white' }}>
+                  <Bookmark className="w-3 h-3" style={isPinned ? { fill: 'currentColor' } : {}} />
+                  {isPinned ? 'Sauvegardee' : 'Sauvegarder'}
                 </button>
                 {showPosteDropdown && (
-                  <div className="absolute top-full mt-1.5 right-0 w-[220px] bg-white border border-[#e7e5e3] rounded-lg shadow-lg overflow-hidden" style={{ zIndex: 40 }}>
-                    {posteOptions.length === 0 ? (
-                      <div className="px-3 py-3 text-[12px] text-[#a8a29e]">Aucun poste disponible</div>
-                    ) : (
-                      posteOptions.map((p, i) => (
-                        <button key={p.id}
-                          onClick={() => { onAttachToPoste?.(decision.id, p.id); setShowPosteDropdown(false); }}
-                          className="w-full text-left px-3 py-2.5 text-[12px] text-[#292524] hover:bg-[#fafaf9] transition-colors"
-                          style={{ borderBottom: i < posteOptions.length - 1 ? '1px solid #f0efed' : 'none' }}>
-                          <span className="font-semibold" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{p.acronym}</span>
-                          <span className="text-[#78716c] ml-2">{p.label}</span>
-                        </button>
-                      ))
+                  <div className="absolute top-full mt-1.5 right-0 w-[260px] bg-white border border-[#e7e5e3] rounded-lg shadow-lg overflow-hidden" style={{ zIndex: 40 }}>
+                    <div className="px-3 py-2 border-b border-[#f0efed]">
+                      <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Sauvegarder dans...
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => { if (!isPinned) { onPin?.(decision.id); } setShowPosteDropdown(false); }}
+                      className="w-full text-left px-3 py-2.5 text-[12px] text-[#292524] hover:bg-[#fafaf9] transition-colors flex items-center gap-2"
+                      style={{ borderBottom: '1px solid #f0efed', backgroundColor: isPinned ? '#fafaf9' : 'transparent' }}>
+                      <div className="w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0"
+                        style={{ borderColor: isPinned ? '#b9703f' : '#d6d3d1', backgroundColor: isPinned ? '#b9703f' : 'white' }}>
+                        {isPinned && <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3.2 5.7L6.5 2.3" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                      </div>
+                      <Scale className="w-3.5 h-3.5 text-[#a8a29e]" />
+                      <span className="font-medium">Dossier</span>
+                      <span className="text-[#a8a29e] ml-0.5">(transverse)</span>
+                    </button>
+                    {posteOptions.length > 0 && (
+                      <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                        {posteOptions.map((p, i) => {
+                          const isChecked = pinnedPosteIds.includes(p.id);
+                          return (
+                            <button key={p.id}
+                              onClick={() => { onAttachToPoste?.(decision.id, p.id); }}
+                              className="w-full text-left px-3 py-2 text-[12px] text-[#292524] hover:bg-[#fafaf9] transition-colors flex items-center gap-2"
+                              style={{ borderBottom: i < posteOptions.length - 1 ? '1px solid #f0efed' : 'none' }}>
+                              <div className="w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0"
+                                style={{ borderColor: isChecked ? '#b9703f' : '#d6d3d1', backgroundColor: isChecked ? '#b9703f' : 'white' }}>
+                                {isChecked && <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3.2 5.7L6.5 2.3" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                              </div>
+                              <span className="badge badge-sm badge-secondary">{p.acronym}</span>
+                              <span className="text-[#78716c] truncate text-[12px]">{p.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                 )}
               </div>
+              {isPinned && (
+                <button onClick={() => onUnpin?.(decision.id)}
+                  className="p-1.5 rounded-md text-[#d6d3d1] hover:text-[#ef4444] hover:bg-[#fef2f2] transition-colors"
+                  title="Retirer du dossier">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -276,7 +260,7 @@ export default function DecisionDrawer({
             />
             {searchQuery && (
               <div className="flex items-center gap-2">
-                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: '#78716c' }}>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#78716c' }}>
                   {searchMatchCount} résultat{searchMatchCount !== 1 ? 's' : ''}
                 </span>
                 <button onClick={() => setSearchQuery('')} className="p-0.5 hover:bg-[#eeece6] rounded transition-colors">
@@ -368,69 +352,68 @@ export default function DecisionDrawer({
             )}
           </div>
 
-          {/* ── RIGHT: Profil victime sidebar ────────────── */}
+          {/* ── RIGHT: sidebar ────────────── */}
           <div className="overflow-y-auto flex-shrink-0" style={{ width: 300, backgroundColor: '#fafaf9' }}>
 
-            {/* Profil victime */}
+            {/* Montants — hero section */}
             <div className="px-4 pt-4 pb-3 border-b border-[#f0efed]">
-              <SidebarSectionHeader label="Profil victime" icon={<User className="w-3 h-3" />} />
+              <SidebarSectionHeader label="Montants" />
+              <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
+                {decision.amounts.map((amt, i) => (
+                  <div key={i} className="flex items-center justify-between px-3 py-2.5"
+                    style={{ borderBottom: i < decision.amounts.length - 1 ? '1px solid #f0efed' : 'none' }}>
+                    <span className="badge badge-sm badge-secondary" title={amt.label}>
+                      {amt.poste} : <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: '#b9703f' }}>{amt.displayValue}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Profil victime */}
+            <div className="px-4 py-3 border-b border-[#f0efed]">
+              <SidebarSectionHeader label="Profil victime" />
               {victime ? (
-                <div className="mt-3">
-                  <VictimeRow icon={<User className="w-3 h-3" />} label="Victime" value={victime} />
+                <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '1px solid #f0efed' }}>
+                    <span style={{ fontSize: 12, color: '#78716c' }}>Victime</span>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{victime}</span>
+                  </div>
                   {decision.category && (
-                    <VictimeRow icon={<Car className="w-3 h-3" />} label="Catégorie" value={decision.category} />
+                    <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: decision.status ? '1px solid #f0efed' : 'none' }}>
+                      <span style={{ fontSize: 12, color: '#78716c' }}>Catégorie</span>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{decision.category}</span>
+                    </div>
                   )}
                   {decision.status && (
-                    <VictimeRow icon={<Heart className="w-3 h-3" />} label="Statut" value={decision.status} />
+                    <div className="flex items-center justify-between px-3 py-2">
+                      <span style={{ fontSize: 12, color: '#78716c' }}>Statut</span>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{decision.status}</span>
+                    </div>
                   )}
                 </div>
               ) : (
-                <p style={{ fontSize: 12, color: '#a8a29e', marginTop: 8 }}>Données non disponibles pour cette décision.</p>
+                <p style={{ fontSize: 12, color: '#a8a29e', marginTop: 8 }}>Données non disponibles.</p>
               )}
             </div>
 
-            {/* Montants — all amounts */}
-            <div className="px-4 py-3 border-b border-[#f0efed]">
-              {decision.amounts.map((amt, i) => (
-                <div key={i} className={`flex items-center justify-between px-3 py-2.5 rounded-md bg-white border border-[#e7e5e3]${i > 0 ? ' mt-2' : ''}`}>
-                  <span style={{ fontSize: 12, color: '#78716c' }}>
-                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 12 }}>{amt.poste}</span>
-                    <span className="ml-1.5" style={{ fontSize: 12, color: '#a8a29e' }}>{amt.label}</span>
-                  </span>
-                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 16, fontWeight: 700, color: '#b9703f' }}>{amt.displayValue}</span>
-                </div>
-              ))}
-              {decision.category && (
-                <div className="mt-2">
-                  <MetaRow label="Catégorie" value={decision.category} />
-                </div>
-              )}
-            </div>
-
-            {/* Consolidation link */}
-            {med?.consolidation && (
+            {/* Consolidation + données médicales */}
+            {(med?.consolidation || med?.items?.length > 0) && (
               <div className="px-4 py-3 border-b border-[#f0efed]">
-                <button className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-[#e7e5e3] bg-white hover:bg-[#f5f5f4] transition-colors text-left">
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: '#78716c', textTransform: 'uppercase', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.03em' }}>
-                      Accéder à la consolidation
+                <SidebarSectionHeader label="Données médicales" />
+                <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
+                  {med?.consolidation && (
+                    <div className="flex items-center justify-between px-3 py-2"
+                      style={{ borderBottom: med?.items?.length > 0 ? '1px solid #f0efed' : 'none' }}>
+                      <span style={{ fontSize: 12, color: '#78716c' }}>Consolidation</span>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{med.consolidation}</span>
                     </div>
-                    <div style={{ fontSize: 12, color: '#292524', marginTop: 2 }}>{med.consolidation}</div>
-                  </div>
-                  <ArrowRight className="w-3.5 h-3.5 text-[#a8a29e] flex-shrink-0" />
-                </button>
-              </div>
-            )}
-
-            {/* Données médicales */}
-            {med?.items?.length > 0 && (
-              <div className="px-4 py-3 border-b border-[#f0efed]">
-                <SidebarSectionHeader label="Données médicales" icon={<Heart className="w-3 h-3" />} />
-                <div className="mt-2 space-y-2">
-                  {med.items.map((item, i) => (
-                    <div key={i} className="px-3 py-2 rounded-md bg-white border border-[#f0efed]">
-                      <div style={{ fontSize: 12, fontWeight: 500, color: '#292524', lineHeight: '16px' }}>{item.label}</div>
-                      <div style={{ fontSize: 12, color: '#78716c', marginTop: 2 }}>{item.detail}</div>
+                  )}
+                  {med?.items?.map((item, i) => (
+                    <div key={i} className="px-3 py-2"
+                      style={{ borderBottom: i < med.items.length - 1 ? '1px solid #f0efed' : 'none' }}>
+                      <div style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{item.label}</div>
+                      <div style={{ fontSize: 12, color: '#78716c', marginTop: 1 }}>{item.detail}</div>
                     </div>
                   ))}
                 </div>
@@ -440,25 +423,22 @@ export default function DecisionDrawer({
             {/* Préjudices temporaires */}
             {prejudices?.temporaires?.length > 0 && (
               <div className="px-4 py-3 border-b border-[#f0efed]">
-                <SidebarSectionHeader label="Préj. temporaires" />
+                <SidebarSectionHeader label="Préjudices temporaires" />
                 <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
                   {prejudices.temporaires.map((p, i) => (
                     <div key={i} className="flex items-center justify-between px-3 py-2"
-                      style={{ borderBottom: i < prejudices.temporaires.length - 1 ? '1px solid #f0efed' : 'none' }}>
+                      style={{ borderBottom: '1px solid #f0efed' }}>
                       <span style={{ fontSize: 12, color: '#44403c', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>
                         {p.label}
                       </span>
-                      <span style={{
-                        fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600,
-                        color: p.highlighted ? '#b9703f' : '#292524', flexShrink: 0,
-                      }}>
+                      <span className="flex-shrink-0" style={{ fontSize: 14, fontWeight: 600, color: p.highlighted ? '#b9703f' : '#292524' }}>
                         {fmt(p.montant)} €
                       </span>
                     </div>
                   ))}
-                  <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#fafaf9', borderTop: '1px solid #f0efed' }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#78716c', textTransform: 'uppercase', fontFamily: "'IBM Plex Mono', monospace" }}>Total</span>
-                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 700, color: '#292524' }}>{fmt(tempTotal)} €</span>
+                  <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#fafaf9' }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase' }}>Total</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#292524' }}>{fmt(tempTotal)} €</span>
                   </div>
                 </div>
               </div>
@@ -467,25 +447,22 @@ export default function DecisionDrawer({
             {/* Préjudices permanents */}
             {prejudices?.permanents?.length > 0 && (
               <div className="px-4 py-3 border-b border-[#f0efed]">
-                <SidebarSectionHeader label="Préj. permanents" />
+                <SidebarSectionHeader label="Préjudices permanents" />
                 <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
                   {prejudices.permanents.map((p, i) => (
                     <div key={i} className="flex items-center justify-between px-3 py-2"
-                      style={{ borderBottom: i < prejudices.permanents.length - 1 ? '1px solid #f0efed' : 'none' }}>
+                      style={{ borderBottom: '1px solid #f0efed' }}>
                       <span style={{ fontSize: 12, color: '#44403c', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>
                         {p.label}
                       </span>
-                      <span style={{
-                        fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600,
-                        color: p.highlighted ? '#b9703f' : '#292524', flexShrink: 0,
-                      }}>
+                      <span className="flex-shrink-0" style={{ fontSize: 14, fontWeight: 600, color: p.highlighted ? '#b9703f' : '#292524' }}>
                         {fmt(p.montant)} €
                       </span>
                     </div>
                   ))}
-                  <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#fafaf9', borderTop: '1px solid #f0efed' }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#78716c', textTransform: 'uppercase', fontFamily: "'IBM Plex Mono', monospace" }}>Total</span>
-                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 700, color: '#292524' }}>{fmt(permTotal)} €</span>
+                  <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#fafaf9' }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase' }}>Total</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#292524' }}>{fmt(permTotal)} €</span>
                   </div>
                 </div>
               </div>
