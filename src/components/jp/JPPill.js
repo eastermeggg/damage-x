@@ -25,8 +25,8 @@ export default function JPPill({
         gap: 4,
         padding: '2px 8px',
         borderRadius: 6,
-        border: isSelected ? '1.5px solid #b9703f' : '1px solid #e7e5e3',
-        backgroundColor: isSelected ? 'rgba(185, 112, 63, 0.06)' : '#fafaf9',
+        border: isSelected ? '1.5px solid #b9703f' : '1px solid transparent',
+        backgroundColor: isSelected ? 'rgba(185, 112, 63, 0.06)' : '#eeece6',
         cursor: 'pointer',
         verticalAlign: 'baseline',
         lineHeight: '16px',
@@ -37,7 +37,7 @@ export default function JPPill({
         if (!isSelected) e.currentTarget.style.borderColor = '#b9703f';
       }}
       onMouseOut={(e) => {
-        if (!isSelected) e.currentTarget.style.borderColor = '#e7e5e3';
+        if (!isSelected) e.currentTarget.style.borderColor = 'transparent';
       }}
     >
       {saved && (
@@ -53,10 +53,13 @@ export default function JPPill({
       <span style={{ fontSize: 12, color: '#44403c' }}>
         {formatDateShort(decision.date)}
       </span>
-      <span style={{ fontSize: 12, color: '#a8a29e' }}>›</span>
-      <span style={{ fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, color: '#b9703f' }}>
-        {decision.amounts?.[0]?.displayValue}
-      </span>
+      {decision.amounts?.[0] && (
+        <>
+          <span style={{ fontSize: 12, color: '#a8a29e' }}>›</span>
+          <span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>{decision.amounts[0].poste} : </span>
+          <span style={{ fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, color: '#b9703f' }}>{decision.amounts[0].displayValue}</span>
+        </>
+      )}
     </span>
   );
 }

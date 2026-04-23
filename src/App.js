@@ -7850,14 +7850,16 @@ export default function App() {
       // JP tab — search + saved decisions
       if (currentLevel.activeTab === 'jp') {
         return (
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col overflow-hidden">
             <JPSearchView
               pinnedJP={jp.jpState.pinnedJP}
               selectedDecisionId={jp.jpState.drawerDecisionId}
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onPin={(id) => jp.pinDecision(id)}
+              onSaveToDossier={(id) => jp.pinDecision(id)}
+              onTogglePoste={(id, posteId) => { jp.pinDecision(id); jp.togglePoste(id, posteId); }}
               onUnpin={(id) => jp.unpinDecision(id)}
               onAddClick={() => jp.openStepper('jp-add')}
+              posteOptions={jpPosteOptions}
             />
           </div>
         );
@@ -8106,6 +8108,22 @@ export default function App() {
             </div>{/* end p-4 */}
           </div>{/* end CALCUL section */}
 
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <JPListing
+              pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+              selectedDecisionId={jp.jpState.drawerDecisionId}
+              compact={true}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+              onAddClick={() => jp.openStepper('jp-add')}
+              posteLabel={currentLevel.title}
+              onSearchJP={() => {
+                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
+                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
+              }}
+            />
+          </div>
+
           {/* NOTES / ARGUMENTAIRE Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
@@ -8123,15 +8141,6 @@ export default function App() {
               />
             </div>
           </div>
-
-          {/* JURISPRUDENCES Section */}
-          <JPListing
-            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
-            selectedDecisionId={jp.jpState.drawerDecisionId}
-            compact={true}
-            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-            onAddClick={() => jp.openStepper('jp-add')}
-          />
 
         </div>
       );
@@ -8409,6 +8418,22 @@ export default function App() {
             </div>
           </div>
 
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <JPListing
+              pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+              selectedDecisionId={jp.jpState.drawerDecisionId}
+              compact={true}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+              onAddClick={() => jp.openStepper('jp-add')}
+              posteLabel={currentLevel.title}
+              onSearchJP={() => {
+                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
+                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
+              }}
+            />
+          </div>
+
           {/* NOTES / ARGUMENTAIRE Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
@@ -8426,15 +8451,6 @@ export default function App() {
               />
             </div>
           </div>
-
-          {/* JURISPRUDENCES Section */}
-          <JPListing
-            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
-            selectedDecisionId={jp.jpState.drawerDecisionId}
-            compact={true}
-            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-            onAddClick={() => jp.openStepper('jp-add')}
-          />
         </div>
       );
     }
@@ -8691,6 +8707,22 @@ export default function App() {
             </div>
           </div>
 
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <JPListing
+              pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+              selectedDecisionId={jp.jpState.drawerDecisionId}
+              compact={true}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+              onAddClick={() => jp.openStepper('jp-add')}
+              posteLabel={currentLevel.title}
+              onSearchJP={() => {
+                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
+                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
+              }}
+            />
+          </div>
+
           {/* NOTES / ARGUMENTAIRE Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
@@ -8708,15 +8740,6 @@ export default function App() {
               />
             </div>
           </div>
-
-          {/* JURISPRUDENCES Section */}
-          <JPListing
-            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
-            selectedDecisionId={jp.jpState.drawerDecisionId}
-            compact={true}
-            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-            onAddClick={() => jp.openStepper('jp-add')}
-          />
         </div>
       );
     }
@@ -8925,6 +8948,22 @@ export default function App() {
             </div>{/* end p-4 */}
           </div>{/* end CALCUL section */}
 
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <JPListing
+              pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+              selectedDecisionId={jp.jpState.drawerDecisionId}
+              compact={true}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+              onAddClick={() => jp.openStepper('jp-add')}
+              posteLabel={currentLevel.title}
+              onSearchJP={() => {
+                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
+                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
+              }}
+            />
+          </div>
+
           {/* NOTES / ARGUMENTAIRE Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
@@ -8942,15 +8981,6 @@ export default function App() {
               />
             </div>
           </div>
-
-          {/* JURISPRUDENCES Section */}
-          <JPListing
-            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
-            selectedDecisionId={jp.jpState.drawerDecisionId}
-            compact={true}
-            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-            onAddClick={() => jp.openStepper('jp-add')}
-          />
 
         </div>
       );
@@ -9060,6 +9090,22 @@ export default function App() {
             </div>
           </div>
 
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <JPListing
+              pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+              selectedDecisionId={jp.jpState.drawerDecisionId}
+              compact={true}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+              onAddClick={() => jp.openStepper('jp-add')}
+              posteLabel={currentLevel.title}
+              onSearchJP={() => {
+                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
+                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
+              }}
+            />
+          </div>
+
           {/* NOTES / ARGUMENTAIRE Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
@@ -9077,15 +9123,6 @@ export default function App() {
               />
             </div>
           </div>
-
-          {/* JURISPRUDENCES Section */}
-          <JPListing
-            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
-            selectedDecisionId={jp.jpState.drawerDecisionId}
-            compact={true}
-            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-            onAddClick={() => jp.openStepper('jp-add')}
-          />
         </div>
       );
     }
@@ -9193,6 +9230,22 @@ export default function App() {
             </div>
           </div>
 
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <JPListing
+              pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+              selectedDecisionId={jp.jpState.drawerDecisionId}
+              compact={true}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+              onAddClick={() => jp.openStepper('jp-add')}
+              posteLabel={currentLevel.title}
+              onSearchJP={() => {
+                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
+                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
+              }}
+            />
+          </div>
+
           {/* NOTES / ARGUMENTAIRE Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
@@ -9210,15 +9263,6 @@ export default function App() {
               />
             </div>
           </div>
-
-          {/* JURISPRUDENCES Section */}
-          <JPListing
-            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
-            selectedDecisionId={jp.jpState.drawerDecisionId}
-            compact={true}
-            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-            onAddClick={() => jp.openStepper('jp-add')}
-          />
         </div>
       );
     }
@@ -9366,6 +9410,22 @@ export default function App() {
             </div>
           </div>
 
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <JPListing
+              pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+              selectedDecisionId={jp.jpState.drawerDecisionId}
+              compact={true}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+              onAddClick={() => jp.openStepper('jp-add')}
+              posteLabel={currentLevel.title}
+              onSearchJP={() => {
+                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
+                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
+              }}
+            />
+          </div>
+
           {/* NOTES / ARGUMENTAIRE Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
@@ -9383,15 +9443,6 @@ export default function App() {
               />
             </div>
           </div>
-
-          {/* JURISPRUDENCES Section */}
-          <JPListing
-            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
-            selectedDecisionId={jp.jpState.drawerDecisionId}
-            compact={true}
-            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-            onAddClick={() => jp.openStepper('jp-add')}
-          />
         </div>
       );
     }
@@ -10312,6 +10363,22 @@ export default function App() {
             </div>
           </div>
 
+          {/* JURISPRUDENCES Section */}
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <JPListing
+              pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
+              selectedDecisionId={jp.jpState.drawerDecisionId}
+              compact={true}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
+              onAddClick={() => jp.openStepper('jp-add')}
+              posteLabel={currentLevel.title}
+              onSearchJP={() => {
+                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
+                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
+              }}
+            />
+          </div>
+
           {/* NOTES / ARGUMENTAIRE Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
@@ -10329,15 +10396,6 @@ export default function App() {
               />
             </div>
           </div>
-
-          {/* JURISPRUDENCES Section */}
-          <JPListing
-            pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
-            selectedDecisionId={jp.jpState.drawerDecisionId}
-            compact={true}
-            onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-            onAddClick={() => jp.openStepper('jp-add')}
-          />
         </div>
       );
     }
@@ -15613,8 +15671,8 @@ export default function App() {
         <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
           {renderTopBar()}
           {renderContentSubHeader()}
-          <div className="flex-1 overflow-y-auto">
-            <div className={`min-h-full flex flex-col ${currentLevel.type === 'dossier' && currentLevel.activeTab !== 'jp' ? 'px-8 pt-6 pb-8' : ''}`}>{renderContent()}</div>
+          <div className={`flex-1 ${currentLevel.activeTab === 'jp' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+            <div className={`${currentLevel.activeTab === 'jp' ? 'h-full' : 'min-h-full'} flex flex-col ${currentLevel.type === 'dossier' && currentLevel.activeTab !== 'jp' ? 'px-8 pt-6 pb-8' : ''}`}>{renderContent()}</div>
           </div>
         </div>
 
@@ -15634,12 +15692,13 @@ export default function App() {
           resultSet={jp.jpState.drawerResultSet}
           resultIndex={jp.jpState.drawerIndex}
           isPinned={jp.isDecisionPinned(jp.jpState.drawerDecisionId)}
+          pinnedPosteIds={(jp.jpState.pinnedJP.find(p => p.decisionId === jp.jpState.drawerDecisionId)?.posteIds) || []}
           onClose={jp.closeDrawer}
           onPrev={jp.drawerPrev}
           onNext={jp.drawerNext}
           onPin={(id) => jp.pinDecision(id)}
           onUnpin={(id) => jp.unpinDecision(id)}
-          onAttachToPoste={(id, posteId) => { jp.pinDecision(id); jp.attachToPoste(id, posteId); }}
+          onAttachToPoste={(id, posteId) => { jp.pinDecision(id); jp.togglePoste(id, posteId); }}
           posteOptions={jpPosteOptions}
         />
       )}
