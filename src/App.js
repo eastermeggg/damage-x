@@ -7,7 +7,8 @@ import { JPPill, JPPopoverCard, DecisionDrawer, JPListing, JPAddStepper, SlashCo
 import useDemoCommands from './hooks/useDemoCommands';
 import { getDecisionById } from './data/mockDecisions';
 import { getTPScenario, TP_COMMAND_LIST, TP_COMMAND_MAP } from './data/tpScenarios';
-import { BASELINE_DSA_LIGNES, BASELINE_DFT_LIGNES, BASELINE_PGPA_DATA, BASELINE_PGPF_DATA, BASELINE_FORM_POSTE_DATA } from './data/baselineData';
+import { BASELINE_DSA_LIGNES, BASELINE_DFT_LIGNES, BASELINE_PGPA_DATA, BASELINE_PGPF_DATA, BASELINE_FORM_POSTE_DATA, BASELINE_FDA_LIGNES, BASELINE_DSF_DATA } from './data/baselineData';
+import { NATURE_CREANCE, NATURE_TO_POSTE, NATURE_LABELS } from './data/tpScenarios';
 
 const POSTES_TAXONOMY = [
   {
@@ -16,7 +17,7 @@ const POSTES_TAXONOMY = [
       { title: 'Préjudices patrimoniaux temporaires', id: 'vd-pat-temp', postes: [
         { id: 'dsa', acronym: 'DSA', label: 'Dépenses de santé actuelles', enabled: true },
         { id: 'pgpa', acronym: 'PGPA', label: 'Pertes de gains professionnels actuels', enabled: true },
-        { id: 'fda', label: 'Frais divers actuels', enabled: false },
+        { id: 'fda', acronym: 'FDA', label: 'Frais divers actuels', enabled: true },
         { id: 'psuf', label: 'Préjudice scolaire, universitaire ou de formation', enabled: false },
         { id: 'atpt', label: 'Assistance par une tierce personne temporaire', enabled: false },
       ]},
@@ -25,11 +26,11 @@ const POSTES_TAXONOMY = [
         { id: 'pet', label: 'Préjudice esthétique temporaire', enabled: false },
       ]},
       { title: 'Préjudices patrimoniaux permanents', id: 'vd-pat-perm', postes: [
-        { id: 'dsf', label: 'Dépenses de santé futures', enabled: false },
+        { id: 'dsf', acronym: 'DSF', label: 'Dépenses de santé futures', enabled: true },
         { id: 'fdf', label: 'Frais divers futurs', enabled: false },
         { id: 'fla', label: 'Frais de logement adapté', enabled: false },
         { id: 'fva', label: 'Frais de véhicule adapté', enabled: false },
-        { id: 'pgpf', label: 'Pertes de gains professionnels futurs', enabled: false },
+        { id: 'pgpf', acronym: 'PGPF', label: 'Pertes de gains professionnels futurs', enabled: true },
         { id: 'ipp', acronym: 'IP', label: 'Incidence professionnelle', enabled: false },
         { id: 'atpf', label: 'Assistance par une tierce personne future', enabled: false },
       ]},
@@ -922,7 +923,7 @@ export default function App() {
   const [activeParamChip, setActiveParamChip] = useState(null); // which param chip config is expanded
   const [enabledParams, setEnabledParams] = useState({ 'revaloriser': true, 'revaloriser-pgpa': true, 'capitaliser-pgpf': true, 'base-journaliere-dft': true, 'revaloriser-se': true, 'revaloriser-pep': true, 'revaloriser-dfp': true }); // toggle on/off per param
   const [totalExpanded, setTotalExpanded] = useState({}); // { [posteId]: boolean }
-  const [dossierPostes, setDossierPostes] = useState(['dsa', 'pgpa', 'dft', 'pgpf', 'se', 'dfp', 'pep']); // IDs of postes added to this dossier
+  const [dossierPostes, setDossierPostes] = useState(['dsa', 'fda', 'pgpa', 'dft', 'pgpf', 'dsf', 'se', 'dfp', 'pep']); // IDs of postes added to this dossier
   const [ivDossierPostes, setIvDossierPostes] = useState(['pai', 'pafv', 'pepe', 'fdp', 'fo', 'prp']); // IDs of IV postes enabled in this dossier
   const [ivPosteData, setIvPosteData] = useState({
     // Type A — Préjudice d'affection
@@ -1234,6 +1235,12 @@ export default function App() {
   // ========== DFT ==========
   const [dftLignes, setDftLignes] = useState(BASELINE_DFT_LIGNES);
 
+  // ========== FDA (Frais Divers Actuels) ==========
+  const [fdaLignes, setFdaLignes] = useState(BASELINE_FDA_LIGNES);
+
+  // ========== DSF (Dépenses de Santé Futures) ==========
+  const [dsfData, setDsfData] = useState(BASELINE_DSF_DATA);
+
   // (wizard supprimé - sera remplacé par flow création dossier)
 
   // ========== PERSISTENCE HELPERS ==========
@@ -1343,8 +1350,10 @@ export default function App() {
     setPgpfData(data.pgpfData ?? BASELINE_PGPF_DATA);
     // Migration: fusionner anciens dfttLignes + dftpLignes si format legacy
     setDftLignes(data.dftLignes ?? [...(data.dfttLignes ?? []), ...(data.dftpLignes ?? BASELINE_DFT_LIGNES)]);
-    setDossierPostes(data.dossierPostes ?? ['dsa', 'pgpa', 'dft', 'pgpf', 'se', 'dfp', 'pep']);
+    setDossierPostes(data.dossierPostes ?? ['dsa', 'fda', 'pgpa', 'dft', 'pgpf', 'dsf', 'se', 'dfp', 'pep']);
     setFormPosteData(data.formPosteData ?? BASELINE_FORM_POSTE_DATA);
+    setFdaLignes(data.fdaLignes ?? BASELINE_FDA_LIGNES);
+    setDsfData(data.dsfData ?? BASELINE_DSF_DATA);
     setIvDossierPostes(data.ivDossierPostes ?? EMPTY_DOSSIER.ivDossierPostes);
     setIvPosteData(data.ivPosteData ?? EMPTY_DOSSIER.ivPosteData);
     setIvPosteSharedData(data.ivPosteSharedData ?? EMPTY_DOSSIER.ivPosteSharedData);
@@ -1696,6 +1705,10 @@ export default function App() {
 
   const dftTotal = dftLignes.reduce((s, l) => s + l.montant, 0);
 
+  const fdaTotal = fdaLignes.reduce((s, l) => s + (l.montant || 0), 0);
+
+  const dsfTotal = (dsfData.lignes || []).reduce((s, l) => s + (l.montantCapitalise || l.montant || 0), 0);
+
   // Category mapping for Nomenclature Dintilhac
   const CATEGORY_MAP = {
     'vd-pat-temp': { id: 'patrimoniaux-temp', title: 'Préjudices Patrimoniaux Temporaires' },
@@ -1721,6 +1734,8 @@ export default function App() {
     if (id === 'pgpa') return pgpaTotal;
     if (id === 'dft') return dftTotal;
     if (id === 'pgpf') return pgpfTotal;
+    if (id === 'fda') return fdaTotal;
+    if (id === 'dsf') return dsfTotal;
     return formPosteData[id]?.montant || 0;
   };
 
@@ -2760,6 +2775,8 @@ export default function App() {
     setPgpaData(BASELINE_PGPA_DATA);
     setPgpfData(BASELINE_PGPF_DATA);
     setFormPosteData(BASELINE_FORM_POSTE_DATA);
+    setFdaLignes(BASELINE_FDA_LIGNES);
+    setDsfData(BASELINE_DSF_DATA);
     setIvDossierPostes(EMPTY_DOSSIER.ivDossierPostes);
     setIvPosteData(EMPTY_DOSSIER.ivPosteData);
     setIvPosteSharedData(EMPTY_DOSSIER.ivPosteSharedData);
@@ -3040,7 +3057,7 @@ export default function App() {
       // TP commands
       if (cmd.startsWith('tp-')) {
         if (cmd === 'tp-help') {
-          setChatMessages(prev => [...prev, { type: 'ai', text: "Commandes Tiers payeurs disponibles :\n\n/tp-cr-globale--perte-de-chance — CR globale + perte de chance 30 % (droit de préférence)\n/tp-ligne--classique — Extraction ligne par ligne, 100 % (DSA par facture, IJ CPAM)\n/tp-cascade — Cascade AT/MP (rente capitalisée PGPF → IP → DFP)\n/tp-reset — Revenir au scénario de base" }]);
+          setChatMessages(prev => [...prev, { type: 'ai', text: "Commandes Tiers payeurs disponibles :\n\n/tp-simple — Récap multi-postes (CPAM + Harmonie + SNCF)\n/tp-cascade — Cascade AT/MP (rente capitalisée PGPF → IP → DFP)\n/tp-reset — Revenir au scénario de base" }]);
           return;
         }
         const newKey = TP_COMMAND_MAP[cmd];
@@ -3849,7 +3866,7 @@ export default function App() {
                   setChatInputValue('');
                   if (cmd.startsWith('tp-')) {
                     if (cmd === 'tp-help') {
-                      setChatMessages(prev => [...prev, { type: 'ai', text: "Commandes Tiers payeurs disponibles :\n\n/tp-cr-globale--perte-de-chance — CR globale + perte de chance 30 % (droit de préférence)\n/tp-ligne--classique — Extraction ligne par ligne, 100 % (DSA par facture, IJ CPAM)\n/tp-cascade — Cascade AT/MP (rente capitalisée PGPF → IP → DFP)\n/tp-reset — Revenir au scénario de base" }]);
+                      setChatMessages(prev => [...prev, { type: 'ai', text: "Commandes Tiers payeurs disponibles :\n\n/tp-simple — Récap multi-postes (CPAM + Harmonie + SNCF)\n/tp-cascade — Cascade AT/MP (rente capitalisée PGPF → IP → DFP)\n/tp-reset — Revenir au scénario de base" }]);
                     } else {
                       const newKey = TP_COMMAND_MAP[cmd];
                       if (newKey) {
@@ -6532,6 +6549,123 @@ export default function App() {
     );
   };
 
+  // ── Créances TP Table — reusable table component (spec §5) ──
+  // Shows LigneCreance items imputed on a poste, grouped by TP.
+  // Supports hospital aggregation and negative amounts (franchises).
+  const renderCreancesTPTable = (posteId) => {
+    if (!hasTP) return null;
+    const byPoste = tpScenario._imputationsByPoste || {};
+    const lines = byPoste[posteId] || [];
+    if (lines.length === 0) return null;
+
+    const totalCreances = lines.reduce((s, l) => s + l.montant, 0);
+
+    return (
+      <div className={cardBlockClass}>
+        {/* Title bar */}
+        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#e7e5e3]">
+          <span className="inline-flex items-center justify-center w-7 h-7 bg-[#f5f0e8] rounded-md">
+            <FileText className="w-4 h-4 text-[#78716c]" />
+          </span>
+          <span className="text-body-medium" style={{ color: '#292524' }}>Créances tiers payeurs</span>
+        </div>
+
+        {/* Column headers */}
+        <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
+          <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
+          <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
+          <div className="w-[140px] flex-shrink-0 px-3" style={colHeaderStyle}>Tiers payeur</div>
+          <div className="w-[160px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant</div>
+        </div>
+
+        {/* Rows */}
+        {lines.map((line) => {
+          const isNeg = line.montant < 0;
+
+          // Aggregate row (hospital lines) with expand/collapse
+          if (line.isAggregate && line.subLignes?.length > 0) {
+            const subCount = line.subLignes.length;
+            const expandKey = `creance-${line.ligneId}`;
+            const isExpanded = isCardExpanded(expandKey);
+            return (
+              <React.Fragment key={line.ligneId}>
+                <div
+                  className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                  onClick={() => toggleCard(expandKey)}
+                >
+                  <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
+                    <span className="inline-flex items-center justify-center w-7 h-7 bg-[#f5f0e8] rounded-md relative">
+                      <FileText className="w-4 h-4 text-[#78716c]" />
+                      <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#78716c] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{subCount}</span>
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0 px-3 flex items-center gap-1.5">
+                    <span className="text-body-medium truncate" style={{ color: '#292524' }}>{line.libelle}</span>
+                    <ChevronRight className={`w-3.5 h-3.5 text-[#a8a29e] transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`} />
+                  </div>
+                  <div className="w-[140px] flex-shrink-0 px-3">
+                    <span className="text-body" style={{ color: '#78716c' }}>{line.sigle}</span>
+                  </div>
+                  <div className="w-[160px] px-3 text-right flex-shrink-0">
+                    <span className="text-body" style={{ color: '#44403c' }}>{fmt(line.montant)}</span>
+                  </div>
+                </div>
+                {isExpanded && line.subLignes.map(sub => (
+                  <div key={sub.id} className="flex items-center h-[44px] border-b border-[#e7e5e3] bg-[#fafaf9]">
+                    <div className="w-[52px] flex-shrink-0 pl-3" />
+                    <div className="flex-1 min-w-0 px-3 pl-8">
+                      <span className="text-caption" style={{ color: '#78716c' }}>{sub.libelle}</span>
+                    </div>
+                    <div className="w-[140px] flex-shrink-0 px-3" />
+                    <div className="w-[160px] px-3 text-right flex-shrink-0">
+                      <span className="text-caption" style={{ color: '#78716c' }}>{fmt(sub.montant)}</span>
+                    </div>
+                  </div>
+                ))}
+              </React.Fragment>
+            );
+          }
+
+          // Standard line
+          return (
+            <div key={line.ligneId} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white hover:bg-[#fafaf9] transition-colors">
+              <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
+                <span className="inline-flex items-center justify-center w-7 h-7 bg-[#f5f0e8] text-[#78716c] rounded-md">
+                  <FileText className="w-3.5 h-3.5" />
+                </span>
+              </div>
+              <div className="flex-1 min-w-0 px-3">
+                <span className="text-body-medium truncate block" style={{ color: '#292524' }}>{line.libelle}</span>
+              </div>
+              <div className="w-[140px] flex-shrink-0 px-3">
+                <span className="text-body" style={{ color: '#78716c' }}>{line.sigle}</span>
+              </div>
+              <div className="w-[160px] px-3 text-right flex-shrink-0">
+                <span className="text-body" style={{ color: isNeg ? '#b91c1c' : '#44403c' }}>
+                  {isNeg ? '\u2212 ' : ''}{fmt(Math.abs(line.montant))}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Footer total */}
+        <div className="border-t border-[#e7e5e3] bg-[#fafaf9]">
+          <div className="flex items-center h-10">
+            <div className="w-[52px] flex-shrink-0 pl-3" />
+            <div className="flex-1 min-w-0 px-3">
+              <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>Total créances</span>
+            </div>
+            <div className="w-[140px] flex-shrink-0 px-3" />
+            <div className="w-[160px] px-3 text-right flex-shrink-0">
+              <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>{fmt(totalCreances)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderPosteTPSection = (posteId) => {
     if (!hasTP) return null;
     const posteImputations = (tpScenario._imputations || []).filter(imp => imp.posteId === posteId);
@@ -6555,8 +6689,8 @@ export default function App() {
         {tpDivider()}
         {posteImputations.map((imp, idx) => {
           const tp = tpScenario.tiersPayeurs.find(t => t.id === imp.tiersPayeurId);
-          const ligne = (tpScenario.lignesTP || []).find(l => l.id === imp.ligneTPId);
-          const globalAmount = ligne?.montant;
+          // Look up global creance total for this TP
+          const globalAmount = tpScenario._totalByTP?.[imp.tiersPayeurId];
           return (
             <React.Fragment key={imp.id}>
               <div className="flex justify-between items-center">
@@ -7008,91 +7142,58 @@ export default function App() {
                     <span className="text-[11px] font-medium text-[#78716c] uppercase tracking-wider" style={colHeaderStyle}>Tiers payeurs</span>
                   </div>
 
-                  {tpScenario.extractionMode?.dsa === 'ligne' ? (
-                    /* Flat list — ligne par ligne mode */
-                    tpScenario.tiersPayeurs.map((tp) => {
-                      const tpImputations = (tpScenario._imputations || []).filter(i => i.tiersPayeurId === tp.id);
-                      const totalImpute = tpImputations.reduce((s, i) => s + (i.montantImpute || 0), 0);
-                      return (
-                        <div key={tp.id} className="flex items-center justify-between px-5 py-3 border-b border-[#f0efed] last:border-b-0">
+                  {/* CreanceTP per TP entity — expand to see lignes by nature */}
+                  {tpScenario.tiersPayeurs.map((tp) => {
+                    const creances = (tpScenario.creancesTP || []).filter(c => c.tiersPayeurId === tp.id);
+                    const totalTP = creances.reduce((s, c) => s + (c.lignes || []).reduce((s2, l) => s2 + l.montant, 0), 0);
+                    const allLignes = creances.flatMap(c => (c.lignes || []).map(l => ({ ...l, piece: c.piece, regle: c.regle })));
+                    const expanded = isCardExpanded(`registre-tp-${tp.id}`);
+
+                    return (
+                      <div key={tp.id} className="border-b border-[#f0efed] last:border-b-0">
+                        <div
+                          className="flex items-center justify-between px-5 py-3 cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                          onClick={() => toggleCard(`registre-tp-${tp.id}`)}
+                        >
                           <div className="flex items-center gap-2">
+                            {expanded ? <ChevronDown className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} /> : <ChevronRight className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />}
                             <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{tp.sigle}</span>
                             <span style={{ fontSize: 11, color: '#a8a29e', fontFamily: "'Inter', sans-serif" }}>{tp.type}</span>
                           </div>
-                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmtTP(totalImpute)}</span>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    /* Expand/collapse — récap & cascade modes */
-                    tpScenario.tiersPayeurs.map((tp) => {
-                      const tpImputations = (tpScenario._imputations || []).filter(i => i.tiersPayeurId === tp.id);
-                      const totalImpute = tpImputations.reduce((s, i) => s + (i.montantImpute || 0), 0);
-                      const tpLignes = (tpScenario.lignesTP || []).filter(l => l.tiersPayeurId === tp.id);
-                      const expanded = isCardExpanded(`registre-tp-${tp.id}`);
-                      const natureLabel = (n) => ({ CREANCE_RECAPITULATIVE: 'Créance récap.', FACTURE: 'Facture', IJ: 'IJ', RENTE: 'Rente', AUTRE: 'Autre' }[n] || n);
-
-                      return (
-                        <div key={tp.id} className="border-b border-[#f0efed] last:border-b-0">
-                          <div
-                            className="flex items-center justify-between px-5 py-3 cursor-pointer hover:bg-[#fafaf9] transition-colors"
-                            onClick={() => toggleCard(`registre-tp-${tp.id}`)}
-                          >
-                            <div className="flex items-center gap-2">
-                              {expanded ? <ChevronDown className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} /> : <ChevronRight className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />}
-                              <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{tp.sigle}</span>
-                              <span style={{ fontSize: 11, color: '#a8a29e', fontFamily: "'Inter', sans-serif" }}>{tp.type}</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span style={{ fontSize: 11, color: '#a8a29e' }}>{tpLignes.length} ligne{tpLignes.length > 1 ? 's' : ''}</span>
-                              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmtTP(totalImpute)}</span>
-                            </div>
+                          <div className="flex items-center gap-3">
+                            <span style={{ fontSize: 11, color: '#a8a29e' }}>{allLignes.length} ligne{allLignes.length > 1 ? 's' : ''}</span>
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmtTP(totalTP)}</span>
                           </div>
-                          {expanded && (
-                            <div className="px-5 pb-3 space-y-2">
-                              <div style={{ fontSize: 12, color: '#78716c', marginBottom: 4 }}>{tp.nom}</div>
-                              {tpLignes.map((ligne) => {
-                                const ligneExpanded = isCardExpanded(`registre-ligne-${ligne.id}`);
-                                return (
-                                  <div key={ligne.id} className="bg-[#fafaf9] rounded border border-[#f0efed] overflow-hidden">
-                                    <div
-                                      className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-[#f5f4f2] transition-colors"
-                                      onClick={() => toggleCard(`registre-ligne-${ligne.id}`)}
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        {ligneExpanded ? <ChevronDown className="w-3 h-3 text-[#a8a29e]" strokeWidth={1.5} /> : <ChevronRight className="w-3 h-3 text-[#a8a29e]" strokeWidth={1.5} />}
-                                        <span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>{natureLabel(ligne.nature)}</span>
-                                        <span style={{ fontSize: 11, color: '#a8a29e' }}>· {ligne.regle?.toLowerCase()}</span>
-                                        {ligne.postesProjetes && <span style={{ fontSize: 11, color: '#a8a29e' }}>· {ligne.postesProjetes.length} poste{ligne.postesProjetes.length > 1 ? 's' : ''}</span>}
-                                      </div>
-                                      <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: '#44403c' }}>{fmtTP(ligne.montant)}</span>
-                                    </div>
-                                    {ligneExpanded && (
-                                      <div className="px-3 pb-2 pt-1 border-t border-[#f0efed]">
-                                        {ligne.piece && <div style={{ fontSize: 11, color: '#a8a29e', marginBottom: 4 }}>{ligne.piece}</div>}
-                                        {ligne.postesProjetes && ligne.postesProjetes.map((pp, idx) => (
-                                          <div key={idx} className="flex items-center justify-between py-0.5">
-                                            <span style={{ fontSize: 11, color: '#78716c', textTransform: 'uppercase', fontFamily: "'IBM Plex Mono', monospace" }}>{pp.poste}</span>
-                                            <span style={{ fontSize: 11, color: '#44403c', fontFamily: "'IBM Plex Mono', monospace" }}>{fmtTP(pp.montant)}</span>
-                                          </div>
-                                        ))}
-                                        {(ligne.regle === 'CASCADE' || ligne.regle === 'CASCADE_CAPITALISEE') && tpScenario.cascade ? (
-                                          <button
-                                            className="mt-1 text-[11px] text-[#78716c] hover:text-[#44403c] hover:underline transition-colors"
-                                            onClick={(e) => { e.stopPropagation(); navigateTo({ type: 'cascade', id: 'cascade-from-registre', title: 'Cascade', fullTitle: tpScenario.cascade.label + ' \u2014 Cascade' }); }}
-                                          >voir la cascade {'\u2192'}</button>
-                                        ) : null}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
                         </div>
-                      );
-                    })
-                  )}
+                        {expanded && (
+                          <div className="px-5 pb-3 space-y-1">
+                            <div style={{ fontSize: 12, color: '#78716c', marginBottom: 4 }}>{tp.nom}</div>
+                            {allLignes.map((ligne) => {
+                              const posteLabel = ligne.posteCible?.replace('pgpf-echu', 'PGPF échu').replace('pgpf-aechoir', 'PGPF à échoir').toUpperCase();
+                              const isNeg = ligne.montant < 0;
+                              return (
+                                <div key={ligne.id} className="flex items-center justify-between py-1">
+                                  <div className="flex items-center gap-2">
+                                    <span style={{ fontSize: 12, color: '#44403c' }}>{NATURE_LABELS[ligne.nature] || ligne.libelle}</span>
+                                    <span style={{ fontSize: 10, color: '#a8a29e', fontFamily: "'IBM Plex Mono', monospace", textTransform: 'uppercase' }}>{posteLabel}</span>
+                                  </div>
+                                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: isNeg ? '#b91c1c' : '#44403c' }}>
+                                    {isNeg ? '\u2212 ' : ''}{fmtTP(Math.abs(ligne.montant))}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                            {creances.some(c => c.regle === 'CASCADE_CAPITALISEE' || c.regle === 'CASCADE') && tpScenario.cascade && (
+                              <button
+                                className="mt-1 text-[11px] text-[#78716c] hover:text-[#44403c] hover:underline transition-colors"
+                                onClick={(e) => { e.stopPropagation(); navigateTo({ type: 'cascade', id: 'cascade-from-registre', title: 'Cascade', fullTitle: tpScenario.cascade.label + ' \u2014 Cascade' }); }}
+                              >voir la cascade {'\u2192'}</button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -8091,10 +8192,6 @@ export default function App() {
       const totalResteACharge = totalMontant - totalRembourse;
       const indemniteVictime = allPostes.find(p => p.id === 'dsa')?.victimeAmount ?? totalResteACharge;
       const dsaHasTPImputations = hasTP && (tpScenario._imputations || []).some(i => i.posteId === 'dsa');
-      const dsaExtractionMode = hasTP ? tpScenario.extractionMode?.dsa : null;
-      const isLigneMode = dsaExtractionMode === 'ligne';
-      const ligneExtractions = tpScenario.ligneExtractions?.dsa || [];
-      const dsaTPs = isLigneMode ? tpScenario.tiersPayeurs.filter(tp => ligneExtractions.some(le => le.tpAmounts?.[tp.id])) : [];
 
       return (
         <div>
@@ -8198,17 +8295,8 @@ export default function App() {
                   <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
                   <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
                   <div className="flex-1 min-w-0 px-3 text-right" style={colHeaderStyle}>Date</div>
-                  <div className={`${isLigneMode ? 'w-[140px]' : 'w-[254px]'} px-3 text-right flex-shrink-0`} style={colHeaderStyle}>Montant</div>
-                  {isLigneMode ? (
-                    <>
-                      {dsaTPs.map(tp => (
-                        <div key={tp.id} className="w-[100px] px-2 text-right flex-shrink-0" style={colHeaderStyle}>{tp.sigle}</div>
-                      ))}
-                      <div className="w-[100px] px-2 text-right flex-shrink-0" style={colHeaderStyle}>RAC</div>
-                    </>
-                  ) : (
-                    <div className="flex-1 min-w-0 px-2 text-right" style={{ ...colHeaderStyle, ...(dsaHasTPImputations ? { color: '#a8a29e' } : {}) }} title={dsaHasTPImputations ? 'Neutralisé par créance récapitulative' : undefined}>Reste à charge</div>
-                  )}
+                  <div className="w-[254px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant</div>
+                  <div className="flex-1 min-w-0 px-2 text-right" style={{ ...colHeaderStyle, ...(dsaHasTPImputations ? { color: '#a8a29e' } : {}) }} title={dsaHasTPImputations ? 'Neutralisé par créance récapitulative' : undefined}>Reste à charge</div>
                 </div>
 
                 {/* Lignes */}
@@ -8257,7 +8345,7 @@ export default function App() {
                       </div>
 
                       {/* Montant */}
-                      <div className={`${isLigneMode ? 'w-[140px]' : 'w-[254px]'} px-3 text-right flex-shrink-0`}>
+                      <div className="w-[254px] px-3 text-right flex-shrink-0">
                         {l.montant != null ? (
                           <span className="text-body" style={{ color: '#44403c' }}>{fmt(l.montant)}</span>
                         ) : (
@@ -8267,37 +8355,15 @@ export default function App() {
                         )}
                       </div>
 
-                      {isLigneMode ? (
-                        <>
-                          {(() => {
-                            const ext = ligneExtractions.find(e => e.ligneId === l.id);
-                            return dsaTPs.map(tp => (
-                              <div key={tp.id} className="w-[100px] px-2 text-right flex-shrink-0">
-                                {l.montant != null && ext?.tpAmounts?.[tp.id] ? (
-                                  <span className="text-body" style={{ color: '#78716c' }}>{fmt(ext.tpAmounts[tp.id])}</span>
-                                ) : (
-                                  <span className="text-body" style={{ color: '#d6d3d1' }}>{'\u2014'}</span>
-                                )}
-                              </div>
-                            ));
-                          })()}
-                          <div className="w-[100px] px-2 text-right flex-shrink-0">
-                            {l.montant != null ? (
-                              <span className="text-body-medium" style={{ color: '#292524' }}>{fmt((l.montant || 0) - Object.values(ligneExtractions.find(e => e.ligneId === l.id)?.tpAmounts || {}).reduce((s, v) => s + v, 0))}</span>
-                            ) : null}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex-1 min-w-0 px-2 text-right">
-                          {l.montant != null ? (
-                            <span className="text-body-medium" style={{ color: dsaHasTPImputations ? '#a8a29e' : '#292524' }}>{fmt((l.montant || 0) - (l.dejaRembourse || 0))}</span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#f9ecd6] rounded-md text-caption-medium text-[#855b31]">
-                              <AlertCircle className="w-3 h-3" /> Compléter
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      <div className="flex-1 min-w-0 px-2 text-right">
+                        {l.montant != null ? (
+                          <span className="text-body-medium" style={{ color: dsaHasTPImputations ? '#a8a29e' : '#292524' }}>{fmt((l.montant || 0) - (l.dejaRembourse || 0))}</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#f9ecd6] rounded-md text-caption-medium text-[#855b31]">
+                            <AlertCircle className="w-3 h-3" /> Compléter
+                          </span>
+                        )}
+                      </div>
 
                     </div>
                   );
@@ -8314,33 +8380,19 @@ export default function App() {
                     <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>Total dépenses</span>
                   </div>
                   <div className="flex-1 min-w-0 px-3" />
-                  <div className={`${isLigneMode ? 'w-[140px]' : 'w-[254px]'} px-3 text-right flex-shrink-0`}>
+                  <div className="w-[254px] px-3 text-right flex-shrink-0">
                     <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>{fmt(totalMontant)}</span>
                   </div>
-                  {isLigneMode ? (
-                    <>
-                      {dsaTPs.map(tp => {
-                        const tpTotal = ligneExtractions.reduce((s, le) => s + (le.tpAmounts?.[tp.id] || 0), 0);
-                        return (
-                          <div key={tp.id} className="w-[100px] px-2 text-right flex-shrink-0">
-                            <span style={{ fontSize: 12, fontWeight: 400, color: '#a8a29e' }}>{fmt(tpTotal)}</span>
-                          </div>
-                        );
-                      })}
-                      <div className="w-[100px] px-2 text-right flex-shrink-0">
-                        <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>{fmt(totalMontant - ligneExtractions.reduce((s, le) => s + Object.values(le.tpAmounts || {}).reduce((ss, v) => ss + v, 0), 0))}</span>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex-1 min-w-0 px-2 text-right">
-                      {!dsaHasTPImputations && <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>{fmt(totalResteACharge)}</span>}
-                    </div>
-                  )}
+                  <div className="flex-1 min-w-0 px-2 text-right">
+                    {!dsaHasTPImputations && <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>{fmt(totalResteACharge)}</span>}
+                  </div>
                 </div>
               </div>
             )}
 
           </div>
+
+          {renderCreancesTPTable('dsa')}
 
           {renderTotalBlock('dsa', indemniteVictime, { guard: dsaLignes.length > 0 })}
 
@@ -8549,10 +8601,20 @@ export default function App() {
             </div>
             {/* Column headers */}
             {(() => {
-              const pgpaBadges = tpScenario.pgpaRevenusPercusBadges || {};
+              // Derive TP badges from creancesTP lines of nature IJ / MAINTIEN_SALAIRE
+              const pgpaTPLines = (tpScenario._imputationsByPoste?.['pgpa'] || []);
+              const pgpaBadges = {};
+              pgpaTPLines.forEach(line => {
+                if (line.nature === NATURE_CREANCE.IJ) {
+                  pgpaData.ijPercues.forEach(ij => { pgpaBadges[ij.id] = { badgeLabel: `${line.sigle} IJ`, sigle: line.sigle }; });
+                }
+                if (line.nature === NATURE_CREANCE.MAINTIEN_SALAIRE) {
+                  pgpaData.revenusPercus.forEach(rp => { pgpaBadges[rp.id] = { badgeLabel: line.sigle, sigle: line.sigle }; });
+                }
+              });
               const hasBadges = Object.keys(pgpaBadges).length > 0;
-              // Merge IJ into revenus perçus display when badges reference IJ entries
-              const mergedRevenusPercus = hasBadges && Object.keys(pgpaBadges).some(k => k.startsWith('pgpa-ij'))
+              // Merge IJ into revenus perçus display when TP scenario has IJ lines
+              const mergedRevenusPercus = hasBadges && pgpaTPLines.some(l => l.nature === NATURE_CREANCE.IJ)
                 ? [...pgpaData.revenusPercus, ...pgpaData.ijPercues.map(ij => ({ ...ij, _isIJ: true }))]
                 : pgpaData.revenusPercus;
               const mergedTotal = mergedRevenusPercus.reduce((s, l) => s + (l.montant || 0), 0);
@@ -8869,7 +8931,7 @@ export default function App() {
             {/* Cascade summary block — shown when ATMP cascade applies to PGPF */}
             {hasTP && tpScenario.cascade && (() => {
               const c = tpScenario.cascade;
-              const ligne = (tpScenario.lignesTP || []).find(l => l.id === c.ligneTPId);
+              const cascadeCreance = (tpScenario.creancesTP || []).find(cr => cr.id === c.creanceTPId);
               return (
                 <div className="px-3 py-3 rounded-md mb-2" style={{ backgroundColor: '#f5f0e8', border: '1px solid #e2ddd4' }}>
                   <div className="flex justify-between items-baseline mb-2">
@@ -8891,13 +8953,13 @@ export default function App() {
                     {tpLine('Total imputé', c.totalAbsorbe, { bold: true })}
                     {tpLine('Créance non recouvrée', c.nonRecouvre, { muted: true })}
                   </div>
-                  {ligne?.piece && (
+                  {cascadeCreance?.piece && (
                     <div className="mt-2">
                       <button
                         className="text-[11px] text-[#78716c] hover:text-[#44403c] hover:underline transition-colors"
                         onClick={() => setActiveTab('Dossier')}
                       >
-                        {ligne.piece} {'\u2192'}
+                        {cascadeCreance.piece} {'\u2192'}
                       </button>
                     </div>
                   )}
@@ -8910,7 +8972,6 @@ export default function App() {
               const grossEchu = hasTP && tpScenario.damageOverrides?.pgpfEchu != null ? tpScenario.damageOverrides.pgpfEchu : pgpfClTotal;
               const tpEchu = hasTP ? (tpScenario._imputations || []).filter(i => i.posteId === 'pgpf').reduce((s, i) => s + (i.montantImputeEchu || 0), 0) : 0;
               const victimeEchu = Math.max(0, grossEchu - tpEchu);
-              const echuImps = hasTP ? (tpScenario._imputations || []).filter(imp => imp.posteId === 'pgpf' && imp.montantImputeEchu) : [];
               const ijTotal = periodeCL.ijPercues ? periodeCL.ijPercues.reduce((s, l) => s + l.montant, 0) : 0;
               return renderTotalBlock('pgpfCl', victimeEchu, { label: 'PGPF échu', content: (
                 <>
@@ -8921,20 +8982,7 @@ export default function App() {
                     {ijTotal > 0 && tpLine('\u2212 IJ perçues', ijTotal)}
                     {tpSubtotal('Préjudice échu', pgpfClTotal)}
                   </div>
-                  {echuImps.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-[#e7e5e3] space-y-1.5">
-                      {echuImps.map((imp, idx) => {
-                        const tpEntity = tpScenario.tiersPayeurs.find(t => t.id === imp.tiersPayeurId);
-                        const ligne = (tpScenario.lignesTP || []).find(l => l.id === imp.ligneTPId);
-                        const globalAmount = ligne?.montant;
-                        return <React.Fragment key={idx}>{tpDeduction(
-                          tpEntity?.sigle || '?',
-                          imp.montantImputeEchu,
-                          `Arrérages échus de la rente AT/MP${globalAmount != null ? ` · créance globale ${fmtTP(globalAmount)}` : ''}`
-                        )}</React.Fragment>;
-                      })}
-                    </div>
-                  )}
+                  {renderCreancesTPTable('pgpf-echu')}
                 </>
               )});
             })()}
@@ -8946,7 +8994,6 @@ export default function App() {
             const grossAEchoir = hasTP && tpScenario.damageOverrides?.pgpfAEchoir != null ? tpScenario.damageOverrides.pgpfAEchoir : (periodeAL.params.montantCapitalise || 0);
             const tpAEchoir = hasTP ? (tpScenario._imputations || []).filter(i => i.posteId === 'pgpf').reduce((s, i) => s + (i.montantImputeAEchoir || 0), 0) : 0;
             const victimeAEchoir = Math.max(0, grossAEchoir - tpAEchoir);
-            const aEchoirImps = hasTP ? (tpScenario._imputations || []).filter(imp => imp.posteId === 'pgpf' && imp.montantImputeAEchoir) : [];
             return renderTotalBlock('pgpfAl', victimeAEchoir, { label: 'PGPF à échoir', content: (
               <>
                 <div className="mt-3 space-y-1">
@@ -8954,20 +9001,7 @@ export default function App() {
                   {tpLine('\u00d7 coefficient capitalisation', null, { raw: `\u00d7 ${periodeAL.params.coefficient}` })}
                   {tpSubtotal('Préjudice à échoir', periodeAL.params.montantCapitalise)}
                 </div>
-                {aEchoirImps.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-[#e7e5e3] space-y-1.5">
-                    {aEchoirImps.map((imp, idx) => {
-                      const tpEntity = tpScenario.tiersPayeurs.find(t => t.id === imp.tiersPayeurId);
-                      const ligne = (tpScenario.lignesTP || []).find(l => l.id === imp.ligneTPId);
-                      const globalAmount = ligne?.montant;
-                      return <React.Fragment key={idx}>{tpDeduction(
-                        tpEntity?.sigle || '?',
-                        imp.montantImputeAEchoir,
-                        `Rente AT/MP capitalisée (${fmt(tpScenario.cascade?.renteAnnuelle || 0)}/an \u00d7 ${tpScenario.cascade?.coefficient || 0})${globalAmount != null ? ` · créance globale ${fmtTP(globalAmount)}` : ''}`
-                      )}</React.Fragment>;
-                    })}
-                  </div>
-                )}
+                {renderCreancesTPTable('pgpf-aechoir')}
               </>
             )});
           })()}
@@ -9211,6 +9245,8 @@ export default function App() {
             </div>
           )}
 
+          {renderCreancesTPTable('dft')}
+
           {renderTotalBlock('dft', allPostes.find(p => p.id === 'dft')?.victimeAmount ?? dftTotal, { guard: dftLignes.length > 0 })}
 
               </div>{/* end space-y-4 */}
@@ -9344,6 +9380,8 @@ export default function App() {
                   </div>
                 </div>
 
+                {renderCreancesTPTable('se')}
+
                 {renderTotalBlock('se', seTotalDisplay)}
               </div>
             </div>
@@ -9472,6 +9510,8 @@ export default function App() {
                     <input type="file" id="pep-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" />
                   </div>
                 </div>
+
+                {renderCreancesTPTable('pep')}
 
                 {renderTotalBlock('pep', allPostes.find(p => p.id === 'pep')?.victimeAmount ?? pepData.montant)}
               </div>
@@ -9631,6 +9671,8 @@ export default function App() {
                   </div>
                 </div>
 
+                {renderCreancesTPTable('dfp')}
+
                 {renderTotalBlock('dfp', dfpTotalDisplay)}
               </div>
             </div>
@@ -9667,6 +9709,200 @@ export default function App() {
                 className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
                 placeholder="Ajoutez vos notes et arguments..."
               />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== IPP (Incidence Professionnelle) ==========
+    if (currentLevel.id === 'ipp') {
+      const ippMontant = formPosteData.ipp?.montant || getPosteMontant('ipp');
+      const ippIndemniteVictime = allPostes.find(p => p.id === 'ipp')?.victimeAmount ?? ippMontant;
+
+      return (
+        <div>
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+
+          <div className={cardBlockClass}>
+            <div className="px-5 py-3 bg-[#fafaf9] border-b border-[#f0efed]">
+              <span style={sectionHeaderStyle}>Incidence professionnelle</span>
+            </div>
+            <div className="px-5 py-4">
+              <div className="flex items-center justify-between">
+                <span style={{ fontSize: 13, color: '#57534e' }}>Montant retenu</span>
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(ippMontant)}</span>
+              </div>
+            </div>
+          </div>
+
+          {renderCreancesTPTable('ipp')}
+
+          {renderTotalBlock('ipp', ippIndemniteVictime)}
+
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== FDA (Frais Divers Actuels) ==========
+    if (currentLevel.id === 'fda') {
+      const fdaTotalMontant = fdaLignes.reduce((s, l) => s + (l.montant || 0), 0);
+      const fdaTotalRembourse = fdaLignes.reduce((s, l) => s + (l.dejaRembourse || 0), 0);
+      const fdaIndemniteVictime = allPostes.find(p => p.id === 'fda')?.victimeAmount ?? fdaTotalMontant;
+
+      return (
+        <div>
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+
+          {/* Expense table */}
+          <div className={cardBlockClass}>
+            <div className="px-5 py-3 bg-[#fafaf9] border-b border-[#f0efed] flex items-center justify-between">
+              <span style={sectionHeaderStyle}>Frais divers actuels</span>
+            </div>
+            <div className="overflow-x-auto">
+              <div style={{ minWidth: 600 }}>
+                {/* Column headers */}
+                <div className="flex items-center border-b border-[#f0efed]">
+                  <div className="w-[40px] shrink-0 px-3 py-2 text-center" style={{ ...colHeaderStyle, fontSize: 10 }}>
+                    <FileText className="w-3.5 h-3.5 text-[#d6d3d1] mx-auto" />
+                  </div>
+                  <div className="flex-1 min-w-0 px-3 py-2" style={{ ...colHeaderStyle, fontSize: 10 }}>Libellé</div>
+                  <div className="w-[100px] shrink-0 px-3 py-2" style={{ ...colHeaderStyle, fontSize: 10 }}>Type</div>
+                  <div className="w-[100px] shrink-0 px-3 py-2 text-right" style={{ ...colHeaderStyle, fontSize: 10 }}>Montant</div>
+                  <div className="w-[100px] shrink-0 px-3 py-2 text-right" style={{ ...colHeaderStyle, fontSize: 10 }}>Remboursé</div>
+                </div>
+                {/* Rows */}
+                {fdaLignes.map((l) => (
+                  <div key={l.id} className="flex items-center border-b border-[#f5f5f4] hover:bg-[#fafaf9]">
+                    <div className="w-[40px] shrink-0 px-3 py-2.5 text-center">
+                      <span style={{ fontSize: 10, color: '#a8a29e', fontFamily: "'IBM Plex Mono', monospace" }}>{l.pieceIds?.length || 0}</span>
+                    </div>
+                    <div className="flex-1 min-w-0 px-3 py-2.5">
+                      <div style={{ fontSize: 13, color: '#292524', fontWeight: 400 }}>{l.label}</div>
+                      {l.description && <div style={{ fontSize: 11, color: '#a8a29e', marginTop: 1 }}>{l.description}</div>}
+                    </div>
+                    <div className="w-[100px] shrink-0 px-3 py-2.5">
+                      <span style={{ fontSize: 11, color: '#78716c' }}>{l.type}</span>
+                    </div>
+                    <div className="w-[100px] shrink-0 px-3 py-2.5 text-right">
+                      <span style={{ fontSize: 12, color: '#292524', fontFamily: "'IBM Plex Mono', monospace" }}>{fmtTP(l.montant)}</span>
+                    </div>
+                    <div className="w-[100px] shrink-0 px-3 py-2.5 text-right">
+                      <span style={{ fontSize: 12, color: '#78716c', fontFamily: "'IBM Plex Mono', monospace" }}>{fmtTP(l.dejaRembourse || 0)}</span>
+                    </div>
+                  </div>
+                ))}
+                {/* Footer total */}
+                <div className="flex items-center bg-[#fafaf9] border-t border-[#e7e5e3]">
+                  <div className="w-[40px] shrink-0" />
+                  <div className="flex-1 min-w-0 px-3 py-2.5">
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>Total frais divers</span>
+                  </div>
+                  <div className="w-[100px] shrink-0" />
+                  <div className="w-[100px] shrink-0 px-3 py-2.5 text-right">
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#292524', fontFamily: "'IBM Plex Mono', monospace" }}>{fmtTP(fdaTotalMontant)}</span>
+                  </div>
+                  <div className="w-[100px] shrink-0 px-3 py-2.5 text-right">
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', fontFamily: "'IBM Plex Mono', monospace" }}>{fmtTP(fdaTotalRembourse)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {renderCreancesTPTable('fda')}
+
+          {renderTotalBlock('fda', fdaIndemniteVictime, { guard: fdaLignes.length > 0 })}
+
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== DSF (Dépenses de Santé Futures) ==========
+    if (currentLevel.id === 'dsf') {
+      const dsfLignes = dsfData.lignes || [];
+      const dsfTotalAmount = dsfLignes.reduce((s, l) => s + (l.montantCapitalise || l.montant || 0), 0);
+      const dsfIndemniteVictime = allPostes.find(p => p.id === 'dsf')?.victimeAmount ?? dsfTotalAmount;
+
+      return (
+        <div>
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+
+          {/* Expense table */}
+          <div className={cardBlockClass}>
+            <div className="px-5 py-3 bg-[#fafaf9] border-b border-[#f0efed] flex items-center justify-between">
+              <span style={sectionHeaderStyle}>Dépenses de santé futures</span>
+            </div>
+            <div className="overflow-x-auto">
+              <div style={{ minWidth: 600 }}>
+                {/* Column headers */}
+                <div className="flex items-center border-b border-[#f0efed]">
+                  <div className="w-[40px] shrink-0 px-3 py-2 text-center" style={{ ...colHeaderStyle, fontSize: 10 }}>
+                    <FileText className="w-3.5 h-3.5 text-[#d6d3d1] mx-auto" />
+                  </div>
+                  <div className="flex-1 min-w-0 px-3 py-2" style={{ ...colHeaderStyle, fontSize: 10 }}>Libellé</div>
+                  <div className="w-[100px] shrink-0 px-3 py-2" style={{ ...colHeaderStyle, fontSize: 10 }}>Périodicité</div>
+                  <div className="w-[100px] shrink-0 px-3 py-2 text-right" style={{ ...colHeaderStyle, fontSize: 10 }}>Montant</div>
+                  <div className="w-[100px] shrink-0 px-3 py-2 text-right" style={{ ...colHeaderStyle, fontSize: 10 }}>Capitalisé</div>
+                </div>
+                {/* Rows */}
+                {dsfLignes.map((l) => (
+                  <div key={l.id} className="flex items-center border-b border-[#f5f5f4] hover:bg-[#fafaf9]">
+                    <div className="w-[40px] shrink-0 px-3 py-2.5 text-center">
+                      <span style={{ fontSize: 10, color: '#a8a29e', fontFamily: "'IBM Plex Mono', monospace" }}>{l.pieceIds?.length || 0}</span>
+                    </div>
+                    <div className="flex-1 min-w-0 px-3 py-2.5">
+                      <div style={{ fontSize: 13, color: '#292524', fontWeight: 400 }}>{l.label}</div>
+                      {l.description && <div style={{ fontSize: 11, color: '#a8a29e', marginTop: 1 }}>{l.description}</div>}
+                    </div>
+                    <div className="w-[100px] shrink-0 px-3 py-2.5">
+                      <span style={{ fontSize: 11, color: '#78716c' }}>{l.periodicite || '—'}</span>
+                    </div>
+                    <div className="w-[100px] shrink-0 px-3 py-2.5 text-right">
+                      <span style={{ fontSize: 12, color: '#78716c', fontFamily: "'IBM Plex Mono', monospace" }}>
+                        {l.montantAnnuel ? fmtTP(l.montantAnnuel) : l.montantBiennal ? fmtTP(l.montantBiennal) : fmtTP(l.montant || 0)}
+                      </span>
+                    </div>
+                    <div className="w-[100px] shrink-0 px-3 py-2.5 text-right">
+                      <span style={{ fontSize: 12, color: '#292524', fontFamily: "'IBM Plex Mono', monospace" }}>
+                        {l.capitalise ? fmtTP(l.montantCapitalise) : fmtTP(l.montant || 0)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {/* Footer total */}
+                <div className="flex items-center bg-[#fafaf9] border-t border-[#e7e5e3]">
+                  <div className="w-[40px] shrink-0" />
+                  <div className="flex-1 min-w-0 px-3 py-2.5">
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>Total dépenses futures</span>
+                  </div>
+                  <div className="w-[100px] shrink-0" />
+                  <div className="w-[100px] shrink-0" />
+                  <div className="w-[100px] shrink-0 px-3 py-2.5 text-right">
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#292524', fontFamily: "'IBM Plex Mono', monospace" }}>{fmtTP(dsfTotalAmount)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {renderCreancesTPTable('dsf')}
+
+          {renderTotalBlock('dsf', dsfIndemniteVictime, { guard: dsfLignes.length > 0 })}
+
+              </div>
             </div>
           </div>
         </div>
@@ -10774,6 +11010,8 @@ export default function App() {
     setPgpaData(BASELINE_PGPA_DATA);
     setPgpfData(BASELINE_PGPF_DATA);
     setFormPosteData(BASELINE_FORM_POSTE_DATA);
+    setFdaLignes(BASELINE_FDA_LIGNES);
+    setDsfData(BASELINE_DSF_DATA);
     setIvDossierPostes(EMPTY_DOSSIER.ivDossierPostes);
     setIvPosteData(EMPTY_DOSSIER.ivPosteData);
     setIvPosteSharedData(EMPTY_DOSSIER.ivPosteSharedData);

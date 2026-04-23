@@ -1,22 +1,74 @@
 // ============================================================
-// Tiers Payeurs — hardcoded demo scenarios (spec v2)
+// Tiers Payeurs — hardcoded demo scenarios (spec v3)
 // ============================================================
-// Baseline + TP overlay architecture:
-//   - Baseline provides expense lines, forms, structure (in baselineData.js)
-//   - TP scenarios carry: tiersPayeurs, lignesTP, imputations,
-//     damageOverrides, droitDePreference, cascade, extractionMode,
-//     ligneExtractions, pgpaRevenusPercusBadges
-//   - Amounts calibrated to match real baseline totals:
-//       DSA: 6 242,50 €   DFT: 5 385 €     PGPA: 31 700 €
-//       PGPF échu: 4 600 €  PGPF à échoir: 229 750 €
-//       SE: 15 000 €   DFP: 27 000 €   PEP: 4 500 €
+// Single extraction mode: créance récapitulative.
+// Each CreanceTP contains LigneCreance[] decomposed by nature.
+// Load-time processing derives _imputationsByPoste from lignes.
 // ============================================================
+
+// ── Nature de créance enum ────────────────────────────────────
+export const NATURE_CREANCE = {
+  FRAIS_HOSPITALIERS: 'FRAIS_HOSPITALIERS',
+  FRAIS_MEDICAUX: 'FRAIS_MEDICAUX',
+  FRAIS_PHARMACEUTIQUES: 'FRAIS_PHARMACEUTIQUES',
+  FRAIS_APPAREILLAGE: 'FRAIS_APPAREILLAGE',
+  FRAIS_TRANSPORT: 'FRAIS_TRANSPORT',
+  FRANCHISES: 'FRANCHISES',
+  IJ: 'IJ',
+  ARRERAGES_INVALIDITE: 'ARRERAGES_INVALIDITE',
+  CAPITAL_INVALIDITE: 'CAPITAL_INVALIDITE',
+  FRAIS_FUTURS: 'FRAIS_FUTURS',
+  SOINS_POST_CONSOLIDATION: 'SOINS_POST_CONSOLIDATION',
+  MAINTIEN_SALAIRE: 'MAINTIEN_SALAIRE',
+  DECOMPTE_MUTUELLE: 'DECOMPTE_MUTUELLE',
+  AUTRE: 'AUTRE',
+};
+
+// ── Nature → Poste cible mapping (spec §4) ────────────────────
+export const NATURE_TO_POSTE = {
+  [NATURE_CREANCE.FRAIS_HOSPITALIERS]: 'dsa',
+  [NATURE_CREANCE.FRAIS_MEDICAUX]: 'dsa',
+  [NATURE_CREANCE.FRAIS_PHARMACEUTIQUES]: 'dsa',
+  [NATURE_CREANCE.FRAIS_APPAREILLAGE]: 'dsa',
+  [NATURE_CREANCE.FRAIS_TRANSPORT]: 'fda',
+  [NATURE_CREANCE.FRANCHISES]: 'dsa',
+  [NATURE_CREANCE.IJ]: 'pgpa',
+  [NATURE_CREANCE.ARRERAGES_INVALIDITE]: 'pgpf-echu',
+  [NATURE_CREANCE.CAPITAL_INVALIDITE]: 'pgpf-aechoir',
+  [NATURE_CREANCE.FRAIS_FUTURS]: 'dsf',
+  [NATURE_CREANCE.SOINS_POST_CONSOLIDATION]: 'dsf',
+  [NATURE_CREANCE.MAINTIEN_SALAIRE]: 'pgpa',
+  [NATURE_CREANCE.DECOMPTE_MUTUELLE]: 'dsa',
+};
+
+// ── Nature display labels ─────────────────────────────────────
+const NATURE_LABELS = {
+  [NATURE_CREANCE.FRAIS_HOSPITALIERS]: 'Frais hospitaliers',
+  [NATURE_CREANCE.FRAIS_MEDICAUX]: 'Frais médicaux',
+  [NATURE_CREANCE.FRAIS_PHARMACEUTIQUES]: 'Frais pharmaceutiques',
+  [NATURE_CREANCE.FRAIS_APPAREILLAGE]: 'Frais d\'appareillage',
+  [NATURE_CREANCE.FRAIS_TRANSPORT]: 'Frais de transport',
+  [NATURE_CREANCE.FRANCHISES]: 'Franchises',
+  [NATURE_CREANCE.IJ]: 'Indemnités journalières',
+  [NATURE_CREANCE.ARRERAGES_INVALIDITE]: 'Arrérages échus',
+  [NATURE_CREANCE.CAPITAL_INVALIDITE]: 'Capital invalidité',
+  [NATURE_CREANCE.FRAIS_FUTURS]: 'Frais futurs',
+  [NATURE_CREANCE.SOINS_POST_CONSOLIDATION]: 'Soins post-consolidation',
+  [NATURE_CREANCE.MAINTIEN_SALAIRE]: 'Maintien de salaire',
+  [NATURE_CREANCE.DECOMPTE_MUTUELLE]: 'Décompte mutuelle',
+  [NATURE_CREANCE.AUTRE]: 'Autre',
+};
+export { NATURE_LABELS };
 
 // ── Shared TP entities ─────────────────────────────────────
 const CPAM = { id: 'cpam-idf', nom: 'CPAM Île-de-France', type: 'cpam', sigle: 'CPAM' };
 const HARMONIE = { id: 'harmonie', nom: 'Harmonie Mutuelle', type: 'mutuelle', sigle: 'Harmonie' };
 const SNCF = { id: 'sncf', nom: 'Employeur SNCF', type: 'employeur', sigle: 'SNCF' };
 const CPAM_ATMP = { id: 'cpam-atmp', nom: 'CPAM (AT/MP)', type: 'cpam', sigle: 'CPAM' };
+
+// ============================================================
+// SCENARIOS
+// ============================================================
 
 const TP_SCENARIOS = {
 
@@ -27,301 +79,339 @@ const TP_SCENARIOS = {
     description: 'Accident simple, responsabilité 100 %, aucun tiers payeur.',
     tauxResponsabilite: 100,
     tiersPayeurs: [],
-    lignesTP: [],
-    extractionMode: {},
+    creancesTP: [],
     droitDePreference: {},
     cascade: null,
     agentMessage: 'Dossier réinitialisé sans tiers payeurs.',
   },
 
-  // ── CR globale + perte de chance — rate 30%, multi-TP ──────────
-  // Mode A: créance récapitulative on DSA + PGPA
-  // DSA: 6 242,50 × 30% = 1 872,75 envelope. CPAM 3 545 + Harmonie 663 = 4 208 claims.
-  //   Victim gets all 1 872,75 (droit de préf.), TP gets 0.
-  // PGPA: 31 700 × 30% = 9 510 envelope. CPAM 11 650 + SNCF 8 500 = 20 150 claims.
-  //   Victim gets all 9 510 (droit de préf.), TP gets 0.
-  'cr-globale--perte-de-chance': {
-    key: 'cr-globale--perte-de-chance',
-    label: 'CR globale + perte de chance 30 %',
-    description: 'Erreur médicale, perte de chance retenue à 30 %. Créance récapitulative. CPAM + Harmonie + SNCF.',
-    tauxResponsabilite: 30,
-
-    tiersPayeurs: [CPAM, HARMONIE, SNCF],
-
-    extractionMode: { dsa: 'recap', pgpa: 'recap' },
-
-    lignesTP: [
-      {
-        id: 'ltp-cr-cpam', tiersPayeurId: 'cpam-idf',
-        nature: 'CREANCE_RECAPITULATIVE', regle: 'SIMPLE', montant: 15195,
-        postesProjetes: [{ poste: 'dsa', montant: 3545 }, { poste: 'pgpa', montant: 11650 }],
-        piece: 'Créance récapitulative CPAM du 12/01/2024',
-      },
-      {
-        id: 'ltp-cr-harmonie', tiersPayeurId: 'harmonie',
-        nature: 'CREANCE_RECAPITULATIVE', regle: 'SIMPLE', montant: 663,
-        postesProjetes: [{ poste: 'dsa', montant: 663 }],
-        piece: 'Décompte Harmonie du 05/02/2024',
-      },
-      {
-        id: 'ltp-cr-sncf', tiersPayeurId: 'sncf',
-        nature: 'CREANCE_RECAPITULATIVE', regle: 'SIMPLE', montant: 8500,
-        postesProjetes: [{ poste: 'pgpa', montant: 8500 }],
-        piece: 'Attestation maintien salaire SNCF du 18/01/2024',
-      },
-    ],
-
-    imputations: [
-      { posteId: 'dsa', tiersPayeurId: 'cpam-idf', ligneTPId: 'ltp-cr-cpam', grossAmount: 3545 },
-      { posteId: 'dsa', tiersPayeurId: 'harmonie', ligneTPId: 'ltp-cr-harmonie', grossAmount: 663 },
-      { posteId: 'pgpa', tiersPayeurId: 'cpam-idf', ligneTPId: 'ltp-cr-cpam', grossAmount: 11650 },
-      { posteId: 'pgpa', tiersPayeurId: 'sncf', ligneTPId: 'ltp-cr-sncf', grossAmount: 8500 },
-    ],
-
-    damageOverrides: {},
-
-    // DSA: envelope 1872.75, victim engaged 2034.50 → victim gets 1872.75, TP 0
-    // PGPA: envelope 9510, victim engaged 11550 → victim gets 9510, TP 0
-    droitDePreference: {
-      dsa: {
-        posteId: 'dsa',
-        prejudice: 6242.50,
-        taux: 30,
-        enveloppe: 1872.75,
-        victimePref: 1872.75,
-        resteTP: 0,
-        tpDetails: [
-          { tiersPayeurId: 'cpam-idf', sigle: 'CPAM', creance: 3545, recouvre: 0, nonRecouvre: 3545 },
-          { tiersPayeurId: 'harmonie', sigle: 'Harmonie', creance: 663, recouvre: 0, nonRecouvre: 663 },
-        ],
-      },
-      pgpa: {
-        posteId: 'pgpa',
-        prejudice: 31700,
-        taux: 30,
-        enveloppe: 9510,
-        victimePref: 9510,
-        resteTP: 0,
-        tpDetails: [
-          { tiersPayeurId: 'cpam-idf', sigle: 'CPAM', creance: 11650, recouvre: 0, nonRecouvre: 11650 },
-          { tiersPayeurId: 'sncf', sigle: 'SNCF', creance: 8500, recouvre: 0, nonRecouvre: 8500 },
-        ],
-      },
-    },
-
-    cascade: null,
-
-    agentMessage: "Créance récapitulative globale, perte de chance retenue à 30 %. CPAM (15 195 €) + Harmonie (663 €) + SNCF (8 500 €). Sur DSA et PGPA, l'enveloppe réduite est entièrement absorbée par la victime — les TP ne récupèrent rien.",
-  },
-
-  // ── Ligne par ligne — rate 100%, per-invoice extraction ──────
-  // Mode B on DSA: TP amounts per expense line
-  // PGPA: IJ CPAM integrated into Revenus perçus with badges
-  'ligne--classique': {
-    key: 'ligne--classique',
-    label: 'Ligne par ligne — classique',
-    description: 'Accident de la route, responsabilité 100 %. Extraction ligne par ligne sur DSA. IJ CPAM + employeur sur PGPA.',
+  // ── TP Simple: multi-TP récap, 100% (30% variant for droit de préf.) ──
+  // CPAM récap (11 natures across DSA, FDA, PGPA, PGPF, DSF)
+  // + Harmonie décompte (DSA) + SNCF maintien (PGPA)
+  //
+  // Préjudices bruts: DSA 200k, PGPA 60k, FDA 45k, DSF 600k,
+  //   PGPF échu ~50k, PGPF à échoir ~250k, SE 30k, DFP 80k, PEP 4500
+  simple: {
+    key: 'simple',
+    label: 'TP simple — récapitulatif multi-postes',
+    description: 'Accident de la route, 3 TP (CPAM + Harmonie + SNCF). Créance récapitulative sur 5 postes.',
     tauxResponsabilite: 100,
 
     tiersPayeurs: [CPAM, HARMONIE, SNCF],
 
-    extractionMode: { dsa: 'ligne', pgpa: 'ij' },
-
-    // Per-line TP extraction for DSA (Mode B)
-    ligneExtractions: {
-      dsa: [
-        { ligneId: 'dsa-1', tpAmounts: { 'cpam-idf': 3800, 'harmonie': 500 } },   // 4500 → RAC 200
-        { ligneId: 'dsa-2', tpAmounts: { 'cpam-idf': 900, 'harmonie': 250 } },    // 1280 → RAC 130
-        { ligneId: 'dsa-3', tpAmounts: { 'cpam-idf': 250, 'harmonie': 30 } },     // 320 → RAC 40
-        { ligneId: 'dsa-4', tpAmounts: { 'cpam-idf': 55, 'harmonie': 10 } },      // 87.50 → RAC 22.50
-        { ligneId: 'dsa-5', tpAmounts: { 'cpam-idf': 20, 'harmonie': 3 } },       // 55 → RAC 32
-      ],
-    },
-
-    // PGPA badges: map revenu perçu / IJ IDs to TP badge labels
-    pgpaRevenusPercusBadges: {
-      'pgpa-percu-1': { badgeLabel: 'Employeur', sigle: 'SNCF', tiersPayeurId: 'sncf' },
-      'pgpa-ij-1': { badgeLabel: 'CPAM IJ', sigle: 'CPAM', tiersPayeurId: 'cpam-idf' },
-    },
-
-    lignesTP: [
+    creancesTP: [
+      // ── CPAM créance récapitulative ──
       {
-        id: 'ltp-lpl-cpam-dsa', tiersPayeurId: 'cpam-idf',
-        nature: 'EXTRACTION_LIGNE', regle: 'SIMPLE', montant: 5025,
-        postesProjetes: [{ poste: 'dsa', montant: 5025 }],
-        piece: 'Extraction ligne par ligne — factures DSA',
+        id: 'cr-cpam',
+        tiersPayeurId: 'cpam-idf',
+        piece: 'Créance récapitulative CPAM du 22/09/2023',
+        dateNotification: '22/09/2023',
+        regle: 'SIMPLE',
+        lignes: [
+          // DSA
+          {
+            id: 'cr-cpam-hosp', nature: NATURE_CREANCE.FRAIS_HOSPITALIERS,
+            libelle: 'Frais hospitaliers',
+            montant: 70000, posteCible: 'dsa',
+            isAggregate: true,
+            subLignes: [
+              { id: 'cr-cpam-hosp-1', libelle: 'CHU Bordeaux — séjour mars 2023', montant: 28000 },
+              { id: 'cr-cpam-hosp-2', libelle: 'CHU Bordeaux — chirurgie avril 2023', montant: 18000 },
+              { id: 'cr-cpam-hosp-3', libelle: 'Clinique du Parc — rééducation', montant: 12000 },
+              { id: 'cr-cpam-hosp-4', libelle: 'CHU Bordeaux — contrôle sept 2023', montant: 5000 },
+              { id: 'cr-cpam-hosp-5', libelle: 'Clinique Saint-Jean — bilan', montant: 4000 },
+              { id: 'cr-cpam-hosp-6', libelle: 'CHU Bordeaux — suivi janv 2024', montant: 3000 },
+            ],
+          },
+          {
+            id: 'cr-cpam-med', nature: NATURE_CREANCE.FRAIS_MEDICAUX,
+            libelle: 'Frais médicaux',
+            montant: 30000, posteCible: 'dsa',
+            periode: { debut: '15/03/2023', fin: '12/09/2024' },
+          },
+          {
+            id: 'cr-cpam-pharma', nature: NATURE_CREANCE.FRAIS_PHARMACEUTIQUES,
+            libelle: 'Frais pharmaceutiques',
+            montant: 10000, posteCible: 'dsa',
+            periode: { debut: '15/03/2023', fin: '12/09/2024' },
+          },
+          {
+            id: 'cr-cpam-appar', nature: NATURE_CREANCE.FRAIS_APPAREILLAGE,
+            libelle: 'Frais d\'appareillage',
+            montant: 35000, posteCible: 'dsa',
+          },
+          {
+            id: 'cr-cpam-franchise', nature: NATURE_CREANCE.FRANCHISES,
+            libelle: 'Franchises',
+            montant: -500, posteCible: 'dsa',
+          },
+          // FDA
+          {
+            id: 'cr-cpam-transport', nature: NATURE_CREANCE.FRAIS_TRANSPORT,
+            libelle: 'Frais de transport',
+            montant: 40000, posteCible: 'fda',
+            periode: { debut: '15/03/2023', fin: '12/09/2024' },
+          },
+          // PGPA
+          {
+            id: 'cr-cpam-ij', nature: NATURE_CREANCE.IJ,
+            libelle: 'Indemnités journalières',
+            montant: 25000, posteCible: 'pgpa',
+            periode: { debut: '15/03/2023', fin: '12/09/2024' },
+            detail: { nbJours: 546 },
+          },
+          // PGPF échu
+          {
+            id: 'cr-cpam-arrerages', nature: NATURE_CREANCE.ARRERAGES_INVALIDITE,
+            libelle: 'Arrérages échus rente invalidité',
+            montant: 40000, posteCible: 'pgpf-echu',
+            periode: { debut: '12/09/2024', fin: '15/01/2025' },
+          },
+          // PGPF à échoir
+          {
+            id: 'cr-cpam-capital', nature: NATURE_CREANCE.CAPITAL_INVALIDITE,
+            libelle: 'Capital invalidité',
+            montant: 120000, posteCible: 'pgpf-aechoir',
+            detail: { cout: 6000, coefficient: 20, baremeId: 'gdp_2025' },
+          },
+          // DSF
+          {
+            id: 'cr-cpam-futurs', nature: NATURE_CREANCE.FRAIS_FUTURS,
+            libelle: 'Frais futurs prévisionnels',
+            montant: 490000, posteCible: 'dsf',
+          },
+          {
+            id: 'cr-cpam-postconso', nature: NATURE_CREANCE.SOINS_POST_CONSOLIDATION,
+            libelle: 'Soins post-consolidation',
+            montant: 15000, posteCible: 'dsf',
+          },
+        ],
       },
+
+      // ── Harmonie Mutuelle décompte ──
       {
-        id: 'ltp-lpl-harmonie-dsa', tiersPayeurId: 'harmonie',
-        nature: 'EXTRACTION_LIGNE', regle: 'SIMPLE', montant: 793,
-        postesProjetes: [{ poste: 'dsa', montant: 793 }],
-        piece: 'Extraction ligne par ligne — factures DSA',
+        id: 'cr-harmonie',
+        tiersPayeurId: 'harmonie',
+        piece: 'Décompte Harmonie Mutuelle du 05/02/2024',
+        dateNotification: '05/02/2024',
+        regle: 'SIMPLE',
+        lignes: [
+          {
+            id: 'cr-harm-dsa', nature: NATURE_CREANCE.DECOMPTE_MUTUELLE,
+            libelle: 'Décompte DSA',
+            montant: 10000, posteCible: 'dsa',
+          },
+        ],
       },
+
+      // ── Employeur SNCF attestation ──
       {
-        id: 'ltp-lpl-cpam-ij', tiersPayeurId: 'cpam-idf',
-        nature: 'IJ', regle: 'SIMPLE', montant: 11650,
-        postesProjetes: [{ poste: 'pgpa', montant: 11650 }],
-        piece: 'Relevé IJ CPAM — Mars 2023 à Sept 2024',
-      },
-      {
-        id: 'ltp-lpl-sncf', tiersPayeurId: 'sncf',
-        nature: 'CREANCE_RECAPITULATIVE', regle: 'SIMPLE', montant: 8500,
-        postesProjetes: [{ poste: 'pgpa', montant: 8500 }],
+        id: 'cr-sncf',
+        tiersPayeurId: 'sncf',
         piece: 'Attestation maintien salaire SNCF du 18/01/2024',
+        dateNotification: '18/01/2024',
+        regle: 'SIMPLE',
+        lignes: [
+          {
+            id: 'cr-sncf-maintien', nature: NATURE_CREANCE.MAINTIEN_SALAIRE,
+            libelle: 'Maintien de salaire',
+            montant: 20000, posteCible: 'pgpa',
+            periode: { debut: '15/03/2023', fin: '30/06/2023' },
+          },
+        ],
       },
-    ],
-
-    imputations: [
-      { posteId: 'dsa', tiersPayeurId: 'cpam-idf', ligneTPId: 'ltp-lpl-cpam-dsa', grossAmount: 5025 },
-      { posteId: 'dsa', tiersPayeurId: 'harmonie', ligneTPId: 'ltp-lpl-harmonie-dsa', grossAmount: 793 },
-      { posteId: 'pgpa', tiersPayeurId: 'cpam-idf', ligneTPId: 'ltp-lpl-cpam-ij', grossAmount: 11650 },
-      { posteId: 'pgpa', tiersPayeurId: 'sncf', ligneTPId: 'ltp-lpl-sncf', grossAmount: 8500 },
     ],
 
     damageOverrides: {},
+
+    // 30% variant — pre-computed droit de préférence for demo
+    // Activate by setting tauxResponsabilite to 30
     droitDePreference: {},
+
     cascade: null,
 
-    agentMessage: "Extraction ligne par ligne activée. DSA : CPAM (5 025 €) + Harmonie (793 €) extraits par facture. PGPA : IJ CPAM (11 650 €) intégrées dans les revenus perçus + maintien SNCF (8 500 €). Responsabilité 100 %.",
+    agentMessage: "Créance récapitulative CPAM (855 500 €) sur 5 postes + Harmonie (10 000 € sur DSA) + SNCF maintien (20 000 € sur PGPA). Responsabilité 100 %.",
   },
 
   // ── Cascade AT/MP — temporal, rate 100% ─────────
   // Rente AT/MP capitalisée en cascade PGPF → IP → DFP.
-  // Rente: 12 600 €/an × coeff. 20 = 252 000 à échoir + 4 600 échus = 256 600 total.
-  // PGPF: prejudice 234 350 (échu 4 600 + à échoir 229 750). Rente absorbe tout → victime 0.
-  // Remaining: 256 600 - 234 350 = 22 250
-  //   → IP: prejudice 15 000, absorbe 15 000 → victime 0. Remaining: 7 250.
-  //   → DFP: prejudice 27 000, absorbe 7 250 → victime 19 750. (jurisprudence variable)
-  // SNCF maintien: 8 500 on PGPA → victime 23 200.
+  // Rente: 15 000 €/an × coeff. 20 = 300 000 à échoir + 45 000 échus = 345 000 total.
+  // PGPF: prejudice ~310 000 (échu 50 000 + à échoir 260 000). Rente absorbe tout → victime 0.
+  // Remaining: 345 000 - 310 000 = 35 000
+  //   → IP: prejudice 15 000, absorbe 15 000 → victime 0. Remaining: 20 000.
+  //   → DFP: prejudice 80 000, absorbe 20 000 → victime 60 000. (jurisprudence variable)
+  // SNCF maintien: 25 000 on PGPA.
   cascade: {
     key: 'cascade',
     label: 'Cascade AT/MP',
-    description: 'Accident du travail, rente AT/MP capitalisée en cascade PGPF → IP → DFP. Échu + à échoir.',
+    description: 'Accident du travail, rente AT/MP capitalisée en cascade PGPF → IP → DFP.',
     tauxResponsabilite: 100,
 
     tiersPayeurs: [CPAM_ATMP, SNCF],
 
-    extractionMode: { pgpa: 'recap' },
-
     // Override dossierPostes to include IP
     dossierPostesOverride: ['dsa', 'pgpa', 'dft', 'pgpf', 'ipp', 'se', 'dfp', 'pep'],
 
-    lignesTP: [
+    creancesTP: [
+      // ── CPAM AT/MP rente cascade ──
       {
-        id: 'ltp-uc4-rente', tiersPayeurId: 'cpam-atmp',
-        nature: 'RENTE', regle: 'CASCADE_CAPITALISEE', montant: 256600,
-        postesOrdonnes: ['pgpf', 'ipp', 'dfp'],
-        renteTemporelle: {
-          renteAnnuelle: 12600,
-          arreragesEchus: 4600,
-          coefficient: 20,
-          bareme: 'Gazette du Palais 2024',
-          arreragesAEchoir: 252000,
-          total: 256600,
-        },
+        id: 'cr-cpam-atmp',
+        tiersPayeurId: 'cpam-atmp',
         piece: 'Notification rente CPAM AT/MP du 05/06/2023',
+        dateNotification: '05/06/2023',
+        regle: 'CASCADE_CAPITALISEE',
+        postesOrdonnes: ['pgpf', 'ipp', 'dfp'],
+        lignes: [
+          {
+            id: 'cr-atmp-arrerages', nature: NATURE_CREANCE.ARRERAGES_INVALIDITE,
+            libelle: 'Arrérages échus de la rente AT/MP',
+            montant: 45000, posteCible: 'pgpf-echu',
+            periode: { debut: '05/06/2023', fin: '15/01/2025' },
+          },
+          {
+            id: 'cr-atmp-capital', nature: NATURE_CREANCE.CAPITAL_INVALIDITE,
+            libelle: 'Rente AT/MP capitalisée',
+            montant: 300000, posteCible: 'pgpf-aechoir',
+            detail: { cout: 15000, coefficient: 20, baremeId: 'gdp_2025' },
+          },
+        ],
+        // Total rente: 345 000
+        renteTemporelle: {
+          renteAnnuelle: 15000,
+          arreragesEchus: 45000,
+          coefficient: 20,
+          bareme: 'Gazette du Palais 2025',
+          arreragesAEchoir: 300000,
+          total: 345000,
+        },
       },
+
+      // ── Employeur SNCF maintien ──
       {
-        id: 'ltp-uc4-sncf', tiersPayeurId: 'sncf',
-        nature: 'CREANCE_RECAPITULATIVE', regle: 'SIMPLE', montant: 8500,
-        postesProjetes: [{ poste: 'pgpa', montant: 8500 }],
+        id: 'cr-sncf-cascade',
+        tiersPayeurId: 'sncf',
         piece: 'Attestation maintien salaire SNCF du 10/01/2024',
+        dateNotification: '10/01/2024',
+        regle: 'SIMPLE',
+        lignes: [
+          {
+            id: 'cr-sncf-maint-casc', nature: NATURE_CREANCE.MAINTIEN_SALAIRE,
+            libelle: 'Maintien de salaire',
+            montant: 25000, posteCible: 'pgpa',
+            periode: { debut: '15/03/2023', fin: '30/09/2023' },
+          },
+        ],
       },
     ],
 
-    imputations: [
-      { posteId: 'pgpa', tiersPayeurId: 'sncf', ligneTPId: 'ltp-uc4-sncf', grossAmount: 8500 },
-      {
-        posteId: 'pgpf', tiersPayeurId: 'cpam-atmp', ligneTPId: 'ltp-uc4-rente',
-        grossAmount: 234350,
-        montantImputeEchu: 4600,
-        montantImputeAEchoir: 229750,
-      },
-      {
-        posteId: 'ipp', tiersPayeurId: 'cpam-atmp', ligneTPId: 'ltp-uc4-rente',
-        grossAmount: 15000,
-        montantImputeEchu: 0,
-        montantImputeAEchoir: 15000,
-      },
-      {
-        posteId: 'dfp', tiersPayeurId: 'cpam-atmp', ligneTPId: 'ltp-uc4-rente',
-        grossAmount: 7250,
-        montantImputeEchu: 0,
-        montantImputeAEchoir: 7250,
-      },
-    ],
-
-    // Override only for temporal postes where cascade changes the split
+    // Override PGPF temporal amounts for cascade math
     damageOverrides: {
-      pgpfEchu: 4600,
-      pgpfAEchoir: 229750,
+      pgpfEchu: 50000,
+      pgpfAEchoir: 260000,
       ipp: 15000,
     },
 
     droitDePreference: {},
 
     cascade: {
-      ligneTPId: 'ltp-uc4-rente',
+      creanceTPId: 'cr-cpam-atmp',
       tiersPayeurId: 'cpam-atmp',
       sigle: 'CPAM',
       label: 'Rente AT/MP CPAM',
-      renteAnnuelle: 12600,
+      renteAnnuelle: 15000,
       coefficient: 20,
-      bareme: 'Gazette du Palais 2024',
-      capitalise: 256600,
-      arreragesEchus: 4600,
-      arreragesAEchoir: 252000,
+      bareme: 'Gazette du Palais 2025',
+      capitalise: 345000,
+      arreragesEchus: 45000,
+      arreragesAEchoir: 300000,
       ordre: ['pgpf', 'ipp', 'dfp'],
       etapes: [
         {
-          posteId: 'pgpf', label: 'PGPF', prejudice: 234350,
-          absorbe: 234350, absorbeEchu: 4600, absorbeAEchoir: 229750,
+          posteId: 'pgpf', label: 'PGPF', prejudice: 310000,
+          absorbe: 310000, absorbeEchu: 45000, absorbeAEchoir: 260000,
+          victimeReste: 0,
           statut: 'totalement absorbé',
         },
         {
           posteId: 'ipp', label: 'IP', prejudice: 15000,
           absorbe: 15000, absorbeEchu: 0, absorbeAEchoir: 15000,
+          victimeReste: 0,
           statut: 'totalement absorbé',
         },
         {
-          posteId: 'dfp', label: 'DFP', prejudice: 27000,
-          absorbe: 7250, absorbeEchu: 0, absorbeAEchoir: 7250,
+          posteId: 'dfp', label: 'DFP', prejudice: 80000,
+          absorbe: 20000, absorbeEchu: 0, absorbeAEchoir: 20000,
+          victimeReste: 60000,
           statut: 'partiellement absorbé',
           jurisprudentiallyVariable: true,
         },
       ],
-      totalAbsorbe: 256600,
+      totalAbsorbe: 345000,
       nonRecouvre: 0,
     },
 
-    agentMessage: "Rente AT/MP identifiée (12 600 €/an). Arrérages échus : 4 600 €. Capitalisé (× 20) : 252 000 €. Total créance : 256 600 €. Cascade patrimoniale : PGPF totalement absorbé (234 350 €), IP totalement absorbé (15 000 €), DFP partiellement absorbé (7 250 € sur 27 000 €, victime 19 750 € — jurisprudence variable). SNCF maintien : 8 500 € sur PGPA.",
+    agentMessage: "Rente AT/MP (15 000 €/an). Arrérages échus : 45 000 €. Capitalisé (× 20) : 300 000 €. Total créance : 345 000 €. Cascade : PGPF totalement absorbé (310 000 €), IP totalement absorbé (15 000 €), DFP partiellement absorbé (20 000 € sur 80 000 €, victime 60 000 € — jurisprudence variable). SNCF maintien : 25 000 € sur PGPA.",
   },
 };
 
 // ============================================================
 // LOAD-TIME PROCESSING
 // ============================================================
+// Derive _imputationsByPoste: { [posteId]: [{ tiersPayeurId, sigle, creanceId, ligneId, nature, libelle, montant, piece, source }] }
+// Also derive _imputations (flat array) for backward compat with renderPosteTPSection / chiffrage.
 
 Object.values(TP_SCENARIOS).forEach((scenario) => {
-  // Derive flat _imputations array from scenario.imputations
-  scenario._imputations = (scenario.imputations || []).map((imp, i) => {
-    // Determine source label based on the ligneTP nature
-    const ligne = (scenario.lignesTP || []).find(l => l.id === imp.ligneTPId);
-    let source = 'créance récapitulative';
-    if (ligne?.nature === 'EXTRACTION_LIGNE') source = 'ligne par ligne';
-    else if (ligne?.nature === 'IJ') source = 'IJ';
-    else if (imp.ligneTPId?.includes('rente')) source = 'cascade';
+  const byPoste = {};
+  const flatImputations = [];
 
-    return {
-      id: `imp-${scenario.key}-${imp.posteId}-${i}`,
-      ligneTPId: imp.ligneTPId,
-      tiersPayeurId: imp.tiersPayeurId,
-      posteId: imp.posteId,
-      montantImpute: imp.grossAmount,
-      montantImputeEchu: imp.montantImputeEchu || null,
-      montantImputeAEchoir: imp.montantImputeAEchoir || null,
-      source,
-    };
+  (scenario.creancesTP || []).forEach((creance) => {
+    const tp = (scenario.tiersPayeurs || []).find(t => t.id === creance.tiersPayeurId);
+    const isCascade = creance.regle === 'CASCADE_CAPITALISEE' || creance.regle === 'CASCADE';
+
+    (creance.lignes || []).forEach((ligne) => {
+      const posteId = ligne.posteCible;
+      if (!byPoste[posteId]) byPoste[posteId] = [];
+
+      byPoste[posteId].push({
+        tiersPayeurId: creance.tiersPayeurId,
+        sigle: tp?.sigle || '?',
+        nom: tp?.nom || '',
+        creanceId: creance.id,
+        ligneId: ligne.id,
+        nature: ligne.nature,
+        libelle: ligne.libelle,
+        montant: ligne.montant,
+        piece: creance.piece,
+        isAggregate: ligne.isAggregate || false,
+        subLignes: ligne.subLignes || null,
+        periode: ligne.periode || null,
+        source: isCascade ? 'cascade' : 'créance récapitulative',
+      });
+
+      // Flat imputation for renderPosteTPSection / chiffrage compat
+      // For cascade lines on pgpf-echu / pgpf-aechoir, map to pgpf
+      const flatPosteId = posteId.startsWith('pgpf-') ? 'pgpf' : posteId;
+      flatImputations.push({
+        id: `imp-${scenario.key}-${ligne.id}`,
+        ligneTPId: ligne.id,
+        tiersPayeurId: creance.tiersPayeurId,
+        posteId: flatPosteId,
+        montantImpute: ligne.montant,
+        montantImputeEchu: posteId === 'pgpf-echu' ? ligne.montant : null,
+        montantImputeAEchoir: posteId === 'pgpf-aechoir' ? ligne.montant : null,
+        source: isCascade ? 'cascade' : 'créance récapitulative',
+      });
+    });
+  });
+
+  scenario._imputationsByPoste = byPoste;
+  scenario._imputations = flatImputations;
+
+  // Derive total per TP across all postes
+  scenario._totalByTP = {};
+  (scenario.creancesTP || []).forEach((creance) => {
+    const total = (creance.lignes || []).reduce((s, l) => s + l.montant, 0);
+    scenario._totalByTP[creance.tiersPayeurId] = (scenario._totalByTP[creance.tiersPayeurId] || 0) + total;
   });
 });
 
@@ -331,16 +421,14 @@ Object.values(TP_SCENARIOS).forEach((scenario) => {
 
 export const TP_COMMAND_LIST = [
   { command: 'tp-reset', label: 'TP · Reset', description: 'Revenir au scénario sans tiers payeurs' },
-  { command: 'tp-cr-globale--perte-de-chance', label: 'TP · CR globale + perte de chance', description: 'Taux 30 %, créance récapitulative, droit de préférence' },
-  { command: 'tp-ligne--classique', label: 'TP · Ligne par ligne', description: 'Taux 100 %, extraction DSA par facture, IJ CPAM + SNCF sur PGPA' },
+  { command: 'tp-simple', label: 'TP · Simple', description: 'Récap multi-postes : CPAM + Harmonie + SNCF' },
   { command: 'tp-cascade', label: 'TP · Cascade AT/MP', description: 'Rente capitalisée, cascade PGPF → IP → DFP' },
   { command: 'tp-help', label: 'TP · Aide', description: 'Afficher les commandes tiers payeurs' },
 ];
 
 export const TP_COMMAND_MAP = {
   'tp-reset': 'baseline',
-  'tp-cr-globale--perte-de-chance': 'cr-globale--perte-de-chance',
-  'tp-ligne--classique': 'ligne--classique',
+  'tp-simple': 'simple',
   'tp-cascade': 'cascade',
 };
 
