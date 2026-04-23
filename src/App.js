@@ -897,8 +897,8 @@ export default function App() {
   const [piecesTabDragOver, setPiecesTabDragOver] = useState(false);
   const [reorderDrag, setReorderDrag] = useState(null); // { pieceId, ghostX, ghostY }
   const [reorderDropIdx, setReorderDropIdx] = useState(null);
-  const [manualReorder, setManualReorder] = useState(false);
-  const [piecesSortMode, setPiecesSortMode] = useState('chrono'); // 'chrono' | 'manuel'
+  const [manualReorder, setManualReorder] = useState(true);
+  const [piecesSortMode, setPiecesSortMode] = useState('manuel'); // 'chrono' | 'manuel'
   const [piecesManualOrder, setPiecesManualOrder] = useState(null);
   const [piecesDragState, setPiecesDragState] = useState({ dragging: null, over: null });
   const [piecesMoreMenu, setPiecesMoreMenu] = useState(false);
@@ -1863,15 +1863,18 @@ export default function App() {
   };
 
   const getOrderedPieces = () => {
-    if (piecesSortMode === 'manuel' && piecesManualOrder) {
-      return piecesManualOrder.map(id => pieces.find(p => p.id === id)).filter(Boolean);
+    if (piecesSortMode === 'chrono') return sortPiecesByDate(pieces);
+    if (piecesManualOrder) {
+      // Include any new pieces not yet in manual order
+      const ordered = piecesManualOrder.map(id => pieces.find(p => p.id === id)).filter(Boolean);
+      const missing = pieces.filter(p => !piecesManualOrder.includes(p.id));
+      return [...ordered, ...missing];
     }
-    return sortPiecesByDate(pieces);
+    return pieces;
   };
 
   const initManualOrder = () => {
-    const chronoSorted = sortPiecesByDate(pieces);
-    setPiecesManualOrder(chronoSorted.map(p => p.id));
+    setPiecesManualOrder(pieces.map(p => p.id));
   };
 
   const copyBordereau = async () => {
@@ -1904,72 +1907,51 @@ export default function App() {
     return (
       <div className="flex flex-col -mx-4 -mt-4">
         {/* Sub-header bar — full width, edge-to-edge */}
-        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[#e7e5e3]">
-          {/* Sort toggle pill */}
-          <div className="flex items-center bg-[#eeece6] rounded-md p-0.5">
-            <button
-              onClick={() => { setPiecesSortMode('manuel'); if (!piecesManualOrder) initManualOrder(); }}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide rounded transition-all ${
-                piecesSortMode === 'manuel' ? 'bg-white text-[#292524] shadow-sm' : 'text-[#78716c] hover:text-[#44403c]'
-              }`}
-              style={{ fontFamily: "'IBM Plex Mono', monospace" }}
-            >
-              <Hand className="w-3.5 h-3.5" strokeWidth={1.5} />
-              Manuel
-            </button>
-            <button
-              onClick={() => setPiecesSortMode('chrono')}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide rounded transition-all ${
-                piecesSortMode === 'chrono' ? 'bg-white text-[#292524] shadow-sm' : 'text-[#78716c] hover:text-[#44403c]'
-              }`}
-              style={{ fontFamily: "'IBM Plex Mono', monospace" }}
-            >
-              <Clock className="w-3.5 h-3.5" strokeWidth={1.5} />
-              Chrono
-            </button>
-          </div>
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#e7e5e3]">
+          {/* Doc count */}
+          <span className="text-sm font-medium text-black">{pieces.length} pièce{pieces.length !== 1 ? 's' : ''}</span>
 
-          <div className="flex items-center gap-2.5 ml-auto">
-            <div className="flex items-center gap-2 px-3 py-2 bg-[#eeece6] rounded-md">
-              <Search className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
-              <span className="text-sm text-[#78716c] opacity-70">Rechercher...</span>
-            </div>
+          <div className="flex items-center gap-[9px]">
+            {/* Sort by date toggle */}
+            <button
+              onClick={() => {
+                if (piecesSortMode === 'chrono') {
+                  setPiecesSortMode('manuel');
+                } else {
+                  if (!piecesManualOrder) initManualOrder();
+                  setPiecesSortMode('chrono');
+                }
+              }}
+              className={`flex items-center gap-2.5 h-[32px] px-3 text-[11px] font-medium uppercase tracking-wide rounded-[7px] transition-all ${
+                piecesSortMode === 'chrono'
+                  ? 'bg-[#dfe8f5] border border-[#aabcd5] text-[#1e3a8a] shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)]'
+                  : 'bg-[#eeece6] text-[#78716c] hover:text-[#44403c] border border-transparent'
+              }`}
+              style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+            >
+              Trier par : date
+              {piecesSortMode === 'chrono' ? (
+                <X className="w-4 h-4" strokeWidth={1.5} />
+              ) : (
+                <ArrowUp className="w-4 h-4" strokeWidth={1.5} />
+              )}
+            </button>
+            {/* Divider */}
+            <div className="w-px h-5 bg-[#d9d9d9]" />
             <button
               onClick={downloadAllAsZip}
-              className="flex items-center justify-center w-8 h-8 bg-white border border-[#e7e5e3] text-[#78716c] hover:text-[#44403c] hover:bg-[#fafaf9] rounded-md shadow-sm transition-colors"
+              className="flex items-center justify-center w-8 h-8 bg-white border border-[#e7e5e3] text-[#78716c] hover:text-[#44403c] hover:bg-[#fafaf9] rounded-md shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)] transition-colors"
               title="Télécharger tout"
             >
               <Download className="w-4 h-4" strokeWidth={1.5} />
             </button>
             <button
               onClick={copyBordereau}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] shadow-sm transition-colors"
+              className="flex items-center gap-2 h-8 px-3 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)] transition-colors"
             >
               <Copy className="w-4 h-4" strokeWidth={1.5} />
               Copier bordereau
             </button>
-            <div className="relative">
-              <button
-                onClick={() => setPiecesMoreMenu(!piecesMoreMenu)}
-                className="flex items-center justify-center w-8 h-8 text-[#78716c] hover:text-[#44403c] hover:bg-[#f5f5f4] rounded-md transition-colors"
-              >
-                <MoreVertical className="w-4 h-4" strokeWidth={1.5} />
-              </button>
-              {piecesMoreMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setPiecesMoreMenu(false)} />
-                  <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-[#e7e5e3] rounded-lg shadow-lg z-50 py-1">
-                    <button
-                      onClick={() => { downloadAllAsZip(); setPiecesMoreMenu(false); }}
-                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[#292524] hover:bg-[#fafaf9] transition-colors"
-                    >
-                      <Download className="w-4 h-4" strokeWidth={1.5} />
-                      Télécharger en ZIP
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
           </div>
         </div>
 
@@ -2013,15 +1995,15 @@ export default function App() {
           )}
 
           {/* Reorder hint banner */}
-          {showReorderHint && piecesSortMode !== 'manuel' && (
+          {showReorderHint && piecesSortMode === 'chrono' && (
             <div className="mb-3 flex items-center gap-3 px-4 py-3 bg-[#f8f7f5] border border-[#e7e5e3] rounded-lg">
               <Hand className="w-4 h-4 text-[#78716c] shrink-0" strokeWidth={1.5} />
-              <span className="text-sm text-[#44403c]">Passez en mode Manuel pour réordonner les pièces par glisser-déposer.</span>
+              <span className="text-sm text-[#44403c]">Désactivez le tri chronologique pour réordonner les pièces par glisser-déposer.</span>
               <button
-                onClick={() => { setPiecesSortMode('manuel'); if (!piecesManualOrder) initManualOrder(); setShowReorderHint(false); }}
+                onClick={() => { setPiecesSortMode('manuel'); setShowReorderHint(false); }}
                 className="ml-auto px-3 py-1.5 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] transition-colors shrink-0"
               >
-                Passer en Manuel
+                Désactiver Chrono
               </button>
               <button onClick={() => setShowReorderHint(false)} className="text-[#a8a29e] hover:text-[#78716c] transition-colors shrink-0">
                 <X className="w-4 h-4" strokeWidth={1.5} />
@@ -11416,95 +11398,40 @@ export default function App() {
         {/* Main content */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Sub-header bar — edge-to-edge */}
-          <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[#e7e5e3]">
-            {/* Sort toggle pill */}
-            <div className="flex items-center bg-[#eeece6] rounded-md p-0.5">
-              <button
-                onClick={() => setManualReorder(true)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide rounded transition-all ${
-                  manualReorder ? 'bg-white text-[#292524] shadow-sm' : 'text-[#78716c] hover:text-[#44403c]'
-                }`}
-                style={{ fontFamily: "'IBM Plex Mono', monospace" }}
-              >
-                <Hand className="w-3.5 h-3.5" strokeWidth={1.5} />
-                Manuel
-              </button>
-              <button
-                onClick={() => setManualReorder(false)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide rounded transition-all ${
-                  !manualReorder ? 'bg-white text-[#292524] shadow-sm' : 'text-[#78716c] hover:text-[#44403c]'
-                }`}
-                style={{ fontFamily: "'IBM Plex Mono', monospace" }}
-              >
-                <Clock className="w-3.5 h-3.5" strokeWidth={1.5} />
-                Chrono
-              </button>
-            </div>
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#e7e5e3]">
+            {/* Doc count */}
+            <span className="text-sm font-medium text-black">{getFilteredPieces().filter(p => p.status === 'done').length} pièce{getFilteredPieces().filter(p => p.status === 'done').length !== 1 ? 's' : ''}</span>
 
-            <div className="flex items-center gap-2.5 ml-auto">
-              <div className="relative">
-                <button
-                  onClick={() => setPiecesTypeMenuOpen(prev => !prev)}
-                  className={`flex items-center gap-2 h-8 pl-8 pr-8 text-sm border rounded-md bg-white shadow-sm cursor-pointer transition-colors ${(piecesFilter.types || []).length > 0 ? 'border-[#292524] text-[#292524]' : 'border-[#e7e5e3] text-[#78716c] hover:border-[#d6d3d1]'}`}
-                >
-                  {(piecesFilter.types || []).length === 0 ? 'Tous types' : `${(piecesFilter.types || []).length} type${(piecesFilter.types || []).length > 1 ? 's' : ''}`}
-                </button>
-                <ListFilter className="w-4 h-4 text-[#78716c] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
-                <ChevronDown className="w-4 h-4 text-[#78716c] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
-                {piecesTypeMenuOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setPiecesTypeMenuOpen(false)} />
-                    <div className="absolute left-0 top-full mt-1 w-48 bg-white border border-[#e7e5e3] rounded-lg shadow-lg z-50 py-1">
-                      {PIECE_TYPE_OPTIONS.map(t => {
-                        const active = (piecesFilter.types || []).includes(t);
-                        return (
-                          <button
-                            key={t}
-                            onClick={() => setPiecesFilter(prev => ({ ...prev, types: active ? (prev.types || []).filter(x => x !== t) : [...(prev.types || []), t] }))}
-                            className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-[#292524] hover:bg-[#fafaf9] transition-colors"
-                          >
-                            <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${active ? 'bg-[#292524] border-[#292524]' : 'border-[#d6d3d1]'}`}>
-                              {active && <Check className="w-3 h-3 text-white" strokeWidth={2} />}
-                            </div>
-                            <span className={`${active ? 'font-medium' : ''}`}>{t}</span>
-                          </button>
-                        );
-                      })}
-                      {(piecesFilter.types || []).length > 0 && (
-                        <>
-                          <div className="border-t border-[#e7e5e3] my-1" />
-                          <button
-                            onClick={() => { setPiecesFilter(prev => ({ ...prev, types: [] })); setPiecesTypeMenuOpen(false); }}
-                            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#78716c] hover:bg-[#fafaf9] transition-colors"
-                          >
-                            Réinitialiser
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </>
+            <div className="flex items-center gap-[9px]">
+              {/* Sort by date toggle */}
+              <button
+                onClick={() => setManualReorder(prev => !prev)}
+                className={`flex items-center gap-2.5 h-[32px] px-3 text-[11px] font-medium uppercase tracking-wide rounded-[7px] transition-all ${
+                  !manualReorder
+                    ? 'bg-[#dfe8f5] border border-[#aabcd5] text-[#1e3a8a] shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)]'
+                    : 'bg-[#eeece6] text-[#78716c] hover:text-[#44403c] border border-transparent'
+                }`}
+                style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+              >
+                Trier par : date
+                {!manualReorder ? (
+                  <X className="w-4 h-4" strokeWidth={1.5} />
+                ) : (
+                  <ArrowUp className="w-4 h-4" strokeWidth={1.5} />
                 )}
-              </div>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Rechercher..."
-                  value={piecesFilter.search}
-                  onChange={e => setPiecesFilter(prev => ({ ...prev, search: e.target.value }))}
-                  className="h-8 pl-8 pr-3 text-sm bg-[#eeece6] rounded-md text-[#292524] placeholder-[#78716c] placeholder-opacity-70 focus:outline-none focus:ring-1 focus:ring-stone-300"
-                />
-                <Search className="w-4 h-4 text-[#78716c] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.5} />
-              </div>
+              </button>
+              {/* Divider */}
+              <div className="w-px h-5 bg-[#d9d9d9]" />
               <button
                 onClick={downloadDropFirstAsZip}
-                className="flex items-center justify-center w-8 h-8 bg-white border border-[#e7e5e3] text-[#78716c] hover:text-[#44403c] hover:bg-[#fafaf9] rounded-md shadow-sm transition-colors"
+                className="flex items-center justify-center w-8 h-8 bg-white border border-[#e7e5e3] text-[#78716c] hover:text-[#44403c] hover:bg-[#fafaf9] rounded-md shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)] transition-colors"
                 title="Télécharger tout"
               >
                 <Download className="w-4 h-4" strokeWidth={1.5} />
               </button>
               <button
                 onClick={handleCopyBordereau}
-                className="flex items-center gap-2 h-8 px-3 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] shadow-sm transition-colors"
+                className="flex items-center gap-2 h-8 px-3 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)] transition-colors"
               >
                 <Copy className="w-4 h-4" strokeWidth={1.5} />
                 Copier bordereau
@@ -11534,12 +11461,12 @@ export default function App() {
             {showReorderHint && !manualReorder && (
               <div className="mb-3 flex items-center gap-3 px-4 py-3 bg-[#f8f7f5] border border-[#e7e5e3] rounded-lg">
                 <Hand className="w-4 h-4 text-[#78716c] shrink-0" strokeWidth={1.5} />
-                <span className="text-sm text-[#44403c]">Passez en mode Manuel pour réordonner les pièces par glisser-déposer.</span>
+                <span className="text-sm text-[#44403c]">Désactivez le tri chronologique pour réordonner les pièces par glisser-déposer.</span>
                 <button
                   onClick={() => { setManualReorder(true); setShowReorderHint(false); }}
                   className="ml-auto px-3 py-1.5 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] transition-colors shrink-0"
                 >
-                  Passer en Manuel
+                  Désactiver Chrono
                 </button>
                 <button onClick={() => setShowReorderHint(false)} className="text-[#a8a29e] hover:text-[#78716c] transition-colors shrink-0">
                   <X className="w-4 h-4" strokeWidth={1.5} />
