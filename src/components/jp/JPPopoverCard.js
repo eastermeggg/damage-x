@@ -64,7 +64,7 @@ export default function JPPopoverCard({
         {/* ── Identity: jurisdiction + date + number ──────── */}
         <div style={{ padding: '12px 16px' }}>
           <div style={{
-            fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 500,
+            fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500,
             color: '#b9703f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4,
           }}>
             {decision.jurisdiction}{decision.chambre ? ` · ${decision.chambre}` : ''}
@@ -79,26 +79,10 @@ export default function JPPopoverCard({
 
         {/* ── Key data block: amount + context + poste ────── */}
         <div style={{ padding: '0 16px 12px' }}>
-          {/* Amount — the anchor */}
-          <div style={{
-            display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-            padding: '8px 12px',
-            backgroundColor: '#fafaf9', borderRadius: 6,
-            marginBottom: 8,
-          }}>
-            <span style={{ fontSize: 12, color: '#78716c' }}>Montant retenu</span>
-            <span style={{
-              fontFamily: "'IBM Plex Mono', monospace", fontSize: 16, fontWeight: 600,
-              color: '#b9703f',
-            }}>
-              {getPrimaryAmount(decision)?.displayValue}
-            </span>
-          </div>
-
-          {/* Context + poste as a compact key-value list */}
+          {/* Context + amount */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', gap: 8 }}>
-              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', width: 58, flexShrink: 0, paddingTop: 2 }}>
+              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', width: 58, flexShrink: 0, paddingTop: 2 }}>
                 Contexte
               </span>
               <span style={{ fontSize: 14, color: '#44403c', lineHeight: '20px' }}>
@@ -106,14 +90,12 @@ export default function JPPopoverCard({
               </span>
             </div>
             {getPrimaryAmount(decision) && (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', width: 58, flexShrink: 0, paddingTop: 2 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', flexShrink: 0 }}>
                   Poste
                 </span>
-                <span style={{ fontSize: 12, color: '#44403c', lineHeight: '16px' }}>
-                  <span style={{ fontWeight: 500 }}>{getPrimaryAmount(decision).poste}</span>
-                  <span style={{ color: '#a8a29e' }}> — </span>
-                  <span style={{ color: '#78716c' }}>{getPrimaryAmount(decision).label}</span>
+                <span className="badge badge-sm badge-secondary" title={getPrimaryAmount(decision).label}>
+                  {getPrimaryAmount(decision).poste} : <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: '#b9703f' }}>{getPrimaryAmount(decision).displayValue}</span>
                 </span>
               </div>
             )}

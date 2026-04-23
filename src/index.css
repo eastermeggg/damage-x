@@ -186,6 +186,7 @@ body {
 .badge-secondary { background: #eeece6; color: #44403c; }
 .badge-outline { background: transparent; border: 1px solid #e7e5e3; color: #292524; }
 .badge-destructive { background: #991b1b; color: white; }
+.badge-destructive-subtle { background: #fef2f2; color: #991b1b; }
 .badge-ai { background: #f3e8ff; color: #581c87; }
 .badge-success { background: #cce6d9; color: #064e3b; }
 .badge-info { background: #dfe8f5; color: #1e3a8a; }
