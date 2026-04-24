@@ -991,7 +991,7 @@ export default function App() {
   const tauxFinal = tpScenario.tauxResponsabilite ?? 100;
 
   // Shared style for all column/table headers — IBM Plex Mono, uppercase, small
-  const colHeaderStyle = { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em' };
+  const colHeaderStyle = { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' };
   // Section headers: DETAIL DU CALCUL, NOTES / ARGUMENTAIRE, JURISPRUDENCES
   const sectionHeaderStyle = { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' };
   // Serif amounts for card titles and totals
@@ -6710,13 +6710,15 @@ export default function App() {
   // ── Shared Total Block — receipt-style wrapper ──
   // Renders the expandable "Total à indemniser" block for any poste.
   // Pass `content` to inject custom children (damage calc, temporal TP sections) before the footer.
-  // Without `content`, renders the standard pattern: renderPosteTPSection + footer.
-  const renderTotalBlock = (posteId, amount, { guard = true, label = 'Total à indemniser', content = null } = {}) => {
+  // Without `content`, renders the standard pattern: footer only (TP detail now lives in CreancesTPTable above).
+  const renderTotalBlock = (posteId, amount, { guard = true, label = 'Total à indemniser', content = null, defaultOpen = false } = {}) => {
     if (!guard) return null;
-    const isOpen = totalExpanded[posteId] || (hasTP && tauxFinal < 100);
+    const dp = hasTP ? tpScenario.droitDePreference?.[posteId] : null;
+    const showExpand = content || (dp && tauxFinal < 100);
+    const isOpen = showExpand && (defaultOpen || totalExpanded[posteId] || (hasTP && tauxFinal < 100));
     return (
       <div className={totalBlockClass}>
-        <button onClick={() => setTotalExpanded(prev => ({...prev, [posteId]: !prev[posteId]}))} className="flex items-center justify-between w-full">
+        <button onClick={() => showExpand && setTotalExpanded(prev => ({...prev, [posteId]: !prev[posteId]}))} className="flex items-center justify-between w-full">
           <div className="flex items-center gap-3">
             <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
               <FileText className="w-3.5 h-3.5 text-[#78716c]" />
@@ -6724,23 +6726,14 @@ export default function App() {
             <span className="text-[14px] font-medium text-[#292524]">{label}</span>
           </div>
           <div className="flex items-center gap-3">
-            {!isOpen && <span style={serifAmountStyle} className="text-[#292524]">{fmt(amount)}</span>}
-            <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+            <span style={serifAmountStyle} className="text-[#292524]">{fmt(amount)}</span>
+            {showExpand && <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${isOpen ? 'rotate-90' : ''}`} />}
           </div>
         </button>
         {isOpen && (
           <>
-            {content || renderPosteTPSection(posteId)}
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#d6d3d1] group/total">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 bg-[#d6d3d1] rounded-[5px] flex items-center justify-center">
-                  <FileText className="w-3 h-3 text-[#78716c]" />
-                </div>
-                <span className="text-[13px] font-medium text-[#292524]">{label}</span>
-                <ChevronRight className="w-3.5 h-3.5 text-[#d6d3d1] opacity-0 group-hover/total:opacity-100 transition-opacity" />
-              </div>
-              <span style={serifAmountStyle} className="text-[#292524]">{fmt(amount)}</span>
-            </div>
+            {content}
+            {dp && tauxFinal < 100 && tpPreference(dp)}
           </>
         )}
       </div>
@@ -7124,12 +7117,23 @@ export default function App() {
                     <span className="text-[11px] font-medium text-[#78716c] uppercase tracking-wider" style={colHeaderStyle}>Tiers payeurs</span>
                   </div>
 
-                  {/* CreanceTP per TP entity — expand to see lignes by nature */}
+                  {/* CreanceTP per TP entity — show postes impactés */}
                   {tpScenario.tiersPayeurs.map((tp) => {
                     const creances = (tpScenario.creancesTP || []).filter(c => c.tiersPayeurId === tp.id);
                     const totalTP = creances.reduce((s, c) => s + (c.lignes || []).reduce((s2, l) => s2 + l.montant, 0), 0);
-                    const allLignes = creances.flatMap(c => (c.lignes || []).map(l => ({ ...l, piece: c.piece, regle: c.regle })));
                     const expanded = isCardExpanded(`registre-tp-${tp.id}`);
+
+                    // Group by poste to show "pockets of money"
+                    const byPoste = {};
+                    creances.forEach(c => {
+                      (c.lignes || []).forEach(l => {
+                        const posteId = l.posteCible?.replace('pgpf-echu', 'pgpf').replace('pgpf-aechoir', 'pgpf') || 'autre';
+                        if (!byPoste[posteId]) byPoste[posteId] = { posteId, total: 0 };
+                        byPoste[posteId].total += l.montant;
+                      });
+                    });
+                    const posteSummaries = Object.values(byPoste);
+                    const allPostesFlat = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes));
 
                     return (
                       <div key={tp.id} className="border-b border-[#f0efed] last:border-b-0">
@@ -7140,36 +7144,41 @@ export default function App() {
                           <div className="flex items-center gap-2">
                             {expanded ? <ChevronDown className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} /> : <ChevronRight className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />}
                             <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{tp.sigle}</span>
-                            <span style={{ fontSize: 11, color: '#a8a29e', fontFamily: "'Inter', sans-serif" }}>{tp.type}</span>
+                            <span style={{ fontSize: 11, color: '#a8a29e', fontFamily: "'Inter', sans-serif" }}>{tp.nom}</span>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <span style={{ fontSize: 11, color: '#a8a29e' }}>{allLignes.length} ligne{allLignes.length > 1 ? 's' : ''}</span>
-                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmtTP(totalTP)}</span>
-                          </div>
+                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmt(totalTP)}</span>
                         </div>
                         {expanded && (
-                          <div className="px-5 pb-3 space-y-1">
-                            <div style={{ fontSize: 12, color: '#78716c', marginBottom: 4 }}>{tp.nom}</div>
-                            {allLignes.map((ligne) => {
-                              const posteLabel = ligne.posteCible?.replace('pgpf-echu', 'PGPF échu').replace('pgpf-aechoir', 'PGPF à échoir').toUpperCase();
-                              const isNeg = ligne.montant < 0;
+                          <div className="px-5 pb-3 space-y-0.5">
+                            {posteSummaries.map((ps) => {
+                              const posteDef = allPostesFlat.find(p => p.id === ps.posteId);
+                              const acronym = posteDef?.acronym || ps.posteId.toUpperCase();
+                              const label = posteDef?.label || ps.posteId;
                               return (
-                                <div key={ligne.id} className="flex items-center justify-between py-1">
+                                <div
+                                  key={ps.posteId}
+                                  className="flex items-center justify-between py-1.5 px-2 -mx-2 rounded cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigateTo({ type: 'poste', id: ps.posteId, title: acronym, fullTitle: label });
+                                  }}
+                                >
                                   <div className="flex items-center gap-2">
-                                    <span style={{ fontSize: 12, color: '#44403c' }}>{NATURE_LABELS[ligne.nature] || ligne.libelle}</span>
-                                    <span style={{ fontSize: 10, color: '#a8a29e', fontFamily: "'IBM Plex Mono', monospace", textTransform: 'uppercase' }}>{posteLabel}</span>
+                                    <span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>{acronym}</span>
+                                    <span style={{ fontSize: 12, color: '#78716c' }}>{label}</span>
                                   </div>
-                                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: isNeg ? '#b91c1c' : '#44403c' }}>
-                                    {isNeg ? '\u2212 ' : ''}{fmtTP(Math.abs(ligne.montant))}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: '#44403c' }}>{fmt(ps.total)}</span>
+                                    <ChevronRight className="w-3 h-3 text-[#d6d3d1]" />
+                                  </div>
                                 </div>
                               );
                             })}
                             {creances.some(c => c.regle === 'CASCADE_CAPITALISEE' || c.regle === 'CASCADE') && tpScenario.cascade && (
                               <button
-                                className="mt-1 text-[11px] text-[#78716c] hover:text-[#44403c] hover:underline transition-colors"
+                                className="mt-1 text-[11px] text-[#1e3a8a] hover:underline transition-colors"
                                 onClick={(e) => { e.stopPropagation(); navigateTo({ type: 'cascade', id: 'cascade-from-registre', title: 'Cascade', fullTitle: tpScenario.cascade.label + ' \u2014 Cascade' }); }}
-                              >voir la cascade {'\u2192'}</button>
+                              >{'\u2197'} Voir la cascade complète</button>
                             )}
                           </div>
                         )}
@@ -8376,7 +8385,29 @@ export default function App() {
 
           {renderCreancesTPTable('dsa')}
 
-          {renderTotalBlock('dsa', indemniteVictime, { guard: dsaLignes.length > 0 })}
+          {(() => {
+            if (dsaLignes.length === 0) return null;
+            const dsaVictime = Math.max(0, indemniteVictime);
+            // TP breakdown per tiers payeur
+            const tpByEntity = {};
+            if (hasTP) {
+              (tpScenario._imputationsByPoste?.['dsa'] || []).forEach(imp => {
+                if (!tpByEntity[imp.tiersPayeurId]) tpByEntity[imp.tiersPayeurId] = { sigle: imp.sigle, total: 0 };
+                tpByEntity[imp.tiersPayeurId].total += imp.montant;
+              });
+            }
+            const tpEntries = Object.values(tpByEntity);
+            const hasTpBreakdown = tpEntries.length > 0;
+            return renderTotalBlock('dsa', dsaVictime, { content: hasTpBreakdown ? (
+              <div className="mt-3 space-y-1">
+                {tpLine('Total à indemniser', totalMontant)}
+                {tpDivider()}
+                {tpEntries.map(tp => tpLine(`Créance ${tp.sigle}`, tp.total, { key: tp.sigle }))}
+                {tpDivider()}
+                {tpSubtotal('Indemnité victime', dsaVictime)}
+              </div>
+            ) : null });
+          })()}
 
               </div>{/* end space-y-4 */}
             </div>{/* end p-4 */}
@@ -8485,30 +8516,15 @@ export default function App() {
                 </div>
                 <span className="text-[14px] font-medium text-[#292524]">Revenu de référence</span>
               </div>
-              {isCardExpanded('pgpa-revenu-ref') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+              {isIvCardExpanded('pgpa-revenu-ref') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
             </div>
-            {isCardExpanded('pgpa-revenu-ref') && <>
-            {/* Drop zone */}
-            <div
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-ref'); }}
-              className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white"
-            >
-              <div className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg transition-colors ${isDragging ? 'border-[#a8a29e] bg-[#f5f5f4]' : 'border-[#d6d3d1]'}`}>
-                <Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" />
-                <span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer" onClick={() => document.getElementById('pgpa-ref-upload')?.click()}>cliquez</span> pour ajouter un justificatif</span>
-                <input type="file" id="pgpa-ref-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-ref'); e.target.value = ''; } }} />
-              </div>
-              <button onClick={() => handleAddManual('pgpa-revenu-ref')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a] flex-shrink-0 whitespace-nowrap">
-                <Plus className="w-4 h-4" /> Ajouter une dépense
-              </button>
-            </div>
+            {isIvCardExpanded('pgpa-revenu-ref') && <>
             {/* Column headers */}
             {allRevenuRefLignes.length > 0 && (
               <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
                 <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
-                <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période</div>
+                <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
+                <div className="w-[160px] px-3 flex-shrink-0" style={colHeaderStyle}>Période</div>
                 <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
               </div>
             )}
@@ -8530,7 +8546,10 @@ export default function App() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0 px-3">
-                    <span className="text-body-medium block text-[#292524]">{l.label || l.annee || 'Sans libellé'}</span>
+                    <span className="text-body-medium truncate block text-[#292524]">{l.label || l.annee || 'Sans libellé'}</span>
+                  </div>
+                  <div className="w-[160px] px-3 flex-shrink-0">
+                    <span className="text-body text-[#78716c]">{l.periodeDebut ? `${l.periodeDebut} → ${l.periodeFin}` : l.annee || '—'}</span>
                   </div>
                   <div className="w-[200px] px-3 text-right flex-shrink-0">
                     <span className="text-body-medium font-semibold tabular-nums text-[#292524]">{fmt(l.revalorise || l.montant || 0)}</span>
@@ -8545,11 +8564,17 @@ export default function App() {
                 <div className="flex-1 min-w-0 px-3">
                   <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>Total</span>
                 </div>
+                <div className="w-[160px] flex-shrink-0 px-3" />
                 <div className="w-[200px] px-3 text-right flex-shrink-0">
                   <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>{fmt(Math.round(revenuRefMensuel))}<span style={{ fontSize: 11, color: '#a8a29e', marginLeft: 4 }}>/ mois</span></span>
                 </div>
               </div>
             )}
+            <div className="flex items-center justify-center h-[44px] border-t border-[#e7e5e3] bg-white">
+              <button onClick={() => handleAddManual('pgpa-revenu-ref')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a]">
+                <Plus className="w-4 h-4" /> Ajouter une ligne
+              </button>
+            </div>
           </>}
           </div>
 
@@ -8562,25 +8587,9 @@ export default function App() {
                 </div>
                 <span className="text-[14px] font-medium text-[#292524]">Revenus perçus</span>
               </div>
-              {isCardExpanded('pgpa-revenus-percus') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+              {isIvCardExpanded('pgpa-revenus-percus') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
             </div>
-            {isCardExpanded('pgpa-revenus-percus') && <>
-            {/* Drop zone */}
-            <div
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-percu'); }}
-              className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white"
-            >
-              <div className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg transition-colors ${isDragging ? 'border-[#a8a29e] bg-[#f5f5f4]' : 'border-[#d6d3d1]'}`}>
-                <Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" />
-                <span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer" onClick={() => document.getElementById('pgpa-percu-upload')?.click()}>cliquez</span> pour ajouter un justificatif</span>
-                <input type="file" id="pgpa-percu-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-percu'); e.target.value = ''; } }} />
-              </div>
-              <button onClick={() => handleAddManual('pgpa-revenu-percu')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a] flex-shrink-0 whitespace-nowrap">
-                <Plus className="w-4 h-4" /> Ajouter une dépense
-              </button>
-            </div>
+            {isIvCardExpanded('pgpa-revenus-percus') && <>
             {/* Column headers */}
             {(() => {
               // Derive TP badges from creancesTP lines of nature IJ / MAINTIEN_SALAIRE
@@ -8605,7 +8614,9 @@ export default function App() {
                   {mergedRevenusPercus.length > 0 && (
                     <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
                       <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
-                      <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période</div>
+                      <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
+                      {hasBadges && <div className="w-[120px] px-3 flex-shrink-0" style={colHeaderStyle}>Tiers payeur</div>}
+                      <div className="w-[160px] px-3 flex-shrink-0" style={colHeaderStyle}>Période</div>
                       <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
                     </div>
                   )}
@@ -8626,15 +8637,19 @@ export default function App() {
                           )}
                         </div>
                         <div className="flex-1 min-w-0 px-3">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-body-medium text-[#292524]">{l.label || 'Sans libellé'}</span>
+                          <span className="text-body-medium truncate block text-[#292524]">{l.label || 'Sans libellé'}</span>
+                        </div>
+                        {hasBadges && (
+                          <div className="w-[120px] px-3 flex-shrink-0">
                             {badge && (
                               <span className="inline-flex items-center h-[18px] px-1.5 rounded-sm" style={{ backgroundColor: '#eeece6', fontSize: 10, fontWeight: 500, color: '#44403c', fontFamily: "'IBM Plex Mono', monospace" }}>
                                 {badge.badgeLabel}
                               </span>
                             )}
                           </div>
-                          <span className="text-caption text-[#78716c]">{l.periodeDebut} {'\u2192'} {l.periodeFin}</span>
+                        )}
+                        <div className="w-[160px] px-3 flex-shrink-0">
+                          <span className="text-body text-[#78716c]">{l.periodeDebut} {'\u2192'} {l.periodeFin}</span>
                         </div>
                         <div className="w-[200px] px-3 text-right flex-shrink-0">
                           <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.montant)}</span>
@@ -8648,6 +8663,8 @@ export default function App() {
                       <div className="flex-1 min-w-0 px-3">
                         <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>Total</span>
                       </div>
+                      {hasBadges && <div className="w-[120px] flex-shrink-0 px-3" />}
+                      <div className="w-[160px] flex-shrink-0 px-3" />
                       <div className="w-[200px] px-3 text-right flex-shrink-0">
                         <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>{fmt(hasBadges ? mergedTotal : revenusPercusTotal)}</span>
                       </div>
@@ -8656,6 +8673,11 @@ export default function App() {
                 </>
               );
             })()}
+            <div className="flex items-center justify-center h-[44px] border-t border-[#e7e5e3] bg-white">
+              <button onClick={() => handleAddManual('pgpa-revenu-percu')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a]">
+                <Plus className="w-4 h-4" /> Ajouter une ligne
+              </button>
+            </div>
           </>}
           </div>
 
@@ -8668,9 +8690,9 @@ export default function App() {
                 </div>
                 <span className="text-[14px] font-medium text-[#292524]">Perte de chance</span>
               </div>
-              {isCardExpanded('pgpa-perte-chance') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+              {isIvCardExpanded('pgpa-perte-chance') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
             </div>
-            {isCardExpanded('pgpa-perte-chance') && <>
+            {isIvCardExpanded('pgpa-perte-chance') && <>
             {/* Column headers */}
             <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
               <div className="w-12 flex-shrink-0"></div>
@@ -8689,7 +8711,7 @@ export default function App() {
           </>}
           </div>
 
-          {renderTotalBlock('pgpa', indemniteVictimePGPA)}
+          {renderTotalBlock('pgpa', indemniteVictimePGPA, { label: 'Indemnité victime' })}
 
               </div>
             </div>
@@ -8789,7 +8811,7 @@ export default function App() {
             )}
           </div>
 
-          {/* Section Label: PRÉ-LIQUIDATION */}
+          {/* Pre-liquidation blocks */}
           {periodeCL && (
             <>
             <div style={sectionHeaderStyle} className="mt-2">NOM DE PÉRIODE</div>
@@ -8804,6 +8826,7 @@ export default function App() {
                   <span className="text-[14px] font-medium text-[#292524]">Revenu de référence</span>
                   <span className="text-xs px-2 py-0.5 rounded bg-[#eef3fa] text-[#1e3a8a] border border-[#aabcd5]">⊕ Sync. PGPA</span>
                 </div>
+                <span className="text-[14px] font-medium text-[#292524] tabular-nums">{fmt(Math.round(periodeCL.revenuRef.total / 12))}<span className="text-[12px] text-[#78716c] font-normal ml-1">/ mois</span></span>
               </div>
             </div>
 
@@ -8816,25 +8839,18 @@ export default function App() {
                   </div>
                   <span className="text-[14px] font-medium text-[#292524]">Revenus perçus</span>
                 </div>
-                {isCardExpanded('pgpf-revenus-percus') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
-              </div>
-              {isCardExpanded('pgpf-revenus-percus') && <>
-              {/* Drop zone */}
-              <div className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white">
-                <div className="flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg border-[#d6d3d1]">
-                  <Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" />
-                  <span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer">cliquez</span> pour ajouter un justificatif</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] font-medium text-[#292524] tabular-nums">{fmt(periodeCL.revenusPercus.reduce((s, l) => s + l.montant, 0))}</span>
+                  {isIvCardExpanded('pgpf-revenus-percus') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
                 </div>
-                <button className="flex items-center gap-2 text-body-medium text-[#1e3a8a] flex-shrink-0 whitespace-nowrap">
-                  <Plus className="w-4 h-4" /> Ajouter une dépense
-                </button>
               </div>
+              {isIvCardExpanded('pgpf-revenus-percus') && <>
               {/* Column headers */}
               {periodeCL.revenusPercus.length > 0 && (
                 <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
-                  <div className="w-12 flex-shrink-0"></div>
-                  <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
-                  <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période</div>
+                  <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
+                  <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
+                  <div className="w-[160px] px-3 flex-shrink-0" style={colHeaderStyle}>Période</div>
                   <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
                 </div>
               )}
@@ -8843,10 +8859,7 @@ export default function App() {
                 const pieceCount = l.pieceIds?.length || 0;
                 return (
                   <div key={l.id} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
-                    <div className="w-12 flex items-center justify-center flex-shrink-0">
-                      <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center"><Check className="w-3 h-3 text-emerald-500" /></div>
-                    </div>
-                    <div className="w-[52px] flex items-center justify-center flex-shrink-0">
+                    <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
                       {pieceCount > 0 ? (
                         <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
                           <FileText className="w-4 h-4 text-[#2563eb]" />
@@ -8857,8 +8870,10 @@ export default function App() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0 px-3">
-                      <span className="text-body-medium text-[#292524] block">{l.label || 'Sans libellé'}</span>
-                      <span className="text-caption text-[#78716c]">{l.periode}</span>
+                      <span className="text-body-medium truncate block text-[#292524]">{l.label || 'Sans libellé'}</span>
+                    </div>
+                    <div className="w-[160px] px-3 flex-shrink-0">
+                      <span className="text-body text-[#78716c]">{l.periode || '—'}</span>
                     </div>
                     <div className="w-[200px] px-3 text-right flex-shrink-0">
                       <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.montant)}</span>
@@ -8869,16 +8884,21 @@ export default function App() {
               {/* Table footer total */}
               {periodeCL.revenusPercus.length > 0 && (
                 <div className="flex items-center h-10 border-t border-[#e7e5e3] bg-[#fafaf9]">
-                  <div className="w-12 flex-shrink-0" />
-                  <div className="w-[52px] flex-shrink-0" />
+                  <div className="w-[52px] flex-shrink-0 pl-3" />
                   <div className="flex-1 min-w-0 px-3">
                     <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>Total</span>
                   </div>
+                  <div className="w-[160px] flex-shrink-0 px-3" />
                   <div className="w-[200px] px-3 text-right flex-shrink-0">
                     <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>{fmt(periodeCL.revenusPercus.reduce((s, l) => s + l.montant, 0))}</span>
                   </div>
                 </div>
               )}
+              <div className="flex items-center justify-center h-[44px] border-t border-[#e7e5e3] bg-white">
+                <button onClick={() => handleAddManual('pgpf-revenu-percu')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a]">
+                  <Plus className="w-4 h-4" /> Ajouter une ligne
+                </button>
+              </div>
             </>}
             </div>
 
@@ -8891,12 +8911,14 @@ export default function App() {
                   </div>
                   <span className="text-[14px] font-medium text-[#292524]">Perte de chance</span>
                 </div>
-                {isCardExpanded('pgpf-perte-chance') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] font-medium text-[#292524] tabular-nums">{fmt(pgpfData.perteDeChance || 0)}</span>
+                  {isIvCardExpanded('pgpf-perte-chance') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+                </div>
               </div>
-              {isCardExpanded('pgpf-perte-chance') && <>
+              {isIvCardExpanded('pgpf-perte-chance') && <>
               <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
-                <div className="w-12 flex-shrink-0"></div>
-                <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+                <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
                 <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
                 <div className="w-28 px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant espéré</div>
                 <div className="w-24 px-3 text-center flex-shrink-0" style={colHeaderStyle}>Coefficient</div>
@@ -8909,86 +8931,85 @@ export default function App() {
               </div>
               </>}
             </div>
-
-            {/* Cascade summary block — shown when ATMP cascade applies to PGPF */}
-            {hasTP && tpScenario.cascade && (() => {
-              const c = tpScenario.cascade;
-              const cascadeCreance = (tpScenario.creancesTP || []).find(cr => cr.id === c.creanceTPId);
-              return (
-                <div className="px-3 py-3 rounded-md mb-2" style={{ backgroundColor: '#f5f0e8', border: '1px solid #e2ddd4' }}>
-                  <div className="flex justify-between items-baseline mb-2">
-                    <span style={{ fontSize: 13, color: '#44403c', fontWeight: 600 }}>Imputation {c.sigle} · rente AT/MP</span>
-                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#78716c' }}>cascade capitalisée</span>
-                  </div>
-                  <div className="space-y-1">
-                    {tpLine('Créance globale CPAM AT/MP', c.capitalise, { bold: true })}
-                    <div style={{ fontSize: 11, color: '#a8a29e', marginLeft: 8, marginBottom: 4 }}>
-                      Rente annuelle capitalisée ({fmt(c.renteAnnuelle)}/an × {c.coefficient}) + arrérages échus {fmt(c.arreragesEchus)}
-                    </div>
-                    {tpDivider()}
-                    {tpLine('Imputation sur PGPF échu', c.arreragesEchus)}
-                    {tpLine('Imputation sur PGPF à échoir', c.arreragesAEchoir)}
-                    {c.etapes && c.etapes.filter(e => e.posteId !== 'pgpf').map(e => (
-                      <React.Fragment key={e.posteId}>{tpLine(`Imputation sur ${e.label}`, e.absorbe, { muted: true })}</React.Fragment>
-                    ))}
-                    {tpDivider()}
-                    {tpLine('Total imputé', c.totalAbsorbe, { bold: true })}
-                    {tpLine('Créance non recouvrée', c.nonRecouvre, { muted: true })}
-                  </div>
-                  {cascadeCreance?.piece && (
-                    <div className="mt-2">
-                      <button
-                        className="text-[11px] text-[#78716c] hover:text-[#44403c] hover:underline transition-colors"
-                        onClick={() => setActiveTab('Dossier')}
-                      >
-                        {cascadeCreance.piece} {'\u2192'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* Total Block: PGPF échu */}
-            {(() => {
-              const grossEchu = hasTP && tpScenario.damageOverrides?.pgpfEchu != null ? tpScenario.damageOverrides.pgpfEchu : pgpfClTotal;
-              const tpEchu = hasTP ? (tpScenario._imputations || []).filter(i => i.posteId === 'pgpf').reduce((s, i) => s + (i.montantImputeEchu || 0), 0) : 0;
-              const victimeEchu = Math.max(0, grossEchu - tpEchu);
-              const ijTotal = periodeCL.ijPercues ? periodeCL.ijPercues.reduce((s, l) => s + l.montant, 0) : 0;
-              return renderTotalBlock('pgpfCl', victimeEchu, { label: 'PGPF échu', content: (
-                <>
-                  <div className="mt-3 space-y-1">
-                    {tpLine('Revenu de référence mensuel', Math.round(periodeCL.revenuRef.total / 12), { unit: '/ mois' })}
-                    {tpLine(`\u00d7 ${periodeCL.periode.mois} mois`, Math.round(periodeCL.revenuRef.total / 12) * periodeCL.periode.mois)}
-                    {tpLine('\u2212 Revenus perçus', periodeCL.revenusPercus.reduce((s, l) => s + l.montant, 0))}
-                    {ijTotal > 0 && tpLine('\u2212 IJ perçues', ijTotal)}
-                    {tpSubtotal('Préjudice échu', pgpfClTotal)}
-                  </div>
-                  {renderCreancesTPTable('pgpf-echu')}
-                </>
-              )});
-            })()}
             </>
           )}
 
-          {/* Total Block: PGPF à échoir */}
+          {/* Créances TP table: PGPF échu */}
+          {renderCreancesTPTable('pgpf-echu')}
+
+          {/* Cascade link */}
+          {hasTP && tpScenario.cascade && (
+            <div className="px-4 py-2">
+              <button
+                className="text-[12px] text-[#1e3a8a] hover:underline transition-colors flex items-center gap-1"
+                onClick={() => navigateTo({ type: 'cascade', id: 'cascade-from-pgpf', title: 'Cascade', fullTitle: tpScenario.cascade.label + ' \u2014 Cascade' })}
+              >
+                {'\u2197'} Voir la cascade complète de la rente CPAM
+              </button>
+            </div>
+          )}
+
+          {/* Block: PGPF échu */}
+          {periodeCL && (() => {
+            const grossEchu = hasTP && tpScenario.damageOverrides?.pgpfEchu != null ? tpScenario.damageOverrides.pgpfEchu : pgpfClTotal;
+            const tpEchu = hasTP ? (tpScenario._imputations || []).filter(i => i.posteId === 'pgpf').reduce((s, i) => s + (i.montantImputeEchu || 0), 0) : 0;
+            const victimeEchu = Math.max(0, grossEchu - tpEchu);
+            return renderTotalBlock('pgpfCl', victimeEchu, { label: 'PGPF échu' });
+          })()}
+
+          {/* Card: Arrérage à échoir */}
+          {periodeAL && (
+            <>
+            <div style={sectionHeaderStyle} className="mt-2">NOM DE PÉRIODE</div>
+            <div className={cardBlockClass}>
+              <div className="flex items-center justify-between h-12 px-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                    <Settings className="w-3.5 h-3.5 text-[#78716c]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[#292524]">Arrérage à échoir</span>
+                </div>
+                <span className="text-[14px] font-medium text-[#292524] tabular-nums">{fmt(periodeAL.params.perteGainAnnuelle)}<span className="text-[12px] text-[#78716c] font-normal ml-1">/ an</span></span>
+              </div>
+            </div>
+            </>
+          )}
+
+          {/* Créances TP table: PGPF à échoir */}
+          {renderCreancesTPTable('pgpf-aechoir')}
+
+          {/* Cascade absorption warning */}
+          {hasTP && tpScenario.cascade && (() => {
+            const grossAEchoir = hasTP && tpScenario.damageOverrides?.pgpfAEchoir != null ? tpScenario.damageOverrides.pgpfAEchoir : (periodeAL?.params.montantCapitalise || 0);
+            const tpAEchoir = (tpScenario._imputations || []).filter(i => i.posteId === 'pgpf').reduce((s, i) => s + (i.montantImputeAEchoir || 0), 0);
+            const victimeAEchoir = Math.max(0, grossAEchoir - tpAEchoir);
+            return victimeAEchoir === 0 && tpAEchoir > 0 ? (
+              <div className="px-3 py-2 rounded-md" style={{ backgroundColor: '#fefce8', border: '1px solid #fde68a' }}>
+                <span style={{ fontSize: 12, color: '#92400e', lineHeight: '18px' }}>
+                  La rente CPAM absorbe l'intégralité du préjudice à échoir.
+                  {tpScenario.cascade?.etapes?.filter(e => e.posteId !== 'pgpf').map(e => (
+                    <span key={e.posteId}> Reliquat cascadé vers {e.label} : {fmt(e.absorbe)}</span>
+                  ))}
+                </span>
+              </div>
+            ) : null;
+          })()}
+
+          {/* Block: PGPF à échoir */}
           {periodeAL && (() => {
             const grossAEchoir = hasTP && tpScenario.damageOverrides?.pgpfAEchoir != null ? tpScenario.damageOverrides.pgpfAEchoir : (periodeAL.params.montantCapitalise || 0);
             const tpAEchoir = hasTP ? (tpScenario._imputations || []).filter(i => i.posteId === 'pgpf').reduce((s, i) => s + (i.montantImputeAEchoir || 0), 0) : 0;
             const victimeAEchoir = Math.max(0, grossAEchoir - tpAEchoir);
-            return renderTotalBlock('pgpfAl', victimeAEchoir, { label: 'PGPF à échoir', content: (
-              <>
-                <div className="mt-3 space-y-1">
-                  {tpLine('Arrérage annuel', periodeAL.params.perteGainAnnuelle, { unit: '/ an' })}
-                  {tpLine('\u00d7 coefficient capitalisation', null, { raw: `\u00d7 ${periodeAL.params.coefficient}` })}
-                  {tpSubtotal('Préjudice à échoir', periodeAL.params.montantCapitalise)}
-                </div>
-                {renderCreancesTPTable('pgpf-aechoir')}
-              </>
-            )});
+            const isCapitalise = enabledParams['capitaliser-pgpf'];
+            return renderTotalBlock('pgpfAl', victimeAEchoir, { label: 'PGPF à échoir', content: !isCapitalise ? (
+              <div className="mt-2 flex justify-between items-center">
+                <span style={{ fontSize: 12, color: '#78716c' }}>Versement</span>
+                <span style={{ fontSize: 12, color: '#78716c' }}>En rente, sans capitalisation</span>
+              </div>
+            ) : null });
           })()}
 
-          {/* Total Block: PGPF total summary (spec §3 Block 3) */}
+          {/* Block: Total PGPF */}
           {(() => {
             const grossEchu = hasTP && tpScenario.damageOverrides?.pgpfEchu != null ? tpScenario.damageOverrides.pgpfEchu : pgpfClTotal;
             const tpEchuSum = hasTP ? (tpScenario._imputations || []).filter(i => i.posteId === 'pgpf').reduce((s, i) => s + (i.montantImputeEchu || 0), 0) : 0;
@@ -8997,19 +9018,7 @@ export default function App() {
             const tpAEchoirSum = hasTP ? (tpScenario._imputations || []).filter(i => i.posteId === 'pgpf').reduce((s, i) => s + (i.montantImputeAEchoir || 0), 0) : 0;
             const victAEchoir = Math.max(0, grossAEchoir - tpAEchoirSum);
             const pgpfVictimeTotal = victEchu + victAEchoir;
-            return renderTotalBlock('pgpfTotal', pgpfVictimeTotal, { label: 'Total PGPF', content: (
-              <div className="mt-3 space-y-1">
-                {tpLine('Indemnité victime échue', victEchu)}
-                {periodeAL && tpLine('Indemnité victime à échoir', victAEchoir)}
-                {hasTP && pgpfVictimeTotal === 0 && tpScenario.cascade && (
-                  <div className="mt-2 pt-2 border-t border-[#f0efed]">
-                    <span style={{ fontSize: 12, color: '#a8a29e', fontStyle: 'italic', lineHeight: '18px' }}>
-                      La rente AT/MP capitalisée couvre l'intégralité du préjudice futur. La victime ne perçoit pas d'indemnité complémentaire sur ce poste.
-                    </span>
-                  </div>
-                )}
-              </div>
-            )});
+            return renderTotalBlock('pgpfTotal', pgpfVictimeTotal, { label: 'Total PGPF' });
           })()}
 
               </div>
