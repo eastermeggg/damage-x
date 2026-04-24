@@ -7593,7 +7593,7 @@ export default function App() {
         const totalIv = totalIvChiffrage;
         const totalTiers = hasTP ? allPostes.reduce((s, p) => s + (p.tpEffective || 0), 0) : 0;
         const tauxRatio = (tauxFinal || 100) / 100;
-        const totalIndem = (totalVd + totalIv) * tauxRatio - totalTiers;
+        const totalIndem = (totalVd + totalIv) * tauxRatio + totalTiers;
 
         // Reusable subtotal/total card component
         // rows: [{ label, amount, muted?, negative? }], totalRow: { label, amount }
@@ -7625,7 +7625,7 @@ export default function App() {
               {[
                 { label: 'VD', amount: totalVd },
                 ...(totalIv > 0 ? [{ label: 'VI', amount: totalIv }] : []),
-                { label: 'TP', amount: totalTiers, muted: totalTiers === 0, negative: totalTiers > 0 },
+                { label: 'TP', amount: totalTiers, muted: totalTiers === 0 },
               ].map((item, i) => (
                 <div key={i} className="h-8 px-2.5 flex items-center gap-1.5 border border-[#e7e5e3] rounded-lg whitespace-nowrap cursor-default">
                   <span style={{ fontSize: 11, fontWeight: 400, color: item.muted ? '#a8a29e' : '#78716c', letterSpacing: 0.1, lineHeight: '16px' }}>{item.label}</span>
@@ -7956,7 +7956,7 @@ export default function App() {
                     {totalTiers > 0 && (
                       <div className="flex items-center justify-between">
                         <span style={{ fontSize: 13, fontWeight: 400, color: '#a8a29e' }}>Tiers payeurs</span>
-                        <span style={{ fontSize: 14, fontWeight: 500, color: '#d6d3d1' }}>{'\u2212'} {fmt(totalTiers)}</span>
+                        <span style={{ fontSize: 14, fontWeight: 500, color: '#d6d3d1' }}>{fmt(totalTiers)}</span>
                       </div>
                     )}
                     {tauxRatio < 1 && (
