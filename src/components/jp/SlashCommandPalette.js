@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Search as SearchIcon } from 'lucide-react';
 import { SCENARIO_LIST } from '../../data/demoScenarios';
 
-export default function SlashCommandPalette({ query, onSelect, onDismiss }) {
+export default function SlashCommandPalette({ query, onSelect, onDismiss, scenarios }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const listRef = useRef(null);
 
   // Filter scenarios by query (text after /)
-  const filtered = SCENARIO_LIST.filter(s =>
+  const allScenarios = scenarios || SCENARIO_LIST;
+  const filtered = allScenarios.filter(s =>
     !query || s.command.includes(query) || s.label.toLowerCase().includes(query.toLowerCase())
   );
 
@@ -65,7 +66,7 @@ export default function SlashCommandPalette({ query, onSelect, onDismiss }) {
       <div className="flex items-center gap-2 px-3 py-2 border-b border-[#f0efed]" style={{ backgroundColor: '#fafaf9' }}>
         <SearchIcon className="w-3 h-3 text-[#a8a29e]" />
         <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, color: '#78716c' }}>
-          SCÉNARIOS JP
+          COMMANDES
         </span>
       </div>
 

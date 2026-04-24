@@ -6,6 +6,9 @@ import { saveAs } from 'file-saver';
 import { JPPill, JPPopoverCard, DecisionDrawer, JPListing, JPAddStepper, SlashCommandPalette, JPSearchView } from './components/jp';
 import useDemoCommands from './hooks/useDemoCommands';
 import { getDecisionById } from './data/mockDecisions';
+import { getTPScenario, TP_COMMAND_LIST, TP_COMMAND_MAP } from './data/tpScenarios';
+import { BASELINE_DSA_LIGNES, BASELINE_DFT_LIGNES, BASELINE_PGPA_DATA, BASELINE_PGPF_DATA, BASELINE_FORM_POSTE_DATA, BASELINE_FDA_LIGNES, BASELINE_DSF_DATA } from './data/baselineData';
+import { NATURE_CREANCE, NATURE_TO_POSTE, NATURE_LABELS } from './data/tpScenarios';
 
 const POSTES_TAXONOMY = [
   {
@@ -14,7 +17,7 @@ const POSTES_TAXONOMY = [
       { title: 'Préjudices patrimoniaux temporaires', id: 'vd-pat-temp', postes: [
         { id: 'dsa', acronym: 'DSA', label: 'Dépenses de santé actuelles', enabled: true },
         { id: 'pgpa', acronym: 'PGPA', label: 'Pertes de gains professionnels actuels', enabled: true },
-        { id: 'fda', label: 'Frais divers actuels', enabled: false },
+        { id: 'fda', acronym: 'FDA', label: 'Frais divers actuels', enabled: true },
         { id: 'psuf', label: 'Préjudice scolaire, universitaire ou de formation', enabled: false },
         { id: 'atpt', label: 'Assistance par une tierce personne temporaire', enabled: false },
       ]},
@@ -23,12 +26,12 @@ const POSTES_TAXONOMY = [
         { id: 'pet', label: 'Préjudice esthétique temporaire', enabled: false },
       ]},
       { title: 'Préjudices patrimoniaux permanents', id: 'vd-pat-perm', postes: [
-        { id: 'dsf', label: 'Dépenses de santé futures', enabled: false },
+        { id: 'dsf', acronym: 'DSF', label: 'Dépenses de santé futures', enabled: true },
         { id: 'fdf', label: 'Frais divers futurs', enabled: false },
         { id: 'fla', label: 'Frais de logement adapté', enabled: false },
         { id: 'fva', label: 'Frais de véhicule adapté', enabled: false },
-        { id: 'pgpf', label: 'Pertes de gains professionnels futurs', enabled: false },
-        { id: 'ipp', label: 'Incidence professionnelle', enabled: false },
+        { id: 'pgpf', acronym: 'PGPF', label: 'Pertes de gains professionnels futurs', enabled: true },
+        { id: 'ipp', acronym: 'IP', label: 'Incidence professionnelle', enabled: false },
         { id: 'atpf', label: 'Assistance par une tierce personne future', enabled: false },
       ]},
       { title: 'Préjudices extra patrimoniaux permanents', id: 'vd-expat-perm', postes: [
@@ -920,7 +923,7 @@ export default function App() {
   const [activeParamChip, setActiveParamChip] = useState(null); // which param chip config is expanded
   const [enabledParams, setEnabledParams] = useState({ 'revaloriser': true, 'revaloriser-pgpa': true, 'capitaliser-pgpf': true, 'base-journaliere-dft': true, 'revaloriser-se': true, 'revaloriser-pep': true, 'revaloriser-dfp': true }); // toggle on/off per param
   const [totalExpanded, setTotalExpanded] = useState({}); // { [posteId]: boolean }
-  const [dossierPostes, setDossierPostes] = useState(['dsa', 'pgpa', 'dft', 'pgpf', 'se', 'dfp', 'pep']); // IDs of postes added to this dossier
+  const [dossierPostes, setDossierPostes] = useState(['dsa', 'fda', 'pgpa', 'dft', 'pgpf', 'dsf', 'se', 'dfp', 'pep']); // IDs of postes added to this dossier
   const [ivDossierPostes, setIvDossierPostes] = useState(['pai', 'pafv', 'pepe', 'fdp', 'fo', 'prp']); // IDs of IV postes enabled in this dossier
   const [ivPosteData, setIvPosteData] = useState({
     // Type A — Préjudice d'affection
@@ -979,14 +982,16 @@ export default function App() {
   const [ivOverviewExpanded, setIvOverviewExpanded] = useState({}); // { [posteId]: boolean } — UI only
   const [ivViewMode, setIvViewMode] = useState('poste'); // 'poste' | 'victime' — UI only
   const [prpUseCase, setPrpUseCase] = useState('decede-capital-echu'); // preset selector for PRP
-  const [formPosteData, setFormPosteData] = useState({
-    se: { referentiel: 'cours-appel-2024', cotation: 4, montant: 15000 },
-    pep: { referentiel: 'cours-appel-2024', cotation: 3, montant: 4500 },
-    dfp: { referentiel: 'cours-appel-2024', age: 42, taux: 18, trancheAge: 'inferieure', trancheTaux: 'inferieure', pointBase: 1500, montant: 27000 },
-  });
+  const [formPosteData, setFormPosteData] = useState(BASELINE_FORM_POSTE_DATA);
+
+  // ========== TIERS PAYEURS STATE ==========
+  const [tpScenarioKey, setTpScenarioKey] = useState('baseline');
+  const tpScenario = getTPScenario(tpScenarioKey);
+  const hasTP = tpScenario.key !== 'baseline' && tpScenario.tiersPayeurs.length > 0;
+  const tauxFinal = tpScenario.tauxResponsabilite ?? 100;
 
   // Shared style for all column/table headers — IBM Plex Mono, uppercase, small
-  const colHeaderStyle = { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em' };
+  const colHeaderStyle = { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' };
   // Section headers: DETAIL DU CALCUL, NOTES / ARGUMENTAIRE, JURISPRUDENCES
   const sectionHeaderStyle = { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' };
   // Serif amounts for card titles and totals
@@ -1213,48 +1218,10 @@ export default function App() {
   ]);
 
   // ========== DSA ==========
-  const [dsaLignes, setDsaLignes] = useState([
-    // 3 docs - Hospitalisation complète
-    { id: 'dsa-1', status: 'validated', label: 'Hospitalisation CHU Bordeaux', description: 'Séjour du 15 au 22 mars 2023', type: 'Hospitalisation', date: '15/03/2023', montant: 4500, dejaRembourse: 3200, tiers: 'CHU Bordeaux', pieceIds: ['p-1', 'p-8', 'p-5'] },
-    // 1 doc - Kiné
-    { id: 'dsa-2', status: 'validated', label: 'Séances de kinésithérapie', description: '32 séances de rééducation du genou', type: 'Rééducation', date: '01/04/2023', dateFin: '30/09/2023', isPeriodique: true, periodicite: 'Hebdomadaire', montant: 1280, dejaRembourse: 640, tiers: 'Cabinet Martin', pieceIds: ['p-2'] },
-    // 2 docs - IRM
-    { id: 'dsa-3', status: 'validated', label: 'IRM genou gauche', type: 'Imagerie', date: '25/06/2023', montant: 320, dejaRembourse: 280, tiers: 'Centre Imagerie Sud', pieceIds: ['p-12', 'p-5'] },
-    // 2 docs - Pharmacie
-    { id: 'dsa-4', status: 'validated', label: 'Médicaments juillet 2023', type: 'Pharmacie', date: '20/07/2023', montant: 87.50, dejaRembourse: 65, tiers: 'Pharmacie des Lilas', pieceIds: ['p-7', 'p-6'] },
-    // 1 doc - Consultation
-    { id: 'dsa-5', status: 'validated', label: 'Consultation orthopédique', type: 'Consultation', date: '15/08/2023', montant: 55, dejaRembourse: 23, tiers: 'Dr. Petit', pieceIds: ['p-14'] }
-  ]);
+  const [dsaLignes, setDsaLignes] = useState(BASELINE_DSA_LIGNES);
 
   // ========== PGPA ==========
-  const [pgpaData, setPgpaData] = useState({
-    periode: { debut: '15/03/2023', fin: '12/09/2024', mois: 18 },
-    revenuRef: {
-      revalorisation: 'ipc-annuel',
-      coefficientPerteChance: 100,
-      lignes: [
-        // 2 docs - Salaire 2022
-        { id: 'pgpa-rev-1', type: 'revenu', label: 'Salaire net imposable', annee: '2022', montant: 32400, revalorise: 33696, aRevaloriser: true, pieceIds: ['p-3', 'p-11'] },
-        // 1 doc - Salaire 2021
-        { id: 'pgpa-rev-2', type: 'revenu', label: 'Salaire net imposable', annee: '2021', montant: 31200, revalorise: 33384, aRevaloriser: true, pieceIds: ['p-9'] },
-        // 1 doc - Prime
-        { id: 'pgpa-gain-1', type: 'gain', label: 'Prime annuelle', annee: '2022', montant: 2400, revalorise: 2496, aRevaloriser: true, pieceIds: ['p-3'] },
-        // 2 docs - Heures sup
-        { id: 'pgpa-gain-2', type: 'gain', label: 'Heures supplémentaires', annee: '2022', montant: 1800, revalorise: 1872, aRevaloriser: true, pieceIds: ['p-3', 'p-11'] },
-      ],
-      total: 37800
-    },
-    revenusPercus: [
-      // 3 docs - Maintien salaire
-      { id: 'pgpa-percu-1', label: 'Maintien partiel salaire', periode: 'Mars - Juin 2023', periodeDebut: '15/03/2023', periodeFin: '30/06/2023', dureeJours: 107, montant: 8500, tiers: 'Employeur', pieceIds: ['p-10', 'p-11', 'p-3'] },
-    ],
-    ijPercues: [
-      // 2 docs - IJ CPAM
-      { id: 'pgpa-ij-1', label: 'IJ Sécurité sociale', tiers: 'CPAM Gironde', periode: 'Mars 2023 - Sept 2024', periodeDebut: '15/03/2023', periodeFin: '12/09/2024', jours: 546, montantBrut: 12500, csgCrds: 850, montant: 11650, pieceIds: ['p-4', 'p-10'] },
-      // 1 doc - IJ Prévoyance
-      { id: 'pgpa-ij-2', label: 'IJ Prévoyance', tiers: 'AG2R', periode: 'Juil 2023 - Sept 2024', periodeDebut: '01/07/2023', periodeFin: '12/09/2024', jours: 439, montantBrut: 5200, csgCrds: 350, montant: 4850, pieceIds: ['p-13'] },
-    ]
-  });
+  const [pgpaData, setPgpaData] = useState(BASELINE_PGPA_DATA);
 
   // Collapsed sections state for PGPA/PGPF cards (collapsed by default)
   const [expandedCards, setExpandedCards] = useState({});
@@ -1263,44 +1230,16 @@ export default function App() {
   const toggleCard = (key) => setExpandedCards(prev => ({ ...prev, [key]: !prev[key] }));
 
   // ========== PGPF ==========
-  const [pgpfData, setPgpfData] = useState({
-    periodes: {
-      'pgpf-cl': {
-        label: 'Consolidation → Liquidation',
-        periode: { debut: '12/09/2024', fin: '15/01/2025', mois: 4 },
-        revenuRef: { total: 37800 },
-        revenusPercus: [
-          { id: 'pgpf-cl-percu-1', label: 'Salaire reprise mi-temps', periode: 'Oct - Déc 2024', montant: 4800, pieceIds: ['p-10'] },
-        ],
-        ijPercues: [
-          { id: 'pgpf-cl-ij-1', label: 'IJ Sécurité sociale', tiers: 'CPAM Gironde', periode: 'Sept - Déc 2024', montant: 3200, pieceIds: ['p-4'] },
-        ],
-      },
-      'pgpf-al': {
-        label: 'Après Liquidation (capitalisation)',
-        periode: { debut: '15/01/2025', fin: 'Viager' },
-        params: {
-          age: 42, perteGainAnnuelle: 12600, bareme: 'Gazette du Palais 2025 – 0,5%',
-          ageDernierArreage: 67, coefficient: 18.234, montantCapitalise: 229750,
-        },
-        tiersPayeurs: [
-          { id: 'pgpf-tp-1', label: 'CPAM Gironde', renteAnnuelle: 4800, montantCapitalise: 87523, modified: false },
-          { id: 'pgpf-tp-2', label: 'AG2R Prévoyance', renteAnnuelle: 2400, montantCapitalise: 43762, modified: true },
-        ],
-      },
-    }
-  });
+  const [pgpfData, setPgpfData] = useState(BASELINE_PGPF_DATA);
 
   // ========== DFT ==========
-  const [dftLignes, setDftLignes] = useState([
-    { id: 'dft-1', status: 'validated', label: 'Hospitalisation initiale', debut: '15/03/2023', fin: '22/03/2023', jours: 8, taux: 100, montant: 264, pieceIds: ['p-5'], confidence: null, commentaire: '' },
-    { id: 'dft-2', status: 'validated', label: 'Hospitalisation chirurgie', debut: '28/03/2023', fin: '02/04/2023', jours: 6, taux: 100, montant: 198, pieceIds: ['p-5'], confidence: null, commentaire: '' },
-    { id: 'dft-3', status: 'validated', label: 'Alitement strict post-op', debut: '03/04/2023', fin: '15/04/2023', jours: 13, taux: 100, montant: 429, pieceIds: ['p-5'], confidence: null, commentaire: '' },
-    { id: 'dft-4', status: 'validated', label: 'Convalescence post-opératoire', debut: '16/04/2023', fin: '30/06/2023', jours: 76, taux: 50, montant: 1254, pieceIds: ['p-5'], confidence: null, commentaire: '' },
-    { id: 'dft-5', status: 'validated', label: 'Rééducation active intensive', debut: '01/07/2023', fin: '30/09/2023', jours: 92, taux: 40, montant: 1214, pieceIds: ['p-5'], confidence: null, commentaire: '' },
-    { id: 'dft-6', status: 'validated', label: 'Rééducation d\'entretien', debut: '01/10/2023', fin: '31/12/2023', jours: 92, taux: 25, montant: 759, pieceIds: ['p-5'], confidence: null, commentaire: '' },
-    { id: 'dft-7', status: 'validated', label: 'Gêne résiduelle pré-consolidation', debut: '01/01/2024', fin: '12/09/2024', jours: 256, taux: 15, montant: 1267, pieceIds: ['p-5'], confidence: null, commentaire: '' },
-  ]);
+  const [dftLignes, setDftLignes] = useState(BASELINE_DFT_LIGNES);
+
+  // ========== FDA (Frais Divers Actuels) ==========
+  const [fdaLignes, setFdaLignes] = useState(BASELINE_FDA_LIGNES);
+
+  // ========== DSF (Dépenses de Santé Futures) ==========
+  const [dsfData, setDsfData] = useState(BASELINE_DSF_DATA);
 
   // (wizard supprimé - sera remplacé par flow création dossier)
 
@@ -1406,17 +1345,15 @@ export default function App() {
     setPieces(loadedPieces.map(p =>
       p.id === 'p-5' ? { ...p, intitule: "Rapport d'expertise", type: 'Rapport' } : p
     ));
-    setDsaLignes(data.dsaLignes ?? []);
-    setPgpaData(data.pgpaData ?? EMPTY_DOSSIER.pgpaData);
-    setPgpfData(data.pgpfData ?? EMPTY_DOSSIER.pgpfData);
+    setDsaLignes(data.dsaLignes ?? BASELINE_DSA_LIGNES);
+    setPgpaData(data.pgpaData ?? BASELINE_PGPA_DATA);
+    setPgpfData(data.pgpfData ?? BASELINE_PGPF_DATA);
     // Migration: fusionner anciens dfttLignes + dftpLignes si format legacy
-    setDftLignes(data.dftLignes ?? [...(data.dfttLignes ?? []), ...(data.dftpLignes ?? [])]);
-    setDossierPostes(data.dossierPostes ?? ['dsa', 'pgpa', 'dft', 'pgpf', 'se', 'dfp', 'pep']);
-    setFormPosteData(data.formPosteData ?? {
-      se: { referentiel: 'cours-appel-2024', cotation: 4, montant: 15000 },
-      pep: { referentiel: 'cours-appel-2024', cotation: 3, montant: 4500 },
-      dfp: { referentiel: 'cours-appel-2024', age: 42, taux: 18, trancheAge: 'inferieure', trancheTaux: 'inferieure', pointBase: 1500, montant: 27000 },
-    });
+    setDftLignes(data.dftLignes ?? [...(data.dfttLignes ?? []), ...(data.dftpLignes ?? BASELINE_DFT_LIGNES)]);
+    setDossierPostes(data.dossierPostes ?? ['dsa', 'fda', 'pgpa', 'dft', 'pgpf', 'dsf', 'se', 'dfp', 'pep']);
+    setFormPosteData(data.formPosteData ?? BASELINE_FORM_POSTE_DATA);
+    setFdaLignes(data.fdaLignes ?? BASELINE_FDA_LIGNES);
+    setDsfData(data.dsfData ?? BASELINE_DSF_DATA);
     setIvDossierPostes(data.ivDossierPostes ?? EMPTY_DOSSIER.ivDossierPostes);
     setIvPosteData(data.ivPosteData ?? EMPTY_DOSSIER.ivPosteData);
     setIvPosteSharedData(data.ivPosteSharedData ?? EMPTY_DOSSIER.ivPosteSharedData);
@@ -1641,199 +1578,7 @@ export default function App() {
     ],
   };
 
-  // Handle the actual calculation (Phase 2: user clicked "Lancer le calcul")
-  const handlePosteCalculation = (posteId) => {
-    const taxo = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes)).find(p => p.id === posteId);
-    if (!taxo) return;
-    const posteName = taxo.acronym || posteId.toUpperCase();
-
-    // Clear any lingering timeouts
-    chatAnalysisTimeouts.current.forEach(t => clearTimeout(t));
-    chatAnalysisTimeouts.current = [];
-
-    // Push calculation thinking
-    setChatMessages(prev => [
-      ...prev,
-      { type: 'ai-thinking', label: `Je calcule le ${posteName}...`, steps: [], expanded: false, _posteCalcId: posteId },
-    ]);
-
-    const calcToolMap = {
-      dsa: [{ tool: 'calculDSA', detail: 'Je totalise les dépenses de santé', expandedText: 'Somme des montants restant à charge après remboursements' }],
-      dft: [{ tool: 'calculDFT', detail: 'J\'applique le forfait journalier de 28 € par période', expandedText: 'Montant pondéré selon le taux de déficit de chaque période' }],
-      pgpa: [{ tool: 'calculPGPA', detail: 'Je calcule la perte de revenus sur 18 mois d\'arrêt', expandedText: 'Revenu de référence moins les indemnités perçues (IJ, employeur)' }],
-      pgpf: [{ tool: 'calculCapitalisation', detail: 'Je capitalise la perte de revenus future', expandedText: 'Application du barème de capitalisation viagère Gazette du Palais' }],
-      se: [{ tool: 'calculSE', detail: 'J\'évalue les souffrances d\'après le référentiel', expandedText: 'Cotation 4/7 appliquée au barème de la Cour d\'appel 2024' }],
-      dfp: [{ tool: 'calculDFP', detail: 'Je calcule l\'indemnité selon le taux et l\'âge', expandedText: 'Valeur du point multipliée par le taux de déficit permanent' }],
-      pep: [{ tool: 'calculPEP', detail: 'J\'évalue le préjudice esthétique d\'après le référentiel', expandedText: 'Cotation 3/7 appliquée au barème de la Cour d\'appel 2024' }],
-    };
-
-    const calcTools = calcToolMap[posteId] || [{ tool: `calcul${posteName}`, detail: `J'évalue le ${posteName}`, expandedText: 'Calcul en cours...' }];
-
-    calcTools.forEach((toolData, idx) => {
-      const t = setTimeout(() => {
-        setChatMessages(prev => prev.map(m => {
-          if (m.type === 'ai-thinking' && m._posteCalcId === posteId) {
-            return { ...m, steps: [...(m.steps || []), toolData] };
-          }
-          return m;
-        }));
-      }, 400 + idx * 500);
-      chatAnalysisTimeouts.current.push(t);
-    });
-
-    // Final: populate data + notes + summary
-    const finalT = setTimeout(() => {
-      // ---- Populate mock data for empty postes ----
-      if (posteId === 'dsa' && dsaLignes.length === 0) {
-        setDsaLignes([
-          { id: `dsa-ai-${Date.now()}-1`, diffType: 'add', label: 'Hospitalisation CHU Bordeaux', type: 'Hospitalisation', date: '05/06/2022', montant: 4500, dejaRembourse: 4200, pieceIds: [] },
-          { id: `dsa-ai-${Date.now()}-2`, diffType: 'edit', label: 'Kinésithérapie (24 séances)', type: 'Soins', date: '15/07/2022', montant: 1280, dejaRembourse: 960, pieceIds: [], oldValues: { montant: 960, date: '12/07/2022' } },
-          { id: `dsa-ai-${Date.now()}-3`, diffType: 'add', label: 'IRM genou droit', type: 'Examen', date: '20/06/2022', montant: 320, dejaRembourse: 280, pieceIds: [] },
-          { id: `dsa-ai-${Date.now()}-4`, diffType: 'delete', label: 'Consultation Dr. Dupont (doublon)', type: 'Consultation', date: '12/06/2022', montant: 55, dejaRembourse: 25, pieceIds: [] },
-          { id: `dsa-ai-${Date.now()}-5`, diffType: 'add', label: 'Médicaments (antalgiques, anti-inflammatoires)', type: 'Pharmacie', date: '05/06/2022', montant: 87.50, dejaRembourse: 65, pieceIds: [] },
-        ]);
-      }
-
-      if (posteId === 'dft' && dftLignes.length === 0) {
-        const baseJ = chiffrageParams.baseJournaliereDFT || 28;
-        setDftLignes([
-          { id: `dft-ai-${Date.now()}-1`, diffType: 'add', label: 'Hospitalisation initiale', debut: '05/06/2022', fin: '12/06/2022', jours: 8, taux: 100, montant: Math.round(8 * baseJ), pieceIds: [] },
-          { id: `dft-ai-${Date.now()}-2`, diffType: 'add', label: 'Chirurgie + soins intensifs', debut: '13/06/2022', fin: '18/06/2022', jours: 6, taux: 100, montant: Math.round(6 * baseJ), pieceIds: [] },
-          { id: `dft-ai-${Date.now()}-3`, diffType: 'add', label: 'Alitement strict post-opératoire', debut: '19/06/2022', fin: '01/07/2022', jours: 13, taux: 100, montant: Math.round(13 * baseJ), pieceIds: [] },
-          { id: `dft-ai-${Date.now()}-4`, diffType: 'edit', label: 'Convalescence post-opératoire', debut: '02/07/2022', fin: '15/09/2022', jours: 76, taux: 50, montant: Math.round(76 * baseJ * 0.5), pieceIds: [], oldValues: { taux: 75, fin: '01/09/2022' } },
-          { id: `dft-ai-${Date.now()}-5`, diffType: 'add', label: 'Rééducation active intensive', debut: '16/09/2022', fin: '16/12/2022', jours: 92, taux: 40, montant: Math.round(92 * baseJ * 0.4), pieceIds: [] },
-          { id: `dft-ai-${Date.now()}-6`, diffType: 'delete', label: 'Rééducation d\'entretien (doublon)', debut: '17/12/2022', fin: '19/03/2023', jours: 92, taux: 25, montant: Math.round(92 * baseJ * 0.25), pieceIds: [] },
-          { id: `dft-ai-${Date.now()}-7`, diffType: 'add', label: 'Gêne résiduelle pré-consolidation', debut: '20/03/2023', fin: '15/01/2024', jours: 301, taux: 15, montant: Math.round(301 * baseJ * 0.15), pieceIds: [] },
-        ]);
-      }
-
-      if (posteId === 'pgpa' && pgpaData.revenuRef.lignes.length === 0) {
-        setPgpaData({
-          periode: { debut: '15/03/2023', fin: '12/09/2024', mois: 18 },
-          revenuRef: {
-            revalorisation: 'ipc-annuel',
-            coefficientPerteChance: 100,
-            lignes: [
-              { id: `pgpa-rev-${Date.now()}-1`, diffType: 'add', type: 'revenu', label: 'Salaire net 2022', annee: '2022', montant: 32400, revalorise: 33696, pieceIds: [] },
-              { id: `pgpa-rev-${Date.now()}-2`, diffType: 'edit', type: 'revenu', label: 'Salaire net 2021', annee: '2021', montant: 31200, revalorise: 33384, pieceIds: [], oldValues: { montant: 29800 } },
-              { id: `pgpa-rev-${Date.now()}-3`, diffType: 'delete', type: 'gain', label: 'Prime exceptionnelle 2021 (non récurrent)', annee: '2021', montant: 1500, revalorise: 1500, pieceIds: [] },
-              { id: `pgpa-rev-${Date.now()}-4`, diffType: 'add', type: 'gain', label: 'Prime annuelle 2022', annee: '2022', montant: 2400, revalorise: 2496, pieceIds: [] },
-            ],
-            total: 37800,
-          },
-          revenusPercus: [
-            { id: `pgpa-rp-${Date.now()}-1`, diffType: 'add', label: 'Maintien partiel salaire', tiers: 'Employeur', periode: 'Mars - Juin 2023', periodeDebut: '15/03/2023', periodeFin: '30/06/2023', jours: 108, montant: 8500, pieceIds: [] },
-          ],
-          ijPercues: [
-            { id: `pgpa-ij-${Date.now()}-1`, diffType: 'add', label: 'IJ Sécurité sociale', tiers: 'CPAM', periode: 'Mars 2023 - Sept 2024', periodeDebut: '15/03/2023', periodeFin: '12/09/2024', jours: 547, montantBrut: 12200, csgCrds: 550, montant: 11650, pieceIds: [] },
-            { id: `pgpa-ij-${Date.now()}-2`, diffType: 'add', label: 'IJ Prévoyance', tiers: 'AG2R', periode: 'Mars 2023 - Sept 2024', periodeDebut: '15/03/2023', periodeFin: '12/09/2024', jours: 547, montantBrut: 5100, csgCrds: 250, montant: 4850, pieceIds: [] },
-          ],
-        });
-      }
-
-      if (posteId === 'pgpf' && !pgpfData.periodes['pgpf-cl']) {
-        setPgpfData({
-          periodes: {
-            'pgpf-cl': {
-              periode: { debut: '12/09/2024', fin: '15/01/2025', mois: 4 },
-              revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 37800, syncPGPA: true },
-              revenusPercus: [
-                { id: `pgpf-rp-${Date.now()}-1`, diffType: 'add', label: 'Salaire reprise mi-temps', tiers: 'Employeur', periode: 'Sept 2024 - Jan 2025', periodeDebut: '12/09/2024', periodeFin: '15/01/2025', montant: 4800, pieceIds: [] },
-              ],
-              ijPercues: [
-                { id: `pgpf-ij-${Date.now()}-1`, diffType: 'add', label: 'IJ CPAM (mi-temps thérapeutique)', tiers: 'CPAM', periode: 'Sept 2024 - Jan 2025', periodeDebut: '12/09/2024', periodeFin: '15/01/2025', montant: 3200, pieceIds: [] },
-              ],
-            },
-            'pgpf-al': {
-              params: {
-                perteGainAnnuelle: 9450,
-                ageConsolidation: 42,
-                baremeCapitalisation: 'gazette-palais-2025-0.5',
-                coefficient: 24.5,
-                montantCapitalise: 231525,
-              },
-              tiersPayeurs: [
-                { id: `pgpf-tp-${Date.now()}-1`, label: 'Rente CPAM', tiers: 'CPAM', renteAnnuelle: 3600, coefficient: 24.5, montantCapitalise: 88200 },
-                { id: `pgpf-tp-${Date.now()}-2`, label: 'Rente prévoyance', tiers: 'AG2R', renteAnnuelle: 1800, coefficient: 24.5, montantCapitalise: 44100 },
-              ],
-            },
-          },
-        });
-      }
-
-      if (posteId === 'se' && (!formPosteData.se || formPosteData.se.montant === 0)) {
-        setFormPosteData(prev => ({ ...prev, se: { referentiel: 'cours-appel-2024', cotation: 4, montant: 15000 } }));
-      }
-      if (posteId === 'dfp' && (!formPosteData.dfp || formPosteData.dfp.montant === 0)) {
-        setFormPosteData(prev => ({ ...prev, dfp: { referentiel: 'cours-appel-2024', age: 42, taux: 18, trancheAge: 'inferieure', trancheTaux: 'inferieure', pointBase: 1500, montant: 27000 } }));
-      }
-      if (posteId === 'pep' && (!formPosteData.pep || formPosteData.pep.montant === 0)) {
-        setFormPosteData(prev => ({ ...prev, pep: { referentiel: 'cours-appel-2024', cotation: 3, montant: 4500 } }));
-      }
-
-      // ---- Draft argumentation notes ----
-      const mockNotes = {
-        dsa: `Au titre des dépenses de santé actuelles, la victime justifie des frais médicaux engagés suite à l'accident du 05/06/2022, comprenant l'hospitalisation initiale au CHU de Bordeaux (4 500 €), les séances de kinésithérapie prescrites (1 280 €), l'IRM de contrôle (320 €), les traitements médicamenteux (87,50 €) et les consultations spécialisées (55 €).\n\nAprès déduction des remboursements de la sécurité sociale et de la mutuelle, le reste à charge s'établit à 712,50 €. Il est demandé la prise en charge intégrale de ce solde au titre de l'indemnisation.`,
-        dft: `Le déficit fonctionnel temporaire s'apprécie au regard du rapport d'expertise du Dr. Leroy en date du 15/01/2024.\n\nLa victime a subi un DFT total (100%) durant les phases d'hospitalisation et d'alitement strict (27 jours), puis un DFT partiel décroissant : 50% pendant la convalescence (76 jours), 40% pendant la rééducation active (92 jours), 25% pendant la rééducation d'entretien (92 jours), et 15% pour la gêne résiduelle jusqu'à consolidation (301 jours).\n\nSur la base d'un forfait journalier de 28 €/jour, conforme à la jurisprudence récente de la Cour d'appel de Bordeaux (CA Bordeaux, 5ème ch., 12 mars 2024), l'indemnité totale au titre du DFT s'élève à 5 385 €.`,
-        pgpa: `La victime occupait un poste de cadre commercial avec un revenu annuel de référence de 37 800 € net, établi sur la moyenne des revenus 2021-2022 revalorisés selon l'indice IPC.\n\nDurant la période d'arrêt de travail (18 mois, du 15/03/2023 au 12/09/2024), la victime a perçu un maintien partiel de salaire par son employeur (8 500 €) ainsi que des indemnités journalières CPAM (11 650 €) et de prévoyance AG2R (4 850 €).\n\nLa perte de gains professionnels actuels nette s'établit à 31 700 € (revenu attendu) - 8 500 € (maintien) - 11 650 € (IJ CPAM) - 4 850 € (IJ prévoyance) = 6 700 €.`,
-        pgpf: `Postérieurement à la consolidation fixée au 12/09/2024, la victime conserve une incapacité partielle affectant sa capacité de gain.\n\nPour la période échue (consolidation → liquidation, 4 mois) : la victime a repris à mi-temps thérapeutique avec un salaire réduit de 4 800 € et des IJ CPAM complémentaires de 3 200 €, générant une perte nette.\n\nPour la période à échoir : la perte de gain annuelle est estimée à 9 450 €, capitalisée selon le barème de la Gazette du Palais 2025 (taux 0,5%), coefficient 24,5 pour un homme de 42 ans, soit un capital de 231 525 €.`,
-        se: `Les souffrances endurées sont évaluées à 4/7 au regard du rapport d'expertise, tenant compte des interventions chirurgicales, de la durée de la rééducation et de l'intensité des douleurs rapportées.\n\nSelon le référentiel indicatif de la Cour d'appel 2024, une cotation de 4/7 correspond à une fourchette de 12 000 à 18 000 €. Il est sollicité la somme de 15 000 € au titre de ce poste.`,
-        dfp: `Le déficit fonctionnel permanent est fixé à 18% par l'expert, tenant compte des séquelles de raideur articulaire, des douleurs résiduelles et de la boiterie légère.\n\nPour un homme de 42 ans à la date de consolidation, le point d'indemnisation est fixé à 1 500 € selon le référentiel de la Cour d'appel 2024 (tranche d'âge inférieure, tranche de taux inférieure).\n\nL'indemnité au titre du DFP s'établit à : 18 × 1 500 = 27 000 €.`,
-        pep: `Le préjudice esthétique permanent est évalué à 3/7 par l'expert, en raison des cicatrices chirurgicales au niveau du membre inférieur droit et de la boiterie résiduelle.\n\nSelon le référentiel indicatif de la Cour d'appel 2024, une cotation de 3/7 correspond à une fourchette de 3 000 à 6 000 €. Il est sollicité la somme de 4 500 € au titre de ce poste.`,
-      };
-
-      if (mockNotes[posteId]) {
-        setPosteNotes(prev => ({ ...prev, [posteId]: prev[posteId] || mockNotes[posteId] }));
-      }
-
-      // ---- Chat summary ----
-      const resultTexts = {
-        dsa: `DSA calculé : 6 242,50 €. 5 lignes de dépenses pré-remplies et argumentation rédigée.`,
-        dft: `DFT calculé : 5 385 €. 7 périodes renseignées, forfait 28 €/jour. Argumentation rédigée.`,
-        pgpa: `PGPA calculé : 6 700 €. Revenu de référence : 37 800 €/an, 18 mois d'arrêt, déduction IJ et maintien. Argumentation rédigée.`,
-        pgpf: `PGPF calculé. Période échue et capitalisation viagère renseignées. Barème Gazette du Palais 2025 appliqué. Notes rédigées.`,
-        se: `SE évalué à 15 000 € (cotation 4/7, référentiel Cour d'appel 2024). Argumentation rédigée.`,
-        dfp: `DFP évalué : 27 000 € (18% × 1 500 €/point). Argumentation rédigée.`,
-        pep: `PEP évalué à 4 500 € (cotation 3/7, référentiel Cour d'appel 2024). Argumentation rédigée.`,
-      };
-
-      // Push diff events for this calculation
-      const diffKey = `calc-${posteId}`;
-      if (MOCK_DIFF_STORE[diffKey]) {
-        setActiveDiffs(prev => [...prev, ...MOCK_DIFF_STORE[diffKey]]);
-      }
-
-      setChatMessages(prev => {
-        // Mark thinking block as done (keep it visible, collapsed)
-        const updated = prev.map(m => {
-          if (m.type === 'ai-thinking' && m._posteCalcId === posteId) {
-            return { ...m, status: 'done', expanded: false, summary: `Calcul ${posteName} terminé` };
-          }
-          return m;
-        });
-        return [
-          ...updated,
-          {
-            type: 'ai',
-            text: resultTexts[posteId] || `${posteName} calculé. Données et argumentation reportées.`,
-          },
-          {
-            type: 'artifact-cards',
-            cards: [{
-              id: `calc-${posteId}`,
-              icon: 'Calculator',
-              zone: 'postes',
-              actionIds: [diffKey],
-              navigateTo: 'chiffrage',
-            }],
-          },
-        ];
-      });
-    }, 400 + calcTools.length * 500 + 300);
-    chatAnalysisTimeouts.current.push(finalT);
-  };
-
-  // When user navigates to a poste → chat greets + analyzes docs → proposes (no calculation yet)
+  // When user navigates to a poste → chat greets + analyzes docs → shows result
   useEffect(() => {
     const currentLevel = navStack[navStack.length - 1];
     if (!currentLevel || currentLevel.type !== 'poste') return;
@@ -1886,8 +1631,38 @@ export default function App() {
         chatAnalysisTimeouts.current.push(t);
       });
 
-      // Phase 3: Mark thinking as done + proposal with action button
+      // Phase 3: Mark thinking as done + show result summary
       const proposalT = setTimeout(() => {
+        // Generate notes for this poste
+        const mockNotes = {
+          dsa: `Au titre des dépenses de santé actuelles, la victime justifie des frais médicaux engagés suite à l'accident du 05/06/2022, comprenant l'hospitalisation initiale au CHU de Bordeaux (4 500 €), les séances de kinésithérapie prescrites (1 280 €), l'IRM de contrôle (320 €), les traitements médicamenteux (87,50 €) et les consultations spécialisées (55 €).\n\nAprès déduction des remboursements de la sécurité sociale et de la mutuelle, le reste à charge s'établit à 712,50 €. Il est demandé la prise en charge intégrale de ce solde au titre de l'indemnisation.`,
+          dft: `Le déficit fonctionnel temporaire s'apprécie au regard du rapport d'expertise du Dr. Leroy en date du 15/01/2024.\n\nLa victime a subi un DFT total (100%) durant les phases d'hospitalisation et d'alitement strict (27 jours), puis un DFT partiel décroissant : 50% pendant la convalescence (76 jours), 40% pendant la rééducation active (92 jours), 25% pendant la rééducation d'entretien (92 jours), et 15% pour la gêne résiduelle jusqu'à consolidation (301 jours).\n\nSur la base d'un forfait journalier de 28 €/jour, conforme à la jurisprudence récente de la Cour d'appel de Bordeaux (CA Bordeaux, 5ème ch., 12 mars 2024), l'indemnité totale au titre du DFT s'élève à 5 385 €.`,
+          pgpa: `La victime occupait un poste de cadre commercial avec un revenu annuel de référence de 37 800 € net, établi sur la moyenne des revenus 2021-2022 revalorisés selon l'indice IPC.\n\nDurant la période d'arrêt de travail (18 mois, du 15/03/2023 au 12/09/2024), la victime a perçu un maintien partiel de salaire par son employeur (8 500 €) ainsi que des indemnités journalières CPAM (11 650 €) et de prévoyance AG2R (4 850 €).\n\nLa perte de gains professionnels actuels nette s'établit à 31 700 € (revenu attendu) - 8 500 € (maintien) - 11 650 € (IJ CPAM) - 4 850 € (IJ prévoyance) = 6 700 €.`,
+          pgpf: `Postérieurement à la consolidation fixée au 12/09/2024, la victime conserve une incapacité partielle affectant sa capacité de gain.\n\nPour la période échue (consolidation → liquidation, 4 mois) : la victime a repris à mi-temps thérapeutique avec un salaire réduit de 4 800 € et des IJ CPAM complémentaires de 3 200 €, générant une perte nette.\n\nPour la période à échoir : la perte de gain annuelle est estimée à 9 450 €, capitalisée selon le barème de la Gazette du Palais 2025 (taux 0,5%), coefficient 24,5 pour un homme de 42 ans, soit un capital de 231 525 €.`,
+          se: `Les souffrances endurées sont évaluées à 4/7 au regard du rapport d'expertise, tenant compte des interventions chirurgicales, de la durée de la rééducation et de l'intensité des douleurs rapportées.\n\nSelon le référentiel indicatif de la Cour d'appel 2024, une cotation de 4/7 correspond à une fourchette de 12 000 à 18 000 €. Il est sollicité la somme de 15 000 € au titre de ce poste.`,
+          dfp: `Le déficit fonctionnel permanent est fixé à 18% par l'expert, tenant compte des séquelles de raideur articulaire, des douleurs résiduelles et de la boiterie légère.\n\nPour un homme de 42 ans à la date de consolidation, le point d'indemnisation est fixé à 1 500 € selon le référentiel de la Cour d'appel 2024 (tranche d'âge inférieure, tranche de taux inférieure).\n\nL'indemnité au titre du DFP s'établit à : 18 × 1 500 = 27 000 €.`,
+          pep: `Le préjudice esthétique permanent est évalué à 3/7 par l'expert, en raison des cicatrices chirurgicales au niveau du membre inférieur droit et de la boiterie résiduelle.\n\nSelon le référentiel indicatif de la Cour d'appel 2024, une cotation de 3/7 correspond à une fourchette de 3 000 à 6 000 €. Il est sollicité la somme de 4 500 € au titre de ce poste.`,
+        };
+        if (mockNotes[posteId]) {
+          setPosteNotes(prev => ({ ...prev, [posteId]: prev[posteId] || mockNotes[posteId] }));
+        }
+
+        const resultTexts = {
+          dsa: `DSA calculé : 6 242,50 €. 5 lignes de dépenses identifiées et argumentation rédigée.`,
+          dft: `DFT calculé : 5 385 €. 7 périodes renseignées, forfait 28 €/jour. Argumentation rédigée.`,
+          pgpa: `PGPA calculé : 6 700 €. Revenu de référence : 37 800 €/an, 18 mois d'arrêt, déduction IJ et maintien. Argumentation rédigée.`,
+          pgpf: `PGPF calculé. Période échue et capitalisation viagère renseignées. Barème Gazette du Palais 2025 appliqué. Notes rédigées.`,
+          se: `SE évalué à 15 000 € (cotation 4/7, référentiel Cour d'appel 2024). Argumentation rédigée.`,
+          dfp: `DFP évalué : 27 000 € (18% × 1 500 €/point). Argumentation rédigée.`,
+          pep: `PEP évalué à 4 500 € (cotation 3/7, référentiel Cour d'appel 2024). Argumentation rédigée.`,
+        };
+
+        // Push diff events
+        const diffKey = `calc-${posteId}`;
+        if (MOCK_DIFF_STORE[diffKey]) {
+          setActiveDiffs(prev => [...prev, ...MOCK_DIFF_STORE[diffKey]]);
+        }
+
         setChatMessages(prev => {
           const updated = prev.map(m => {
             if (m.type === 'ai-thinking' && m._posteDiscoveryId === posteId) {
@@ -1898,10 +1673,8 @@ export default function App() {
           return [
             ...updated,
             {
-              type: 'ai-proposal',
-              text: welcome.proposal,
-              posteId: posteId,
-              posteName: posteName,
+              type: 'ai',
+              text: resultTexts[posteId] || `${posteName} calculé. Données et argumentation reportées.`,
             },
           ];
         });
@@ -1932,6 +1705,10 @@ export default function App() {
 
   const dftTotal = dftLignes.reduce((s, l) => s + l.montant, 0);
 
+  const fdaTotal = fdaLignes.reduce((s, l) => s + (l.montant || 0), 0);
+
+  const dsfTotal = (dsfData.lignes || []).reduce((s, l) => s + (l.montantCapitalise || l.montant || 0), 0);
+
   // Category mapping for Nomenclature Dintilhac
   const CATEGORY_MAP = {
     'vd-pat-temp': { id: 'patrimoniaux-temp', title: 'Préjudices Patrimoniaux Temporaires' },
@@ -1948,22 +1725,40 @@ export default function App() {
   const allTaxoPostes = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes.map(p => ({ ...p, categoryId: c.id }))));
 
   const getPosteMontant = (id) => {
+    // TP overlay: use damageOverride if present
+    if (hasTP && tpScenario.damageOverrides?.[id] != null) {
+      return tpScenario.damageOverrides[id];
+    }
+    // Baseline: compute from actual state
     if (id === 'dsa') return dsaTotal;
     if (id === 'pgpa') return pgpaTotal;
     if (id === 'dft') return dftTotal;
     if (id === 'pgpf') return pgpfTotal;
+    if (id === 'fda') return fdaTotal;
+    if (id === 'dsf') return dsfTotal;
     return formPosteData[id]?.montant || 0;
   };
 
-  const allPostes = dossierPostes.map(id => {
+  const effectivePostes = tpScenario.dossierPostesOverride || dossierPostes;
+  const allPostes = effectivePostes.map(id => {
     const taxo = allTaxoPostes.find(p => p.id === id);
     if (!taxo) return null;
     const cat = CATEGORY_MAP[taxo.categoryId];
+    const totalDamage = getPosteMontant(id);
+    const tpAmount = hasTP ? (tpScenario._imputations || []).filter(imp => imp.posteId === id).reduce((s, imp) => s + (imp.montantImpute || 0), 0) : 0;
+    const dp = tpScenario.droitDePreference?.[id];
+    const tpEffective = dp ? dp.resteTP : tpAmount;
+    const victimeAmount = hasTP && tpAmount > 0
+      ? (dp ? dp.victimePref : totalDamage - tpAmount)
+      : totalDamage;
     return {
       id,
       title: taxo.acronym || id.toUpperCase(),
       fullTitle: taxo.label,
-      montant: getPosteMontant(id),
+      montant: totalDamage,
+      tpAmount,
+      tpEffective,
+      victimeAmount,
       category: cat?.id || 'patrimoniaux-temp',
     };
   }).filter(Boolean);
@@ -2009,7 +1804,8 @@ export default function App() {
   const vdCategories = categories.filter(cat => cat.id !== 'vi-pat' && cat.id !== 'vi-expat');
 
   const totalIvChiffrage = allIvPostes.reduce((s, p) => s + p.montant, 0);
-  const totalChiffrage = allPostes.reduce((s, p) => s + p.montant, 0) + totalIvChiffrage;
+  const totalVdVictime = allPostes.reduce((s, p) => s + (p.victimeAmount || 0), 0);
+  const totalChiffrage = totalVdVictime + totalIvChiffrage;
 
   // ========== HELPERS ==========
   const currentLevel = navStack[navStack.length - 1];
@@ -2359,10 +2155,12 @@ export default function App() {
     setNavStack(newStack);
   };
   const setActiveTab = (tab) => {
-    const newStack = [...navStack];
-    if (newStack.length === 0) return;
-    newStack[newStack.length - 1].activeTab = tab.toLowerCase();
-    setNavStack(newStack);
+    setNavStack(prev => {
+      if (prev.length === 0) return prev;
+      const base = prev.length > 1 ? [prev[0]] : [...prev];
+      base[base.length - 1] = { ...base[base.length - 1], activeTab: tab.toLowerCase() };
+      return base;
+    });
   };
   const _toggleCategory = (id) => setExpandedCategories(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]); // eslint-disable-line no-unused-vars
   const toggleSection = (id) => setExpandedSections(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
@@ -2954,10 +2752,13 @@ export default function App() {
     setResumeAffaire('');
     setVictimesIndirectes(EMPTY_DOSSIER.victimesIndirectes);
     setPieces([]);
-    setDsaLignes([]);
-    setDftLignes([]);
-    setPgpaData({ periode: { debut: '', fin: '', mois: 0 }, revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 0 }, revenusPercus: [], ijPercues: [] });
-    setPgpfData({ periodes: {} });
+    setDsaLignes(BASELINE_DSA_LIGNES);
+    setDftLignes(BASELINE_DFT_LIGNES);
+    setPgpaData(BASELINE_PGPA_DATA);
+    setPgpfData(BASELINE_PGPF_DATA);
+    setFormPosteData(BASELINE_FORM_POSTE_DATA);
+    setFdaLignes(BASELINE_FDA_LIGNES);
+    setDsfData(BASELINE_DSF_DATA);
     setIvDossierPostes(EMPTY_DOSSIER.ivDossierPostes);
     setIvPosteData(EMPTY_DOSSIER.ivPosteData);
     setIvPosteSharedData(EMPTY_DOSSIER.ivPosteSharedData);
@@ -3230,10 +3031,26 @@ export default function App() {
     const text = chatInputValue.trim();
     if (!text && stagedDocs.length === 0) return;
 
-    // Slash command detection — trigger demo scenario
+    // Slash command detection — TP commands first, then demo scenarios
     if (text.startsWith('/')) {
       const cmd = text.slice(1).trim();
       setChatInputValue('');
+
+      // TP commands
+      if (cmd.startsWith('tp-')) {
+        if (cmd === 'tp-help') {
+          setChatMessages(prev => [...prev, { type: 'ai', text: "Commandes Tiers payeurs disponibles :\n\n/tp-simple — Récap multi-postes (CPAM + Harmonie + SNCF)\n/tp-cascade — Cascade AT/MP (rente capitalisée PGPF → IP → DFP)\n/tp-reset — Revenir au scénario de base" }]);
+          return;
+        }
+        const newKey = TP_COMMAND_MAP[cmd];
+        if (newKey) {
+          setTpScenarioKey(newKey);
+          const sc = getTPScenario(newKey);
+          setChatMessages(prev => [...prev, { type: 'ai', text: sc.agentMessage }]);
+          return;
+        }
+      }
+
       jp.playScenario(cmd);
       return;
     }
@@ -3909,27 +3726,6 @@ export default function App() {
                 return null;
               }
 
-              // AI proposal — agent proposes, user validates
-              if (msg.type === 'ai-proposal') {
-                return (
-                  <div key={i} className="flex flex-col gap-3 items-start pb-4" style={{ paddingRight: 20 }}>
-                    <p style={{ fontSize: 14, lineHeight: '20px', color: '#292524', margin: 0 }}>{msg.text}</p>
-                    <button
-                      onClick={() => {
-                        // Replace proposal with confirmed message
-                        setChatMessages(prev => prev.map((m, mi) => mi === i ? { type: 'ai', text: msg.text } : m));
-                        // Trigger calculation
-                        handlePosteCalculation(msg.posteId);
-                      }}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
-                      style={{ backgroundColor: '#292524', color: 'white', boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Lancer le calcul {msg.posteName}
-                    </button>
-                  </div>
-                );
-              }
 
               // AI JP message — text with inline pill tokens
               if (msg.type === 'ai-jp') {
@@ -4047,7 +3843,24 @@ export default function App() {
             {chatInputValue.startsWith('/') && (
               <SlashCommandPalette
                 query={chatInputValue.slice(1).trim()}
-                onSelect={(cmd) => { setChatInputValue(''); jp.playScenario(cmd); }}
+                scenarios={[...require('./data/demoScenarios').SCENARIO_LIST, ...TP_COMMAND_LIST]}
+                onSelect={(cmd) => {
+                  setChatInputValue('');
+                  if (cmd.startsWith('tp-')) {
+                    if (cmd === 'tp-help') {
+                      setChatMessages(prev => [...prev, { type: 'ai', text: "Commandes Tiers payeurs disponibles :\n\n/tp-simple — Récap multi-postes (CPAM + Harmonie + SNCF)\n/tp-cascade — Cascade AT/MP (rente capitalisée PGPF → IP → DFP)\n/tp-reset — Revenir au scénario de base" }]);
+                    } else {
+                      const newKey = TP_COMMAND_MAP[cmd];
+                      if (newKey) {
+                        setTpScenarioKey(newKey);
+                        const sc = getTPScenario(newKey);
+                        setChatMessages(prev => [...prev, { type: 'ai', text: sc.agentMessage }]);
+                      }
+                    }
+                  } else {
+                    jp.playScenario(cmd);
+                  }
+                }}
                 onDismiss={() => setChatInputValue('')}
               />
             )}
@@ -4147,11 +3960,8 @@ export default function App() {
   const renderContentSubHeader = () => {
     if (!currentLevel) return null;
 
-    // Poste level: back arrow + badge + title + amount + CTA
+    // Poste level: back arrow + badge + title + CTA
     if (currentLevel.type === 'poste' && !currentLevel.subSection) {
-      const posteAmounts = { dsa: dsaTotal, pgpa: pgpaTotal, dft: dftTotal };
-      const posteAmount = posteAmounts[currentLevel.id] || 0;
-      const isRevalActive = enabledParams['revaloriser'];
       return (
         <div className="border-b border-[#e7e5e3] bg-white flex-shrink-0">
           <div className="h-[52px] px-4 flex items-center justify-between">
@@ -4164,13 +3974,9 @@ export default function App() {
               </span>
               <span className="text-[14px] font-medium text-[#292524]">{currentLevel.fullTitle || currentLevel.title}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span style={serifAmountStyle} className="text-[#292524]">{fmt(posteAmount)}</span>
-              <div className="w-px h-5 bg-[#e7e5e3]" />
-              <button onClick={() => setShowExportModal(true)} className="h-8 flex items-center gap-2 px-4 text-[14px] font-medium text-white bg-[#292524] rounded-lg hover:bg-[#44403c] transition-colors" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
-                Copier chiffrage
-              </button>
-            </div>
+            <button onClick={() => setShowExportModal(true)} className="h-8 flex items-center gap-2 px-4 text-[14px] font-medium text-white bg-[#292524] rounded-lg hover:bg-[#44403c] transition-colors" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+              Copier chiffrage
+            </button>
           </div>
         </div>
       );
@@ -4195,6 +4001,23 @@ export default function App() {
             <div className="flex items-center gap-3">
               <span style={serifAmountStyle} className="text-[#292524]">{fmt(ivPosteTotal)}</span>
             </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Cascade view sub-header
+    if (currentLevel.type === 'cascade') {
+      return (
+        <div className="border-b border-[#e7e5e3] bg-white flex-shrink-0">
+          <div className="h-[52px] px-4 flex items-center gap-3">
+            <button onClick={() => navigateToStackLevel(navStack.length - 2)} className="p-1 hover:bg-stone-100 rounded transition-colors">
+              <ChevronRight className="w-4 h-4 rotate-180 text-[#a8a29e]" strokeWidth={1.5} />
+            </button>
+            <span className="inline-flex items-center px-2 py-0.5 text-caption-medium font-semibold rounded-[6px]" style={{ backgroundColor: '#eeece6', color: '#44403c', border: 'none' }}>
+              CASCADE
+            </span>
+            <span className="text-[14px] font-medium text-[#292524]">{currentLevel.fullTitle || 'Cascade d\'imputation'}</span>
           </div>
         </div>
       );
@@ -6638,6 +6461,432 @@ export default function App() {
   // (wizard supprimé - aplati au niveau dossier)
   const renderSmartProcedureWizard = () => null;
 
+  // ========== TIERS PAYEURS — RENDER HELPERS ==========
+
+  const fmtTP = (n) => n != null ? n.toLocaleString('fr-FR') + ' €' : '—';
+
+  // ── TP rows injected inside a poste's Total Block expansion ──
+  // Returns rows (not a card) — caller wraps in the existing expanded section
+  // Shared row style for receipt sublines — 13px, consistent across all rows
+  const receiptRowStyle = { fontSize: 13, fontWeight: 400, color: '#78716c' };
+  const receiptAmountStyle = { fontSize: 13, fontWeight: 400, color: '#292524', fontFamily: "'IBM Plex Mono', monospace" };
+
+  // ── TP Lego Blocks: composable display primitives ──────────────
+  // Small, single-purpose render helpers. Compose them to build any TP surface.
+
+  /** Generic receipt line: label + amount, flush left/right */
+  const tpLine = (label, amount, { muted, unit, negative, bold, raw } = {}) => (
+    <div className="flex items-center justify-between">
+      <span style={{ ...receiptRowStyle, ...(muted && { color: '#a8a29e' }), ...(bold && { fontWeight: 500, color: '#44403c' }) }}>{label}</span>
+      <span style={{ ...receiptAmountStyle, ...(muted && { color: '#a8a29e' }), ...(bold && { fontWeight: 500, color: '#292524' }) }}>
+        {negative && '\u2212 '}{raw || fmt(amount)}{unit && <span style={{ fontSize: 11, color: '#a8a29e', marginLeft: 4 }}>{unit}</span>}
+      </span>
+    </div>
+  );
+
+  /** Subtotal line with dashed border above — visually closes a section */
+  const tpSubtotal = (label, amount) => (
+    <div className="border-t border-dashed border-[#d6d3d1] mt-1 pt-1 flex items-center justify-between">
+      <span style={{ fontSize: 13, fontWeight: 500, color: '#44403c' }}>{label}</span>
+      <span style={{ ...receiptAmountStyle, fontWeight: 500, color: '#292524' }}>{fmt(amount)}</span>
+    </div>
+  );
+
+  /** Solid section divider — separates damage calc from TP deductions */
+  const tpDivider = () => <div className="mt-3 pt-3 border-t border-[#e7e5e3]" />;
+
+  /** TP imputation line: "Imputation {sigle}" with minus amount + explanatory sub-label */
+  const tpDeduction = (sigle, amount, subLabel) => (
+    <div>
+      <div className="flex items-center justify-between">
+        <span style={{ fontSize: 13, fontWeight: 500, color: '#44403c' }}>Imputation {sigle}</span>
+        <span style={{ ...receiptAmountStyle, fontWeight: 500, color: '#292524' }}>{'\u2212'} {fmtTP(amount)}</span>
+      </div>
+      {subLabel && <span style={{ fontSize: 12, color: '#a8a29e' }}>{subLabel}</span>}
+    </div>
+  );
+
+  /** Droit de préférence block — the core "traceability" display */
+  const tpPreference = (dp) => {
+    if (!dp) return null;
+    return (
+      <div className="mt-2 px-3 py-2.5 rounded-md" style={{ backgroundColor: '#f5f0e8', border: '1px solid #e2ddd4' }}>
+        <div className="flex justify-between items-baseline mb-2">
+          <span style={{ fontSize: 13, color: '#44403c', fontWeight: 600 }}>Droit de préférence</span>
+          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#78716c' }}>taux {dp.taux} %</span>
+        </div>
+        <div className="space-y-1">
+          {tpLine('Enveloppe disponible', dp.enveloppe, { bold: true })}
+          {tpLine('Victime (prioritaire)', dp.victimePref, { bold: true })}
+          <div className="border-t border-dashed border-[#e2ddd4] mt-1 pt-1 space-y-0.5">
+            {dp.tpDetails?.map((td, i) => (
+              <div key={i} className="flex justify-between">
+                <span style={{ fontSize: 12, color: '#a8a29e' }}>{td.sigle} \u00b7 non recouvré</span>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#a8a29e' }}>{fmtTP(td.nonRecouvre)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ── Créances TP Table — reusable table component (spec §5) ──
+  // Shows LigneCreance items imputed on a poste, grouped by TP.
+  // Supports hospital aggregation and negative amounts (franchises).
+  const renderCreancesTPTable = (posteId) => {
+    if (!hasTP) return null;
+    const byPoste = tpScenario._imputationsByPoste || {};
+    const lines = byPoste[posteId] || [];
+    if (lines.length === 0) return null;
+
+    const totalCreances = lines.reduce((s, l) => s + l.montant, 0);
+
+    return (
+      <div className={cardBlockClass}>
+        {/* Title bar */}
+        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#e7e5e3]">
+          <span className="inline-flex items-center justify-center w-7 h-7 bg-[#f5f0e8] rounded-md">
+            <FileText className="w-4 h-4 text-[#78716c]" />
+          </span>
+          <span className="text-body-medium" style={{ color: '#292524' }}>Créances tiers payeurs</span>
+        </div>
+
+        {/* Column headers */}
+        <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
+          <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
+          <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
+          <div className="w-[140px] flex-shrink-0 px-3" style={colHeaderStyle}>Tiers payeur</div>
+          <div className="w-[160px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant</div>
+        </div>
+
+        {/* Rows */}
+        {lines.map((line) => {
+          const isNeg = line.montant < 0;
+
+          // Aggregate row (hospital lines) with expand/collapse
+          if (line.isAggregate && line.subLignes?.length > 0) {
+            const subCount = line.subLignes.length;
+            const expandKey = `creance-${line.ligneId}`;
+            const isExpanded = isCardExpanded(expandKey);
+            return (
+              <React.Fragment key={line.ligneId}>
+                <div
+                  className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                  onClick={() => toggleCard(expandKey)}
+                >
+                  <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
+                    <span className="inline-flex items-center justify-center w-7 h-7 bg-[#f5f0e8] rounded-md relative">
+                      <FileText className="w-4 h-4 text-[#78716c]" />
+                      <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#78716c] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{subCount}</span>
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0 px-3 flex items-center gap-1.5">
+                    <span className="text-body-medium truncate" style={{ color: '#292524' }}>{line.libelle}</span>
+                    <ChevronRight className={`w-3.5 h-3.5 text-[#a8a29e] transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`} />
+                  </div>
+                  <div className="w-[140px] flex-shrink-0 px-3">
+                    <span className="text-body" style={{ color: '#78716c' }}>{line.sigle}</span>
+                  </div>
+                  <div className="w-[160px] px-3 text-right flex-shrink-0">
+                    <span className="text-body" style={{ color: '#44403c' }}>{fmt(line.montant)}</span>
+                  </div>
+                </div>
+                {isExpanded && line.subLignes.map(sub => (
+                  <div key={sub.id} className="flex items-center h-[44px] border-b border-[#e7e5e3] bg-[#fafaf9]">
+                    <div className="w-[52px] flex-shrink-0 pl-3" />
+                    <div className="flex-1 min-w-0 px-3 pl-8">
+                      <span className="text-caption" style={{ color: '#78716c' }}>{sub.libelle}</span>
+                    </div>
+                    <div className="w-[140px] flex-shrink-0 px-3" />
+                    <div className="w-[160px] px-3 text-right flex-shrink-0">
+                      <span className="text-caption" style={{ color: '#78716c' }}>{fmt(sub.montant)}</span>
+                    </div>
+                  </div>
+                ))}
+              </React.Fragment>
+            );
+          }
+
+          // Standard line
+          return (
+            <div key={line.ligneId} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white hover:bg-[#fafaf9] transition-colors">
+              <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
+                <span className="inline-flex items-center justify-center w-7 h-7 bg-[#f5f0e8] text-[#78716c] rounded-md">
+                  <FileText className="w-3.5 h-3.5" />
+                </span>
+              </div>
+              <div className="flex-1 min-w-0 px-3">
+                <span className="text-body-medium truncate block" style={{ color: '#292524' }}>{line.libelle}</span>
+              </div>
+              <div className="w-[140px] flex-shrink-0 px-3">
+                <span className="text-body" style={{ color: '#78716c' }}>{line.sigle}</span>
+              </div>
+              <div className="w-[160px] px-3 text-right flex-shrink-0">
+                <span className="text-body" style={{ color: isNeg ? '#b91c1c' : '#44403c' }}>
+                  {isNeg ? '\u2212 ' : ''}{fmt(Math.abs(line.montant))}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Footer total */}
+        <div className="border-t border-[#e7e5e3] bg-[#fafaf9]">
+          <div className="flex items-center h-10">
+            <div className="w-[52px] flex-shrink-0 pl-3" />
+            <div className="flex-1 min-w-0 px-3">
+              <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>Total créances</span>
+            </div>
+            <div className="w-[140px] flex-shrink-0 px-3" />
+            <div className="w-[160px] px-3 text-right flex-shrink-0">
+              <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>{fmt(totalCreances)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPosteTPSection = (posteId) => {
+    if (!hasTP) return null;
+    const posteImputations = (tpScenario._imputations || []).filter(imp => imp.posteId === posteId);
+    if (posteImputations.length === 0) return null;
+
+    const dp = tpScenario.droitDePreference?.[posteId];
+    const grossDamage = getPosteMontant(posteId);
+    const dsaResteACharge = posteId === 'dsa' ? grossDamage - dsaLignes.reduce((s, l) => s + (l.dejaRembourse || 0), 0) : null;
+
+    return (
+      <div className="space-y-1.5 mt-3">
+        {posteId === 'dsa' ? (
+          <>
+            {tpLine('Total dépenses', grossDamage)}
+            {tpLine('Reste à charge', dsaResteACharge)}
+          </>
+        ) : (
+          tpLine('Préjudice total', grossDamage)
+        )}
+
+        {tpDivider()}
+        {posteImputations.map((imp, idx) => {
+          const tp = tpScenario.tiersPayeurs.find(t => t.id === imp.tiersPayeurId);
+          // Look up global creance total for this TP
+          const globalAmount = tpScenario._totalByTP?.[imp.tiersPayeurId];
+          return (
+            <React.Fragment key={imp.id}>
+              <div className="flex justify-between items-center">
+                <span style={receiptRowStyle} className="flex items-center gap-1.5">
+                  {tp?.sigle || tp?.nom}
+                  <span
+                    className="inline-flex items-center h-[16px] px-1 rounded cursor-pointer hover:bg-[#d6d3d1]/40"
+                    style={{ fontSize: 10, fontWeight: 500, color: '#a8a29e', fontFamily: "'IBM Plex Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.02em' }}
+                    onClick={() => {
+                      if (imp.source === 'cascade' && tpScenario.cascade) {
+                        navigateTo({ type: 'cascade', id: 'cascade-from-poste', title: 'Cascade', fullTitle: tpScenario.cascade.label + ' \u2014 Cascade' });
+                      } else {
+                        setActiveTab('Dossier');
+                      }
+                    }}
+                  >
+                    {imp.source}
+                  </span>
+                  {globalAmount != null && (
+                    <span style={{ fontSize: 10, color: '#a8a29e', fontFamily: "'IBM Plex Mono', monospace" }}>· {fmtTP(globalAmount)}</span>
+                  )}
+                </span>
+                <span style={receiptAmountStyle}>{fmt(imp.montantImpute)}</span>
+              </div>
+              {idx < posteImputations.length - 1 && tpDivider()}
+            </React.Fragment>
+          );
+        })}
+
+        {tpPreference(dp)}
+      </div>
+    );
+  };
+
+  // ── Shared Total Block — receipt-style wrapper ──
+  // Renders the expandable "Total à indemniser" block for any poste.
+  // Pass `content` to inject custom children (damage calc, temporal TP sections) before the footer.
+  // Without `content`, renders the standard pattern: footer only (TP detail now lives in CreancesTPTable above).
+  const renderTotalBlock = (posteId, amount, { guard = true, label = 'Total à indemniser', content = null, defaultOpen = false } = {}) => {
+    if (!guard) return null;
+    const dp = hasTP ? tpScenario.droitDePreference?.[posteId] : null;
+    const showExpand = content || (dp && tauxFinal < 100);
+    const isOpen = showExpand && (defaultOpen || totalExpanded[posteId] || (hasTP && tauxFinal < 100));
+    return (
+      <div className={totalBlockClass}>
+        <button onClick={() => showExpand && setTotalExpanded(prev => ({...prev, [posteId]: !prev[posteId]}))} className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
+              <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+            </div>
+            <span className="text-[14px] font-medium text-[#292524]">{label}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span style={serifAmountStyle} className="text-[#292524]">{fmt(amount)}</span>
+            {showExpand && <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${isOpen ? 'rotate-90' : ''}`} />}
+          </div>
+        </button>
+        {isOpen && (
+          <>
+            {content}
+            {dp && tauxFinal < 100 && tpPreference(dp)}
+          </>
+        )}
+      </div>
+    );
+  };
+
+  // ── Cascade View (navStack level) ──
+  const renderCascadeView = () => {
+    const cascade = tpScenario.cascade;
+    if (!cascade) {
+      return (
+        <div className="flex-1 flex items-center justify-center py-20">
+          <p className="text-body text-[#a8a29e]">Aucune cascade d'imputation pour ce scénario.</p>
+        </div>
+      );
+    }
+
+    const totalPrejudice = cascade.etapes.reduce((s, e) => s + (e.prejudice || 0), 0);
+    const pctAbsorbe = totalPrejudice > 0 ? Math.round(cascade.totalAbsorbe / totalPrejudice * 100) : 0;
+
+    return (
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto py-8 px-6 space-y-6">
+          {/* Header */}
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 style={{ fontFamily: "'RL Para Trial Central', Georgia, serif", fontSize: 22, fontWeight: 500, color: '#292524', letterSpacing: '-0.3px' }}>
+                {cascade.label}
+              </h2>
+              <span className="inline-flex items-center h-5 px-1.5 rounded" style={{ backgroundColor: '#eeece6', fontSize: 10, fontWeight: 500, color: '#44403c', fontFamily: "'IBM Plex Mono', monospace" }}>
+                CASCADE
+              </span>
+            </div>
+            <p style={{ fontSize: 13, color: '#78716c', marginTop: 4 }}>Cascade d'imputation</p>
+          </div>
+
+          {/* Capitalisation */}
+          <div className={cardBlockClass}>
+            <div className="px-5 py-3 bg-[#fafaf9] border-b border-[#f0efed]">
+              <span style={{ ...sectionHeaderStyle }}>Capitalisation</span>
+            </div>
+            <div className="px-5 py-4 space-y-2">
+              <div className="flex items-center gap-3 flex-wrap" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, color: '#292524' }}>
+                <span>{cascade.renteAnnuelle.toLocaleString('fr-FR')} €/an</span>
+                <span style={{ color: '#a8a29e' }}>×</span>
+                <span>{cascade.coefficient}</span>
+                <span className="inline-flex items-center h-5 px-1.5 rounded border border-[#e7e5e3]" style={{ fontSize: 10, fontWeight: 500, color: '#78716c' }}>
+                  {cascade.bareme}
+                </span>
+                <span style={{ color: '#a8a29e' }}>=</span>
+                <span style={{ fontWeight: 600, color: '#292524' }}>{fmtTP(cascade.capitalise)}</span>
+              </div>
+              {/* Temporal breakdown */}
+              {cascade.arreragesEchus != null && (
+                <div className="pt-2 border-t border-[#f0efed] space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span style={{ fontSize: 12, color: '#78716c' }}>Arrérages échus</span>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmtTP(cascade.arreragesEchus)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span style={{ fontSize: 12, color: '#78716c' }}>À échoir (capitalisé)</span>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmtTP(cascade.arreragesAEchoir)}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-[#f0efed]">
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#292524' }}>Total créance</span>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 600, color: '#292524' }}>{fmtTP(cascade.capitalise)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Ordre d'imputation */}
+          <div className={cardBlockClass}>
+            <div className="px-5 py-3 bg-[#fafaf9] border-b border-[#f0efed] flex items-center justify-between">
+              <span style={{ ...sectionHeaderStyle }}>Ordre d'imputation</span>
+              <span style={{ fontSize: 11, color: '#a8a29e' }}>{cascade.etapes.map(e => e.label).join(' \u2192 ')}</span>
+            </div>
+
+            {/* Waterfall steps */}
+            <div className="divide-y divide-[#f0efed]">
+              {cascade.etapes.map((etape, i) => {
+                const isEpuise = etape.statut === 'épuisé';
+                const pct = etape.prejudice > 0 ? Math.round(etape.absorbe / etape.prejudice * 100) : 0;
+                return (
+                  <div key={etape.posteId} className="px-5 py-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: isEpuise ? '#eeece6' : '#fafaf9', border: isEpuise ? 'none' : '1px solid #e7e5e3' }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: isEpuise ? '#292524' : '#78716c' }}>{i + 1}</span>
+                        </span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#292524' }}>{etape.label}</span>
+                        <span className="inline-flex items-center h-5 px-1.5 rounded" style={{
+                          backgroundColor: isEpuise ? '#eeece6' : '#fafaf9',
+                          fontSize: 10, fontWeight: 500,
+                          color: isEpuise ? '#292524' : '#78716c',
+                          fontFamily: "'IBM Plex Mono', monospace",
+                          textTransform: 'uppercase',
+                        }}>
+                          {etape.statut}
+                        </span>
+                        {etape.jurisprudentiallyVariable && (
+                          <span className="inline-flex items-center h-5 px-1.5 rounded ml-2" style={{ backgroundColor: '#fef3c7', fontSize: 10, fontWeight: 500, color: '#92400e', fontFamily: "'IBM Plex Mono', monospace" }}>
+                            JURISPRUDENCE VARIABLE
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-4">
+                      <div>
+                        <span style={{ fontSize: 11, color: '#a8a29e', display: 'block' }}>Préjudice</span>
+                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmtTP(etape.prejudice)}</span>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: 11, color: '#a8a29e', display: 'block' }}>Absorbé</span>
+                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmtTP(etape.absorbe)}</span>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: 11, color: '#a8a29e', display: 'block' }}>Reste victime</span>
+                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmtTP(etape.prejudice - etape.absorbe)}</span>
+                      </div>
+                    </div>
+                    {etape.absorbeEchu != null && (
+                      <div className="mt-2 flex items-center gap-4" style={{ fontSize: 11, color: '#78716c' }}>
+                        <span>échu : <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, color: '#44403c' }}>{fmtTP(etape.absorbeEchu)}</span></span>
+                        <span>à échoir : <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, color: '#44403c' }}>{fmtTP(etape.absorbeAEchoir)}</span></span>
+                      </div>
+                    )}
+                    {/* Progress bar */}
+                    <div className="mt-2 h-1.5 rounded-full bg-[#f0efed] overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: isEpuise ? '#a8a29e' : '#d6d3d1' }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Total */}
+            <div className="px-5 py-4 bg-[#fafaf9] border-t border-[#e7e5e3] flex items-center justify-between">
+              <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>Total absorbé</span>
+              <div className="flex items-center gap-2">
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, fontWeight: 600, color: '#292524' }}>
+                  {fmtTP(cascade.totalAbsorbe)}
+                </span>
+                <span style={{ fontSize: 12, color: '#a8a29e' }}>/ {fmtTP(cascade.capitalise)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ========== RENDER CONTENT ==========
   const renderContent = () => {
     // DOSSIER
@@ -6746,27 +6995,6 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Accept/Reject buttons on hover */}
-                {pendingDiff && (
-                  <span className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover/field:opacity-100 transition-opacity z-10">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleApproveDiff(key, 'infos_dossier'); }}
-                      className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#ecfdf5] hover:border-[#a5c9b7] transition-colors"
-                      style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
-                      title="Approuver"
-                    >
-                      <Check className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleRejectDiff(key, 'infos_dossier'); }}
-                      className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[#fef2f2] hover:border-[#cf9d9d] transition-colors"
-                      style={{ background: 'white', border: '1px solid #d6d3d1', boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
-                      title="Rejeter"
-                    >
-                      <X className="w-3 h-3" style={{ color: '#78716c' }} strokeWidth={2.5} />
-                    </button>
-                  </span>
-                )}
               </div>
             );
           };
@@ -6871,7 +7099,94 @@ export default function App() {
                 <div className="px-5 py-4 space-y-1">
                   {renderField('resume', 'Résumé des faits', faitGenerateur.resume || resumeAffaire, true)}
                 </div>
+
+                {/* Sub-block: Fraction indemnisable */}
+                <div className="border-t border-[#e7e5e3] px-5 py-3">
+                  <span style={{ fontSize: 13, color: '#78716c' }}>Fraction indemnisable</span>
+                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 500, color: tauxFinal < 100 ? '#b9703f' : '#292524', marginTop: 4 }}>
+                    {tauxFinal} %
+                  </div>
+                </div>
               </div>
+
+              {/* Section: Tiers payeurs (dossier-level) */}
+              {hasTP && (
+                <div className="bg-white rounded-[5px] border border-[#e7e5e3] shadow-sm overflow-hidden">
+                  <div className="flex items-center gap-2.5 px-3 py-3.5 border-b border-[#e7e5e3] bg-white">
+                    <Receipt className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+                    <span className="text-[11px] font-medium text-[#78716c] uppercase tracking-wider" style={colHeaderStyle}>Tiers payeurs</span>
+                  </div>
+
+                  {/* CreanceTP per TP entity — show postes impactés */}
+                  {tpScenario.tiersPayeurs.map((tp) => {
+                    const creances = (tpScenario.creancesTP || []).filter(c => c.tiersPayeurId === tp.id);
+                    const totalTP = creances.reduce((s, c) => s + (c.lignes || []).reduce((s2, l) => s2 + l.montant, 0), 0);
+                    const expanded = isCardExpanded(`registre-tp-${tp.id}`);
+
+                    // Group by poste to show "pockets of money"
+                    const byPoste = {};
+                    creances.forEach(c => {
+                      (c.lignes || []).forEach(l => {
+                        const posteId = l.posteCible?.replace('pgpf-echu', 'pgpf').replace('pgpf-aechoir', 'pgpf') || 'autre';
+                        if (!byPoste[posteId]) byPoste[posteId] = { posteId, total: 0 };
+                        byPoste[posteId].total += l.montant;
+                      });
+                    });
+                    const posteSummaries = Object.values(byPoste);
+                    const allPostesFlat = POSTES_TAXONOMY.flatMap(s => s.categories.flatMap(c => c.postes));
+
+                    return (
+                      <div key={tp.id} className="border-b border-[#f0efed] last:border-b-0">
+                        <div
+                          className="flex items-center justify-between px-5 py-3 cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                          onClick={() => toggleCard(`registre-tp-${tp.id}`)}
+                        >
+                          <div className="flex items-center gap-2">
+                            {expanded ? <ChevronDown className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} /> : <ChevronRight className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />}
+                            <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{tp.sigle}</span>
+                            <span style={{ fontSize: 11, color: '#a8a29e', fontFamily: "'Inter', sans-serif" }}>{tp.nom}</span>
+                          </div>
+                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmt(totalTP)}</span>
+                        </div>
+                        {expanded && (
+                          <div className="px-5 pb-3 space-y-0.5">
+                            {posteSummaries.map((ps) => {
+                              const posteDef = allPostesFlat.find(p => p.id === ps.posteId);
+                              const acronym = posteDef?.acronym || ps.posteId.toUpperCase();
+                              const label = posteDef?.label || ps.posteId;
+                              return (
+                                <div
+                                  key={ps.posteId}
+                                  className="flex items-center justify-between py-1.5 px-2 -mx-2 rounded cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigateTo({ type: 'poste', id: ps.posteId, title: acronym, fullTitle: label });
+                                  }}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>{acronym}</span>
+                                    <span style={{ fontSize: 12, color: '#78716c' }}>{label}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: '#44403c' }}>{fmt(ps.total)}</span>
+                                    <ChevronRight className="w-3 h-3 text-[#d6d3d1]" />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {creances.some(c => c.regle === 'CASCADE_CAPITALISEE' || c.regle === 'CASCADE') && tpScenario.cascade && (
+                              <button
+                                className="mt-1 text-[11px] text-[#1e3a8a] hover:underline transition-colors"
+                                onClick={(e) => { e.stopPropagation(); navigateTo({ type: 'cascade', id: 'cascade-from-registre', title: 'Cascade', fullTitle: tpScenario.cascade.label + ' \u2014 Cascade' }); }}
+                              >{'\u2197'} Voir la cascade complète</button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Section: Faits et procédure */}
               <div className="bg-white rounded-[5px] border border-[#e7e5e3] shadow-sm overflow-hidden">
@@ -7276,8 +7591,9 @@ export default function App() {
         // Compute summary totals
         const totalVd = allPostes.reduce((s, p) => s + (p.montant || 0), 0);
         const totalIv = totalIvChiffrage;
-        const totalTiers = 0; // placeholder — future implementation
-        const totalIndem = totalVd + totalIv - totalTiers;
+        const totalTiers = hasTP ? allPostes.reduce((s, p) => s + (p.tpEffective || 0), 0) : 0;
+        const tauxRatio = (tauxFinal || 100) / 100;
+        const totalIndem = (totalVd + totalIv) * tauxRatio - totalTiers;
 
         // Reusable subtotal/total card component
         // rows: [{ label, amount, muted?, negative? }], totalRow: { label, amount }
@@ -7307,9 +7623,9 @@ export default function App() {
             <div className="flex items-center gap-2 px-px">
               {/* Breakdown pills — compact, white bg */}
               {[
-                { label: 'Victime directe', amount: totalVd },
-                ...(totalIv > 0 ? [{ label: 'Victimes indirectes', amount: totalIv }] : []),
-                { label: 'Tiers payeurs', amount: totalTiers, muted: totalTiers === 0, negative: totalTiers > 0 },
+                { label: 'VD', amount: totalVd },
+                ...(totalIv > 0 ? [{ label: 'VI', amount: totalIv }] : []),
+                { label: 'TP', amount: totalTiers, muted: totalTiers === 0, negative: totalTiers > 0 },
               ].map((item, i) => (
                 <div key={i} className="h-8 px-2.5 flex items-center gap-1.5 border border-[#e7e5e3] rounded-lg whitespace-nowrap cursor-default">
                   <span style={{ fontSize: 11, fontWeight: 400, color: item.muted ? '#a8a29e' : '#78716c', letterSpacing: 0.1, lineHeight: '16px' }}>{item.label}</span>
@@ -7355,14 +7671,25 @@ export default function App() {
                         <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{victimeData.prenom} {victimeData.nom}</span>
                       </div>
                     </div>
-                    <span style={{ ...serifAmountStyle, color: '#292524' }}>{fmt(allPostes.reduce((s, p) => s + (p.montant || 0), 0))}</span>
+                    <span style={{ ...serifAmountStyle, color: '#292524' }}>{fmt(allPostes.reduce((s, p) => s + (p.victimeAmount || 0), 0))}</span>
                   </div>
                   <div className="space-y-4">
                     {vdCategories.map((cat) => (
                       <div key={cat.id} className="border border-[#e7e5e3] rounded-xl overflow-hidden" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
-                        {/* RowCalculation Header/Direct — category label */}
+                        {/* RowCalculation Header/Direct — category label + column headers */}
                         <div className="h-10 px-4 flex items-center border-b border-[#e7e5e3]" style={{ backgroundColor: '#f8f7f5' }}>
-                          <span style={colHeaderStyle}>{cat.title}</span>
+                          <div className="flex-1">
+                            <span style={colHeaderStyle}>{cat.title}</span>
+                          </div>
+                          {hasTP && (
+                            <div className="w-[140px] max-w-[140px] px-3 flex items-center justify-end">
+                              <span style={{ ...colHeaderStyle, fontSize: 10 }}>Tiers payeurs</span>
+                            </div>
+                          )}
+                          <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
+                            <span style={{ ...colHeaderStyle, fontSize: 10 }}>Indemnité victime</span>
+                          </div>
+                          <div className="w-11 flex-shrink-0 pl-3 pr-4" />
                         </div>
                         {cat.postes.map((p, pIdx) => {
                           const isLast = pIdx === cat.postes.length - 1;
@@ -7381,21 +7708,21 @@ export default function App() {
                               <div className="flex-1 px-3 flex items-center min-w-0">
                                 <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{p.fullTitle}</span>
                               </div>
-                              {/* Total column */}
+                              {/* Tiers payeurs */}
+                              {hasTP && (
+                                <div className="w-[140px] max-w-[140px] px-3 flex items-center justify-end">
+                                  {p.tpAmount > 0 && (
+                                    <span style={{ fontSize: 13, fontWeight: 500, color: '#a8a29e', lineHeight: '20px' }}>{fmt(p.tpAmount)}</span>
+                                  )}
+                                </div>
+                              )}
+                              {/* Indemnité victime */}
                               <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
-                                <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
-                              </div>
-                              {/* Tiers payeur column */}
-                              <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
-                                <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
-                              </div>
-                              {/* Indemnisation amount cell */}
-                              <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
-                                {p.montant > 0 ? (
-                                  <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(p.montant)}</span>
-                                ) : (
-                                  <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
-                                )}
+                                {p.victimeAmount > 0 ? (
+                                  <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(p.victimeAmount)}</span>
+                                ) : p.montant > 0 && p.tpAmount >= p.montant ? (
+                                  <span style={{ fontSize: 13, fontWeight: 500, color: '#a8a29e', lineHeight: '20px' }}>0 €</span>
+                                ) : null}
                               </div>
                               {/* Actions cell */}
                               <div className="w-11 flex items-center justify-center flex-shrink-0 pl-3 pr-4">
@@ -7458,7 +7785,7 @@ export default function App() {
                         <div className="space-y-4">
                           {ivCategories.map(cat => (
                             <div key={cat.id} className="border border-[#e7e5e3] rounded-xl overflow-hidden" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
-                              {/* RowCalculation Header/Direct — category label */}
+                              {/* RowCalculation Header/Direct — category label + column headers */}
                               <div className="h-10 px-4 flex items-center border-b border-[#e7e5e3]" style={{ backgroundColor: '#f8f7f5' }}>
                                 <span style={colHeaderStyle}>{cat.title}</span>
                               </div>
@@ -7490,19 +7817,10 @@ export default function App() {
                                         <div className="flex-1 px-3 flex items-center min-w-0">
                                           <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{p.fullTitle}</span>
                                         </div>
-                                        {/* Two empty amount columns (Total, Tiers) */}
-                                        <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
-                                          <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
-                                        </div>
-                                        <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
-                                          <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
-                                        </div>
                                         {/* Amount cell */}
                                         <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
-                                          {p.montant > 0 ? (
+                                          {p.montant > 0 && (
                                             <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(p.montant)}</span>
-                                          ) : (
-                                            <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
                                           )}
                                         </div>
                                       </button>
@@ -7533,10 +7851,8 @@ export default function App() {
                                                 <span className="flex-shrink-0" style={{ fontSize: 12, fontWeight: 400, color: '#78716c', letterSpacing: '0.12px' }}>({vi.lien})</span>
                                               </div>
                                               <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
-                                                {viMontant > 0 ? (
+                                                {viMontant > 0 && (
                                                   <span style={{ fontSize: 14, fontWeight: 400, color: '#292524' }}>{fmt(viMontant)}</span>
-                                                ) : (
-                                                  <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e' }}>—</span>
                                                 )}
                                               </div>
                                               <div className="w-11 flex items-center justify-center flex-shrink-0">
@@ -7592,19 +7908,10 @@ export default function App() {
                                       <div className="flex-1 px-3 flex items-center min-w-0">
                                         <span className="truncate" style={{ fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{taxo.label}</span>
                                       </div>
-                                      {/* Two empty amount columns (Total, Tiers) */}
-                                      <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
-                                        <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
-                                      </div>
-                                      <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
-                                        <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
-                                      </div>
                                       {/* Amount cell */}
                                       <div className="w-[176px] max-w-[176px] px-3 flex items-center justify-end">
-                                        {montant > 0 ? (
+                                        {montant > 0 && (
                                           <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(montant)}</span>
-                                        ) : (
-                                          <span style={{ fontSize: 14, fontWeight: 400, color: '#a8a29e', lineHeight: '20px' }}>&mdash;</span>
                                         )}
                                       </div>
                                       {/* Actions cell */}
@@ -7646,12 +7953,18 @@ export default function App() {
                         <span style={{ fontSize: 14, fontWeight: 500, color: '#d6d3d1' }}>{fmt(totalIv)}</span>
                       </div>
                     )}
-                    <div className="flex items-center justify-between">
-                      <span style={{ fontSize: 13, fontWeight: 400, color: totalTiers > 0 ? '#a8a29e' : '#57534e' }}>Tiers payeurs</span>
-                      <span style={{ fontSize: 14, fontWeight: totalTiers > 0 ? 500 : 400, color: totalTiers > 0 ? '#d6d3d1' : '#57534e' }}>
-                        {totalTiers > 0 ? `- ${fmt(totalTiers)}` : '—'}
-                      </span>
-                    </div>
+                    {totalTiers > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span style={{ fontSize: 13, fontWeight: 400, color: '#a8a29e' }}>Tiers payeurs</span>
+                        <span style={{ fontSize: 14, fontWeight: 500, color: '#d6d3d1' }}>{'\u2212'} {fmt(totalTiers)}</span>
+                      </div>
+                    )}
+                    {tauxRatio < 1 && (
+                      <div className="flex items-center justify-between mt-1">
+                        <span style={{ fontSize: 13, fontWeight: 400, color: '#a8a29e' }}>Responsabilité appliquée</span>
+                        <span style={{ fontSize: 14, fontWeight: 500, color: '#d6d3d1' }}>{tauxFinal} %</span>
+                      </div>
+                    )}
                   </div>
                   {/* Total row */}
                   <div className="flex items-center justify-between px-5 py-4 border-t border-[#44403c]">
@@ -7846,6 +8159,12 @@ export default function App() {
           </div>
         );
       }
+
+    }
+
+    // ========== CASCADE VIEW ==========
+    if (currentLevel.type === 'cascade') {
+      return renderCascadeView();
     }
 
 
@@ -7858,13 +8177,15 @@ export default function App() {
         return 0;
       });
       // Calculs DSA
-      const totalMontant = dsaLignes.reduce((s, l) => s + (l.montant || 0), 0);
+      const dsaDamageOverride = tpScenario.damageOverrides?.dsa;
+      const totalMontant = hasTP && dsaDamageOverride != null ? dsaDamageOverride : dsaLignes.reduce((s, l) => s + (l.montant || 0), 0);
       const totalRembourse = dsaLignes.reduce((s, l) => s + (l.dejaRembourse || 0), 0);
       const totalResteACharge = totalMontant - totalRembourse;
-      const indemniteVictime = totalResteACharge;
-      
+      const indemniteVictime = allPostes.find(p => p.id === 'dsa')?.victimeAmount ?? totalResteACharge;
+      const dsaHasTPImputations = hasTP && (tpScenario._imputations || []).some(i => i.posteId === 'dsa');
+
       return (
-        <div className={`${dsaLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dsa') && !chatAnalyzedPostes.current.has('dsa') ? 'h-full flex flex-col' : ''}`}>
+        <div>
           {/* CALCUL Section */}
           <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
             <div className="p-4">
@@ -7902,16 +8223,7 @@ export default function App() {
             )}
           </div>
 
-          {/* Empty state DSA */}
-          {dsaLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dsa') && !chatAnalyzedPostes.current.has('dsa') && renderInlineDocPicker('dsa', {
-            icon: Receipt,
-            title: 'Ajoutez vos justificatifs pour créer vos lignes de dépenses',
-            description: 'Déposez un ou plusieurs documents. Plato lit, extrait et structure les informations pour chaque ligne.',
-            expectedDocs: ['Factures médicales', 'Ordonnances', 'Justificatifs de pharmacie', 'Facture hospitalisation']
-          })}
-
           {/* Card Block: Dépenses de santé */}
-          {(dsaLignes.length > 0 || processing.length > 0 || (posteExtracting && posteExtracting.posteType === 'dsa') || chatAnalyzedPostes.current.has('dsa')) && (
           <div className={cardBlockClass}>
             {/* Title Row */}
             <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
@@ -7920,10 +8232,6 @@ export default function App() {
                   <Receipt className="w-3.5 h-3.5 text-[#78716c]" />
                 </div>
                 <span className="text-[14px] font-medium text-[#292524]">Dépenses de santé actuelles</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span style={serifAmountStyle} className="text-[#292524]">{fmt(totalMontant)}</span>
-                <ChevronDown className="w-4 h-4 text-[#78716c]" />
               </div>
             </div>
             {/* Header — dashed drop zone + buttons */}
@@ -7979,7 +8287,7 @@ export default function App() {
                   <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
                   <div className="flex-1 min-w-0 px-3 text-right" style={colHeaderStyle}>Date</div>
                   <div className="w-[254px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant</div>
-                  <div className="flex-1 min-w-0 px-2 text-right" style={colHeaderStyle}>Reste à charge</div>
+                  <div className="flex-1 min-w-0 px-2 text-right" style={{ ...colHeaderStyle, ...(dsaHasTPImputations ? { color: '#a8a29e' } : {}) }} title={dsaHasTPImputations ? 'Neutralisé par créance récapitulative' : undefined}>Reste à charge</div>
                 </div>
 
                 {/* Lignes */}
@@ -8038,10 +8346,9 @@ export default function App() {
                         )}
                       </div>
 
-                      {/* Reste à charge */}
                       <div className="flex-1 min-w-0 px-2 text-right">
                         {l.montant != null ? (
-                          <span className="text-body-medium" style={{ color: '#292524' }}>{fmt((l.montant || 0) - (l.dejaRembourse || 0))}</span>
+                          <span className="text-body-medium" style={{ color: dsaHasTPImputations ? '#a8a29e' : '#292524' }}>{fmt((l.montant || 0) - (l.dejaRembourse || 0))}</span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#f9ecd6] rounded-md text-caption-medium text-[#855b31]">
                             <AlertCircle className="w-3 h-3" /> Compléter
@@ -8055,36 +8362,52 @@ export default function App() {
               </>
             )}
 
-          </div>
-          )}
-
-          {/* Total Block */}
-          {dsaLignes.length > 0 && (
-          <div className={totalBlockClass}>
-            <button onClick={() => setTotalExpanded(prev => ({...prev, dsa: !prev.dsa}))} className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
-                  <FileText className="w-3.5 h-3.5 text-[#78716c]" />
+            {/* Table footer total */}
+            {allLignes.length > 0 && (
+              <div className="border-t border-[#e7e5e3] bg-[#fafaf9]">
+                <div className="flex items-center h-10">
+                  <div className="w-[52px] flex-shrink-0 pl-3" />
+                  <div className="flex-1 min-w-0 px-3">
+                    <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>Total dépenses</span>
+                  </div>
+                  <div className="flex-1 min-w-0 px-3" />
+                  <div className="w-[254px] px-3 text-right flex-shrink-0">
+                    <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>{fmt(totalMontant)}</span>
+                  </div>
+                  <div className="flex-1 min-w-0 px-2 text-right">
+                    {!dsaHasTPImputations && <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>{fmt(totalResteACharge)}</span>}
+                  </div>
                 </div>
-                <span className="text-[14px] font-medium text-[#292524]">Total</span>
               </div>
-              <div className="flex items-center gap-3">
-                <span style={serifAmountStyle} className="text-[#292524]">{fmt(indemniteVictime)}</span>
-                <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded.dsa ? 'rotate-90' : ''}`} />
-              </div>
-            </button>
-            {totalExpanded.dsa && (
-              <>
-                <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
-                <div className="space-y-2">
-                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Total dépenses</span><span className="text-[14px] text-[#292524]">{fmt(totalMontant)}</span></div>
-                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Total remboursé</span><span className="text-[14px] text-[#292524]">− {fmt(totalRembourse)}</span></div>
-                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Reste à charge</span><span className="text-[14px] text-[#292524]">{fmt(totalResteACharge)}</span></div>
-                </div>
-              </>
             )}
+
           </div>
-          )}
+
+          {renderCreancesTPTable('dsa')}
+
+          {(() => {
+            if (dsaLignes.length === 0) return null;
+            const dsaVictime = Math.max(0, indemniteVictime);
+            // TP breakdown per tiers payeur
+            const tpByEntity = {};
+            if (hasTP) {
+              (tpScenario._imputationsByPoste?.['dsa'] || []).forEach(imp => {
+                if (!tpByEntity[imp.tiersPayeurId]) tpByEntity[imp.tiersPayeurId] = { sigle: imp.sigle, total: 0 };
+                tpByEntity[imp.tiersPayeurId].total += imp.montant;
+              });
+            }
+            const tpEntries = Object.values(tpByEntity);
+            const hasTpBreakdown = tpEntries.length > 0;
+            return renderTotalBlock('dsa', dsaVictime, { content: hasTpBreakdown ? (
+              <div className="mt-3 space-y-1">
+                {tpLine('Total à indemniser', totalMontant)}
+                {tpDivider()}
+                {tpEntries.map(tp => tpLine(`Créance ${tp.sigle}`, tp.total, { key: tp.sigle }))}
+                {tpDivider()}
+                {tpSubtotal('Indemnité victime', dsaVictime)}
+              </div>
+            ) : null });
+          })()}
 
               </div>{/* end space-y-4 */}
             </div>{/* end p-4 */}
@@ -8136,17 +8459,8 @@ export default function App() {
       const revenusPercusTotal = pgpaRevPercusTotal;
       const ijPercuesTotal = pgpaIjTotal;
       const perteDeGains = Math.round(revenuRefMensuel * pgpaData.periode.mois) - revenusPercusTotal;
-      const indemniteVictimePGPA = perteDeGains - ijPercuesTotal;
-
-      // Empty state — before any data (skip if chat has analyzed)
-      if (pgpaData.revenuRef.lignes.length === 0 && pgpaData.revenusPercus.length === 0 && pgpaData.ijPercues.length === 0 && !chatAnalyzedPostes.current.has('pgpa')) {
-        return renderInlineDocPicker('pgpa-revenu-ref', {
-          icon: Calculator,
-          title: 'Aucune donnée PGPA',
-          description: 'Ajoutez les justificatifs de revenus pour calculer les pertes de gains professionnels actuels.',
-          expectedDocs: ['Bulletins de salaire', 'Attestations employeur', "Avis d'imposition", 'Bilans comptables']
-        });
-      }
+      const pgpaDamageOverride = tpScenario.damageOverrides?.pgpa;
+      const indemniteVictimePGPA = allPostes.find(p => p.id === 'pgpa')?.victimeAmount ?? (perteDeGains - ijPercuesTotal);
 
       // FLAT PGPA — all cards on one page (per Figma)
       const revenus = pgpaData.revenuRef.lignes.filter(l => l.type === 'revenu');
@@ -8202,37 +8516,15 @@ export default function App() {
                 </div>
                 <span className="text-[14px] font-medium text-[#292524]">Revenu de référence</span>
               </div>
-              <div className="flex items-center gap-2">
-                {revenuRefMensuel > 0 ? (
-                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(Math.round(revenuRefMensuel))}<span className="text-[14px] text-[#78716c] ml-1">/ mois</span></span>
-                ) : (
-                  <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
-                )}
-                {isCardExpanded('pgpa-revenu-ref') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
-              </div>
+              {isIvCardExpanded('pgpa-revenu-ref') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
             </div>
-            {isCardExpanded('pgpa-revenu-ref') && <>
-            {/* Drop zone */}
-            <div
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-ref'); }}
-              className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white"
-            >
-              <div className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg transition-colors ${isDragging ? 'border-[#a8a29e] bg-[#f5f5f4]' : 'border-[#d6d3d1]'}`}>
-                <Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" />
-                <span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer" onClick={() => document.getElementById('pgpa-ref-upload')?.click()}>cliquez</span> pour ajouter un justificatif</span>
-                <input type="file" id="pgpa-ref-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-ref'); e.target.value = ''; } }} />
-              </div>
-              <button onClick={() => handleAddManual('pgpa-revenu-ref')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a] flex-shrink-0 whitespace-nowrap">
-                <Plus className="w-4 h-4" /> Ajouter une dépense
-              </button>
-            </div>
+            {isIvCardExpanded('pgpa-revenu-ref') && <>
             {/* Column headers */}
             {allRevenuRefLignes.length > 0 && (
               <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
                 <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
-                <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période</div>
+                <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
+                <div className="w-[160px] px-3 flex-shrink-0" style={colHeaderStyle}>Période</div>
                 <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
               </div>
             )}
@@ -8254,7 +8546,10 @@ export default function App() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0 px-3">
-                    <span className="text-body-medium block text-[#292524]">{l.label || l.annee || 'Sans libellé'}</span>
+                    <span className="text-body-medium truncate block text-[#292524]">{l.label || l.annee || 'Sans libellé'}</span>
+                  </div>
+                  <div className="w-[160px] px-3 flex-shrink-0">
+                    <span className="text-body text-[#78716c]">{l.periodeDebut ? `${l.periodeDebut} → ${l.periodeFin}` : l.annee || '—'}</span>
                   </div>
                   <div className="w-[200px] px-3 text-right flex-shrink-0">
                     <span className="text-body-medium font-semibold tabular-nums text-[#292524]">{fmt(l.revalorise || l.montant || 0)}</span>
@@ -8262,6 +8557,24 @@ export default function App() {
                 </div>
               );
             })}
+            {/* Table footer total */}
+            {allRevenuRefLignes.length > 0 && (
+              <div className="flex items-center h-10 border-t border-[#e7e5e3] bg-[#fafaf9]">
+                <div className="w-[52px] flex-shrink-0 pl-3" />
+                <div className="flex-1 min-w-0 px-3">
+                  <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>Total</span>
+                </div>
+                <div className="w-[160px] flex-shrink-0 px-3" />
+                <div className="w-[200px] px-3 text-right flex-shrink-0">
+                  <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>{fmt(Math.round(revenuRefMensuel))}<span style={{ fontSize: 11, color: '#a8a29e', marginLeft: 4 }}>/ mois</span></span>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center justify-center h-[44px] border-t border-[#e7e5e3] bg-white">
+              <button onClick={() => handleAddManual('pgpa-revenu-ref')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a]">
+                <Plus className="w-4 h-4" /> Ajouter une ligne
+              </button>
+            </div>
           </>}
           </div>
 
@@ -8274,66 +8587,97 @@ export default function App() {
                 </div>
                 <span className="text-[14px] font-medium text-[#292524]">Revenus perçus</span>
               </div>
-              <div className="flex items-center gap-2">
-                {revenusPercusTotal > 0 ? (
-                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(revenusPercusTotal)}</span>
-                ) : (
-                  <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
-                )}
-                {isCardExpanded('pgpa-revenus-percus') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
-              </div>
+              {isIvCardExpanded('pgpa-revenus-percus') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
             </div>
-            {isCardExpanded('pgpa-revenus-percus') && <>
-            {/* Drop zone */}
-            <div
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleUploadFiles(e.dataTransfer.files, 'pgpa-revenu-percu'); }}
-              className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white"
-            >
-              <div className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg transition-colors ${isDragging ? 'border-[#a8a29e] bg-[#f5f5f4]' : 'border-[#d6d3d1]'}`}>
-                <Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" />
-                <span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer" onClick={() => document.getElementById('pgpa-percu-upload')?.click()}>cliquez</span> pour ajouter un justificatif</span>
-                <input type="file" id="pgpa-percu-upload" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { if (e.target.files?.length) { handleUploadFiles(e.target.files, 'pgpa-revenu-percu'); e.target.value = ''; } }} />
-              </div>
-              <button onClick={() => handleAddManual('pgpa-revenu-percu')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a] flex-shrink-0 whitespace-nowrap">
-                <Plus className="w-4 h-4" /> Ajouter une dépense
+            {isIvCardExpanded('pgpa-revenus-percus') && <>
+            {/* Column headers */}
+            {(() => {
+              // Derive TP badges from creancesTP lines of nature IJ / MAINTIEN_SALAIRE
+              const pgpaTPLines = (tpScenario._imputationsByPoste?.['pgpa'] || []);
+              const pgpaBadges = {};
+              pgpaTPLines.forEach(line => {
+                if (line.nature === NATURE_CREANCE.IJ) {
+                  pgpaData.ijPercues.forEach(ij => { pgpaBadges[ij.id] = { badgeLabel: `${line.sigle} IJ`, sigle: line.sigle }; });
+                }
+                if (line.nature === NATURE_CREANCE.MAINTIEN_SALAIRE) {
+                  pgpaData.revenusPercus.forEach(rp => { pgpaBadges[rp.id] = { badgeLabel: line.sigle, sigle: line.sigle }; });
+                }
+              });
+              const hasBadges = Object.keys(pgpaBadges).length > 0;
+              // Merge IJ into revenus perçus display when TP scenario has IJ lines
+              const mergedRevenusPercus = hasBadges && pgpaTPLines.some(l => l.nature === NATURE_CREANCE.IJ)
+                ? [...pgpaData.revenusPercus, ...pgpaData.ijPercues.map(ij => ({ ...ij, _isIJ: true }))]
+                : pgpaData.revenusPercus;
+              const mergedTotal = mergedRevenusPercus.reduce((s, l) => s + (l.montant || 0), 0);
+              return (
+                <>
+                  {mergedRevenusPercus.length > 0 && (
+                    <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
+                      <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
+                      <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
+                      {hasBadges && <div className="w-[120px] px-3 flex-shrink-0" style={colHeaderStyle}>Tiers payeur</div>}
+                      <div className="w-[160px] px-3 flex-shrink-0" style={colHeaderStyle}>Période</div>
+                      <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
+                    </div>
+                  )}
+                  {mergedRevenusPercus.map(l => {
+                    const pieceCount = l.pieceIds?.length || 0;
+                    const badge = pgpaBadges[l.id];
+                    return (
+                      <div key={l.id} onClick={() => { if (!l._isIJ) { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'pgpa-revenu-percu', title: 'Éditer le revenu perçu', data: l }); } }}
+                        className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
+                        <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
+                          {pieceCount > 0 ? (
+                            <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
+                              <FileText className="w-4 h-4 text-[#2563eb]" />
+                              {pieceCount > 1 && <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#2563eb] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceCount}</span>}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]"><FileText className="w-3.5 h-3.5" /></span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0 px-3">
+                          <span className="text-body-medium truncate block text-[#292524]">{l.label || 'Sans libellé'}</span>
+                        </div>
+                        {hasBadges && (
+                          <div className="w-[120px] px-3 flex-shrink-0">
+                            {badge && (
+                              <span className="inline-flex items-center h-[18px] px-1.5 rounded-sm" style={{ backgroundColor: '#eeece6', fontSize: 10, fontWeight: 500, color: '#44403c', fontFamily: "'IBM Plex Mono', monospace" }}>
+                                {badge.badgeLabel}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        <div className="w-[160px] px-3 flex-shrink-0">
+                          <span className="text-body text-[#78716c]">{l.periodeDebut} {'\u2192'} {l.periodeFin}</span>
+                        </div>
+                        <div className="w-[200px] px-3 text-right flex-shrink-0">
+                          <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.montant)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {mergedRevenusPercus.length > 0 && (
+                    <div className="flex items-center h-10 border-t border-[#e7e5e3] bg-[#fafaf9]">
+                      <div className="w-[52px] flex-shrink-0 pl-3" />
+                      <div className="flex-1 min-w-0 px-3">
+                        <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>Total</span>
+                      </div>
+                      {hasBadges && <div className="w-[120px] flex-shrink-0 px-3" />}
+                      <div className="w-[160px] flex-shrink-0 px-3" />
+                      <div className="w-[200px] px-3 text-right flex-shrink-0">
+                        <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>{fmt(hasBadges ? mergedTotal : revenusPercusTotal)}</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+            <div className="flex items-center justify-center h-[44px] border-t border-[#e7e5e3] bg-white">
+              <button onClick={() => handleAddManual('pgpa-revenu-percu')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a]">
+                <Plus className="w-4 h-4" /> Ajouter une ligne
               </button>
             </div>
-            {/* Column headers */}
-            {pgpaData.revenusPercus.length > 0 && (
-              <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
-                <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
-                <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période</div>
-                <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
-              </div>
-            )}
-            {/* Data rows */}
-            {pgpaData.revenusPercus.map(l => {
-              const pieceCount = l.pieceIds?.length || 0;
-              return (
-                <div key={l.id} onClick={() => { setEditingPieceIds(l.pieceIds || []); setSearchPiecesPanel(''); setEditPanel({ type: 'pgpa-revenu-percu', title: 'Éditer le revenu perçu', data: l }); }}
-                  className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
-                  <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
-                    {pieceCount > 0 ? (
-                      <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
-                        <FileText className="w-4 h-4 text-[#2563eb]" />
-                        {pieceCount > 1 && <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#2563eb] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{pieceCount}</span>}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] text-[#d6d3d1] rounded-md border border-dashed border-[#e7e5e3]"><FileText className="w-3.5 h-3.5" /></span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0 px-3">
-                    <span className="text-body-medium text-[#292524] block">{l.label || 'Sans libellé'}</span>
-                    <span className="text-caption text-[#78716c]">{l.periodeDebut} → {l.periodeFin}</span>
-                  </div>
-                  <div className="w-[200px] px-3 text-right flex-shrink-0">
-                    <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.montant)}</span>
-                  </div>
-                </div>
-              );
-            })}
           </>}
           </div>
 
@@ -8346,12 +8690,9 @@ export default function App() {
                 </div>
                 <span className="text-[14px] font-medium text-[#292524]">Perte de chance</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span style={serifAmountStyle} className="text-[#292524]">{fmt(0)}</span>
-                {isCardExpanded('pgpa-perte-chance') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
-              </div>
+              {isIvCardExpanded('pgpa-perte-chance') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
             </div>
-            {isCardExpanded('pgpa-perte-chance') && <>
+            {isIvCardExpanded('pgpa-perte-chance') && <>
             {/* Column headers */}
             <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
               <div className="w-12 flex-shrink-0"></div>
@@ -8370,31 +8711,7 @@ export default function App() {
           </>}
           </div>
 
-          {/* Total Block */}
-          <div className={totalBlockClass}>
-            <button onClick={() => setTotalExpanded(prev => ({...prev, pgpa: !prev.pgpa}))} className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
-                  <FileText className="w-3.5 h-3.5 text-[#78716c]" />
-                </div>
-                <span className="text-[14px] font-medium text-[#292524]">Total perte PGPA</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span style={serifAmountStyle} className="text-[#292524]">{fmt(indemniteVictimePGPA)}</span>
-                <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded.pgpa ? 'rotate-90' : ''}`} />
-              </div>
-            </button>
-            {totalExpanded.pgpa && (
-              <>
-                <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
-                <div className="space-y-2">
-                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Revenus attendus sur la période ({pgpaData.periode.mois} mois)</span><span className="text-[14px] text-[#292524]">{fmt(Math.round(revenuRefMensuel * pgpaData.periode.mois))}</span></div>
-                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Revenus perçus sur la période</span><span className="text-[14px] text-[#292524]">− {fmt(revenusPercusTotal)}</span></div>
-                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Indemnités journalières</span><span className="text-[14px] text-[#292524]">− {fmt(ijPercuesTotal)}</span></div>
-                </div>
-              </>
-            )}
-          </div>
+          {renderTotalBlock('pgpa', indemniteVictimePGPA, { label: 'Indemnité victime' })}
 
               </div>
             </div>
@@ -8439,15 +8756,6 @@ export default function App() {
 
     // ========== PGPF ==========
     if (currentLevel.id === 'pgpf') {
-      // Empty state
-      if (!pgpfData.periodes['pgpf-cl'] && !pgpfData.periodes['pgpf-al'] && !chatAnalyzedPostes.current.has('pgpf')) {
-        return renderInlineDocPicker('pgpf', {
-          icon: Calculator,
-          title: 'Aucune donnée PGPF',
-          description: 'Ajoutez les justificatifs de revenus pour calculer les pertes de gains futurs.',
-          expectedDocs: ['Bulletins de salaire', "Avis d'imposition", "Rapport d'expertise"]
-        });
-      }
       const periodeCL = pgpfData.periodes['pgpf-cl'];
       const periodeAL = pgpfData.periodes['pgpf-al'];
       const tiersTotal = periodeAL ? periodeAL.tiersPayeurs.reduce((s, t) => s + t.montantCapitalise, 0) : 0;
@@ -8503,7 +8811,7 @@ export default function App() {
             )}
           </div>
 
-          {/* Section Label: PRÉ-LIQUIDATION */}
+          {/* Pre-liquidation blocks */}
           {periodeCL && (
             <>
             <div style={sectionHeaderStyle} className="mt-2">NOM DE PÉRIODE</div>
@@ -8518,9 +8826,7 @@ export default function App() {
                   <span className="text-[14px] font-medium text-[#292524]">Revenu de référence</span>
                   <span className="text-xs px-2 py-0.5 rounded bg-[#eef3fa] text-[#1e3a8a] border border-[#aabcd5]">⊕ Sync. PGPA</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(Math.round(periodeCL.revenuRef.total / 12))}<span className="text-[14px] text-[#78716c] ml-1">/ mois</span></span>
-                </div>
+                <span className="text-[14px] font-medium text-[#292524] tabular-nums">{fmt(Math.round(periodeCL.revenuRef.total / 12))}<span className="text-[12px] text-[#78716c] font-normal ml-1">/ mois</span></span>
               </div>
             </div>
 
@@ -8534,27 +8840,17 @@ export default function App() {
                   <span className="text-[14px] font-medium text-[#292524]">Revenus perçus</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(periodeCL.revenusPercus.reduce((s, l) => s + l.montant, 0))}</span>
-                  {isCardExpanded('pgpf-revenus-percus') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+                  <span className="text-[14px] font-medium text-[#292524] tabular-nums">{fmt(periodeCL.revenusPercus.reduce((s, l) => s + l.montant, 0))}</span>
+                  {isIvCardExpanded('pgpf-revenus-percus') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
                 </div>
               </div>
-              {isCardExpanded('pgpf-revenus-percus') && <>
-              {/* Drop zone */}
-              <div className="flex items-center gap-4 p-4 border-b border-[#e7e5e3] bg-white">
-                <div className="flex-1 flex items-center gap-2 px-2.5 py-1.5 h-9 border border-dashed rounded-lg border-[#d6d3d1]">
-                  <Upload className="w-4 h-4 text-[#78716c] flex-shrink-0" />
-                  <span className="text-body text-[#78716c]">Déposez ou <span className="text-body-medium text-[#1e3a8a] cursor-pointer">cliquez</span> pour ajouter un justificatif</span>
-                </div>
-                <button className="flex items-center gap-2 text-body-medium text-[#1e3a8a] flex-shrink-0 whitespace-nowrap">
-                  <Plus className="w-4 h-4" /> Ajouter une dépense
-                </button>
-              </div>
+              {isIvCardExpanded('pgpf-revenus-percus') && <>
               {/* Column headers */}
               {periodeCL.revenusPercus.length > 0 && (
                 <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
-                  <div className="w-12 flex-shrink-0"></div>
-                  <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
-                  <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Période</div>
+                  <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
+                  <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
+                  <div className="w-[160px] px-3 flex-shrink-0" style={colHeaderStyle}>Période</div>
                   <div className="w-[200px] px-3 text-right flex-shrink-0" style={colHeaderStyle}>Revenu net période</div>
                 </div>
               )}
@@ -8563,10 +8859,7 @@ export default function App() {
                 const pieceCount = l.pieceIds?.length || 0;
                 return (
                   <div key={l.id} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors">
-                    <div className="w-12 flex items-center justify-center flex-shrink-0">
-                      <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center"><Check className="w-3 h-3 text-emerald-500" /></div>
-                    </div>
-                    <div className="w-[52px] flex items-center justify-center flex-shrink-0">
+                    <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
                       {pieceCount > 0 ? (
                         <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
                           <FileText className="w-4 h-4 text-[#2563eb]" />
@@ -8577,8 +8870,10 @@ export default function App() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0 px-3">
-                      <span className="text-body-medium text-[#292524] block">{l.label || 'Sans libellé'}</span>
-                      <span className="text-caption text-[#78716c]">{l.periode}</span>
+                      <span className="text-body-medium truncate block text-[#292524]">{l.label || 'Sans libellé'}</span>
+                    </div>
+                    <div className="w-[160px] px-3 flex-shrink-0">
+                      <span className="text-body text-[#78716c]">{l.periode || '—'}</span>
                     </div>
                     <div className="w-[200px] px-3 text-right flex-shrink-0">
                       <span className="text-body-medium text-[#292524] font-semibold tabular-nums">{fmt(l.montant)}</span>
@@ -8586,6 +8881,24 @@ export default function App() {
                   </div>
                 );
               })}
+              {/* Table footer total */}
+              {periodeCL.revenusPercus.length > 0 && (
+                <div className="flex items-center h-10 border-t border-[#e7e5e3] bg-[#fafaf9]">
+                  <div className="w-[52px] flex-shrink-0 pl-3" />
+                  <div className="flex-1 min-w-0 px-3">
+                    <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>Total</span>
+                  </div>
+                  <div className="w-[160px] flex-shrink-0 px-3" />
+                  <div className="w-[200px] px-3 text-right flex-shrink-0">
+                    <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>{fmt(periodeCL.revenusPercus.reduce((s, l) => s + l.montant, 0))}</span>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center justify-center h-[44px] border-t border-[#e7e5e3] bg-white">
+                <button onClick={() => handleAddManual('pgpf-revenu-percu')} className="flex items-center gap-2 text-body-medium text-[#1e3a8a]">
+                  <Plus className="w-4 h-4" /> Ajouter une ligne
+                </button>
+              </div>
             </>}
             </div>
 
@@ -8599,14 +8912,13 @@ export default function App() {
                   <span className="text-[14px] font-medium text-[#292524]">Perte de chance</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(0)}</span>
-                  {isCardExpanded('pgpf-perte-chance') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+                  <span className="text-[14px] font-medium text-[#292524] tabular-nums">{fmt(pgpfData.perteDeChance || 0)}</span>
+                  {isIvCardExpanded('pgpf-perte-chance') ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
                 </div>
               </div>
-              {isCardExpanded('pgpf-perte-chance') && <>
+              {isIvCardExpanded('pgpf-perte-chance') && <>
               <div className="flex items-center h-10 border-b border-[#e7e5e3] bg-white">
-                <div className="w-12 flex-shrink-0"></div>
-                <div className="w-[52px] text-center flex-shrink-0" style={colHeaderStyle}>Doc</div>
+                <div className="w-[52px] text-center flex-shrink-0 pl-3" style={colHeaderStyle}>Doc</div>
                 <div className="flex-1 min-w-0 px-3" style={colHeaderStyle}>Libellé</div>
                 <div className="w-28 px-3 text-right flex-shrink-0" style={colHeaderStyle}>Montant espéré</div>
                 <div className="w-24 px-3 text-center flex-shrink-0" style={colHeaderStyle}>Coefficient</div>
@@ -8619,71 +8931,95 @@ export default function App() {
               </div>
               </>}
             </div>
-
-            {/* Total Block: PGPF échu */}
-            <div className={totalBlockClass}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
-                    <FileText className="w-3.5 h-3.5 text-[#78716c]" />
-                  </div>
-                  <span className="text-[14px] font-medium text-[#292524]">PGPF échu</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(pgpfClTotal)}</span>
-                  <ChevronRight className="w-4 h-4 text-[#78716c]" />
-                </div>
-              </div>
-            </div>
             </>
           )}
 
-          {/* Section Label: POST-LIQUIDATION */}
+          {/* Créances TP table: PGPF échu */}
+          {renderCreancesTPTable('pgpf-echu')}
+
+          {/* Cascade link */}
+          {hasTP && tpScenario.cascade && (
+            <div className="px-4 py-2">
+              <button
+                className="text-[12px] text-[#1e3a8a] hover:underline transition-colors flex items-center gap-1"
+                onClick={() => navigateTo({ type: 'cascade', id: 'cascade-from-pgpf', title: 'Cascade', fullTitle: tpScenario.cascade.label + ' \u2014 Cascade' })}
+              >
+                {'\u2197'} Voir la cascade complète de la rente CPAM
+              </button>
+            </div>
+          )}
+
+          {/* Block: PGPF échu */}
+          {periodeCL && (() => {
+            const grossEchu = hasTP && tpScenario.damageOverrides?.pgpfEchu != null ? tpScenario.damageOverrides.pgpfEchu : pgpfClTotal;
+            const tpEchu = hasTP ? (tpScenario._imputations || []).filter(i => i.posteId === 'pgpf').reduce((s, i) => s + (i.montantImputeEchu || 0), 0) : 0;
+            const victimeEchu = Math.max(0, grossEchu - tpEchu);
+            return renderTotalBlock('pgpfCl', victimeEchu, { label: 'PGPF échu' });
+          })()}
+
+          {/* Card: Arrérage à échoir */}
           {periodeAL && (
             <>
             <div style={sectionHeaderStyle} className="mt-2">NOM DE PÉRIODE</div>
-
-            {/* Card: Arrérage à échoir */}
             <div className={cardBlockClass}>
               <div className="flex items-center justify-between h-12 px-4">
                 <div className="flex items-center gap-3">
                   <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
-                    <Landmark className="w-3.5 h-3.5 text-[#78716c]" />
+                    <Settings className="w-3.5 h-3.5 text-[#78716c]" />
                   </div>
                   <span className="text-[14px] font-medium text-[#292524]">Arrérage à échoir</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(periodeAL.params.perteGainAnnuelle)}<span className="text-[14px] text-[#78716c] ml-1">/ an</span></span>
-                  <ChevronDown className="w-4 h-4 text-[#78716c]" />
-                </div>
+                <span className="text-[14px] font-medium text-[#292524] tabular-nums">{fmt(periodeAL.params.perteGainAnnuelle)}<span className="text-[12px] text-[#78716c] font-normal ml-1">/ an</span></span>
               </div>
-            </div>
-
-            {/* Total Block: PGPF à échoir */}
-            <div className={totalBlockClass}>
-              <button onClick={() => setTotalExpanded(prev => ({...prev, pgpfAl: !prev.pgpfAl}))} className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
-                    <FileText className="w-3.5 h-3.5 text-[#78716c]" />
-                  </div>
-                  <span className="text-[14px] font-medium text-[#292524]">PGPF à échoir</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(periodeAL.params.perteGainAnnuelle)}<span className="text-[14px] text-[#78716c] ml-1">/ an</span></span>
-                  <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded.pgpfAl ? 'rotate-90' : ''}`} />
-                </div>
-              </button>
-              {totalExpanded.pgpfAl && (
-                <>
-                  <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
-                  <div className="space-y-2">
-                    <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Versement</span><span className="text-[14px] text-[#292524]">En rente, sans capitalisation</span></div>
-                  </div>
-                </>
-              )}
             </div>
             </>
           )}
+
+          {/* Créances TP table: PGPF à échoir */}
+          {renderCreancesTPTable('pgpf-aechoir')}
+
+          {/* Cascade absorption warning */}
+          {hasTP && tpScenario.cascade && (() => {
+            const grossAEchoir = hasTP && tpScenario.damageOverrides?.pgpfAEchoir != null ? tpScenario.damageOverrides.pgpfAEchoir : (periodeAL?.params.montantCapitalise || 0);
+            const tpAEchoir = (tpScenario._imputations || []).filter(i => i.posteId === 'pgpf').reduce((s, i) => s + (i.montantImputeAEchoir || 0), 0);
+            const victimeAEchoir = Math.max(0, grossAEchoir - tpAEchoir);
+            return victimeAEchoir === 0 && tpAEchoir > 0 ? (
+              <div className="px-3 py-2 rounded-md" style={{ backgroundColor: '#fefce8', border: '1px solid #fde68a' }}>
+                <span style={{ fontSize: 12, color: '#92400e', lineHeight: '18px' }}>
+                  La rente CPAM absorbe l'intégralité du préjudice à échoir.
+                  {tpScenario.cascade?.etapes?.filter(e => e.posteId !== 'pgpf').map(e => (
+                    <span key={e.posteId}> Reliquat cascadé vers {e.label} : {fmt(e.absorbe)}</span>
+                  ))}
+                </span>
+              </div>
+            ) : null;
+          })()}
+
+          {/* Block: PGPF à échoir */}
+          {periodeAL && (() => {
+            const grossAEchoir = hasTP && tpScenario.damageOverrides?.pgpfAEchoir != null ? tpScenario.damageOverrides.pgpfAEchoir : (periodeAL.params.montantCapitalise || 0);
+            const tpAEchoir = hasTP ? (tpScenario._imputations || []).filter(i => i.posteId === 'pgpf').reduce((s, i) => s + (i.montantImputeAEchoir || 0), 0) : 0;
+            const victimeAEchoir = Math.max(0, grossAEchoir - tpAEchoir);
+            const isCapitalise = enabledParams['capitaliser-pgpf'];
+            return renderTotalBlock('pgpfAl', victimeAEchoir, { label: 'PGPF à échoir', content: !isCapitalise ? (
+              <div className="mt-2 flex justify-between items-center">
+                <span style={{ fontSize: 12, color: '#78716c' }}>Versement</span>
+                <span style={{ fontSize: 12, color: '#78716c' }}>En rente, sans capitalisation</span>
+              </div>
+            ) : null });
+          })()}
+
+          {/* Block: Total PGPF */}
+          {(() => {
+            const grossEchu = hasTP && tpScenario.damageOverrides?.pgpfEchu != null ? tpScenario.damageOverrides.pgpfEchu : pgpfClTotal;
+            const tpEchuSum = hasTP ? (tpScenario._imputations || []).filter(i => i.posteId === 'pgpf').reduce((s, i) => s + (i.montantImputeEchu || 0), 0) : 0;
+            const victEchu = Math.max(0, grossEchu - tpEchuSum);
+            const grossAEchoir = hasTP && tpScenario.damageOverrides?.pgpfAEchoir != null ? tpScenario.damageOverrides.pgpfAEchoir : pgpfAlTotal;
+            const tpAEchoirSum = hasTP ? (tpScenario._imputations || []).filter(i => i.posteId === 'pgpf').reduce((s, i) => s + (i.montantImputeAEchoir || 0), 0) : 0;
+            const victAEchoir = Math.max(0, grossAEchoir - tpAEchoirSum);
+            const pgpfVictimeTotal = victEchu + victAEchoir;
+            return renderTotalBlock('pgpfTotal', pgpfVictimeTotal, { label: 'Total PGPF' });
+          })()}
 
               </div>
             </div>
@@ -8729,7 +9065,7 @@ export default function App() {
     // ========== DFT ==========
     if (currentLevel.id === 'dft') {
       return (
-        <div className={dftLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dft') && !chatAnalyzedPostes.current.has('dft') ? 'h-full flex flex-col' : ''}>
+        <div>
           {/* CALCUL Section */}
           <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
             <div className="p-4">
@@ -8762,16 +9098,7 @@ export default function App() {
             )}
           </div>
 
-          {/* Empty state */}
-          {dftLignes.length === 0 && processing.length === 0 && !(posteExtracting && posteExtracting.posteType === 'dft') && !chatAnalyzedPostes.current.has('dft') && renderInlineDocPicker('dft', {
-            icon: Calendar,
-            title: 'Ajoutez vos justificatifs pour créer vos lignes de périodes',
-            description: 'Déposez un ou plusieurs documents. Plato lit, extrait et structure les informations pour chaque ligne.',
-            expectedDocs: ["Rapport d'expertise médicale", "Certificat médical", "Compte-rendu hospitalisation"]
-          })}
-
           {/* Card Block: DFT */}
-          {(dftLignes.length > 0 || processing.length > 0 || (posteExtracting && posteExtracting.posteType === 'dft') || chatAnalyzedPostes.current.has('dft')) && (
             <div className={cardBlockClass}>
               {/* Title Row */}
               <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3]">
@@ -8780,10 +9107,6 @@ export default function App() {
                     <Calendar className="w-3.5 h-3.5 text-[#78716c]" />
                   </div>
                   <span className="text-[14px] font-medium text-[#292524]">Déficit fonctionnel temporaire</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span style={serifAmountStyle} className="text-[#292524]">{fmt(dftTotal)}</span>
-                  <ChevronDown className="w-4 h-4 text-[#78716c]" />
                 </div>
               </div>
               {/* Header — dashed drop zone + buttons */}
@@ -8895,36 +9218,27 @@ export default function App() {
                   </div>
                 );
               })}
+
+              {/* Table footer total */}
+              {dftLignes.length > 0 && (
+                <div className="flex items-center h-10 border-t border-[#e7e5e3] bg-[#fafaf9]">
+                  <div className="w-12 flex-shrink-0" />
+                  <div className="w-[52px] flex-shrink-0" />
+                  <div className="flex-1 min-w-0 px-3">
+                    <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>Total DFT</span>
+                  </div>
+                  <div className="w-20 flex-shrink-0" />
+                  <div className="w-[200px] px-3 text-right flex-shrink-0">
+                    <span style={{ fontSize: 12, fontWeight: 400, color: '#78716c' }}>{fmt(dftTotal)}</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Total Block */}
-          {dftLignes.length > 0 && (
-          <div className={totalBlockClass}>
-            <button onClick={() => setTotalExpanded(prev => ({...prev, dft: !prev.dft}))} className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
-                  <FileText className="w-3.5 h-3.5 text-[#78716c]" />
-                </div>
-                <span className="text-[14px] font-medium text-[#292524]">Total DFT</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span style={serifAmountStyle} className="text-[#292524]">{fmt(dftTotal)}</span>
-                <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded.dft ? 'rotate-90' : ''}`} />
-              </div>
-            </button>
-            {totalExpanded.dft && (
-              <>
-                <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
-                <div className="space-y-2">
-                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Nombre de périodes</span><span className="text-[14px] text-[#292524]">{dftLignes.length}</span></div>
-                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Total jours</span><span className="text-[14px] text-[#292524]">{dftLignes.reduce((s, l) => s + (l.jours || 0), 0)}j</span></div>
-                  <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Base journalière</span><span className="text-[14px] text-[#292524]">{chiffrageParams.baseJournaliereDFT} €/j</span></div>
-                </div>
-              </>
-            )}
-          </div>
-          )}
+          {renderCreancesTPTable('dft')}
+
+          {renderTotalBlock('dft', allPostes.find(p => p.id === 'dft')?.victimeAmount ?? dftTotal, { guard: dftLignes.length > 0 })}
 
               </div>{/* end space-y-4 */}
             </div>{/* end p-4 */}
@@ -8972,6 +9286,7 @@ export default function App() {
     // ========== SE — Souffrances Endurées ==========
     if (currentLevel.id === 'se') {
       const seData = formPosteData.se || { referentiel: 'cours-appel-2024', cotation: 0, montant: 0 };
+      const seTotalDisplay = allPostes.find(p => p.id === 'se')?.victimeAmount ?? seData.montant;
       const cotations = [1, 2, 3, 4, 5, 6, 7];
       return (
         <div>
@@ -9056,18 +9371,9 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Total Block */}
-                <div className={totalBlockClass}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
-                        <FileText className="w-3.5 h-3.5 text-[#78716c]" />
-                      </div>
-                      <span className="text-[14px] font-medium text-[#292524]">Total SE</span>
-                    </div>
-                    <span style={serifAmountStyle} className="text-[#292524]">{fmt(seData.montant)}</span>
-                  </div>
-                </div>
+                {renderCreancesTPTable('se')}
+
+                {renderTotalBlock('se', seTotalDisplay)}
               </div>
             </div>
           </div>
@@ -9196,18 +9502,9 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Total Block */}
-                <div className={totalBlockClass}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
-                        <FileText className="w-3.5 h-3.5 text-[#78716c]" />
-                      </div>
-                      <span className="text-[14px] font-medium text-[#292524]">Total PEP</span>
-                    </div>
-                    <span style={serifAmountStyle} className="text-[#292524]">{fmt(pepData.montant)}</span>
-                  </div>
-                </div>
+                {renderCreancesTPTable('pep')}
+
+                {renderTotalBlock('pep', allPostes.find(p => p.id === 'pep')?.victimeAmount ?? pepData.montant)}
               </div>
             </div>
           </div>
@@ -9252,6 +9549,7 @@ export default function App() {
     // ========== DFP — Déficit Fonctionnel Permanent ==========
     if (currentLevel.id === 'dfp') {
       const dfpData = formPosteData.dfp || { referentiel: 'cours-appel-2024', age: 0, taux: 0, trancheAge: 'inferieure', trancheTaux: 'inferieure', pointBase: 0, montant: 0 };
+      const dfpTotalDisplay = allPostes.find(p => p.id === 'dfp')?.victimeAmount ?? dfpData.montant;
       return (
         <div>
           {/* CALCUL Section */}
@@ -9364,30 +9662,9 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Total Block — expanded */}
-                <div className={totalBlockClass}>
-                  <button onClick={() => setTotalExpanded(prev => ({...prev, dfp: !prev.dfp}))} className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
-                        <FileText className="w-3.5 h-3.5 text-[#78716c]" />
-                      </div>
-                      <span className="text-[14px] font-medium text-[#292524]">Total DFP</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span style={serifAmountStyle} className="text-[#292524]">{fmt(dfpData.montant)}</span>
-                      <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded.dfp ? 'rotate-90' : ''}`} />
-                    </div>
-                  </button>
-                  {totalExpanded.dfp && (
-                    <>
-                      <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
-                      <div className="space-y-2">
-                        <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Prix du point</span><span className="text-[14px] text-[#292524]">{fmt(dfpData.pointBase)}</span></div>
-                        <div className="flex justify-between"><span className="text-[14px] text-[#78716c]">Taux DFP</span><span className="text-[14px] text-[#292524]">× {dfpData.taux}%</span></div>
-                      </div>
-                    </>
-                  )}
-                </div>
+                {renderCreancesTPTable('dfp')}
+
+                {renderTotalBlock('dfp', dfpTotalDisplay)}
               </div>
             </div>
           </div>
@@ -9423,6 +9700,200 @@ export default function App() {
                 className="w-full p-4 text-[14px] text-[#292524] leading-[27px] resize-none min-h-[120px] focus:outline-none"
                 placeholder="Ajoutez vos notes et arguments..."
               />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== IPP (Incidence Professionnelle) ==========
+    if (currentLevel.id === 'ipp') {
+      const ippMontant = formPosteData.ipp?.montant || getPosteMontant('ipp');
+      const ippIndemniteVictime = allPostes.find(p => p.id === 'ipp')?.victimeAmount ?? ippMontant;
+
+      return (
+        <div>
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+
+          <div className={cardBlockClass}>
+            <div className="px-5 py-3 bg-[#fafaf9] border-b border-[#f0efed]">
+              <span style={sectionHeaderStyle}>Incidence professionnelle</span>
+            </div>
+            <div className="px-5 py-4">
+              <div className="flex items-center justify-between">
+                <span style={{ fontSize: 13, color: '#57534e' }}>Montant retenu</span>
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#292524', fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(ippMontant)}</span>
+              </div>
+            </div>
+          </div>
+
+          {renderCreancesTPTable('ipp')}
+
+          {renderTotalBlock('ipp', ippIndemniteVictime)}
+
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== FDA (Frais Divers Actuels) ==========
+    if (currentLevel.id === 'fda') {
+      const fdaTotalMontant = fdaLignes.reduce((s, l) => s + (l.montant || 0), 0);
+      const fdaTotalRembourse = fdaLignes.reduce((s, l) => s + (l.dejaRembourse || 0), 0);
+      const fdaIndemniteVictime = allPostes.find(p => p.id === 'fda')?.victimeAmount ?? fdaTotalMontant;
+
+      return (
+        <div>
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+
+          {/* Expense table */}
+          <div className={cardBlockClass}>
+            <div className="px-5 py-3 bg-[#fafaf9] border-b border-[#f0efed] flex items-center justify-between">
+              <span style={sectionHeaderStyle}>Frais divers actuels</span>
+            </div>
+            <div className="overflow-x-auto">
+              <div style={{ minWidth: 600 }}>
+                {/* Column headers */}
+                <div className="flex items-center border-b border-[#f0efed]">
+                  <div className="w-[40px] shrink-0 px-3 py-2 text-center" style={{ ...colHeaderStyle, fontSize: 10 }}>
+                    <FileText className="w-3.5 h-3.5 text-[#d6d3d1] mx-auto" />
+                  </div>
+                  <div className="flex-1 min-w-0 px-3 py-2" style={{ ...colHeaderStyle, fontSize: 10 }}>Libellé</div>
+                  <div className="w-[100px] shrink-0 px-3 py-2" style={{ ...colHeaderStyle, fontSize: 10 }}>Type</div>
+                  <div className="w-[100px] shrink-0 px-3 py-2 text-right" style={{ ...colHeaderStyle, fontSize: 10 }}>Montant</div>
+                  <div className="w-[100px] shrink-0 px-3 py-2 text-right" style={{ ...colHeaderStyle, fontSize: 10 }}>Remboursé</div>
+                </div>
+                {/* Rows */}
+                {fdaLignes.map((l) => (
+                  <div key={l.id} className="flex items-center border-b border-[#f5f5f4] hover:bg-[#fafaf9]">
+                    <div className="w-[40px] shrink-0 px-3 py-2.5 text-center">
+                      <span style={{ fontSize: 10, color: '#a8a29e', fontFamily: "'IBM Plex Mono', monospace" }}>{l.pieceIds?.length || 0}</span>
+                    </div>
+                    <div className="flex-1 min-w-0 px-3 py-2.5">
+                      <div style={{ fontSize: 13, color: '#292524', fontWeight: 400 }}>{l.label}</div>
+                      {l.description && <div style={{ fontSize: 11, color: '#a8a29e', marginTop: 1 }}>{l.description}</div>}
+                    </div>
+                    <div className="w-[100px] shrink-0 px-3 py-2.5">
+                      <span style={{ fontSize: 11, color: '#78716c' }}>{l.type}</span>
+                    </div>
+                    <div className="w-[100px] shrink-0 px-3 py-2.5 text-right">
+                      <span style={{ fontSize: 12, color: '#292524', fontFamily: "'IBM Plex Mono', monospace" }}>{fmtTP(l.montant)}</span>
+                    </div>
+                    <div className="w-[100px] shrink-0 px-3 py-2.5 text-right">
+                      <span style={{ fontSize: 12, color: '#78716c', fontFamily: "'IBM Plex Mono', monospace" }}>{fmtTP(l.dejaRembourse || 0)}</span>
+                    </div>
+                  </div>
+                ))}
+                {/* Footer total */}
+                <div className="flex items-center bg-[#fafaf9] border-t border-[#e7e5e3]">
+                  <div className="w-[40px] shrink-0" />
+                  <div className="flex-1 min-w-0 px-3 py-2.5">
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>Total frais divers</span>
+                  </div>
+                  <div className="w-[100px] shrink-0" />
+                  <div className="w-[100px] shrink-0 px-3 py-2.5 text-right">
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#292524', fontFamily: "'IBM Plex Mono', monospace" }}>{fmtTP(fdaTotalMontant)}</span>
+                  </div>
+                  <div className="w-[100px] shrink-0 px-3 py-2.5 text-right">
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', fontFamily: "'IBM Plex Mono', monospace" }}>{fmtTP(fdaTotalRembourse)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {renderCreancesTPTable('fda')}
+
+          {renderTotalBlock('fda', fdaIndemniteVictime, { guard: fdaLignes.length > 0 })}
+
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== DSF (Dépenses de Santé Futures) ==========
+    if (currentLevel.id === 'dsf') {
+      const dsfLignes = dsfData.lignes || [];
+      const dsfTotalAmount = dsfLignes.reduce((s, l) => s + (l.montantCapitalise || l.montant || 0), 0);
+      const dsfIndemniteVictime = allPostes.find(p => p.id === 'dsf')?.victimeAmount ?? dsfTotalAmount;
+
+      return (
+        <div>
+          <div className="border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+            <div className="p-4">
+              <div className="space-y-4">
+
+          {/* Expense table */}
+          <div className={cardBlockClass}>
+            <div className="px-5 py-3 bg-[#fafaf9] border-b border-[#f0efed] flex items-center justify-between">
+              <span style={sectionHeaderStyle}>Dépenses de santé futures</span>
+            </div>
+            <div className="overflow-x-auto">
+              <div style={{ minWidth: 600 }}>
+                {/* Column headers */}
+                <div className="flex items-center border-b border-[#f0efed]">
+                  <div className="w-[40px] shrink-0 px-3 py-2 text-center" style={{ ...colHeaderStyle, fontSize: 10 }}>
+                    <FileText className="w-3.5 h-3.5 text-[#d6d3d1] mx-auto" />
+                  </div>
+                  <div className="flex-1 min-w-0 px-3 py-2" style={{ ...colHeaderStyle, fontSize: 10 }}>Libellé</div>
+                  <div className="w-[100px] shrink-0 px-3 py-2" style={{ ...colHeaderStyle, fontSize: 10 }}>Périodicité</div>
+                  <div className="w-[100px] shrink-0 px-3 py-2 text-right" style={{ ...colHeaderStyle, fontSize: 10 }}>Montant</div>
+                  <div className="w-[100px] shrink-0 px-3 py-2 text-right" style={{ ...colHeaderStyle, fontSize: 10 }}>Capitalisé</div>
+                </div>
+                {/* Rows */}
+                {dsfLignes.map((l) => (
+                  <div key={l.id} className="flex items-center border-b border-[#f5f5f4] hover:bg-[#fafaf9]">
+                    <div className="w-[40px] shrink-0 px-3 py-2.5 text-center">
+                      <span style={{ fontSize: 10, color: '#a8a29e', fontFamily: "'IBM Plex Mono', monospace" }}>{l.pieceIds?.length || 0}</span>
+                    </div>
+                    <div className="flex-1 min-w-0 px-3 py-2.5">
+                      <div style={{ fontSize: 13, color: '#292524', fontWeight: 400 }}>{l.label}</div>
+                      {l.description && <div style={{ fontSize: 11, color: '#a8a29e', marginTop: 1 }}>{l.description}</div>}
+                    </div>
+                    <div className="w-[100px] shrink-0 px-3 py-2.5">
+                      <span style={{ fontSize: 11, color: '#78716c' }}>{l.periodicite || '—'}</span>
+                    </div>
+                    <div className="w-[100px] shrink-0 px-3 py-2.5 text-right">
+                      <span style={{ fontSize: 12, color: '#78716c', fontFamily: "'IBM Plex Mono', monospace" }}>
+                        {l.montantAnnuel ? fmtTP(l.montantAnnuel) : l.montantBiennal ? fmtTP(l.montantBiennal) : fmtTP(l.montant || 0)}
+                      </span>
+                    </div>
+                    <div className="w-[100px] shrink-0 px-3 py-2.5 text-right">
+                      <span style={{ fontSize: 12, color: '#292524', fontFamily: "'IBM Plex Mono', monospace" }}>
+                        {l.capitalise ? fmtTP(l.montantCapitalise) : fmtTP(l.montant || 0)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {/* Footer total */}
+                <div className="flex items-center bg-[#fafaf9] border-t border-[#e7e5e3]">
+                  <div className="w-[40px] shrink-0" />
+                  <div className="flex-1 min-w-0 px-3 py-2.5">
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>Total dépenses futures</span>
+                  </div>
+                  <div className="w-[100px] shrink-0" />
+                  <div className="w-[100px] shrink-0" />
+                  <div className="w-[100px] shrink-0 px-3 py-2.5 text-right">
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#292524', fontFamily: "'IBM Plex Mono', monospace" }}>{fmtTP(dsfTotalAmount)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {renderCreancesTPTable('dsf')}
+
+          {renderTotalBlock('dsf', dsfIndemniteVictime, { guard: dsfLignes.length > 0 })}
+
+              </div>
             </div>
           </div>
         </div>
@@ -10221,17 +10692,13 @@ export default function App() {
                     <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
                       <FileText className="w-3.5 h-3.5 text-[#78716c]" />
                     </div>
-                    <span className="text-[14px] font-medium text-[#292524]">Total</span>
+                    <span className="text-[14px] font-medium text-[#292524]">Total à indemniser</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span style={serifAmountStyle} className="text-[#292524]">{fmt(ivTotal)}</span>
-                    <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded[ivPosteId] ? 'rotate-90' : ''}`} />
-                  </div>
+                  <ChevronRight className={`w-4 h-4 text-[#78716c] transition-transform ${totalExpanded[ivPosteId] ? 'rotate-90' : ''}`} />
                 </button>
                 {totalExpanded[ivPosteId] && (
                   <>
-                    <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
-                    <div className="space-y-2">
+                    <div className="space-y-1.5 mt-3">
                       {victimesIndirectes.map(vi => {
                         const viAmount = config.type === 'C'
                           ? (ivLignes.reduce((s, l) => s + ((l.attributions || []).filter(a => a.viId === vi.id).reduce((ss, a) => ss + a.amount, 0)), 0))
@@ -10239,12 +10706,22 @@ export default function App() {
                             ? ivLignes.filter(l => l.victimeId === vi.id).reduce((s, l) => s + (l.montant || 0), 0)
                             : (ivLignes.find(l => l.victimeId === vi.id)?.montant || 0);
                         return viAmount > 0 ? (
-                          <div key={vi.id} className="flex justify-between">
-                            <span className="text-[14px] text-[#78716c]">{vi.prenom} {vi.nom}</span>
-                            <span className="text-[14px] text-[#292524]">{fmt(viAmount)}</span>
+                          <div key={vi.id} className="flex justify-between items-center">
+                            <span style={receiptRowStyle}>{vi.prenom} {vi.nom}</span>
+                            <span style={receiptAmountStyle}>{fmt(viAmount)}</span>
                           </div>
                         ) : null;
                       })}
+                    </div>
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#d6d3d1] group/total">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 bg-[#d6d3d1] rounded-[5px] flex items-center justify-center">
+                          <FileText className="w-3 h-3 text-[#78716c]" />
+                        </div>
+                        <span className="text-[13px] font-medium text-[#292524]">Total à indemniser</span>
+                        <ChevronRight className="w-3.5 h-3.5 text-[#d6d3d1] opacity-0 group-hover/total:opacity-100 transition-opacity" />
+                      </div>
+                      <span style={serifAmountStyle} className="text-[#292524]">{fmt(ivTotal)}</span>
                     </div>
                   </>
                 )}
@@ -10336,7 +10813,7 @@ export default function App() {
                       <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
                         <FileText className="w-3.5 h-3.5 text-[#78716c]" />
                       </div>
-                      <span className="text-[14px] font-medium text-[#292524]">Total {currentLevel.title || posteId.toUpperCase()}</span>
+                      <span className="text-[14px] font-medium text-[#292524]">Total à indemniser</span>
                     </div>
                     <span style={serifAmountStyle} className="text-[#292524]">{fmt(data.montant - (data.tiersPayeur || 0))}</span>
                   </div>
@@ -10519,10 +10996,13 @@ export default function App() {
     setResumeAffaire('');
     setVictimesIndirectes(EMPTY_DOSSIER.victimesIndirectes);
     setPieces([]);
-    setDsaLignes([]);
-    setDftLignes([]);
-    setPgpaData({ periode: { debut: '', fin: '', mois: 0 }, revenuRef: { revalorisation: 'ipc-annuel', coefficientPerteChance: 100, lignes: [], total: 0 }, revenusPercus: [], ijPercues: [] });
-    setPgpfData({ periodes: {} });
+    setDsaLignes(BASELINE_DSA_LIGNES);
+    setDftLignes(BASELINE_DFT_LIGNES);
+    setPgpaData(BASELINE_PGPA_DATA);
+    setPgpfData(BASELINE_PGPF_DATA);
+    setFormPosteData(BASELINE_FORM_POSTE_DATA);
+    setFdaLignes(BASELINE_FDA_LIGNES);
+    setDsfData(BASELINE_DSF_DATA);
     setIvDossierPostes(EMPTY_DOSSIER.ivDossierPostes);
     setIvPosteData(EMPTY_DOSSIER.ivPosteData);
     setIvPosteSharedData(EMPTY_DOSSIER.ivPosteSharedData);
