@@ -912,6 +912,16 @@ export default function App() {
   const [posteSearchQuery, setPosteSearchQuery] = useState('');
   const [posteSearchVictimeFilter, setPosteSearchVictimeFilter] = useState(null); // null = VD, or victimeId for IV
   const [editingPieceField, setEditingPieceField] = useState(null); // null | { pieceId, field }
+  const [pieceContextMenu, setPieceContextMenu] = useState(null); // null | pieceId
+  useEffect(() => {
+    if (!pieceContextMenu) return;
+    const handleClick = (e) => {
+      if (e.target.closest('[data-piece-context-menu]')) return;
+      setPieceContextMenu(null);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [pieceContextMenu]);
   const [toastMessage, setToastMessage] = useState(null); // null | string
   const [activeDiffs, setActiveDiffs] = useState([]); // Array of diff events pushed by mock actions
   // Rejected diffs stay visible (strikethrough + muted) for review
@@ -11290,46 +11300,72 @@ export default function App() {
   };
 
   // ========== DROP FIRST — PIÈCES TAB ==========
-  const getProcessedPieces = () => dropFirstPieces.filter(p => p.status === 'done');
+  const getProcessedPieces = () => dropFirstPieces.filter(p => p.status === 'done' && !p.horsBordereau);
+  const getHorsBordereauPieces = () => dropFirstPieces.filter(p => p.status === 'done' && p.horsBordereau);
   const getPieceNumber = (piece) => {
-    if (piece.status !== 'done') return null;
+    if (piece.status !== 'done' || piece.horsBordereau) return null;
     if (manualReorder) {
       // After manual reorder, numbering follows array order of done items
-      const done = dropFirstPieces.filter(p => p.status === 'done');
+      const done = dropFirstPieces.filter(p => p.status === 'done' && !p.horsBordereau);
       return done.findIndex(p => p.id === piece.id) + 1;
     }
     const done = getProcessedPieces().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     return done.findIndex(p => p.id === piece.id) + 1;
   };
+  const applyPiecesSearchFilter = (items) => {
+    let result = items;
+    if (piecesFilter.types?.length > 0) result = result.filter(p => (piecesFilter.types || []).includes(p.type));
+    if (piecesFilter.search) {
+      const s = piecesFilter.search.toLowerCase();
+      result = result.filter(p => (p.cleanName || p.originalName || '').toLowerCase().includes(s));
+    }
+    return result;
+  };
   const getFilteredPieces = () => {
     let items;
     if (manualReorder) {
-      // Respect array order — done first, then pending
-      items = [...dropFirstPieces].sort((a, b) => {
+      items = [...dropFirstPieces].filter(p => !p.horsBordereau).sort((a, b) => {
         if (a.status === 'done' && b.status !== 'done') return -1;
         if (a.status !== 'done' && b.status === 'done') return 1;
-        return 0; // preserve array order within each group
+        return 0;
       });
     } else {
-      // Sort: done items by date (chronological), pending items at the end
-      items = [...dropFirstPieces].sort((a, b) => {
+      items = [...dropFirstPieces].filter(p => !p.horsBordereau).sort((a, b) => {
         if (a.status === 'done' && b.status !== 'done') return -1;
         if (a.status !== 'done' && b.status === 'done') return 1;
         if (a.status === 'done' && b.status === 'done') return (a.date || '').localeCompare(b.date || '');
         return 0;
       });
     }
-    if (piecesFilter.types?.length > 0) items = items.filter(p => (piecesFilter.types || []).includes(p.type));
-    if (piecesFilter.search) {
-      const s = piecesFilter.search.toLowerCase();
-      items = items.filter(p => (p.cleanName || p.originalName || '').toLowerCase().includes(s));
-    }
-    return items;
+    return applyPiecesSearchFilter(items);
+  };
+  const getFilteredHorsPieces = () => {
+    return applyPiecesSearchFilter(getHorsBordereauPieces());
+  };
+  const toggleHorsBordereau = (pieceId) => {
+    setDropFirstPieces(prev => {
+      const piece = prev.find(p => p.id === pieceId);
+      if (!piece) return prev;
+      if (piece.horsBordereau) {
+        // Re-include: move to end of done list
+        const without = prev.filter(p => p.id !== pieceId);
+        const lastDoneIdx = without.reduce((acc, p, i) => p.status === 'done' && !p.horsBordereau ? i : acc, -1);
+        const updated = { ...piece, horsBordereau: false };
+        const result = [...without];
+        result.splice(lastDoneIdx + 1, 0, updated);
+        return result;
+      } else {
+        // Exclude from bordereau
+        return prev.map(p => p.id === pieceId ? { ...p, horsBordereau: true } : p);
+      }
+    });
+    setPieceContextMenu(null);
+    setManualReorder(true);
   };
 
   const handleCopyBordereau = () => {
     const done = manualReorder
-      ? dropFirstPieces.filter(p => p.status === 'done')
+      ? dropFirstPieces.filter(p => p.status === 'done' && !p.horsBordereau)
       : getProcessedPieces().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     const text = done.map((p, i) => {
       const dateStr = p.date ? `[${p.date.split('-').reverse().join('/')}]` : '';
@@ -11340,7 +11376,7 @@ export default function App() {
 
   const downloadDropFirstAsZip = async () => {
     const done = manualReorder
-      ? dropFirstPieces.filter(p => p.status === 'done')
+      ? dropFirstPieces.filter(p => p.status === 'done' && !p.horsBordereau)
       : getProcessedPieces().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     const zip = new JSZip();
     done.forEach((p, i) => {
@@ -11407,45 +11443,23 @@ export default function App() {
         {/* Main content */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Sub-header bar — edge-to-edge */}
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#e7e5e3]">
-            {/* Doc count */}
-            <span className="text-sm font-medium text-black">{getFilteredPieces().filter(p => p.status === 'done').length} pièce{getFilteredPieces().filter(p => p.status === 'done').length !== 1 ? 's' : ''}</span>
-
-            <div className="flex items-center gap-[9px]">
-              {/* Sort by date toggle */}
+          <div className="flex items-center gap-2 px-4 py-3.5 border-b border-[#e7e5e3]">
+            <Search className="w-4 h-4 text-[#a8a29e] flex-shrink-0" strokeWidth={1.5} />
+            <input
+              type="text"
+              placeholder="Rechercher une pièce..."
+              value={piecesFilter.search}
+              onChange={e => setPiecesFilter(prev => ({ ...prev, search: e.target.value }))}
+              className="flex-1 bg-transparent text-[14px] text-[#292524] placeholder-[#a8a29e] focus:outline-none"
+            />
+            {piecesFilter.search && (
               <button
-                onClick={() => setManualReorder(prev => !prev)}
-                className={`flex items-center gap-2.5 h-[32px] px-3 text-[11px] font-medium uppercase tracking-wide rounded-[7px] transition-all ${
-                  !manualReorder
-                    ? 'bg-[#dfe8f5] border border-[#aabcd5] text-[#1e3a8a] shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)]'
-                    : 'bg-[#eeece6] text-[#78716c] hover:text-[#44403c] border border-transparent'
-                }`}
-                style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                onClick={() => setPiecesFilter(prev => ({ ...prev, search: '' }))}
+                className="p-0.5 hover:bg-[#eeece6] rounded transition-colors"
               >
-                Trier par : date
-                {!manualReorder ? (
-                  <X className="w-4 h-4" strokeWidth={1.5} />
-                ) : (
-                  <ArrowUp className="w-4 h-4" strokeWidth={1.5} />
-                )}
+                <X className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />
               </button>
-              {/* Divider */}
-              <div className="w-px h-5 bg-[#d9d9d9]" />
-              <button
-                onClick={downloadDropFirstAsZip}
-                className="flex items-center justify-center w-8 h-8 bg-white border border-[#e7e5e3] text-[#78716c] hover:text-[#44403c] hover:bg-[#fafaf9] rounded-md shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)] transition-colors"
-                title="Télécharger tout"
-              >
-                <Download className="w-4 h-4" strokeWidth={1.5} />
-              </button>
-              <button
-                onClick={handleCopyBordereau}
-                className="flex items-center gap-2 h-8 px-3 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)] transition-colors"
-              >
-                <Copy className="w-4 h-4" strokeWidth={1.5} />
-                Copier bordereau
-              </button>
-            </div>
+            )}
           </div>
 
           {/* Content with padding */}
@@ -11483,8 +11497,46 @@ export default function App() {
               </div>
             )}
 
-            {/* Table */}
-            <div className="border border-[#e7e5e3] rounded-md overflow-hidden bg-white">
+            {/* Bordereau section */}
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-[#292524]">Bordereau</span>
+                <span className="inline-flex items-center justify-center px-2 py-0.5 border border-[#e7e5e3] rounded-[6px] text-[12px] font-medium text-[#292524]">{getFilteredPieces().filter(p => p.status === 'done').length}</span>
+              </div>
+              <div className="flex items-center gap-[9px]">
+                <button
+                  onClick={() => setManualReorder(prev => !prev)}
+                  className={`flex items-center gap-2.5 h-[32px] px-3 text-[11px] font-medium uppercase tracking-wide rounded-[7px] transition-all ${
+                    !manualReorder
+                      ? 'bg-[#dfe8f5] border border-[#aabcd5] text-[#1e3a8a] shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)]'
+                      : 'bg-[#eeece6] text-[#78716c] hover:text-[#44403c] border border-transparent'
+                  }`}
+                  style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                >
+                  Ordonner par : date
+                  {!manualReorder ? (
+                    <X className="w-4 h-4" strokeWidth={1.5} />
+                  ) : (
+                    <ArrowUp className="w-4 h-4" strokeWidth={1.5} />
+                  )}
+                </button>
+                <div className="w-px h-5 bg-[#d9d9d9]" />
+                <button
+                  onClick={downloadDropFirstAsZip}
+                  className="flex items-center justify-center w-8 h-8 bg-[#eeece6] rounded-[6px] hover:bg-[#e7e5e3] transition-colors"
+                >
+                  <Download className="w-4 h-4 text-[#44403c]" strokeWidth={1.5} />
+                </button>
+                <button
+                  onClick={handleCopyBordereau}
+                  className="flex items-center gap-2 h-8 px-3 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)] transition-colors"
+                >
+                  <Copy className="w-4 h-4" strokeWidth={1.5} />
+                  Copier bordereau
+                </button>
+              </div>
+            </div>
+            <div className="border border-[#e7e5e3] rounded-[6px] overflow-visible bg-white">
               <table className="w-full">
                 <thead>
                   <tr className="h-10 bg-white border-b border-[#e7e5e3]">
@@ -11492,8 +11544,7 @@ export default function App() {
                     <th className="w-[50px] px-3 text-center" style={colHeaderStyle}>N°</th>
                     <th className="px-3 text-left" style={colHeaderStyle}>Nom du document</th>
                     <th className="w-[174px] px-3 text-left" style={colHeaderStyle}>Type</th>
-                    <th className="w-[120px] px-3 text-left" style={colHeaderStyle}>Date</th>
-                    <th className="w-[224px] px-3 text-left" style={colHeaderStyle}>Postes liés</th>
+                    <th className="w-[140px] px-3 text-left" style={colHeaderStyle}>Date d'émission</th>
                     <th className="w-[44px]"></th>
                   </tr>
                 </thead>
@@ -11509,7 +11560,7 @@ export default function App() {
                       <React.Fragment key={piece.id}>
                         {/* Drop indicator line */}
                         {reorderDropIdx === idx && reorderDrag?.pieceId !== piece.id && (
-                          <tr><td colSpan={7} className="p-0"><div className="h-0.5 bg-[#f59e0b] rounded-full mx-2" /></td></tr>
+                          <tr><td colSpan={6} className="p-0"><div className="h-0.5 bg-[#f59e0b] rounded-full mx-2" /></td></tr>
                         )}
                         <tr
                           className={`border-b border-[#e7e5e3] transition-all duration-300 group bg-white ${
@@ -11573,7 +11624,7 @@ export default function App() {
                           onClick={(e) => { if (!isProcessing && !manualReorder) { e.stopPropagation(); setShowReorderHint(true); } }}
                         >
                           {!isProcessing ? (
-                            <GripVertical className={`w-3.5 h-3.5 inline-block transition-opacity ${canDrag ? 'text-[#d6d3d1] opacity-100' : 'text-[#d6d3d1] opacity-0 group-hover:opacity-40'}`} strokeWidth={1.5} />
+                            <GripVertical className={`w-3.5 h-3.5 inline-block transition-opacity ${manualReorder ? 'text-[#d6d3d1] opacity-100' : 'text-[#d6d3d1] opacity-0 group-hover:opacity-40'}`} strokeWidth={1.5} />
                           ) : null}
                         </td>
                         {/* N° / loader */}
@@ -11627,7 +11678,7 @@ export default function App() {
                           )}
                         </td>
                         {/* Date */}
-                        <td className="w-[120px] px-3">
+                        <td className="w-[140px] px-3">
                           {isProcessing ? (
                             <div className="h-[18px] w-16 bg-[#f4f4f5] rounded" />
                           ) : (
@@ -11636,22 +11687,27 @@ export default function App() {
                             </span>
                           )}
                         </td>
-                        {/* Postes liés */}
-                        <td className="w-[224px] px-3">
-                          {isProcessing ? (
-                            <div className="h-[18px] w-16 bg-[#f4f4f5] rounded" />
-                          ) : (
-                            <div className="flex flex-wrap gap-1 overflow-hidden">
-                              {(piece.postesLies || []).map(p => (
-                                <span key={p} className="px-2 py-0.5 text-xs font-medium text-[#44403c] bg-[#eeece6] rounded-md">{p}</span>
-                              ))}
-                            </div>
-                          )}
-                        </td>
                         {/* Options */}
                         <td className="w-[44px] text-right pr-4">
                           {!isProcessing && (
-                            <MoreVertical className="w-4 h-4 text-[#78716c] opacity-0 group-hover:opacity-100 transition-opacity inline-block" strokeWidth={1.5} />
+                            <div className="relative inline-block" data-piece-context-menu>
+                              <button
+                                className={`p-1 rounded-md hover:bg-[#eeece6] transition-colors ${pieceContextMenu === piece.id ? 'opacity-100 bg-[#eeece6]' : 'opacity-0 group-hover:opacity-100'}`}
+                                onClick={e => { e.stopPropagation(); setPieceContextMenu(pieceContextMenu === piece.id ? null : piece.id); }}
+                              >
+                                <MoreVertical className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+                              </button>
+                              {pieceContextMenu === piece.id && (
+                                <div className="absolute right-0 top-full mt-1 bg-white border border-[#e7e5e3] rounded-lg shadow-lg py-1 z-20 min-w-[200px]">
+                                  <button
+                                    className="w-full text-left px-3 py-2 text-sm text-[#44403c] hover:bg-[#fafaf9] transition-colors"
+                                    onClick={e => { e.stopPropagation(); toggleHorsBordereau(piece.id); }}
+                                  >
+                                    {piece.horsBordereau ? 'Inclure au bordereau' : 'Exclure du bordereau'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -11660,10 +11716,114 @@ export default function App() {
                   })}
                   {/* Drop indicator at the very end */}
                   {reorderDropIdx === filtered.length && reorderDrag && (
-                    <tr><td colSpan={7} className="p-0"><div className="h-0.5 bg-blue-500 rounded-full mx-2" /></td></tr>
+                    <tr><td colSpan={6} className="p-0"><div className="h-0.5 bg-blue-500 rounded-full mx-2" /></td></tr>
                   )}
                 </tbody>
               </table>
+
+            </div>
+
+            {/* Hors bordereau section */}
+            <div className="mt-6">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-[#292524]">Hors bordereau</span>
+                  <span className="inline-flex items-center justify-center px-2 py-0.5 border border-[#e7e5e3] rounded-[6px] text-[12px] font-medium text-[#292524]">{getFilteredHorsPieces().length}</span>
+                </div>
+                {getFilteredHorsPieces().length > 0 && (
+                  <button
+                    onClick={downloadDropFirstAsZip}
+                    className="flex items-center gap-2 h-8 px-3 text-sm font-medium text-[#44403c] bg-[#eeece6] rounded-[6px] hover:bg-[#e7e5e3] transition-colors"
+                  >
+                    <Download className="w-4 h-4" strokeWidth={1.5} />
+                    Télécharger
+                  </button>
+                )}
+              </div>
+              {getFilteredHorsPieces().length > 0 ? (
+                <div className="border border-[#e7e5e3] rounded-[6px] overflow-visible bg-white">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#e7e5e3]" style={{ height: '40px' }}>
+                        <th className="px-3 text-left" style={colHeaderStyle}>Nom du document</th>
+                        <th className="w-[174px] px-3 text-left" style={colHeaderStyle}>Type</th>
+                        <th className="w-[140px] px-3 text-left" style={colHeaderStyle}>Date d'émission</th>
+                        <th className="w-[44px]"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getFilteredHorsPieces().map(piece => (
+                        <tr
+                          key={piece.id}
+                          className="border-b border-[#e7e5e3] group hover:bg-[#fafaf9] cursor-pointer transition-all last:border-b-0"
+                          onClick={() => setPieceOverviewPanel(piece.id)}
+                          style={{ height: '56px' }}
+                        >
+                          <td className="px-3">
+                            <span className="text-sm font-medium text-black">{piece.cleanName}</span>
+                          </td>
+                          <td className="w-[174px] px-3">
+                            <div className="relative">
+                              <button
+                                className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md cursor-pointer hover:opacity-80 transition-opacity ${PIECE_TYPE_COLORS[piece.type] || 'bg-[#eeece6] text-[#44403c]'}`}
+                                onClick={e => { e.stopPropagation(); setEditingPieceField(editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'type' ? null : { pieceId: piece.id, field: 'type' }); }}
+                              >
+                                {piece.type}
+                                <ChevronDown className="w-3 h-3" strokeWidth={1.5} />
+                              </button>
+                              {editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'type' && (
+                                <div className="absolute left-0 top-full mt-1 bg-white border border-[#e7e5e3] rounded-lg shadow-lg py-1 z-10 min-w-[160px]">
+                                  {PIECE_TYPE_OPTIONS.map(t => (
+                                    <button
+                                      key={t}
+                                      className={`w-full text-left px-3 py-1.5 text-sm hover:bg-[#fafaf9] transition-colors flex items-center gap-2 ${piece.type === t ? 'font-medium text-[#292524]' : 'text-[#78716c]'}`}
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        setDropFirstPieces(prev => prev.map(p => p.id === piece.id ? { ...p, type: t } : p));
+                                        setEditingPieceField(null);
+                                      }}
+                                    >
+                                      <span className={`w-2 h-2 rounded-full ${piece.type === t ? 'bg-[#292524]' : ''}`} />
+                                      {t}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="w-[140px] px-3">
+                            <span className="text-sm text-[#292524]">
+                              {piece.date ? new Date(piece.date).toLocaleDateString('fr-FR') : '—'}
+                            </span>
+                          </td>
+                          <td className="w-[44px] text-right pr-4">
+                            <div className="relative inline-block" data-piece-context-menu>
+                              <button
+                                className={`p-1 rounded-md hover:bg-[#eeece6] transition-colors ${pieceContextMenu === piece.id ? 'opacity-100 bg-[#eeece6]' : 'opacity-0 group-hover:opacity-100'}`}
+                                onClick={e => { e.stopPropagation(); setPieceContextMenu(pieceContextMenu === piece.id ? null : piece.id); }}
+                              >
+                                <MoreVertical className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+                              </button>
+                              {pieceContextMenu === piece.id && (
+                                <div className="absolute right-0 top-full mt-1 bg-white border border-[#e7e5e3] rounded-lg shadow-lg py-1 z-20 min-w-[200px]">
+                                  <button
+                                    className="w-full text-left px-3 py-2 text-sm text-[#44403c] hover:bg-[#fafaf9] transition-colors"
+                                    onClick={e => { e.stopPropagation(); toggleHorsBordereau(piece.id); }}
+                                  >
+                                    Inclure au bordereau
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-xs text-[#c4c0b8] italic mt-2">Aucune pièce exclue</p>
+              )}
             </div>
           </div>
 
