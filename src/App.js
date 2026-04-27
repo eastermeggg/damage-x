@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp, Focus } from 'lucide-react';
 import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -7,6 +7,11 @@ import { JPPill, JPPopoverCard, DecisionDrawer, JPListing, JPAddStepper, SlashCo
 import useDemoCommands from './hooks/useDemoCommands';
 import { getDecisionById } from './data/mockDecisions';
 import { getTPScenario, TP_COMMAND_LIST, TP_COMMAND_MAP } from './data/tpScenarios';
+import useRedactionCommands from './hooks/useRedactionCommands';
+import { REDACTION_SCENARIOS, REDACTION_COMMAND_LIST, REDACTION_COMMAND_MAP, REDACTION_ACT_TYPES } from './data/redactionScenarios';
+import ActCanvas from './components/redaction/ActCanvas';
+import EmptyState from './components/EmptyState';
+import ActesList from './components/redaction/ActesList';
 import { BASELINE_DSA_LIGNES, BASELINE_DFT_LIGNES, BASELINE_PGPA_DATA, BASELINE_PGPF_DATA, BASELINE_FORM_POSTE_DATA, BASELINE_FDA_LIGNES, BASELINE_DSF_DATA } from './data/baselineData';
 import { NATURE_CREANCE, NATURE_TO_POSTE, NATURE_LABELS } from './data/tpScenarios';
 
@@ -870,6 +875,7 @@ export default function App() {
   const [showAddModal, setShowAddModal] = useState(null); // null | 'dsa' | 'pgpa' | etc.
   const [addModalTab, setAddModalTab] = useState('upload'); // 'upload' | 'pieces' | 'manual'
   const [showPreview, setShowPreview] = useState(false);
+  const [chatPreviewPiece, setChatPreviewPiece] = useState(null); // overlay preview in chat
   const [isDragging, setIsDragging] = useState(false);
   const [pickerDragging, setPickerDragging] = useState(false);
   const [processing, setProcessing] = useState([]);
@@ -1111,6 +1117,17 @@ export default function App() {
   const [baremeUploadData, setBaremeUploadData] = useState({ nom: '', type: 'bareme', notes: '', fileName: '' });
   const [baremePopover, setBaremePopover] = useState(null); // null | string (popover id like 'se', 'pep', 'dfp', 'pgpf')
   const [baremePopoverSearch, setBaremePopoverSearch] = useState('');
+
+  // ========== MODÈLES D'ACTES LIBRARY STATE ==========
+  const [templatesLibrary, setTemplatesLibrary] = useState([
+    { id: 'tpl-assignation-re', label: 'Assignation en référé-expertise', actType: 'assignation', addedBy: 'Cabinet', addedDate: '12/03/2026', fileName: 'modele_assignation_re.docx' },
+    { id: 'tpl-conclusions-rc', label: 'Conclusions récapitulatives — RC corporelle', actType: 'conclusions', addedBy: 'Cabinet', addedDate: '05/01/2026', fileName: 'modele_conclusions_rc.docx' },
+    { id: 'tpl-mise-en-demeure', label: 'Mise en demeure assureur', actType: 'email', addedBy: 'Me Bernard', addedDate: '18/02/2026', fileName: 'modele_med_assureur.docx' },
+    { id: 'tpl-dire-expert', label: 'Dire à expert — contestation DFP', actType: 'dire', addedBy: 'Me Bernard', addedDate: '22/11/2025', fileName: 'modele_dire_dfp.docx' },
+    { id: 'tpl-protocole', label: 'Protocole transactionnel type', actType: 'protocole', addedBy: 'Cabinet', addedDate: '10/04/2026', fileName: 'modele_protocole.docx' },
+  ]);
+  const [templateUploadFormOpen, setTemplateUploadFormOpen] = useState(false);
+  const [templateUploadData, setTemplateUploadData] = useState({ nom: '', actType: '', notes: '', fileName: '' });
 
   // Close barème popover on click outside
   useEffect(() => {
@@ -1818,7 +1835,57 @@ export default function App() {
   const totalChiffrage = totalVdVictime + totalIvChiffrage;
 
   // ========== HELPERS ==========
-  const currentLevel = navStack[navStack.length - 1];
+  // Simple markdown renderer for chat messages (bold, bullets, line breaks)
+  const renderChatMarkdown = (text) => {
+    if (!text) return null;
+    const lines = text.split('\n');
+    return lines.map((line, li) => {
+      const trimmed = line.trim();
+      if (!trimmed) return <br key={li} />;
+      // Bullet points (— or -)
+      const isBullet = trimmed.startsWith('— ') || trimmed.startsWith('- ');
+      const bulletContent = isBullet ? trimmed.replace(/^[—-]\s/, '') : trimmed;
+      // Parse inline: bold **text** and doc references « text »
+      const parts = bulletContent.split(/(\*\*[^*]+\*\*|«\s*[^»]+\s*»)/g);
+      const rendered = parts.map((part, pi) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={pi} style={{ fontWeight: 600 }}>{part.slice(2, -2)}</strong>;
+        }
+        if (part.startsWith('«') && part.endsWith('»')) {
+          const docName = part.slice(1, -1).trim();
+          return (
+            <span
+              key={pi}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] cursor-pointer hover:bg-[#e7e5e3] transition-colors align-middle"
+              style={{ backgroundColor: '#eeece6', verticalAlign: 'baseline', lineHeight: '18px' }}
+              onClick={() => {
+                const piece = pieces.find(p => p.nom === docName || p.intitule === docName) || dropFirstPieces.find(p => (p.cleanName || p.originalName) === docName);
+                if (piece) {
+                  const displayIndex = pieces.indexOf(piece) + 1;
+                  setChatPreviewPiece({ ...piece, index: displayIndex });
+                  return;
+                }
+                const tpl = templatesLibrary.find(t => t.label === docName || t.fileName === docName);
+                if (tpl) {
+                  setChatPreviewPiece({ id: tpl.id, nom: tpl.fileName || tpl.label, intitule: tpl.label, type: 'Modèle', date: tpl.addedDate, index: 0 });
+                }
+              }}
+            >
+              <FileText className="w-3 h-3 flex-shrink-0" style={{ color: '#78716c' }} strokeWidth={1.5} />
+              <span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>{docName}</span>
+            </span>
+          );
+        }
+        return part;
+      });
+      if (isBullet) {
+        return <div key={li} style={{ paddingLeft: 12, textIndent: -12, margin: '2px 0' }}>{'— '}{rendered}</div>;
+      }
+      return <div key={li} style={{ margin: '2px 0' }}>{rendered}</div>;
+    });
+  };
+
+  const currentLevel = navStack[navStack.length - 1] || { type: 'dossier', activeTab: 'dossier' };
 
   const fmt = (n) => n != null ? n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' €' : '— €';
   const getPieceLabel = (pieceId) => {
@@ -3046,6 +3113,27 @@ export default function App() {
       const cmd = text.slice(1).trim();
       setChatInputValue('');
 
+      // Redaction commands
+      if (cmd.startsWith('redaction')) {
+        // Extract act type from command: "redaction-assignation" → "assignation"
+        const actTypeFromCmd = cmd.replace('redaction-', '');
+        // Scenarios that are played directly (not the 5-step flow)
+        if (REDACTION_SCENARIOS[cmd]) {
+          redaction.playScenario(cmd);
+          return;
+        }
+        // Act-type commands → 5-step redaction flow
+        const actTypeDef = REDACTION_ACT_TYPES.find(t => t.id === actTypeFromCmd);
+        if (actTypeDef) {
+          const label = actTypeDef.label;
+          setChatMessages(prev => [...prev, { type: 'user', text: `Rédige ${['a','e','i','o','u'].includes(label[0]?.toLowerCase()) ? 'un ' : 'une '}${label.toLowerCase()}` }]);
+          const matchingTemplates = templatesLibrary.filter(t => t.actType === actTypeFromCmd || (t.label && t.label.toLowerCase().includes(actTypeFromCmd)));
+          redaction.startRedaction(actTypeFromCmd, { templates: matchingTemplates, attachments: [] });
+          return;
+        }
+        return;
+      }
+
       // TP commands
       if (cmd.startsWith('tp-')) {
         if (cmd === 'tp-help') {
@@ -3066,10 +3154,105 @@ export default function App() {
     }
 
     // Push user message
-    const userMsg = { type: 'user', text: text || 'Documents ajoutés', attachments: stagedDocs.length > 0 ? [...stagedDocs] : undefined };
+    const attachedDocs = stagedDocs.length > 0 ? [...stagedDocs] : null;
+    const userMsg = { type: 'user', text: text || 'Documents ajoutés', attachments: attachedDocs || undefined };
     setChatMessages(prev => [...prev, userMsg]);
     setChatInputValue('');
     setStagedDocs([]);
+
+    const lowerText = text.toLowerCase();
+    const actTypeMap = { assignation: 'assignation', conclusions: 'conclusions', courrier: 'email', email: 'email', 'dire a expert': 'dire', dire: 'dire', requete: 'requete', refere: 'requete', protocole: 'protocole', 'note en delibere': 'note-delibere', delibere: 'note-delibere' };
+
+    // In-context editing: zone selected in acte → highest priority
+    if (selectedActeZone && currentLevel.type === 'acte') {
+      const zone = selectedActeZone;
+      setSelectedActeZone(null);
+      redaction.dispatch({ type: 'CLOSE_STEPPER' });
+      setTimeout(() => {
+        redaction.modifyZone(text, zone);
+      }, 300);
+      return;
+    }
+
+    // Redaction: onboarding reply — detect act type from free text and start the 5-step flow
+    if (redaction.redactionState.activeStepper === 'awaiting-onboarding-reply') {
+      redaction.dispatch({ type: 'CLOSE_STEPPER' });
+      // Detect act type from user's reply
+      const normalizedReply = lowerText.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      let detectedType = 'assignation'; // default
+      for (const [keyword, typeId] of Object.entries(actTypeMap)) {
+        if (normalizedReply.includes(keyword)) { detectedType = typeId; break; }
+      }
+      const matchingTemplates = templatesLibrary.filter(t => t.actType === detectedType || (t.label && t.label.toLowerCase().includes(detectedType)));
+      setTimeout(() => {
+        redaction.startRedaction(detectedType, { templates: matchingTemplates, attachments: attachedDocs || [] });
+      }, 300);
+      return;
+    }
+
+    // Redaction: awaiting template confirm (Step 1 response)
+    if (redaction.redactionState.activeStepper === 'awaiting-template-confirm') {
+      const attachments = attachedDocs || [];
+      if (attachments.length > 0) {
+        const doc = attachments[0];
+        const alreadyExists = templatesLibrary.some(t => t.fileName === doc.name);
+        if (!alreadyExists) {
+          const today = new Date();
+          const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+          setTemplatesLibrary(prev => [...prev, {
+            id: `tpl-${Date.now()}`,
+            label: doc.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' '),
+            fileName: doc.name,
+            addedDate: dateStr,
+          }]);
+        }
+      }
+      setTimeout(() => redaction.handleTemplateConfirm(text, attachments), 300);
+      return;
+    }
+
+    // Redaction: awaiting clarification (Step 3 response)
+    if (redaction.redactionState.activeStepper === 'awaiting-clarification') {
+      setTimeout(() => redaction.handleClarificationReply(text), 300);
+      return;
+    }
+
+    // Intent detection: redaction keywords in natural language (accent-insensitive)
+    const normalizedText = lowerText.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const redactionKeywords = ['redige', 'rediger', 'redaction', 'ecris', 'ecrire', 'ecrit', 'redact'];
+    const matchedRedaction = redactionKeywords.some(kw => normalizedText.includes(kw));
+    let detectedTypeFromNL = null;
+    for (const [keyword, typeId] of Object.entries(actTypeMap)) {
+      if (normalizedText.includes(keyword)) { detectedTypeFromNL = typeId; break; }
+    }
+
+    if (matchedRedaction || detectedTypeFromNL) {
+      const actType = detectedTypeFromNL || 'assignation';
+      // Save any attached doc as template
+      if (attachedDocs && attachedDocs.length > 0) {
+        const doc = attachedDocs[0];
+        const alreadyExists = templatesLibrary.some(t => t.fileName === doc.name);
+        if (!alreadyExists) {
+          const today = new Date();
+          const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+          setTemplatesLibrary(prev => [...prev, {
+            id: `tpl-${Date.now()}`,
+            label: doc.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' '),
+            fileName: doc.name,
+            addedDate: dateStr,
+          }]);
+        }
+      }
+      // Start the 5-step redaction flow
+      const matchingTemplates = templatesLibrary.filter(t => t.actType === actType || (t.label && t.label.toLowerCase().includes(actType)));
+      setTimeout(() => {
+        redaction.startRedaction(actType, {
+          templates: matchingTemplates,
+          attachments: attachedDocs || [],
+        });
+      }, 300);
+      return;
+    }
 
     // Intent detection: look for poste acronyms in message
     const upperText = text.toUpperCase();
@@ -3589,6 +3772,13 @@ export default function App() {
   const [chatMessages, setChatMessages] = useState([]);
   const [expandedArtifacts, setExpandedArtifacts] = useState({});
   const [stagedDocs, setStagedDocs] = useState([]);
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false); // false | 'main' | 'pieces' | 'templates'
+  const [attachSearch, setAttachSearch] = useState('');
+  const attachMenuRef = useRef(null);
+  // @-mention state
+  const [mentionQuery, setMentionQuery] = useState(null); // null or { query: string, startIdx: number }
+  const [mentionIdx, setMentionIdx] = useState(0); // highlighted index in dropdown
+  const chatTextareaRef = useRef(null);
   const chatAnalysisTimeouts = useRef([]);
   const chatExtractionAnnounced = useRef(false);
   const chatPostesAnnounced = useRef(false);
@@ -3596,9 +3786,43 @@ export default function App() {
   const prevChatCountRef = useRef(0);
   const chatAnalyzedPostes = useRef(new Set()); // track which postes chat has already analyzed
 
+  // Close attach menu on click outside
+  useEffect(() => {
+    if (!attachMenuOpen) return;
+    const handleClick = (e) => {
+      if (attachMenuRef.current && !attachMenuRef.current.contains(e.target)) { setAttachMenuOpen(false); setAttachSearch(''); }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [attachMenuOpen]);
+
   // ========== JP STATE ==========
   const jp = useDemoCommands({ setChatMessages, setNavStack, tabsConfig: { dossier: ['Dossier', 'Chiffrage', 'Pièces', 'Actes', 'JP'], poste: [] } });
   const [jpPopover, setJpPopover] = useState(null); // { decision, anchorRect }
+
+  // ========== USEASK STATE ==========
+  // { active, questions: [{text, proposals}], currentIdx, selectedProposal, customText, answers: {idx: string} }
+  const [userAskState, setUserAskState] = useState({ active: false, questions: [], currentIdx: 0, selectedProposal: null, customText: '', answers: {} });
+  const userAskCustomRef = useRef(null);
+
+  // ========== REDACTION STATE ==========
+  const redaction = useRedactionCommands({
+    setChatMessages,
+    navigateTo,
+    onUserAsk: (questions) => {
+      setUserAskState({ active: true, questions, currentIdx: 0, selectedProposal: null, customText: '', answers: {} });
+    },
+  });
+  const [newActeModalOpen, setNewActeModalOpen] = useState(false);
+  const [selectedActeZone, setSelectedActeZone] = useState(null);
+  // Clear zone selection when leaving acte view
+  const prevLevelType = useRef(currentLevel.type);
+  if (currentLevel.type !== prevLevelType.current) {
+    prevLevelType.current = currentLevel.type;
+    if (currentLevel.type !== 'acte' && selectedActeZone) setSelectedActeZone(null);
+  }
+  const [newActeForm, setNewActeForm] = useState({ templateId: '', instructions: '', templateSearch: '' });
+
   const jpPopoverTimeout = useRef(null);
 
   // Auto-scroll chat only when new messages are added
@@ -3649,28 +3873,29 @@ export default function App() {
               // User message bubble
               if (msg.type === 'user') {
                 return (
-                  <div key={i} className="flex flex-col items-end pb-4" style={{ paddingLeft: 32 }}>
+                  <div key={i} className="flex flex-col items-end" style={{ paddingLeft: 32, paddingBottom: 16, gap: 10 }}>
+                    {msg.attachments && msg.attachments.length > 0 && (
+                      <div className="flex flex-wrap gap-2 justify-end">
+                        {msg.attachments.map((doc, di) => (
+                          <span key={di} className="inline-flex items-center gap-1 px-2 py-1" style={{ backgroundColor: '#eeece6', borderRadius: 6 }}>
+                            <Paperclip className="w-3 h-3" style={{ color: '#78716c' }} />
+                            <span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>{doc.name}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <div
-                      className="w-full"
                       style={{
                         backgroundColor: '#292524',
-                        borderRadius: 6,
+                        borderRadius: 2,
                         padding: '10px 12px',
                         boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)',
                         position: 'relative',
+                        maxWidth: '80%',
                         overflow: 'hidden',
                       }}
                     >
                       <p style={{ fontSize: 14, lineHeight: '20px', color: 'white', margin: 0 }}>{msg.text}</p>
-                      {msg.attachments && msg.attachments.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {msg.attachments.map((doc, di) => (
-                            <span key={di} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-white/10 text-white/80">
-                              <FileText className="w-3 h-3" />{doc.name}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                       <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', boxShadow: 'inset 0px -5px 8px 0px rgba(255,255,255,0.12)', pointerEvents: 'none' }} />
                     </div>
                   </div>
@@ -3692,6 +3917,9 @@ export default function App() {
                   />
                 );
               }
+
+              // Artifact card — removed
+              if (msg.type === 'artifact-card') return null;
 
               // Tool call chip (collapsed)
               if (msg.type === 'tool-call') {
@@ -3805,11 +4033,11 @@ export default function App() {
                             {msg.thinkingLabel}{'  >'}
                           </p>
                         </div>
-                        {msg.text && <p style={{ fontSize: 14, lineHeight: '20px', color: '#292524', margin: 0 }}>{msg.text}</p>}
+                        {msg.text && <div style={{ fontSize: 14, lineHeight: '20px', color: '#292524' }}>{renderChatMarkdown(msg.text)}</div>}
                       </div>
                     )}
                     {!msg.thinkingLabel && msg.text && (
-                      <p style={{ fontSize: 14, lineHeight: '20px', color: '#292524', margin: 0 }}>{msg.text}</p>
+                      <div style={{ fontSize: 14, lineHeight: '20px', color: '#292524' }}>{renderChatMarkdown(msg.text)}</div>
                     )}
 
                     {/* Action icons */}
@@ -3832,6 +4060,8 @@ export default function App() {
               }
               return null;
             })}
+
+            {/* Redaction stepper removed — flow is fully conversational */}
           </div>
 
           {/* Bottom input — Chat Input component */}
@@ -3853,10 +4083,26 @@ export default function App() {
             {chatInputValue.startsWith('/') && (
               <SlashCommandPalette
                 query={chatInputValue.slice(1).trim()}
-                scenarios={[...require('./data/demoScenarios').SCENARIO_LIST, ...TP_COMMAND_LIST]}
+                scenarios={[...require('./data/demoScenarios').SCENARIO_LIST, ...TP_COMMAND_LIST, ...REDACTION_COMMAND_LIST]}
                 onSelect={(cmd) => {
                   setChatInputValue('');
-                  if (cmd.startsWith('tp-')) {
+                  if (cmd.startsWith('redaction')) {
+                    const actTypeFromCmd = cmd.replace('redaction-', '');
+                    // Direct scenarios (modif, user-ask, onboarding, etc.)
+                    if (REDACTION_SCENARIOS[cmd]) {
+                      redaction.playScenario(cmd);
+                    } else {
+                      // Act-type → 5-step flow
+                      const actTypeDef = REDACTION_ACT_TYPES.find(t => t.id === actTypeFromCmd);
+                      if (actTypeDef) {
+                        const label = actTypeDef.label;
+                        setChatMessages(prev => [...prev, { type: 'user', text: `Rédige ${['a','e','i','o','u'].includes(label[0]?.toLowerCase()) ? 'un ' : 'une '}${label.toLowerCase()}` }]);
+                        const matchingTemplates = templatesLibrary.filter(t => t.actType === actTypeFromCmd || (t.label && t.label.toLowerCase().includes(actTypeFromCmd)));
+                        redaction.startRedaction(actTypeFromCmd, { templates: matchingTemplates, attachments: [] });
+                      }
+                    }
+                    return;
+                  } else if (cmd.startsWith('tp-')) {
                     if (cmd === 'tp-help') {
                       setChatMessages(prev => [...prev, { type: 'ai', text: "Commandes Tiers payeurs disponibles :\n\n/tp-simple — Récap multi-postes (CPAM + Harmonie + SNCF)\n/tp-cascade — Cascade AT/MP (rente capitalisée PGPF → IP → DFP)\n/tp-reset — Revenir au scénario de base" }]);
                     } else {
@@ -3882,18 +4128,43 @@ export default function App() {
                 boxShadow: hasContent
                   ? '0px 0px 0px 0px transparent, 0px 4px 6px -4px rgba(26,26,26,0.05), 0px 8px 10px -1px rgba(26,26,26,0.05)'
                   : '0px 0px 0px 1px #d6d3d1, 0px 4px 6px -4px rgba(26,26,26,0.05), 0px 8px 10px -1px rgba(26,26,26,0.05)',
-                overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
               }}
             >
+              {/* CONTEXT bar — only when a zone is selected in the acte */}
+              {currentLevel.type === 'acte' && selectedActeZone && (
+                <div className="border-b border-[#e7e5e3] flex flex-wrap gap-y-[7px] items-start p-[6px] w-full">
+                  <div
+                    className={`rounded-[6px] px-2 py-1.5 flex items-center gap-1.5 max-w-[320px] overflow-hidden transition-colors ${
+                      selectedActeZone
+                        ? 'bg-[#dbeafe] border border-[#93c5fd]'
+                        : 'border border-[#e7e5e3]'
+                    }`}
+                  >
+                    <Focus className={`w-3 h-3 flex-shrink-0 ${selectedActeZone ? 'text-[#3b82f6]' : 'text-[#78716c]'}`} />
+                    <span className="overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: selectedActeZone ? '#1d4ed8' : '#78716c', textTransform: 'uppercase' }}>
+                      {selectedActeZone ? `ACTE · ${selectedActeZone}` : `ACTE · ${currentLevel.title}`}
+                    </span>
+                    {selectedActeZone && (
+                      <button
+                        onClick={() => setSelectedActeZone(null)}
+                        className="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center hover:bg-[#bfdbfe] transition-colors"
+                      >
+                        <X className="w-3 h-3 text-[#3b82f6]" strokeWidth={2.5} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Staged document chips */}
               {stagedDocs.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 px-3 pt-2.5">
+                <div className="flex flex-wrap gap-2 pt-3 px-3">
                   {stagedDocs.map((doc, di) => (
-                    <span key={di} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium" style={{ backgroundColor: '#f5f5f4', color: '#44403c', border: '1px solid #e7e5e3' }}>
-                      <FileText className="w-3 h-3 text-[#78716c]" />
-                      {doc.name}
+                    <span key={di} className="inline-flex items-center gap-1 px-2 py-1 rounded-[6px] text-[12px] font-medium" style={{ backgroundColor: '#eeece6', color: '#44403c' }}>
+                      <Paperclip className="w-3 h-3 text-[#78716c]" />
+                      <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[140px]">{doc.name}</span>
                       <button onClick={() => setStagedDocs(prev => prev.filter((_, i) => i !== di))} className="ml-0.5 hover:text-red-500 transition-colors">
                         <X className="w-3 h-3" />
                       </button>
@@ -3901,6 +4172,192 @@ export default function App() {
                   ))}
                 </div>
               )}
+              {/* ────── UserAsk mode ────── */}
+              {userAskState.active ? (() => {
+                const { questions, currentIdx, selectedProposal, customText, answers } = userAskState;
+                const q = questions[currentIdx];
+                if (!q) return null;
+                const total = questions.length;
+                const isCustomMode = selectedProposal === 'custom';
+                const hasAnswer = selectedProposal !== null || customText.trim().length > 0;
+
+                const submitAnswer = () => {
+                  const answer = isCustomMode ? customText.trim() : (selectedProposal !== null && selectedProposal !== 'custom' ? q.proposals[selectedProposal] : null);
+                  if (!answer) return;
+                  const newAnswers = { ...answers, [currentIdx]: answer };
+                  if (currentIdx < total - 1) {
+                    setUserAskState(s => ({ ...s, answers: newAnswers, currentIdx: currentIdx + 1, selectedProposal: null, customText: '' }));
+                  } else {
+                    // All done — post answers as user message and close
+                    const summary = questions.map((qq, i) => `**${qq.text}**\n→ ${newAnswers[i] || '(passé)'}`).join('\n\n');
+                    setChatMessages(prev => [...prev, { type: 'user', text: summary }]);
+                    setUserAskState({ active: false, questions: [], currentIdx: 0, selectedProposal: null, customText: '', answers: {} });
+                    // Continue the flow — treat as clarification reply
+                    const allAnswerTexts = questions.map((qq, i) => newAnswers[i] || '').filter(Boolean).join('. ');
+                    setTimeout(() => redaction.handleClarificationReply(allAnswerTexts), 400);
+                  }
+                };
+
+                const skipQuestion = () => {
+                  if (currentIdx < total - 1) {
+                    setUserAskState(s => ({ ...s, currentIdx: currentIdx + 1, selectedProposal: null, customText: '' }));
+                  } else {
+                    // Skip last → submit with whatever we have
+                    const summary = questions.map((qq, i) => `**${qq.text}**\n→ ${answers[i] || '(passé)'}`).join('\n\n');
+                    setChatMessages(prev => [...prev, { type: 'user', text: summary }]);
+                    setUserAskState({ active: false, questions: [], currentIdx: 0, selectedProposal: null, customText: '', answers: {} });
+                    const allAnswerTexts = questions.map((qq, i) => answers[i] || '').filter(Boolean).join('. ');
+                    setTimeout(() => redaction.handleClarificationReply(allAnswerTexts), 400);
+                  }
+                };
+
+                const dismiss = () => {
+                  setUserAskState({ active: false, questions: [], currentIdx: 0, selectedProposal: null, customText: '', answers: {} });
+                };
+
+                return (
+                  <>
+                    {/* Question header */}
+                    <div style={{ borderBottom: '1px solid #e7e5e3', padding: 16, background: 'linear-gradient(to bottom, white 0%, #f8f7f5 100%)' }}>
+                      <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#9c8973', textTransform: 'uppercase' }}>
+                          USER ASK — {currentIdx + 1}/{total}
+                        </span>
+                        <button onClick={dismiss} className="hover:opacity-70 transition-opacity">
+                          <X className="w-3.5 h-3.5" style={{ color: '#9c8973' }} strokeWidth={2} />
+                        </button>
+                      </div>
+                      <p style={{ fontFamily: "'RL Para Trial Central', 'Albra', Georgia, serif", fontSize: 18, fontWeight: 500, color: '#292524', letterSpacing: '-0.5px', lineHeight: '20px', margin: 0 }}>
+                        {q.text}
+                      </p>
+                    </div>
+
+                    {/* Proposals */}
+                    <div style={{ padding: '10px 10px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {q.proposals.map((prop, pi) => {
+                        const isSelected = selectedProposal === pi;
+                        return (
+                          <button
+                            key={pi}
+                            className="flex items-center gap-3 w-full text-left transition-colors"
+                            style={{
+                              padding: '7px 10px',
+                              borderRadius: 2,
+                              backgroundColor: isSelected ? '#eeece6' : 'transparent',
+                            }}
+                            onClick={() => setUserAskState(s => ({ ...s, selectedProposal: pi, customText: '' }))}
+                          >
+                            <span
+                              className="flex items-center justify-center flex-shrink-0"
+                              style={{
+                                width: 24, height: 24, borderRadius: 2,
+                                backgroundColor: isSelected ? '#292524' : '#eeece6',
+                                color: isSelected ? 'white' : '#78716c',
+                                fontSize: 12, fontWeight: 500, lineHeight: '16px',
+                              }}
+                            >
+                              {pi + 1}
+                            </span>
+                            <span style={{ fontSize: 14, color: '#292524', lineHeight: '20px' }}>{prop}</span>
+                          </button>
+                        );
+                      })}
+
+                      {/* Custom answer row */}
+                      <button
+                        className="flex items-center gap-3 w-full text-left transition-colors"
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 2,
+                          backgroundColor: isCustomMode ? '#eeece6' : 'transparent',
+                        }}
+                        onClick={() => {
+                          setUserAskState(s => ({ ...s, selectedProposal: 'custom' }));
+                          setTimeout(() => userAskCustomRef.current?.focus(), 50);
+                        }}
+                      >
+                        <span className="flex items-center justify-center flex-shrink-0" style={{ width: 24, height: 24 }}>
+                          <Pencil className="w-4 h-4" style={{ color: '#78716c' }} strokeWidth={1.5} />
+                        </span>
+                        {isCustomMode ? (
+                          <input
+                            ref={userAskCustomRef}
+                            type="text"
+                            className="flex-1 bg-transparent text-[14px] text-[#292524] focus:outline-none"
+                            placeholder="Votre réponse..."
+                            value={customText}
+                            onChange={(e) => setUserAskState(s => ({ ...s, customText: e.target.value }))}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitAnswer(); } }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <span style={{ fontSize: 14, color: '#78716c', lineHeight: '20px' }}>Votre réponse...</span>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Footer — pagination + actions */}
+                    <div className="flex items-center justify-between" style={{ padding: 12 }}>
+                      {/* Pagination dots */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          className="flex items-center justify-center hover:opacity-70 transition-opacity"
+                          disabled={currentIdx === 0}
+                          style={{ opacity: currentIdx === 0 ? 0.3 : 1 }}
+                          onClick={() => { if (currentIdx > 0) setUserAskState(s => ({ ...s, currentIdx: currentIdx - 1, selectedProposal: null, customText: '' })); }}
+                        >
+                          <ChevronLeft className="w-3 h-3 text-[#292524]" strokeWidth={2} />
+                        </button>
+                        <div className="flex items-center gap-1 px-1">
+                          {questions.map((_, di) => (
+                            <div
+                              key={di}
+                              style={{
+                                width: 6, height: 6,
+                                transform: 'rotate(45deg)',
+                                backgroundColor: di === currentIdx ? '#292524' : (answers[di] ? '#78716c' : '#d9d9d9'),
+                                transition: 'background-color 0.2s',
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <button
+                          className="flex items-center justify-center hover:opacity-70 transition-opacity"
+                          disabled={currentIdx >= total - 1}
+                          style={{ opacity: currentIdx >= total - 1 ? 0.3 : 1 }}
+                          onClick={() => { if (currentIdx < total - 1) setUserAskState(s => ({ ...s, currentIdx: currentIdx + 1, selectedProposal: null, customText: '' })); }}
+                        >
+                          <ChevronRight className="w-3 h-3 text-[#292524]" strokeWidth={2} />
+                        </button>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-[7px]">
+                        <button
+                          onClick={skipQuestion}
+                          className="flex items-center justify-center transition-colors hover:bg-[#e7e5e3]"
+                          style={{ height: 32, paddingLeft: 12, paddingRight: 12, borderRadius: 8, backgroundColor: '#eeece6', fontSize: 14, fontWeight: 500, color: '#44403c' }}
+                        >
+                          Passer
+                        </button>
+                        <button
+                          onClick={hasAnswer ? submitAnswer : undefined}
+                          className="flex items-center justify-center transition-colors"
+                          style={{
+                            width: 32, height: 32, borderRadius: 8,
+                            backgroundColor: hasAnswer ? '#292524' : '#eeece6',
+                            boxShadow: hasAnswer ? '0px 1px 2px 0px rgba(26,26,26,0.05)' : 'none',
+                            cursor: hasAnswer ? 'pointer' : 'default',
+                          }}
+                        >
+                          <ArrowUp className="w-4 h-4" style={{ color: hasAnswer ? 'white' : '#78716c' }} />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                );
+              })() : (
+              <>
               {/* Blocked indicator */}
               {chatBlocked && (
                 <div className="flex items-center gap-2 px-3 py-1.5" style={{ borderBottom: '1px solid #e7e5e3' }}>
@@ -3908,20 +4365,122 @@ export default function App() {
                   <span style={{ fontSize: 11, color: '#a8a29e' }}>Plato analyse vos documents...</span>
                 </div>
               )}
-              {/* Text area */}
-              <div style={{ padding: '12px 12px 32px 12px' }}>
+              {/* Text area + @mention dropdown */}
+              <div style={{ padding: '12px 12px 32px 12px', position: 'relative' }}>
                 <textarea
+                  ref={chatTextareaRef}
                   className="w-full text-[14px] resize-none focus:outline-none"
                   style={{ color: chatInputValue ? '#11181c' : '#78716c', lineHeight: '20px', minHeight: 20, maxHeight: 120, opacity: chatBlocked ? 0.5 : 1, cursor: chatBlocked ? 'not-allowed' : undefined }}
-                  placeholder={chatBlocked ? 'Plato analyse vos documents...' : 'Demander à Plato Master de calculer, rechercher des JP, rédiger des actes...'}
+                  placeholder={chatBlocked ? 'Plato analyse vos documents...' : selectedActeZone ? 'Demandez une modification sur cette partie…' : 'Demander à Plato Master de calculer, rechercher des JP, rédiger des actes...'}
                   value={chatInputValue}
-                  onChange={(e) => { if (!chatBlocked) setChatInputValue(e.target.value); }}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!chatBlocked) handleChatSend(); } }}
+                  onChange={(e) => {
+                    if (chatBlocked) return;
+                    const val = e.target.value;
+                    setChatInputValue(val);
+                    // Detect @mention
+                    const cursor = e.target.selectionStart;
+                    const before = val.slice(0, cursor);
+                    const atMatch = before.match(/@([^\s@]*)$/);
+                    if (atMatch) {
+                      setMentionQuery({ query: atMatch[1], startIdx: before.length - atMatch[0].length });
+                      setMentionIdx(0);
+                    } else {
+                      setMentionQuery(null);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    // @mention keyboard nav
+                    if (mentionQuery !== null) {
+                      const q = mentionQuery.query.toLowerCase();
+                      const allDocs = [
+                        ...pieces.map(p => ({ id: p.id, name: p.nom, source: 'piece' })),
+                        ...dropFirstPieces.filter(p => p.status === 'done').map(p => ({ id: p.id, name: p.cleanName || p.originalName, source: 'piece' })),
+                        ...templatesLibrary.map(t => ({ id: t.id, name: t.fileName, source: 'template' })),
+                      ];
+                      const filtered = q ? allDocs.filter(d => d.name.toLowerCase().includes(q)) : allDocs;
+                      if (filtered.length > 0) {
+                        if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIdx(prev => Math.min(prev + 1, filtered.length - 1)); return; }
+                        if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIdx(prev => Math.max(prev - 1, 0)); return; }
+                        if (e.key === 'Enter' || e.key === 'Tab') {
+                          e.preventDefault();
+                          const doc = filtered[mentionIdx] || filtered[0];
+                          // Replace @query with empty string and stage the doc
+                          const before = chatInputValue.slice(0, mentionQuery.startIdx);
+                          const after = chatInputValue.slice(mentionQuery.startIdx + mentionQuery.query.length + 1); // +1 for @
+                          setChatInputValue(before + after);
+                          setStagedDocs(prev => {
+                            if (prev.some(d => d.id === doc.id && d.source === doc.source)) return prev;
+                            return [...prev, doc];
+                          });
+                          setMentionQuery(null);
+                          return;
+                        }
+                      }
+                      if (e.key === 'Escape') { e.preventDefault(); setMentionQuery(null); return; }
+                    }
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!chatBlocked) handleChatSend(); }
+                  }}
                   onFocus={() => setChatInputFocused(true)}
-                  onBlur={() => setChatInputFocused(false)}
+                  onBlur={() => { setChatInputFocused(false); setTimeout(() => setMentionQuery(null), 150); }}
                   rows={1}
                   disabled={chatBlocked}
                 />
+                {/* @mention dropdown — grouped by type */}
+                {mentionQuery !== null && (() => {
+                  const q = mentionQuery.query.toLowerCase();
+                  const bordDocs = pieces.map(p => ({ id: p.id, name: p.nom, source: 'piece' }));
+                  const horsDocs = dropFirstPieces.filter(p => p.status === 'done').map(p => ({ id: p.id, name: p.cleanName || p.originalName, source: 'piece' }));
+                  const tplDocs = templatesLibrary.map(t => ({ id: t.id, name: t.fileName, source: 'template' }));
+                  const filterList = (list) => q ? list.filter(d => d.name.toLowerCase().includes(q)) : list;
+                  const fBord = filterList(bordDocs);
+                  const fHors = filterList(horsDocs);
+                  const fTpl = filterList(tplDocs);
+                  const allFiltered = [...fBord, ...fHors, ...fTpl];
+                  if (allFiltered.length === 0) return null;
+
+                  let globalIdx = 0;
+                  const sectionLabel = (text) => (
+                    <div className="px-2 py-1" key={`label-${text}`}>
+                      <span className="opacity-70" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{text}</span>
+                    </div>
+                  );
+                  const renderRow = (doc) => {
+                    const idx = globalIdx++;
+                    return (
+                      <button
+                        key={`${doc.source}-${doc.id}`}
+                        className={`w-full flex items-center gap-2 px-2 py-1.5 text-left rounded-[6px] transition-colors ${idx === mentionIdx ? 'bg-[#fafaf9]' : 'hover:bg-[#fafaf9]'}`}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          const before = chatInputValue.slice(0, mentionQuery.startIdx);
+                          const after = chatInputValue.slice(mentionQuery.startIdx + mentionQuery.query.length + 1);
+                          setChatInputValue(before + after);
+                          setStagedDocs(prev => {
+                            if (prev.some(d => d.id === doc.id && d.source === doc.source)) return prev;
+                            return [...prev, doc];
+                          });
+                          setMentionQuery(null);
+                          chatTextareaRef.current?.focus();
+                        }}
+                        onMouseEnter={() => setMentionIdx(idx)}
+                      >
+                        <FileText className="w-3.5 h-3.5 text-[#a8a29e] flex-shrink-0" strokeWidth={1.5} />
+                        <span className="truncate text-[13px] text-[#292524]">{doc.name}</span>
+                        {doc.source === 'template' && <span className="ml-auto text-[10px] text-[#a8a29e] flex-shrink-0">modèle</span>}
+                      </button>
+                    );
+                  };
+
+                  return (
+                    <div className="absolute bottom-full left-0 mb-1 z-50 bg-white rounded-[8px] border border-[#e7e5e3] overflow-hidden" style={{ width: 320, boxShadow: '0px 2px 4px -2px rgba(26,26,26,0.05), 0px 4px 6px -1px rgba(26,26,26,0.05)' }}>
+                      <div className="overflow-y-auto p-1" style={{ maxHeight: 260 }}>
+                        {fBord.length > 0 && <>{sectionLabel('Bordereau')}{fBord.map(renderRow)}</>}
+                        {fHors.length > 0 && <>{sectionLabel('Hors bordereau')}{fHors.map(renderRow)}</>}
+                        {fTpl.length > 0 && <>{sectionLabel('Modèles')}{fTpl.map(renderRow)}</>}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Bottom bar with actions */}
@@ -3931,10 +4490,197 @@ export default function App() {
                   background: (hasContent && !chatBlocked) ? 'linear-gradient(to bottom, white 44.66%, #eeece6 100%)' : 'transparent',
                 }}
               >
-                <div className="flex items-center gap-0.5">
-                  <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors" disabled={chatBlocked} style={{ opacity: chatBlocked ? 0.4 : 1 }}>
+                <div className="flex items-center gap-0.5 relative" ref={attachMenuRef}>
+                  <button
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors ${attachMenuOpen ? 'bg-stone-100' : ''}`}
+                    disabled={chatBlocked}
+                    style={{ opacity: chatBlocked ? 0.4 : 1 }}
+                    onClick={() => { if (!chatBlocked) setAttachMenuOpen(attachMenuOpen ? false : 'main'); }}
+                  >
                     <Paperclip className="w-4 h-4 text-[#78716c]" />
                   </button>
+
+                  {/* Attach popover menu */}
+                  {attachMenuOpen === 'main' && (
+                    <div className="absolute bottom-10 left-0 z-50 bg-white rounded-[8px] border border-[#e7e5e3] overflow-hidden" style={{ width: 260, boxShadow: '0px 2px 4px -2px rgba(26,26,26,0.05), 0px 4px 6px -1px rgba(26,26,26,0.05)' }}>
+                      {/* Import button */}
+                      <div className="border-b border-[#e7e5e3] px-4 py-[11px]">
+                        <button
+                          className="flex items-center gap-2 transition-colors"
+                          onClick={() => {
+                            setAttachMenuOpen(false);
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = '.pdf,.docx,.doc,.xlsx,.xls,.png,.jpg,.jpeg,.odt,.txt';
+                            input.multiple = true;
+                            input.onchange = (e) => {
+                              const files = Array.from(e.target.files);
+                              setStagedDocs(prev => [...prev, ...files.map(f => ({ name: f.name, file: f, source: 'upload' }))]);
+                            };
+                            input.click();
+                          }}
+                        >
+                          <Plus className="w-4 h-4 text-[#1e3a8a]" strokeWidth={1.5} />
+                          <span className="text-[14px] font-medium text-[#1e3a8a]">Importer un document</span>
+                        </button>
+                      </div>
+                      {/* Browse options */}
+                      <div className="p-1">
+                        <button
+                          className="w-full flex items-center justify-between px-2 py-1.5 text-left rounded-[6px] hover:bg-[#fafaf9] transition-colors"
+                          onClick={() => { setAttachMenuOpen('pieces'); setAttachSearch(''); }}
+                        >
+                          <span className="text-[14px] text-[#292524]">Pièces du dossier</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-[#d6d3d1]" />
+                        </button>
+                        <button
+                          className="w-full flex items-center justify-between px-2 py-1.5 text-left rounded-[6px] hover:bg-[#fafaf9] transition-colors"
+                          onClick={() => { setAttachMenuOpen('templates'); setAttachSearch(''); }}
+                        >
+                          <span className="text-[14px] text-[#292524]">Modèles d'actes</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-[#d6d3d1]" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pièces sub-menu */}
+                  {attachMenuOpen === 'pieces' && (() => {
+                    const q = attachSearch.toLowerCase();
+                    const bordereauPieces = (q ? pieces.filter(p => p.nom.toLowerCase().includes(q) || p.type.toLowerCase().includes(q) || (p.intitule && p.intitule.toLowerCase().includes(q))) : pieces);
+                    const horsBordereauPieces = (q ? dropFirstPieces.filter(p => p.status === 'done').filter(p => (p.cleanName || p.originalName || '').toLowerCase().includes(q) || (p.type || '').toLowerCase().includes(q)) : dropFirstPieces.filter(p => p.status === 'done'));
+                    const renderPieceRow = (p, source) => {
+                      const name = source === 'hors' ? (p.cleanName || p.originalName) : p.nom;
+                      const type = p.type || null;
+                      const alreadyStaged = stagedDocs.some(d => d.id === p.id && d.source === 'piece');
+                      return (
+                        <button
+                          key={p.id}
+                          className={`w-full flex items-center gap-2 px-2 py-1.5 text-left rounded-[6px] transition-colors ${alreadyStaged ? 'opacity-40' : 'hover:bg-[#fafaf9]'}`}
+                          disabled={alreadyStaged}
+                          onClick={() => {
+                            setStagedDocs(prev => [...prev, { id: p.id, name, source: 'piece' }]);
+                            setAttachMenuOpen(false);
+                            setAttachSearch('');
+                          }}
+                        >
+                          <FileText className="w-3.5 h-3.5 text-[#a8a29e] flex-shrink-0" strokeWidth={1.5} />
+                          <span className="truncate text-[13px] text-[#292524]">{name}</span>
+                          {type && !alreadyStaged && <span className="ml-auto text-[10px] text-[#a8a29e] flex-shrink-0">{type}</span>}
+                          {alreadyStaged && <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 ml-auto" />}
+                        </button>
+                      );
+                    };
+                    return (
+                      <div className="absolute bottom-10 left-0 z-50 bg-white rounded-[8px] border border-[#e7e5e3] overflow-hidden" style={{ width: 300, maxHeight: 400, boxShadow: '0px 2px 4px -2px rgba(26,26,26,0.05), 0px 4px 6px -1px rgba(26,26,26,0.05)' }}>
+                        {/* Navigation header */}
+                        <div className="flex items-center gap-2 bg-[#f8f7f5] px-2.5 py-2 border-b border-[#e7e5e3]">
+                          <button onClick={() => { setAttachMenuOpen('main'); setAttachSearch(''); }} className="opacity-50 hover:opacity-100 transition-opacity">
+                            <ChevronRight className="w-4 h-4 text-[#78716c] rotate-180" />
+                          </button>
+                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase' }}>
+                            Pièces du dossier
+                          </span>
+                        </div>
+                        {/* Search */}
+                        <button className="w-full flex items-center gap-2 p-3 border-b border-[#e7e5e3] text-left">
+                          <Search className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+                          <input
+                            type="text"
+                            value={attachSearch}
+                            onChange={(e) => setAttachSearch(e.target.value)}
+                            placeholder="Rechercher un élément..."
+                            className="flex-1 bg-transparent text-[14px] text-[#292524] placeholder-[#78716c] placeholder:opacity-70 focus:outline-none"
+                            autoFocus
+                          />
+                        </button>
+                        <div className="overflow-y-auto p-1" style={{ maxHeight: 300 }}>
+                          {bordereauPieces.length === 0 && horsBordereauPieces.length === 0 ? (
+                            <div className="px-2 py-4 text-center text-[12px] text-[#a8a29e]">Aucune pièce trouvée</div>
+                          ) : (
+                            <>
+                              {/* Bordereau section */}
+                              {bordereauPieces.length > 0 && (
+                                <div className="p-1">
+                                  <div className="px-2 py-1.5">
+                                    <span className="opacity-70" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase' }}>Bordereau</span>
+                                  </div>
+                                  {bordereauPieces.map(p => renderPieceRow(p, 'bordereau'))}
+                                </div>
+                              )}
+                              {/* Hors bordereau section */}
+                              {horsBordereauPieces.length > 0 && (
+                                <div className="p-1">
+                                  <div className="px-2 py-1.5">
+                                    <span className="opacity-70" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase' }}>Hors bordereau</span>
+                                  </div>
+                                  {horsBordereauPieces.map(p => renderPieceRow(p, 'hors'))}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Templates sub-menu */}
+                  {attachMenuOpen === 'templates' && (() => {
+                    const q = attachSearch.toLowerCase();
+                    const filteredTemplates = q ? templatesLibrary.filter(t => t.label.toLowerCase().includes(q) || t.fileName.toLowerCase().includes(q) || (t.actType && t.actType.toLowerCase().includes(q))) : templatesLibrary;
+                    return (
+                      <div className="absolute bottom-10 left-0 z-50 bg-white rounded-[8px] border border-[#e7e5e3] overflow-hidden" style={{ width: 300, maxHeight: 400, boxShadow: '0px 2px 4px -2px rgba(26,26,26,0.05), 0px 4px 6px -1px rgba(26,26,26,0.05)' }}>
+                        {/* Navigation header */}
+                        <div className="flex items-center gap-2 bg-[#f8f7f5] px-2.5 py-2 border-b border-[#e7e5e3]">
+                          <button onClick={() => { setAttachMenuOpen('main'); setAttachSearch(''); }} className="opacity-50 hover:opacity-100 transition-opacity">
+                            <ChevronRight className="w-4 h-4 text-[#78716c] rotate-180" />
+                          </button>
+                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase' }}>
+                            Modèles d'actes
+                          </span>
+                        </div>
+                        {/* Search */}
+                        <button className="w-full flex items-center gap-2 p-3 border-b border-[#e7e5e3] text-left">
+                          <Search className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+                          <input
+                            type="text"
+                            value={attachSearch}
+                            onChange={(e) => setAttachSearch(e.target.value)}
+                            placeholder="Rechercher un élément..."
+                            className="flex-1 bg-transparent text-[14px] text-[#292524] placeholder-[#78716c] placeholder:opacity-70 focus:outline-none"
+                            autoFocus
+                          />
+                        </button>
+                        <div className="overflow-y-auto p-1" style={{ maxHeight: 300 }}>
+                          <div className="p-1">
+                            {filteredTemplates.length === 0 ? (
+                              <div className="px-2 py-4 text-center text-[12px] text-[#a8a29e]">{templatesLibrary.length === 0 ? 'Aucun modèle disponible' : 'Aucun modèle trouvé'}</div>
+                            ) : filteredTemplates.map(tpl => {
+                              const alreadyStaged = stagedDocs.some(d => d.id === tpl.id && d.source === 'template');
+                              return (
+                                <button
+                                  key={tpl.id}
+                                  className={`w-full flex items-center gap-2 px-2 py-1.5 text-left rounded-[6px] transition-colors ${alreadyStaged ? 'opacity-40' : 'hover:bg-[#fafaf9]'}`}
+                                  disabled={alreadyStaged}
+                                  onClick={() => {
+                                    setStagedDocs(prev => [...prev, { id: tpl.id, name: tpl.label, source: 'template' }]);
+                                    setAttachMenuOpen(false);
+                                    setAttachSearch('');
+                                  }}
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-[#a8a29e] flex-shrink-0" strokeWidth={1.5} />
+                                  <span className="truncate text-[13px] text-[#292524]">{tpl.fileName}</span>
+                                  {!alreadyStaged && tpl.actType && <span className="ml-auto text-[10px] text-[#a8a29e] flex-shrink-0">{tpl.actType}</span>}
+                                  {alreadyStaged && <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 ml-auto" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors" disabled={chatBlocked} style={{ opacity: chatBlocked ? 0.4 : 1 }}>
                     <Lightbulb className="w-4 h-4 text-[#78716c]" />
                   </button>
@@ -3952,6 +4698,8 @@ export default function App() {
                   <ArrowUp className="w-4 h-4" style={{ color: (hasContent && !chatBlocked) ? 'white' : '#78716c' }} />
                 </button>
               </div>
+            </>
+            )}
             </div>
             </div>{/* close relative wrapper */}
           </div>
@@ -4010,6 +4758,45 @@ export default function App() {
             </div>
             <div className="flex items-center gap-3">
               <span style={serifAmountStyle} className="text-[#292524]">{fmt(ivPosteTotal)}</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Acte view sub-header
+    if (currentLevel.type === 'acte') {
+      const acte = redaction.redactionState.dossierActes.find(a => a.id === currentLevel.id);
+      return (
+        <div className="border-b border-[#e7e5e3] bg-white flex-shrink-0">
+          <div className="h-[52px] px-4 flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <button onClick={() => navigateToStackLevel(navStack.length - 2)} className="p-1 hover:bg-stone-100 rounded transition-colors flex-shrink-0">
+                <ChevronRight className="w-4 h-4 rotate-180 text-[#a8a29e]" strokeWidth={1.5} />
+              </button>
+              <span className="text-[14px] font-medium text-[#292524] truncate">{currentLevel.fullTitle || currentLevel.title}</span>
+              {acte?.templateName && (
+                <span className="text-[12px] text-[#a8a29e] truncate flex-shrink-0">{acte.templateName}</span>
+              )}
+              {acte?.lastUpdated && (
+                <span className="text-[12px] text-[#a8a29e] flex-shrink-0">{acte.lastUpdated}</span>
+              )}
+              {redaction.redactionState.canvasStreaming && (
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#b9703f] animate-pulse" />
+                  <span style={{ fontSize: 11, color: '#b9703f', fontWeight: 500 }}>Rédaction...</span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button className="inline-flex items-center gap-1.5 px-3 h-8 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[#e7e5e3]" style={{ backgroundColor: '#eeece6', color: '#44403c' }} title="Copier">
+                <Copy className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Copier
+              </button>
+              <button className="inline-flex items-center gap-1.5 px-3 h-8 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[#e7e5e3]" style={{ backgroundColor: '#eeece6', color: '#44403c' }} title="Télécharger">
+                <Download className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Télécharger
+              </button>
             </div>
           </div>
         </div>
@@ -6899,6 +7686,18 @@ export default function App() {
 
   // ========== RENDER CONTENT ==========
   const renderContent = () => {
+    // ACTE — document view with streaming
+    if (currentLevel.type === 'acte') {
+      return (
+        <ActCanvas
+          content={redaction.redactionState.canvasContent}
+          streaming={redaction.redactionState.canvasStreaming}
+          onZoneSelect={setSelectedActeZone}
+          hasActiveZone={!!selectedActeZone}
+        />
+      );
+    }
+
     // DOSSIER
     if (currentLevel.type === 'dossier') {
       if (currentLevel.activeTab === 'dossier') {
@@ -7573,13 +8372,11 @@ export default function App() {
         if (allPostes.length === 0 && !extractionBanner) {
           return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 animate-fade-up">
-              <div className="text-center max-w-sm">
-                <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-[#eeece6] flex items-center justify-center">
-                  <ClipboardList className="w-6 h-6 text-[#a8a29e]" />
-                </div>
-                <h2 className="text-lg font-semibold text-[#292524] mb-2">Aucun poste de préjudice</h2>
-                <p className="text-body text-[#78716c] mb-6">Sélectionnez un poste dans le menu latéral pour commencer le chiffrage.</p>
-              </div>
+              <EmptyState
+                icon={ClipboardList}
+                title="Aucun poste de préjudice"
+                description="Sélectionnez un poste dans le menu latéral pour commencer le chiffrage."
+              />
             </div>
           );
         }
@@ -8139,16 +8936,19 @@ export default function App() {
         return renderPiecesList(pieces, true);
       }
 
-      // Actes tab placeholder
+      // Actes tab — drafted legal documents
       if (currentLevel.activeTab === 'actes') {
         return (
-          <div className="flex-1 flex items-center justify-center py-20">
-            <div className="text-center">
-              <ClipboardList className="w-10 h-10 text-stone-300 mx-auto mb-3" strokeWidth={1.5} />
-              <p className="text-body-medium text-stone-500">Actes de procédure</p>
-              <p className="text-caption text-stone-400 mt-1">Bientôt disponible</p>
-            </div>
-          </div>
+          <ActesList
+            actes={redaction.redactionState.dossierActes}
+            onOpen={(id) => redaction.openCanvas(id)}
+            onNewActe={() => setNewActeModalOpen(true)}
+            onSendPrompt={() => {
+              setChatMessages(prev => [...prev, { type: 'user', text: 'Écrire mon premier acte' }]);
+              setChatInputValue('');
+              setTimeout(() => redaction.playScenario('redaction-onboarding'), 200);
+            }}
+          />
         );
       }
 
@@ -12659,6 +13459,14 @@ export default function App() {
           >
             <Scale className="w-4 h-4" />
           </button>
+          <button
+            onClick={() => setCurrentPage('templates')}
+            title="Modèles d'actes"
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'templates' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+            style={{ borderRadius: 8 }}
+          >
+            <ClipboardList className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Footer — UIKit + Avatar */}
@@ -14814,6 +15622,425 @@ export default function App() {
     );
   };
 
+  // ========== NEW ACTE MODAL ==========
+  const renderNewActeModal = () => {
+    if (!newActeModalOpen) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onClick={() => { setNewActeModalOpen(false); setNewActeForm({ templateId: '', instructions: '', templateSearch: '' }); }}>
+        <div className="bg-white rounded-xl shadow-2xl" style={{ width: 520 }} onClick={(e) => e.stopPropagation()}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#e7e5e3]">
+            <h2 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '18px', fontWeight: 400, color: '#18181b' }}>Nouvel acte</h2>
+            <button onClick={() => { setNewActeModalOpen(false); setNewActeForm({ templateId: '', instructions: '', templateSearch: '' }); }} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#eeece6] transition-colors">
+              <X className="w-4 h-4 text-[#78716c]" />
+            </button>
+          </div>
+
+          {/* Form */}
+          <div className="px-6 py-5 space-y-4">
+            {/* Template picker (optional) */}
+            <div>
+              <label className="block text-[14px] font-medium text-[#44403c] mb-1">Sélectionnez un modèle de référence</label>
+              <p className="text-[12px] text-[#a8a29e] mb-3">Votre modèle structure la rédaction : ton, vocabulaire, style.</p>
+
+              {newActeForm.templateId ? (
+                // Selected template card
+                (() => {
+                  const selected = templatesLibrary.find(t => t.id === newActeForm.templateId);
+                  return selected ? (
+                    <div className="flex items-center gap-2.5 p-2.5 border border-[#e7e5e3] rounded-lg bg-white">
+                      <div className="w-8 h-8 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: '#dfe8f5' }}>
+                        <FileText className="w-4 h-4 text-[#4a72b0]" strokeWidth={1.5} />
+                      </div>
+                      <span className="flex-1 min-w-0 text-[13px] text-[#292524] truncate">{selected.label}</span>
+                      <button
+                        onClick={() => setNewActeForm(prev => ({ ...prev, templateId: '', templateSearch: '' }))}
+                        className="w-6 h-6 rounded flex items-center justify-center text-[#a8a29e] hover:text-[#78716c] hover:bg-[#f5f5f4] transition-colors shrink-0"
+                      >
+                        <X className="w-3.5 h-3.5" strokeWidth={2} />
+                      </button>
+                    </div>
+                  ) : null;
+                })()
+              ) : (
+                // Search input + dropdown
+                <div className="relative">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a8a29e]" strokeWidth={1.5} />
+                    <input
+                      type="text"
+                      value={newActeForm.templateSearch}
+                      onChange={(e) => setNewActeForm(prev => ({ ...prev, templateSearch: e.target.value }))}
+                      placeholder="Recherchez un modèle..."
+                      className="w-full h-10 pl-9 pr-3 text-[13px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524] placeholder:text-[#a8a29e]"
+                    />
+                  </div>
+                  {/* Results dropdown */}
+                  {(() => {
+                    const filtered = templatesLibrary.filter(t =>
+                      t.label.toLowerCase().includes((newActeForm.templateSearch || '').toLowerCase())
+                    );
+                    return (
+                      <div className="mt-1 border border-[#e7e5e3] rounded-lg bg-white overflow-hidden max-h-[180px] overflow-y-auto">
+                        {filtered.length > 0 ? filtered.map(tpl => (
+                          <button
+                            key={tpl.id}
+                            onClick={() => setNewActeForm(prev => ({ ...prev, templateId: tpl.id, templateSearch: '' }))}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-[#fafaf9] transition-colors"
+                          >
+                            <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: '#dfe8f5' }}>
+                              <FileText className="w-3.5 h-3.5 text-[#4a72b0]" strokeWidth={1.5} />
+                            </div>
+                            <span className="text-[13px] text-[#292524] truncate">{tpl.label}</span>
+                          </button>
+                        )) : (
+                          <div className="px-3 py-3 text-[12px] text-[#a8a29e] text-center">Aucun modèle trouvé</div>
+                        )}
+                        <button
+                          onClick={() => { setNewActeModalOpen(false); setCurrentPage('templates'); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-left border-t border-[#e7e5e3] hover:bg-[#fafaf9] transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-[#78716c]" strokeWidth={2} />
+                          <span className="text-[12px] text-[#78716c]">Ajouter un nouveau modèle</span>
+                        </button>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+
+            {/* Instructions */}
+            <div>
+              <label className="block text-[14px] font-medium text-[#78716c] mb-2">Instructions</label>
+              <textarea
+                value={newActeForm.instructions}
+                onChange={(e) => setNewActeForm(prev => ({ ...prev, instructions: e.target.value }))}
+                placeholder="Décrivez l'acte à rédiger : type, parties, objet, tribunal…"
+                rows={5}
+                className="w-full px-3 py-2.5 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524] resize-none"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => { setNewActeModalOpen(false); setNewActeForm({ templateId: '', instructions: '', templateSearch: '' }); }}
+                className="px-4 py-2.5 text-body-medium text-[#78716c] rounded-lg hover:bg-[#eeece6] transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => {
+                  if (!newActeForm.instructions.trim()) return;
+                  const selectedTemplate = templatesLibrary.find(t => t.id === newActeForm.templateId);
+                  // Build user message text
+                  let userText = newActeForm.instructions.trim();
+                  if (selectedTemplate) {
+                    userText += `\n\nModèle : ${selectedTemplate.label}`;
+                  }
+                  // Close modal
+                  setNewActeModalOpen(false);
+                  setNewActeForm({ templateId: '', instructions: '', templateSearch: '' });
+                  // Open chat sidebar
+                  setChatSidebarOpen(true);
+                  // Push user message to chat
+                  setChatMessages(prev => [...prev, {
+                    type: 'user',
+                    text: userText,
+                    attachments: selectedTemplate ? [{ id: selectedTemplate.id, name: selectedTemplate.label, source: 'template' }] : undefined,
+                  }]);
+                  // Trigger 5-step redaction flow
+                  setTimeout(() => {
+                    const matchingTemplates = selectedTemplate ? [selectedTemplate] : [];
+                    redaction.startRedaction('assignation', {
+                      templates: matchingTemplates,
+                      attachments: selectedTemplate ? [{ id: selectedTemplate.id, name: selectedTemplate.label, source: 'template' }] : [],
+                    });
+                  }, 500);
+                }}
+                disabled={!newActeForm.instructions.trim()}
+                className={`px-5 py-2.5 text-body-medium rounded-lg transition-colors ${
+                  newActeForm.instructions.trim()
+                    ? 'bg-[#292524] text-white hover:bg-[#44403c]'
+                    : 'bg-[#e7e5e3] text-[#a8a29e] cursor-not-allowed'
+                }`}
+              >
+                Lancer la rédaction
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ========== TEMPLATE UPLOAD FORM MODAL ==========
+  const renderTemplateUploadModal = () => {
+    if (!templateUploadFormOpen) return null;
+    const actTypeOptions = [
+      { value: '', label: 'Tous types' },
+      { value: 'assignation', label: 'Assignation' },
+      { value: 'conclusions', label: 'Conclusions' },
+      { value: 'email', label: 'Courrier' },
+      { value: 'dire', label: 'Dire à expert' },
+      { value: 'requete', label: 'Requête en référé' },
+      { value: 'protocole', label: 'Protocole transactionnel' },
+      { value: 'note-delibere', label: 'Note en délibéré' },
+    ];
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onClick={() => { setTemplateUploadFormOpen(false); setTemplateUploadData({ nom: '', actType: '', notes: '', fileName: '' }); }}>
+        <div className="bg-white rounded-xl shadow-2xl" style={{ width: 520 }} onClick={(e) => e.stopPropagation()}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#e7e5e3]">
+            <h2 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '18px', fontWeight: 400, color: '#18181b' }}>Ajouter un modèle</h2>
+            <button onClick={() => { setTemplateUploadFormOpen(false); setTemplateUploadData({ nom: '', actType: '', notes: '', fileName: '' }); }} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#eeece6] transition-colors">
+              <X className="w-4 h-4 text-[#78716c]" />
+            </button>
+          </div>
+
+          {/* Form */}
+          <div className="px-6 py-5 space-y-4">
+            {/* Nom */}
+            <div>
+              <label className="block text-[14px] font-medium text-[#78716c] mb-2">Nom du modèle <span className="text-red-400">*</span></label>
+              <input
+                type="text"
+                value={templateUploadData.nom}
+                onChange={(e) => setTemplateUploadData(prev => ({ ...prev, nom: e.target.value }))}
+                placeholder="Ex: Assignation en référé-expertise type"
+                className="w-full h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+              />
+            </div>
+
+            {/* Type d'acte */}
+            <div>
+              <label className="block text-[14px] font-medium text-[#78716c] mb-2">Type d'acte</label>
+              <select
+                value={templateUploadData.actType}
+                onChange={(e) => setTemplateUploadData(prev => ({ ...prev, actType: e.target.value }))}
+                className="w-full h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+              >
+                {actTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+
+            {/* File upload zone */}
+            <div>
+              <label className="block text-[14px] font-medium text-[#78716c] mb-2">Document <span className="text-red-400">*</span></label>
+              <div
+                className="border-2 border-dashed border-[#d6d3d1] rounded-lg p-6 text-center hover:border-[#a8a29e] transition-colors cursor-pointer"
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = '.pdf,.docx,.doc,.odt,.txt';
+                  input.onchange = (e) => {
+                    if (e.target.files[0]) {
+                      setTemplateUploadData(prev => ({ ...prev, fileName: e.target.files[0].name }));
+                    }
+                  };
+                  input.click();
+                }}
+              >
+                {templateUploadData.fileName ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <FileText className="w-5 h-5 text-[#292524]" />
+                    <span className="text-body-medium text-[#292524]">{templateUploadData.fileName}</span>
+                    <button onClick={(e) => { e.stopPropagation(); setTemplateUploadData(prev => ({ ...prev, fileName: '' })); }} className="ml-2 p-1 rounded hover:bg-[#eeece6]">
+                      <X className="w-3 h-3 text-[#78716c]" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <FileUp className="w-6 h-6 text-[#a8a29e] mx-auto mb-2" />
+                    <p className="text-body text-[#78716c]">Glissez votre fichier ici ou <span className="text-[#292524] font-medium underline">parcourir</span></p>
+                    <p className="text-caption text-[#a8a29e] mt-1">Word, PDF, ODT</p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="block text-[14px] font-medium text-[#78716c] mb-2">Notes</label>
+              <textarea
+                value={templateUploadData.notes}
+                onChange={(e) => setTemplateUploadData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Précisions sur le modèle, contexte d'utilisation…"
+                rows={3}
+                className="w-full px-3 py-2.5 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524] resize-none"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => { setTemplateUploadFormOpen(false); setTemplateUploadData({ nom: '', actType: '', notes: '', fileName: '' }); }}
+                className="px-4 py-2.5 text-body-medium text-[#78716c] rounded-lg hover:bg-[#eeece6] transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => {
+                  if (!templateUploadData.nom || !templateUploadData.fileName) return;
+                  const newTemplate = {
+                    id: `tpl-${Date.now()}`,
+                    label: templateUploadData.nom,
+                    actType: templateUploadData.actType || '',
+                    addedBy: 'Moi',
+                    addedDate: new Date().toLocaleDateString('fr-FR'),
+                    fileName: templateUploadData.fileName,
+                    notes: templateUploadData.notes,
+                  };
+                  setTemplatesLibrary(prev => [...prev, newTemplate]);
+                  setTemplateUploadFormOpen(false);
+                  setTemplateUploadData({ nom: '', actType: '', notes: '', fileName: '' });
+                  setToastMessage('Modèle ajouté à votre bibliothèque.');
+                  setTimeout(() => setToastMessage(null), 4000);
+                }}
+                disabled={!templateUploadData.nom || !templateUploadData.fileName}
+                className={`px-5 py-2.5 text-body-medium rounded-lg transition-colors ${
+                  templateUploadData.nom && templateUploadData.fileName
+                    ? 'bg-[#292524] text-white hover:bg-[#44403c]'
+                    : 'bg-[#e7e5e3] text-[#a8a29e] cursor-not-allowed'
+                }`}
+              >
+                Ajouter
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ========== RENDER MODÈLES D'ACTES LIBRARY PAGE ==========
+  const renderTemplatesLibraryPage = () => {
+    return (
+      <div className="h-screen flex relative" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: '#27272a' }}>
+        {/* Sidebar Rail */}
+        <div className="w-12 bg-white border-r border-[#e7e5e3] flex flex-col items-start flex-shrink-0">
+          <div className="w-full flex flex-col items-center justify-center py-3 border-b border-[#e7e5e3]">
+            <img src="/logo-plato.png" alt="Plato" className="w-6 h-6" />
+          </div>
+          <div className="flex-1 w-full flex flex-col gap-2 p-2">
+            <button
+              onClick={() => setCurrentPage('list')}
+              title="Mes dossiers"
+              className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'list' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+              style={{ borderRadius: 8 }}
+            >
+              <Folder className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setCurrentPage('baremes')}
+              title="Référentiels & Barèmes"
+              className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'baremes' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+              style={{ borderRadius: 8 }}
+            >
+              <Scale className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setCurrentPage('templates')}
+              title="Modèles d'actes"
+              className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'templates' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+              style={{ borderRadius: 8 }}
+            >
+              <ClipboardList className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="w-full border-t border-[#e7e5e3] p-2 flex flex-col gap-2">
+            <button
+              onClick={() => setCurrentPage('components')}
+              title="UI Components"
+              className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'components' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+              style={{ borderRadius: 8 }}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium cursor-pointer overflow-hidden" style={{ borderRadius: 12 }}>
+              MR
+            </div>
+          </div>
+        </div>
+
+        {/* Main content */}
+        <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
+          {/* Header */}
+          <div className="px-8 pt-8 pb-6">
+            <div className="flex items-center justify-between">
+              <h1 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '28px', fontWeight: 400, color: '#18181b', letterSpacing: '-0.01em' }}>
+                Modèles d'actes
+              </h1>
+              <button
+                onClick={() => { setTemplateUploadFormOpen(true); setTemplateUploadData({ nom: '', actType: '', notes: '', fileName: '' }); }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Ajouter un modèle
+              </button>
+            </div>
+            <p className="mt-2 text-[13px] text-[#78716c]">
+              Vos modèles de référence pour la rédaction d'actes. L'agent peut s'en inspirer lors de la rédaction.
+            </p>
+          </div>
+
+          {/* Table */}
+          <div className="flex-1 overflow-y-auto px-8 pb-8">
+            <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-zinc-100">
+                    <th className="px-5 py-3 text-left" style={colHeaderStyle}>Nom du modèle</th>
+                    <th className="px-5 py-3 text-left w-[120px]" style={colHeaderStyle}>Date</th>
+                    <th className="px-5 py-3 w-10"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#e7e5e3]">
+                  {templatesLibrary.map(tpl => (
+                    <tr key={tpl.id} className="bg-white hover:bg-[#fafaf9] transition-colors group">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <FileText className="w-4 h-4 text-[#a8a29e] flex-shrink-0" strokeWidth={1.5} />
+                          <span className="text-[13px] text-[#292524]">{tpl.fileName}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-[12px] text-[#a8a29e]">{tpl.addedDate}</td>
+                      <td className="px-5 py-3.5">
+                        <button
+                          onClick={() => {
+                            setTemplatesLibrary(prev => prev.filter(t => t.id !== tpl.id));
+                            setToastMessage('Modèle supprimé.');
+                            setTimeout(() => setToastMessage(null), 3000);
+                          }}
+                          className="p-1.5 rounded-lg text-[#d6d3d1] hover:text-red-400 hover:bg-[#eeece6] opacity-0 group-hover:opacity-100 transition-all"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {templatesLibrary.length === 0 && (
+                <div className="py-16 text-center">
+                  <ClipboardList className="w-8 h-8 text-[#d6d3d1] mx-auto mb-3" />
+                  <p className="text-[14px] text-[#78716c] mb-1">Aucun modèle d'acte</p>
+                  <p className="text-[12px] text-[#a8a29e]">Ajoutez vos modèles pour que l'agent puisse s'en inspirer lors de la rédaction.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Modal */}
+        {renderTemplateUploadModal()}
+      </div>
+    );
+  };
+
   // ========== RENDER IV TABLE STRUCTURES PAGE ==========
   const renderIvStructuresPage = () => {
     const prose = (text) => <p style={{ fontSize: 14, color: '#44403c', lineHeight: '24px', maxWidth: 680, marginBottom: 16 }}>{text}</p>;
@@ -15406,6 +16633,14 @@ export default function App() {
             style={{ borderRadius: 8 }}
           >
             <Scale className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setCurrentPage('templates')}
+            title="Modèles d'actes"
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'templates' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+            style={{ borderRadius: 8 }}
+          >
+            <ClipboardList className="w-4 h-4" />
           </button>
         </div>
 
@@ -16221,6 +17456,9 @@ export default function App() {
   if (currentPage === 'baremes') {
     return renderBaremesLibraryPage();
   }
+  if (currentPage === 'templates') {
+    return renderTemplatesLibraryPage();
+  }
 
   return (
     <div
@@ -16238,8 +17476,8 @@ export default function App() {
         <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
           {renderTopBar()}
           {renderContentSubHeader()}
-          <div className={`flex-1 ${currentLevel.activeTab === 'jp' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-            <div className={`${currentLevel.activeTab === 'jp' ? 'h-full' : 'min-h-full'} flex flex-col ${currentLevel.type === 'dossier' && currentLevel.activeTab !== 'jp' ? 'px-8 pt-6 pb-8' : ''}`}>{renderContent()}</div>
+          <div className={`flex-1 ${currentLevel.activeTab === 'jp' || currentLevel.type === 'acte' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+            <div className={`${currentLevel.activeTab === 'jp' || currentLevel.type === 'acte' ? 'h-full' : 'min-h-full'} flex flex-col ${currentLevel.type === 'dossier' && currentLevel.activeTab !== 'jp' ? 'px-8 pt-6 pb-8' : ''}`}>{renderContent()}</div>
           </div>
         </div>
 
@@ -16251,6 +17489,86 @@ export default function App() {
       {renderExportModal()}
       {renderSmartProcedureWizard()}
       {baremeViewerOpen && renderBaremeViewer()}
+      {renderNewActeModal()}
+
+      {/* Document preview — right side drawer with backdrop */}
+      {chatPreviewPiece && (
+        <div className="fixed inset-0 z-50 flex" onClick={() => setChatPreviewPiece(null)}>
+          {/* Backdrop */}
+          <div className="flex-1" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} />
+          {/* Drawer — slides in from right */}
+          <div
+            className="h-full bg-white flex flex-col overflow-hidden flex-shrink-0"
+            style={{ width: 520, boxShadow: '-8px 0 32px rgba(0,0,0,0.12)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-5 h-12 border-b flex items-center justify-between flex-shrink-0" style={{ borderColor: '#e7e5e3' }}>
+              <div className="flex items-center gap-2.5 min-w-0">
+                {chatPreviewPiece.index > 0 && <span className="px-2 py-0.5 bg-zinc-800 text-white text-[11px] font-medium rounded flex-shrink-0">P{chatPreviewPiece.index}</span>}
+                <span className="text-[14px] font-medium text-[#292524] truncate">{chatPreviewPiece.intitule || chatPreviewPiece.nom}</span>
+              </div>
+              <button onClick={() => setChatPreviewPiece(null)} className="p-1.5 hover:bg-[#eeece6] rounded-lg transition-colors flex-shrink-0">
+                <X className="w-4 h-4 text-[#a8a29e]" />
+              </button>
+            </div>
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Document preview */}
+              <div className="bg-[#1a1a1a] flex items-center justify-center p-8" style={{ minHeight: 320 }}>
+                <div className="bg-white rounded-lg w-full max-w-[240px] aspect-[3/4] p-6 flex flex-col" style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
+                  <div className="text-[10px] text-[#a8a29e] mb-2 uppercase tracking-wide">{chatPreviewPiece.type || 'Document'}</div>
+                  <div className="h-2.5 bg-gray-200 rounded w-3/4 mb-1.5"></div>
+                  <div className="h-2.5 bg-gray-200 rounded w-1/2 mb-5"></div>
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-1.5 bg-[#f5f5f4] rounded w-full"></div>
+                    <div className="h-1.5 bg-[#f5f5f4] rounded w-5/6"></div>
+                    <div className="h-1.5 bg-[#f5f5f4] rounded w-4/6"></div>
+                    <div className="h-1.5 bg-[#f5f5f4] rounded w-full"></div>
+                    <div className="h-1.5 bg-[#f5f5f4] rounded w-3/4"></div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t flex items-center justify-between">
+                    <span className="text-[10px] text-[#a8a29e]">Aperçu du document</span>
+                    <span className="text-[10px] text-[#a8a29e]">PDF · 2 pages</span>
+                  </div>
+                </div>
+              </div>
+              {/* Detail fields */}
+              <div className="p-5 space-y-5">
+                <div>
+                  <label className="text-[13px] font-medium text-[#292524] mb-1.5 block">Nom du document</label>
+                  <div className="px-3 py-2.5 bg-[#F8F7F5] rounded-lg text-[14px] text-[#292524] border border-[#e7e5e3]">
+                    {chatPreviewPiece.intitule || chatPreviewPiece.nom}
+                  </div>
+                  {chatPreviewPiece.nomOriginal && (
+                    <p className="mt-1.5 text-[12px] text-[#a8a29e]">{chatPreviewPiece.nomOriginal}</p>
+                  )}
+                </div>
+                <div className="flex items-center justify-between py-3 border-b border-[#f0ede8]">
+                  <span className="text-[13px] text-[#78716c]">Type</span>
+                  <span className="px-2.5 py-1 rounded-md text-[12px] font-medium" style={{ backgroundColor: '#fff0e1', color: '#c2590a' }}>
+                    {chatPreviewPiece.type || 'Document'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-3 border-b border-[#f0ede8]">
+                  <span className="text-[13px] text-[#78716c]">Date</span>
+                  <span className="text-[13px] text-[#292524]">{chatPreviewPiece.date || '—'}</span>
+                </div>
+                {chatPreviewPiece.usages && chatPreviewPiece.usages.length > 0 && (
+                  <div className="flex items-center justify-between py-3 border-b border-[#f0ede8]">
+                    <span className="text-[13px] text-[#78716c]">Postes liés</span>
+                    <div className="flex gap-1.5">
+                      {chatPreviewPiece.usages.map((u, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-zinc-800 text-white text-[11px] font-medium rounded">{u}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* JP Decision Drawer */}
       {jp.jpState.drawerDecisionId && (
