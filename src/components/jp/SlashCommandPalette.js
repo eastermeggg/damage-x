@@ -85,15 +85,8 @@ export default function SlashCommandPalette({ query, onSelect, onDismiss, scenar
           >
             <Play className="w-3 h-3 flex-shrink-0" style={{ color: '#b9703f' }} />
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: '#292524' }}>
-                  /{s.command}
-                </span>
-                <span style={{ fontSize: 12, color: '#78716c' }}>{s.label}</span>
-              </div>
-              <p style={{ fontSize: 11, color: '#a8a29e', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {s.description}
-              </p>
+              <span style={{ fontSize: 12, fontWeight: 500, color: '#292524', display: 'block' }}>{s.label}</span>
+              <span style={{ fontSize: 11, color: '#a8a29e', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.description}</span>
             </div>
           </div>
         ))}
