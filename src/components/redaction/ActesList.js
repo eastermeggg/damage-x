@@ -4,23 +4,6 @@ import EmptyState from '../EmptyState';
 
 const colHeaderStyle = { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' };
 
-const STATUS_LABELS = { brouillon: 'Brouillon', pret: 'Prêt', envoye: 'Envoyé' };
-const STATUS_COLORS = {
-  brouillon: 'bg-[#eeece6] text-[#44403c]',
-  pret: 'bg-[#dcfce7] text-[#166534]',
-  envoye: 'bg-[#dbeafe] text-[#1e3a8a]',
-};
-
-const ACT_TYPE_LABELS = {
-  assignation: 'Assignation',
-  conclusions: 'Conclusions',
-  requete: 'Requête',
-  dire: 'Dire',
-  email: 'Courrier',
-  protocole: 'Protocole',
-  'note-delibere': 'Note en délibéré',
-};
-
 export default function ActesList({ actes = [], onOpen, onNewActe, onSendPrompt }) {
   if (actes.length === 0) {
     return (
@@ -64,8 +47,6 @@ export default function ActesList({ actes = [], onOpen, onNewActe, onSendPrompt 
           <div className="flex items-center bg-white border-b border-[#e7e5e3]">
             <div className="w-[38px] h-10 shrink-0" />
             <div className="flex-1 min-w-0 px-3 py-3" style={colHeaderStyle}>Titre</div>
-            <div className="w-[140px] shrink-0 px-3 py-3" style={colHeaderStyle}>Type</div>
-            <div className="w-[110px] shrink-0 px-3 py-3" style={colHeaderStyle}>Statut</div>
             <div className="w-[120px] shrink-0 px-3 py-3" style={colHeaderStyle}>Modifié</div>
             <div className="w-[44px] shrink-0" />
           </div>
@@ -84,16 +65,6 @@ export default function ActesList({ actes = [], onOpen, onNewActe, onSendPrompt 
               {/* Title */}
               <div className="flex-1 min-w-0 px-3">
                 <span className="text-sm font-medium text-black truncate block">{acte.title}</span>
-              </div>
-              {/* Type */}
-              <div className="w-[140px] shrink-0 px-3">
-                <span className="text-sm text-[#292524]">{ACT_TYPE_LABELS[acte.actType] || acte.actType || '—'}</span>
-              </div>
-              {/* Status badge */}
-              <div className="w-[110px] shrink-0 px-3">
-                <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-md ${STATUS_COLORS[acte.status] || STATUS_COLORS.brouillon}`}>
-                  {STATUS_LABELS[acte.status] || acte.status || 'Brouillon'}
-                </span>
               </div>
               {/* Date */}
               <div className="w-[120px] shrink-0 px-3">

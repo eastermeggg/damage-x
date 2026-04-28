@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp, Focus } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, CircleArrowDown, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp, Focus } from 'lucide-react';
 import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -87,6 +87,38 @@ const IV_POSTE_CONFIG = {
   fo:   { type: 'C', columns: ['intitule', 'montant', 'payePar', 'piece'] },
   prp:  { type: 'D', columns: ['victime', 'lien', 'partIndividuelle', 'dureeIndemnisation', 'coeffCapitalisation', 'total'] },
 };
+
+// ========== PRP — AUTO-CONSOMMATION SCALES & SCENARIOS ==========
+const AUTO_CONSO_SCALES = {
+  libre:   { label: '% Libre', description: 'Pourcentage défini manuellement', weights: null },
+  ocde:    { label: 'OCDE', description: '1er adulte 1 / Conjoint 0,5 / Enfant 0,3', weights: { adult: 1, spouse: 0.5, child: 0.3 } },
+  insee:   { label: 'INSEE', description: '1er adulte 1 / Conjoint 0,5 / Enfant 14+ 0,5 / Enfant <14 0,3', weights: { adult: 1, spouse: 0.5, child14plus: 0.5, childUnder14: 0.3 } },
+  fiscale: { label: 'Fiscale', description: '1er adulte 1 / Conjoint 0,5 / Enfant 0,5', weights: { adult: 1, spouse: 0.5, child: 0.5 } },
+};
+
+const PRP_SCENARIO_MASKS = {
+  'decede-capital-echu':  { hasEchu: true,  isDecede: true,  modeDefault: 'capitalisation', label: 'Décédé + capital + échu' },
+  'decede-rente':         { hasEchu: true,  isDecede: true,  modeDefault: 'rente',          label: 'Décédé + rente' },
+  'decede-mixte':         { hasEchu: true,  isDecede: true,  modeDefault: 'capitalisation', label: 'Décédé + mixte' },
+  'decede-sans-echu':     { hasEchu: false, isDecede: true,  modeDefault: 'capitalisation', label: 'Décédé + sans échu' },
+  'blesse-capital':       { hasEchu: true,  isDecede: false, modeDefault: 'capitalisation', label: 'Blessé + capital' },
+  'blesse-rente':         { hasEchu: true,  isDecede: false, modeDefault: 'rente',          label: 'Blessé + rente' },
+};
+
+const PRP_TP_TYPES = [
+  { id: 'pension-reversion', label: 'Pension de réversion', defaultOrganisme: 'CNAV' },
+  { id: 'rente-orphelin', label: 'Rente orphelin', defaultOrganisme: 'CNAV' },
+  { id: 'allocation-veuvage', label: 'Allocation veuvage', defaultOrganisme: 'CAF' },
+  { id: 'rente-education', label: 'Rente éducation', defaultOrganisme: 'Prévoyance' },
+  { id: 'capital-deces', label: 'Capital décès', defaultOrganisme: 'CPAM' },
+  { id: 'autre', label: 'Autre', defaultOrganisme: '' },
+];
+
+const PRP_COMMAND_LIST = [
+  { command: 'prp', label: 'PRP · Démarrer', description: "Demande des documents pour calculer les Pertes de Revenus des Proches" },
+  { command: 'prp-compute', label: 'PRP · Calculer', description: "Lance la chaîne de raisonnement et remplit la cascade" },
+  { command: 'prp-alerts', label: 'PRP · Alertes', description: "Liste les zones potentiellement attaquables" },
+];
 
 // ========== BARÈMES & RÉFÉRENTIELS — DEFAULT DATA ==========
 const DEFAULT_BAREMES = [
@@ -976,9 +1008,32 @@ export default function App() {
     ]},
     // Type D — Pertes de revenus des proches (shared foyer + per-VI ventilation)
     prp: { lignes: [
-      { victimeId: 'vi-1', partIndividuelle: 50, dureeIndemnisation: 'Viager', anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 20 },
-      { victimeId: 'vi-2', partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans (7 ans)", anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 6.5 },
-      { victimeId: 'vi-3', partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans (12 ans)", anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 10 },
+      { victimeId: 'vi-1', partIndividuelle: 50, dureeIndemnisation: 'Viager', anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 20,
+        deductionsTP: [
+          { id: 'tp-vi1-1', label: 'Pension de réversion', type: 'pension-reversion', organisme: 'CNAV', montantAnnuel: 6000, pieceIds: [] },
+        ],
+        echuAnnees: [
+          { annee: 2022, indiceRevalo: 1.052 },
+          { annee: 2023, indiceRevalo: 1.029 },
+          { annee: 2024, indiceRevalo: 1.000 },
+        ],
+      },
+      { victimeId: 'vi-2', partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans (7 ans)", anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 6.5,
+        deductionsTP: [],
+        echuAnnees: [
+          { annee: 2022, indiceRevalo: 1.052 },
+          { annee: 2023, indiceRevalo: 1.029 },
+          { annee: 2024, indiceRevalo: 1.000 },
+        ],
+      },
+      { victimeId: 'vi-3', partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans (12 ans)", anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 10,
+        deductionsTP: [],
+        echuAnnees: [
+          { annee: 2022, indiceRevalo: 1.052 },
+          { annee: 2023, indiceRevalo: 1.029 },
+          { annee: 2024, indiceRevalo: 1.000 },
+        ],
+      },
     ]},
   }); // { posteId: { lignes: [...] } }
   const [ivPosteSharedData, setIvPosteSharedData] = useState({
@@ -988,11 +1043,19 @@ export default function App() {
         { id: 'prp-rev-1', source: 'Bulletin de salaire Déc 2022', periode: 'Déc 2022', netMensuel: 4000, pieceIds: [] },
         { id: 'prp-rev-2', source: 'Avis d\'imposition 2022', periode: '2022', netMensuel: 4000, pieceIds: ['p-3'] },
       ],
-      autoConsommationMethod: 'percentage',
+      revenuConjointLignes: [
+        { id: 'prp-conj-1', source: 'Bulletin conjoint Déc 2022', periode: 'Déc 2022', netMensuel: 2000, pieceIds: [] },
+      ],
+      autoConsommationMethod: 'libre',
+      partAutoConsommationLibre: 25,
+      // legacy fields kept for backward compat
       revenuConjoint: 24000,
       partAutoConsommation: 25,
       nombreParts: 3,
       revenuActuel: 1000,
+      // dates for échu calculation
+      dateAccident: '2022-03-15',
+      dateLiquidation: '2025-03-15',
     },
   }); // { [posteId]: { ... } }
   const [ivOverviewExpanded, setIvOverviewExpanded] = useState({}); // { [posteId]: boolean } — UI only
@@ -1321,9 +1384,13 @@ export default function App() {
         { id: 'fo-5', label: 'Transport du corps', totalAmount: 680, pieceIds: [], attributions: [{ viId: 'vi-1', amount: 680 }] },
       ]},
       prp: { lignes: [
-        { victimeId: 'vi-1', partIndividuelle: 50, dureeIndemnisation: 'Viager', anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 20 },
-        { victimeId: 'vi-2', partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans (7 ans)", anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 6.5 },
-        { victimeId: 'vi-3', partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans (12 ans)", anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 10 },
+        { victimeId: 'vi-1', partIndividuelle: 50, dureeIndemnisation: 'Viager', anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 20,
+          deductionsTP: [{ id: 'tp-vi1-1', label: 'Pension de réversion', type: 'pension-reversion', organisme: 'CNAV', montantAnnuel: 6000, pieceIds: [] }],
+          echuAnnees: [{ annee: 2022, indiceRevalo: 1.052 }, { annee: 2023, indiceRevalo: 1.029 }, { annee: 2024, indiceRevalo: 1.000 }] },
+        { victimeId: 'vi-2', partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans (7 ans)", anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 6.5,
+          deductionsTP: [], echuAnnees: [{ annee: 2022, indiceRevalo: 1.052 }, { annee: 2023, indiceRevalo: 1.029 }, { annee: 2024, indiceRevalo: 1.000 }] },
+        { victimeId: 'vi-3', partIndividuelle: 25, dureeIndemnisation: "Jusqu'à 25 ans (12 ans)", anneesEchues: 3, mode: 'capitalisation', coeffCapitalisation: 10,
+          deductionsTP: [], echuAnnees: [{ annee: 2022, indiceRevalo: 1.052 }, { annee: 2023, indiceRevalo: 1.029 }, { annee: 2024, indiceRevalo: 1.000 }] },
       ]},
     },
     ivPosteSharedData: {
@@ -1333,11 +1400,17 @@ export default function App() {
           { id: 'prp-rev-1', source: 'Bulletin de salaire Déc 2022', periode: 'Déc 2022', netMensuel: 4000, pieceIds: [] },
           { id: 'prp-rev-2', source: 'Avis d\'imposition 2022', periode: '2022', netMensuel: 4000, pieceIds: ['p-3'] },
         ],
-        autoConsommationMethod: 'percentage',
+        revenuConjointLignes: [
+          { id: 'prp-conj-1', source: 'Bulletin conjoint Déc 2022', periode: 'Déc 2022', netMensuel: 2000, pieceIds: [] },
+        ],
+        autoConsommationMethod: 'libre',
+        partAutoConsommationLibre: 25,
         revenuConjoint: 24000,
         partAutoConsommation: 25,
         nombreParts: 3,
         revenuActuel: 1000,
+        dateAccident: '2022-03-15',
+        dateLiquidation: '2025-03-15',
       },
     },
   };
@@ -1795,10 +1868,102 @@ export default function App() {
     .filter(cat => cat.postes.length > 0);
 
   // IV computed helpers
+  // ========== PRP COMPUTATION ENGINE ==========
+  // Pure functions — used by both rendering and getIvPosteMontant.
+  // Backward-compatible: handles legacy 'percentage' method and missing fields.
+  const computeAutoConso = (shared, vis) => {
+    const method = shared.autoConsommationMethod || 'libre';
+    if (method === 'libre' || method === 'percentage') {
+      return shared.partAutoConsommationLibre ?? shared.partAutoConsommation ?? 0;
+    }
+    if (method === 'parts') {
+      const np = shared.nombreParts || 0;
+      return np > 0 ? Math.round((1 / np) * 1000) / 10 : 0;
+    }
+    const scale = AUTO_CONSO_SCALES[method];
+    if (!scale?.weights) return 0;
+    const SPOUSE_LIENS = ['Épouse', 'Époux', 'Concubin', 'Concubine', 'Partenaire'];
+    const spouseCount = vis.filter(v => SPOUSE_LIENS.includes(v.lien)).length;
+    const childCount = vis.filter(v => v.lien === 'Enfant').length;
+    const otherCount = vis.filter(v => !SPOUSE_LIENS.includes(v.lien) && v.lien !== 'Enfant').length;
+    let totalParts = 1; // défunt = 1 part
+    totalParts += spouseCount * (scale.weights.spouse || 0.5);
+    if (method === 'insee') {
+      // INSEE: distinguish enfants 14+ et <14 — for now treat all as childUnder14 default
+      totalParts += childCount * (scale.weights.childUnder14 || 0.3);
+    } else {
+      totalParts += childCount * (scale.weights.child || 0.3);
+    }
+    totalParts += otherCount * 0.3;
+    return totalParts > 0 ? Math.round((1 / totalParts) * 1000) / 10 : 0;
+  };
+
+  const computePrpFoyer = (shared, vis) => {
+    const isDecede = shared.victimeDecedee !== false;
+    const refLignes = shared.revenuRefLignes || [];
+    const revenuRefMoyen = refLignes.length > 0
+      ? refLignes.reduce((s, l) => s + (l.netMensuel || 0), 0) / refLignes.length
+      : 0;
+    const conjLignes = shared.revenuConjointLignes || [];
+    const revenuConjointMensuel = conjLignes.length > 0
+      ? conjLignes.reduce((s, l) => s + (l.netMensuel || 0), 0) / conjLignes.length
+      : 0;
+    const revenuConjoint = conjLignes.length > 0
+      ? revenuConjointMensuel * 12
+      : (shared.revenuConjoint || 0);
+    const revenuAnnuelRef = revenuRefMoyen * 12;
+    const revenuTotal = revenuAnnuelRef + revenuConjoint;
+    const partAutoConso = computeAutoConso(shared, vis);
+    const perteAnnuelleBrute = isDecede ? revenuAnnuelRef : 0;
+    const perteAnnuelle = isDecede
+      ? revenuAnnuelRef * (1 - partAutoConso / 100)
+      : Math.max(0, revenuRefMoyen - (shared.revenuActuel || 0)) * 12;
+    return { isDecede, revenuRefMoyen, revenuConjointMensuel, revenuConjoint, revenuAnnuelRef, revenuTotal, partAutoConso, perteAnnuelleBrute, perteAnnuelle };
+  };
+
+  const computePrpLineAmounts = (l, perteAnnuelle) => {
+    const part = l.partIndividuelle || 0;
+    const perteVI = perteAnnuelle * (part / 100);
+    const totalTPAnnuel = (l.deductionsTP || []).reduce((s, d) => s + (d.montantAnnuel || 0), 0);
+    const perteVINetteTP = Math.max(0, perteVI - totalTPAnnuel);
+    const anneesEchues = l.anneesEchues || 0;
+    const echuAnnees = l.echuAnnees || [];
+    let echu;
+    let echuDetails = [];
+    if (echuAnnees.length > 0 && anneesEchues > 0) {
+      // Year-by-year: take the last `anneesEchues` years from the array
+      const yearsToUse = echuAnnees.slice(-anneesEchues);
+      echuDetails = yearsToUse.map(y => {
+        const indice = y.indiceRevalo || 1;
+        const perteRevalorisee = perteVI * indice;
+        const tpDeducted = totalTPAnnuel;
+        const net = Math.max(0, perteRevalorisee - tpDeducted);
+        return { annee: y.annee, perteBase: perteVI, indiceRevalo: indice, perteRevalorisee, deductionTP: tpDeducted, net };
+      });
+      echu = echuDetails.reduce((s, e) => s + e.net, 0);
+    } else {
+      echu = perteVINetteTP * anneesEchues;
+    }
+    const coeff = l.coeffCapitalisation || 0;
+    const mode = l.mode || 'capitalisation';
+    const aEchoir = mode === 'capitalisation' ? perteVINetteTP * coeff : 0;
+    const renteAnnuelle = mode === 'rente' ? perteVINetteTP : 0;
+    const total = mode === 'capitalisation' ? echu + aEchoir : echu;
+    return { perteVI, totalTPAnnuel, perteVINetteTP, echu, echuDetails, aEchoir, renteAnnuelle, total, mode, coeff, anneesEchues };
+  };
+
+  const computePrpTotal = (posteId) => {
+    const shared = ivPosteSharedData[posteId] || {};
+    const lignes = ivPosteData[posteId]?.lignes || [];
+    const { perteAnnuelle } = computePrpFoyer(shared, victimesIndirectes);
+    return lignes.reduce((sum, l) => sum + computePrpLineAmounts(l, perteAnnuelle).total, 0);
+  };
+
   const getIvPosteMontant = (posteId) => {
     const config = IV_POSTE_CONFIG[posteId];
     const lignes = ivPosteData[posteId]?.lignes || [];
     if (config?.type === 'C') return lignes.reduce((sum, l) => sum + (l.totalAmount || 0), 0);
+    if (config?.type === 'D') return computePrpTotal(posteId);
     return lignes.reduce((sum, l) => sum + (l.montant || 0), 0);
   };
 
@@ -3103,6 +3268,74 @@ export default function App() {
     setChatSidebarOpen(true);
   };
 
+  // ========== PRP CHAT FLOW ==========
+  const runPrpCommand = (cmd) => {
+    if (cmd === 'prp') {
+      setChatMessages(prev => [...prev, {
+        type: 'user', text: '/prp'
+      }, {
+        type: 'ai',
+        text: "Pour calculer les **Pertes de Revenus des Proches**, j'ai besoin des documents suivants :\n\n— **Acte de décès** (obligatoire)\n— **Avis d'imposition** du défunt et du conjoint (3 dernières années si possible)\n— **Bulletins de salaire** du défunt (12 derniers mois)\n— **Décompte Sécu / CARSAT** (pension de réversion, capital décès)\n— **Livret de famille** (composition du foyer)\n\nVous pouvez les déposer directement dans le chat ou taper `/prp-compute` pour lancer le calcul avec les données déjà au dossier."
+      }]);
+      return;
+    }
+    if (cmd === 'prp-compute') {
+      const shared = ivPosteSharedData['prp'] || {};
+      const lignes = ivPosteData['prp']?.lignes || [];
+      const foyer = computePrpFoyer(shared, victimesIndirectes);
+      const total = lignes.reduce((sum, l) => sum + computePrpLineAmounts(l, foyer.perteAnnuelle).total, 0);
+      const totalRente = lignes.reduce((sum, l) => sum + computePrpLineAmounts(l, foyer.perteAnnuelle).renteAnnuelle, 0);
+      const methodLabel = AUTO_CONSO_SCALES[shared.autoConsommationMethod || 'libre']?.label || '% libre';
+      const reasoning = [
+        `Revenu défunt moyen : **${fmt(Math.round(foyer.revenuRefMoyen))} / mois** = ${fmt(Math.round(foyer.revenuAnnuelRef))} / an`,
+        `Revenu conjoint : ${fmt(Math.round(foyer.revenuConjoint))} / an`,
+        `Composition du foyer : 1 défunt + ${victimesIndirectes.length} VI`,
+        `Méthode auto-consommation : **${methodLabel}** → ${foyer.partAutoConso}%`,
+        `Perte annuelle nette : ${fmt(Math.round(foyer.revenuAnnuelRef))} × (1 − ${foyer.partAutoConso}%) = **${fmt(Math.round(foyer.perteAnnuelle))} / an**`,
+        `Répartition entre ${lignes.length} bénéficiaire(s), déduction TP poste par poste`,
+        `Capitalisation : Gazette du Palais 2022, taux 1,2%`,
+      ];
+      setChatMessages(prev => [...prev, {
+        type: 'user', text: '/prp-compute'
+      }, {
+        type: 'ai',
+        text: '**Raisonnement :**\n\n— ' + reasoning.join('\n— ') + `\n\n**Résultat :** ${fmt(Math.round(total))} en capital${totalRente > 0 ? ` + ${fmt(Math.round(totalRente))} / an de rentes` : ''}.\n\nJ'ai mis à jour la cascade dans le panneau de droite. Tapez \`/prp-alerts\` pour voir les zones potentiellement attaquables.`
+      }]);
+      // Open PRP poste view
+      navigateTo({ id: 'prp', title: 'PRP', fullTitle: 'Pertes de revenus des proches', type: 'poste', montant: total });
+      return;
+    }
+    if (cmd === 'prp-alerts') {
+      const shared = ivPosteSharedData['prp'] || {};
+      const lignes = ivPosteData['prp']?.lignes || [];
+      const foyer = computePrpFoyer(shared, victimesIndirectes);
+      const alerts = [];
+      if (foyer.partAutoConso > 35) alerts.push(`⚠️ Auto-consommation à ${foyer.partAutoConso}% — supérieur à la fourchette habituelle (15-35%), attaquable.`);
+      if (foyer.partAutoConso < 15 && foyer.partAutoConso > 0) alerts.push(`ℹ️ Auto-consommation à ${foyer.partAutoConso}% — en dessous des seuils habituels.`);
+      const conjointVI = victimesIndirectes.find(v => ['Épouse','Époux','Concubin','Concubine','Partenaire'].includes(v.lien));
+      const conjointLigne = conjointVI ? lignes.find(l => l.victimeId === conjointVI.id) : null;
+      if (conjointVI && conjointLigne && !(conjointLigne.deductionsTP || []).some(d => d.type === 'pension-reversion' && (d.montantAnnuel || 0) > 0)) {
+        alerts.push(`⚠️ Pension de réversion non déclarée pour ${conjointVI.prenom} ${conjointVI.nom} — risque de rejet par la défense.`);
+      }
+      const sumParts = lignes.reduce((s, l) => s + (l.partIndividuelle || 0), 0);
+      if (sumParts !== 100 && sumParts > 0) alerts.push(`⚠️ Somme des parts : ${sumParts}% (devrait être 100%).`);
+      const missingCoeff = lignes.find(l => (l.mode || 'capitalisation') === 'capitalisation' && !l.coeffCapitalisation);
+      if (missingCoeff) {
+        const vi = victimesIndirectes.find(v => v.id === missingCoeff.victimeId);
+        if (vi) alerts.push(`⚠️ Coefficient de capitalisation manquant pour ${vi.prenom} ${vi.nom}.`);
+      }
+      setChatMessages(prev => [...prev, {
+        type: 'user', text: '/prp-alerts'
+      }, {
+        type: 'ai',
+        text: alerts.length > 0
+          ? '**Points d\'attention sur le calcul PRP :**\n\n' + alerts.map(a => '— ' + a).join('\n')
+          : '✅ Aucune zone attaquable détectée sur le calcul PRP en l\'état.'
+      }]);
+      return;
+    }
+  };
+
   // ========== CHAT SEND — handles user messages + intent detection ==========
   const handleChatSend = () => {
     const text = chatInputValue.trim();
@@ -3147,6 +3380,12 @@ export default function App() {
           setChatMessages(prev => [...prev, { type: 'ai', text: sc.agentMessage }]);
           return;
         }
+      }
+
+      // PRP commands
+      if (cmd === 'prp' || cmd === 'prp-compute' || cmd === 'prp-alerts') {
+        runPrpCommand(cmd);
+        return;
       }
 
       jp.playScenario(cmd);
@@ -3772,6 +4011,8 @@ export default function App() {
   const [chatMessages, setChatMessages] = useState([]);
   const [expandedArtifacts, setExpandedArtifacts] = useState({});
   const [stagedDocs, setStagedDocs] = useState([]);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const dragCounter = useRef(0);
   const [attachMenuOpen, setAttachMenuOpen] = useState(false); // false | 'main' | 'pieces' | 'templates'
   const [attachSearch, setAttachSearch] = useState('');
   const attachMenuRef = useRef(null);
@@ -4068,13 +4309,30 @@ export default function App() {
           <div
             className="px-3 pb-3 flex-shrink-0"
             style={{ backgroundColor: '#F8F7F5' }}
+            onDragEnter={(e) => {
+              e.preventDefault(); e.stopPropagation();
+              if (e.dataTransfer.types.includes('Files')) {
+                dragCounter.current++;
+                setIsDraggingFile(true);
+              }
+            }}
             onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onDragLeave={(e) => {
+              e.preventDefault(); e.stopPropagation();
+              dragCounter.current--;
+              if (dragCounter.current <= 0) {
+                dragCounter.current = 0;
+                setIsDraggingFile(false);
+              }
+            }}
             onDrop={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              dragCounter.current = 0;
+              setIsDraggingFile(false);
               const files = Array.from(e.dataTransfer.files);
               if (files.length > 0) {
-                setStagedDocs(prev => [...prev, ...files.map(f => ({ name: f.name, size: f.size }))]);
+                setStagedDocs(prev => [...prev, ...files.map(f => ({ name: f.name, size: f.size, file: f, source: 'upload' }))]);
               }
             }}
           >
@@ -4083,7 +4341,7 @@ export default function App() {
             {chatInputValue.startsWith('/') && (
               <SlashCommandPalette
                 query={chatInputValue.slice(1).trim()}
-                scenarios={[...require('./data/demoScenarios').SCENARIO_LIST, ...TP_COMMAND_LIST, ...REDACTION_COMMAND_LIST]}
+                scenarios={[...require('./data/demoScenarios').SCENARIO_LIST, ...TP_COMMAND_LIST, ...PRP_COMMAND_LIST, ...REDACTION_COMMAND_LIST]}
                 onSelect={(cmd) => {
                   setChatInputValue('');
                   if (cmd.startsWith('redaction')) {
@@ -4113,6 +4371,8 @@ export default function App() {
                         setChatMessages(prev => [...prev, { type: 'ai', text: sc.agentMessage }]);
                       }
                     }
+                  } else if (cmd === 'prp' || cmd === 'prp-compute' || cmd === 'prp-alerts') {
+                    runPrpCommand(cmd);
                   } else {
                     jp.playScenario(cmd);
                   }
@@ -4154,6 +4414,30 @@ export default function App() {
                         <X className="w-3 h-3 text-[#3b82f6]" strokeWidth={2.5} />
                       </button>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Drop zone — visible when dragging files over the chat */}
+              {isDraggingFile && (
+                <div className="pt-3 px-3">
+                  <div
+                    style={{
+                      border: '1px dashed #a8a29e',
+                      borderRadius: 8,
+                      height: 64,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 10,
+                      background: 'linear-gradient(to top, rgba(238,236,230,0) 50%, #eeece6 100%)',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <CircleArrowDown className="w-5 h-5 text-[#292524]" />
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: '#292524' }}>
+                      Déposez vos fichiers ici
+                    </span>
                   </div>
                 </div>
               )}
@@ -5837,16 +6121,68 @@ export default function App() {
                       <input type="text" id="iv-ligne-duree" defaultValue={data?.dureeIndemnisation || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="Ex : Viager, jusqu'à 25 ans..." />
                     </div>
                     <div>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Mode</h4>
+                      <select id="iv-ligne-mode" defaultValue={data?.mode || 'capitalisation'} className="w-full px-3 py-2 border rounded-lg bg-white">
+                        <option value="capitalisation">Capital</option>
+                        <option value="rente">Rente annuelle</option>
+                      </select>
+                    </div>
+                    <div>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Années échues</h4>
+                      <input type="number" id="iv-ligne-annees" defaultValue={data?.anneesEchues ?? 0} className="w-full px-3 py-2 border rounded-lg" placeholder="0" step="1" min="0" />
+                    </div>
+                    <div>
                       <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Coefficient de capitalisation</h4>
                       <input type="number" id="iv-ligne-coeff" defaultValue={data?.coeffCapitalisation || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="0" step="0.1" min="0" />
+                      <p className="mt-2" style={{ fontSize: 11, color: '#78716c' }}>
+                        Réf : Gazette du Palais 2022, table A, taux 1,2 % — Cass. 2e civ. 14 nov. 2019 n°18-22.969
+                      </p>
                     </div>
                     {data?.perteAnnuelle > 0 && (data?.partIndividuelle > 0 || data?.coeffCapitalisation > 0) && (
-                      <div className="p-3 bg-[#fafaf9] rounded-lg border border-[#e7e5e3]">
-                        <span style={{ fontSize: 12, color: '#78716c' }}>
-                          Calcul : {fmt(data.perteAnnuelle)} x {data.partIndividuelle || 0}% x {data.coeffCapitalisation || 0} = {fmt(data.perteAnnuelle * (data.partIndividuelle / 100) * data.coeffCapitalisation)}
-                        </span>
+                      <div className="p-3 bg-[#fafaf9] rounded-lg border border-[#e7e5e3] space-y-1">
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#44403c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Formule</div>
+                        <div style={{ fontSize: 12, color: '#78716c', fontFamily: "'IBM Plex Mono', monospace" }}>
+                          Perte VI = {fmt(data.perteAnnuelle)} × {data.partIndividuelle || 0}% = {fmt(data.perteAnnuelle * ((data.partIndividuelle || 0) / 100))}
+                        </div>
+                        {(data.mode || 'capitalisation') === 'capitalisation' && (
+                          <div style={{ fontSize: 12, color: '#78716c', fontFamily: "'IBM Plex Mono', monospace" }}>
+                            À échoir = Perte VI × {data.coeffCapitalisation || 0} = {fmt(data.perteAnnuelle * ((data.partIndividuelle || 0) / 100) * (data.coeffCapitalisation || 0))}
+                          </div>
+                        )}
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Panel IV ligne TP — Type D (déduction tiers payeur per VI) */}
+                {editPanel.type === 'iv-ligne-d-tp' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Type de déduction</h4>
+                      <select id="iv-tp-type" defaultValue={data?.type || 'pension-reversion'} className="w-full px-3 py-2 border rounded-lg bg-white">
+                        {PRP_TP_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Libellé</h4>
+                      <input type="text" id="iv-tp-label" defaultValue={data?.label || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="Pension de réversion" />
+                    </div>
+                    <div>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Organisme</h4>
+                      <input type="text" id="iv-tp-organisme" defaultValue={data?.organisme || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="CNAV, AGIRC-ARRCO, CAF..." />
+                    </div>
+                    <div>
+                      <h4 className="text-body-medium font-semibold text-[#292524] mb-3 pb-2 border-b">Montant annuel</h4>
+                      <div className="relative">
+                        <input type="number" id="iv-tp-montant" defaultValue={data?.montantAnnuel || ''} className="w-full px-3 py-2 border rounded-lg pr-12" placeholder="0" step="100" min="0" />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] text-body">€/an</span>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-[#fafaf9] rounded-lg border border-[#e7e5e3]">
+                      <span style={{ fontSize: 11, color: '#78716c' }}>
+                        Imputation poste par poste — Cass. 2e civ. 16 mai 2013. La déduction s'applique à la perte indemnisable de cette VI.
+                      </span>
+                    </div>
                   </div>
                 )}
 
@@ -6889,16 +7225,47 @@ export default function App() {
                   <button onClick={() => {
                     const partIndividuelle = parseFloat(document.getElementById('iv-ligne-part')?.value) || 0;
                     const dureeIndemnisation = document.getElementById('iv-ligne-duree')?.value || '';
+                    const mode = document.getElementById('iv-ligne-mode')?.value || 'capitalisation';
+                    const anneesEchues = parseInt(document.getElementById('iv-ligne-annees')?.value, 10) || 0;
                     const coeffCapitalisation = parseFloat(document.getElementById('iv-ligne-coeff')?.value) || 0;
-                    const { victimeId, posteId, perteAnnuelle } = data;
-                    const montant = perteAnnuelle * (partIndividuelle / 100) * coeffCapitalisation;
+                    const { victimeId, posteId } = data;
                     setIvPosteData(prev => {
                       const existing = prev[posteId]?.lignes || [];
                       const ligneIdx = existing.findIndex(l => l.victimeId === victimeId);
-                      const newLigne = { victimeId, montant, partIndividuelle, dureeIndemnisation, coeffCapitalisation };
+                      const prevLigne = ligneIdx >= 0 ? existing[ligneIdx] : { victimeId };
+                      const newLigne = { ...prevLigne, victimeId, partIndividuelle, dureeIndemnisation, mode, anneesEchues, coeffCapitalisation };
                       const newLignes = ligneIdx >= 0
                         ? existing.map((l, i) => i === ligneIdx ? newLigne : l)
                         : [...existing, newLigne];
+                      return { ...prev, [posteId]: { ...prev[posteId], lignes: newLignes } };
+                    });
+                    setEditPanel(null);
+                  }} className="px-4 py-2 bg-[#292524] text-white rounded-lg hover:bg-[#44403c] text-body-medium transition-colors">Enregistrer</button>
+                </div>
+              )}
+              {/* IV ligne TP save — Type D (déduction TP per VI) */}
+              {editPanel.type === 'iv-ligne-d-tp' && (
+                <div className="px-5 py-4 flex justify-end gap-2">
+                  <button onClick={() => setEditPanel(null)} className="px-4 py-2 text-[#44403c] hover:bg-[#f5f5f4] rounded-lg text-body-medium transition-colors">Annuler</button>
+                  <button onClick={() => {
+                    const type = document.getElementById('iv-tp-type')?.value || 'pension-reversion';
+                    const label = document.getElementById('iv-tp-label')?.value || '';
+                    const organisme = document.getElementById('iv-tp-organisme')?.value || '';
+                    const montantAnnuel = parseFloat(document.getElementById('iv-tp-montant')?.value) || 0;
+                    const { victimeId, posteId, id: tpId } = data;
+                    setIvPosteData(prev => {
+                      const existing = prev[posteId]?.lignes || [];
+                      const ligneIdx = existing.findIndex(l => l.victimeId === victimeId);
+                      if (ligneIdx < 0) return prev;
+                      const prevLigne = existing[ligneIdx];
+                      const tpList = prevLigne.deductionsTP || [];
+                      const tpIdx = tpList.findIndex(t => t.id === tpId);
+                      const newTP = { id: tpId, type, label, organisme, montantAnnuel, pieceIds: data.pieceIds || [] };
+                      const newTpList = tpIdx >= 0
+                        ? tpList.map((t, i) => i === tpIdx ? newTP : t)
+                        : [...tpList, newTP];
+                      const newLigne = { ...prevLigne, deductionsTP: newTpList };
+                      const newLignes = existing.map((l, i) => i === ligneIdx ? newLigne : l);
                       return { ...prev, [posteId]: { ...prev[posteId], lignes: newLignes } };
                     });
                     setEditPanel(null);
@@ -11038,180 +11405,255 @@ export default function App() {
                 );
               })()}
 
-              {/* ===== TYPE D: toggle + revenu ref + calcul perte + ventilation ===== */}
+              {/* ===== TYPE D: PRP — 6-level cascade (Revenu → Calcul → Répartition → TP → Échu → À échoir → Total) ===== */}
               {config.type === 'D' && (() => {
                 const shared = ivPosteSharedData[ivPosteId] || {};
-                const isDecede = shared.victimeDecedee !== false;
-                const revenuRefLignes = shared.revenuRefLignes || [];
-                const revenuRefMoyen = revenuRefLignes.length > 0
-                  ? revenuRefLignes.reduce((s, l) => s + (l.netMensuel || 0), 0) / revenuRefLignes.length
-                  : 0;
-                const revenuConjoint = shared.revenuConjoint || 0;
-                const revenuAnnuelRef = revenuRefMoyen * 12;
-                const revenuTotal = revenuAnnuelRef + revenuConjoint;
-                const autoMethod = shared.autoConsommationMethod || 'percentage';
-                const nombreParts = shared.nombreParts || 0;
-                const partAutoConsommation = autoMethod === 'parts' && nombreParts > 0
-                  ? Math.round((1 / nombreParts) * 1000) / 10
-                  : (shared.partAutoConsommation || 0);
-                const perteAnnuelleBrute = isDecede ? revenuAnnuelRef : 0;
-                const perteAnnuelle = isDecede
-                  ? revenuAnnuelRef * (1 - partAutoConsommation / 100)
-                  : Math.max(0, revenuRefMoyen - (shared.revenuActuel || 0)) * 12;
+                const refLignes = shared.revenuRefLignes || [];
+                const conjLignes = shared.revenuConjointLignes || [];
+                const foyer = computePrpFoyer(shared, victimesIndirectes);
+                const { isDecede, revenuRefMoyen, revenuConjointMensuel, revenuConjoint, revenuAnnuelRef, revenuTotal, partAutoConso, perteAnnuelle } = foyer;
+                const mask = PRP_SCENARIO_MASKS[prpUseCase] || PRP_SCENARIO_MASKS['decede-capital-echu'];
+                const showRepartition = victimesIndirectes.length > 1;
                 const sumParts = ivLignes.reduce((s, l) => s + (l.partIndividuelle || 0), 0);
-                const partsWarning = isDecede && (sumParts + partAutoConsommation) !== 100 && sumParts > 0;
-                const computeLineAmounts = (l) => {
-                  const part = l.partIndividuelle || 0;
-                  const perteVI = perteAnnuelle * (part / 100);
-                  const anneesEchues = l.anneesEchues || 0;
-                  const echu = perteVI * anneesEchues;
-                  const coeff = l.coeffCapitalisation || 0;
-                  const mode = l.mode || 'capitalisation';
-                  const aEchoir = mode === 'capitalisation' ? perteVI * coeff : 0;
-                  const total = mode === 'capitalisation' ? echu + aEchoir : echu;
-                  return { perteVI, echu, aEchoir, total, mode, coeff, anneesEchues };
-                };
-                const totalDistribue = ivLignes.reduce((s, l) => s + computeLineAmounts(l).total, 0);
+                const partsWarning = isDecede && sumParts > 0 && sumParts !== 100;
+                const autoConsoWarning = isDecede && (partAutoConso > 35 || partAutoConso < 15) && partAutoConso > 0;
+
+                // Per-VI computed amounts
+                const viData = victimesIndirectes.map(vi => {
+                  const ligne = ivLignes.find(l => l.victimeId === vi.id);
+                  if (!ligne) return null;
+                  return { vi, ligne, amounts: computePrpLineAmounts(ligne, perteAnnuelle) };
+                }).filter(Boolean);
+
+                const totalEchu = viData.reduce((s, d) => s + d.amounts.echu, 0);
+                const totalAEchoir = viData.reduce((s, d) => s + d.amounts.aEchoir, 0);
+                const totalDistribue = viData.reduce((s, d) => s + d.amounts.total, 0);
+                const totalRenteAnnuelle = viData.reduce((s, d) => s + d.amounts.renteAnnuelle, 0);
+                const totalTPAllVI = viData.reduce((s, d) => s + d.amounts.totalTPAnnuel, 0);
+                const hasMixedMode = viData.some(d => d.amounts.mode === 'capitalisation') && viData.some(d => d.amounts.mode === 'rente');
+                const hasRente = viData.some(d => d.amounts.mode === 'rente');
+                const showEchu = mask.hasEchu && ivLignes.some(l => (l.anneesEchues || 0) > 0);
+
+                // Conjoint missing pension de réversion warning
+                const conjointVI = victimesIndirectes.find(v => ['Épouse','Époux','Concubin','Concubine','Partenaire'].includes(v.lien));
+                const conjointLigne = conjointVI ? ivLignes.find(l => l.victimeId === conjointVI.id) : null;
+                const conjointMissingTP = isDecede && conjointVI && conjointLigne
+                  && !(conjointLigne.deductionsTP || []).some(d => d.type === 'pension-reversion' && (d.montantAnnuel || 0) > 0);
 
                 const updateShared = (updates) => setIvPosteSharedData(prev => ({
                   ...prev, [ivPosteId]: { ...prev[ivPosteId], ...updates }
                 }));
 
-                const addRevenuRef = () => updateShared({
-                  revenuRefLignes: [...revenuRefLignes, { id: crypto.randomUUID(), source: '', periode: '', netMensuel: 0, pieceIds: [] }]
-                });
+                const addRevenuRow = (type) => {
+                  const key = type === 'conjoint' ? 'revenuConjointLignes' : 'revenuRefLignes';
+                  const existing = shared[key] || [];
+                  updateShared({ [key]: [...existing, { id: crypto.randomUUID(), source: '', periode: '', netMensuel: 0, pieceIds: [] }] });
+                };
+                const deleteRevenuRow = (type, id) => {
+                  const key = type === 'conjoint' ? 'revenuConjointLignes' : 'revenuRefLignes';
+                  updateShared({ [key]: (shared[key] || []).filter(l => l.id !== id) });
+                };
+                const updateLigne = (victimeId, updates) => {
+                  setIvPosteData(prev => ({
+                    ...prev,
+                    [ivPosteId]: {
+                      ...prev[ivPosteId],
+                      lignes: prev[ivPosteId].lignes.map(l => l.victimeId === victimeId ? { ...l, ...updates } : l)
+                    }
+                  }));
+                };
+                const addTPDeduction = (victimeId) => {
+                  const ligne = ivLignes.find(l => l.victimeId === victimeId);
+                  if (!ligne) return;
+                  const newTP = { id: crypto.randomUUID(), label: 'Pension de réversion', type: 'pension-reversion', organisme: 'CNAV', montantAnnuel: 0, pieceIds: [] };
+                  updateLigne(victimeId, { deductionsTP: [...(ligne.deductionsTP || []), newTP] });
+                };
+                const deleteTPDeduction = (victimeId, tpId) => {
+                  const ligne = ivLignes.find(l => l.victimeId === victimeId);
+                  if (!ligne) return;
+                  updateLigne(victimeId, { deductionsTP: (ligne.deductionsTP || []).filter(t => t.id !== tpId) });
+                };
 
-                const updateRevenuRef = (ligneId, field, value) => updateShared({
-                  revenuRefLignes: revenuRefLignes.map(l => l.id === ligneId ? { ...l, [field]: value } : l)
-                });
-
-                const deleteRevenuRef = (ligneId) => updateShared({
-                  revenuRefLignes: revenuRefLignes.filter(l => l.id !== ligneId)
-                });
+                const renderRevenuTable = (title, lignes, type, mensuel) => (
+                  <div className={cardBlockClass + ' mb-3'}>
+                    <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard(`iv-${ivPosteId}-d-rev-${type}`)}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                          <Wallet className="w-3.5 h-3.5 text-[#78716c]" />
+                        </div>
+                        <span className="text-[14px] font-medium text-[#292524]">{title}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {mensuel > 0 ? (
+                          <span style={serifAmountStyle} className="text-[#292524]">{fmt(Math.round(mensuel))}<span className="text-[14px] text-[#78716c] ml-1">/ mois</span></span>
+                        ) : (
+                          <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
+                        )}
+                        {isIvCardExpanded(`iv-${ivPosteId}-d-rev-${type}`) ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+                      </div>
+                    </div>
+                    {isIvCardExpanded(`iv-${ivPosteId}-d-rev-${type}`) && (<>
+                      <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                        <div className="w-[52px] pl-3" />
+                        <div className="flex-1 px-3"><span style={colHeaderStyle}>Source</span></div>
+                        <div className="w-[110px] px-3"><span style={colHeaderStyle}>Période</span></div>
+                        <div className="w-[130px] px-3 text-right"><span style={colHeaderStyle}>Net mensuel</span></div>
+                        <div className="w-[40px]" />
+                      </div>
+                      {lignes.map((ligne) => (
+                        <div key={ligne.id} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group hover:bg-[#fafaf9] transition-colors">
+                          <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
+                            {ligne.pieceIds?.length > 0 ? (
+                              <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md">
+                                <FileText className="w-4 h-4 text-[#2563eb]" />
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] rounded-md border border-dashed border-[#e7e5e3]">
+                                <FileText className="w-3.5 h-3.5 text-[#d6d3d1]" />
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 px-3"><span className="truncate block" style={{ fontSize: 14, color: ligne.source ? '#292524' : '#a8a29e' }}>{ligne.source || '—'}</span></div>
+                          <div className="w-[110px] px-3"><span style={{ fontSize: 14, color: ligne.periode ? '#292524' : '#a8a29e' }}>{ligne.periode || '—'}</span></div>
+                          <div className="w-[130px] px-3 text-right"><span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(ligne.netMensuel || 0)}</span></div>
+                          <div className="w-[40px] flex items-center justify-center">
+                            <button onClick={() => deleteRevenuRow(type, ligne.id)} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all">
+                              <Trash2 className="w-3.5 h-3.5 text-[#a8a29e] hover:text-red-500" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {lignes.length === 0 && (
+                        <div className="p-6 text-center"><span className="text-body text-[#a8a29e]">Aucun revenu renseigné</span></div>
+                      )}
+                      {lignes.length > 0 && (
+                        <div className="flex items-center justify-between h-10 px-4 border-t border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                          <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}>Moyenne mensuelle</span>
+                          <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(mensuel)}</span>
+                        </div>
+                      )}
+                      <button onClick={() => addRevenuRow(type)} className="w-full flex items-center gap-2 px-4 py-2.5 text-body-medium text-[#1e3a8a] hover:bg-[#fafaf9] transition-colors border-t border-[#e7e5e3]">
+                        <Plus className="w-4 h-4" />Ajouter un revenu
+                      </button>
+                    </>)}
+                  </div>
+                );
 
                 return (
                   <>
-                    {/* Use case preset selector */}
-                    <div className="flex items-center gap-2 mb-4">
-                      <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', letterSpacing: '0.02em' }}>Scénario</span>
-                      <select
-                        value={prpUseCase}
-                        onChange={(e) => {
-                          const uc = e.target.value;
-                          setPrpUseCase(uc);
-                          const isDec = uc.startsWith('decede');
-                          const hasEchu = !uc.includes('sans-echu');
-                          const anneesVal = hasEchu ? 3 : 0;
-                          const modeMap = {
-                            'decede-capital-echu': ['capitalisation', 'capitalisation', 'capitalisation'],
-                            'decede-rente': ['rente', 'rente', 'rente'],
-                            'decede-mixte': ['capitalisation', 'rente', 'rente'],
-                            'decede-sans-echu': ['capitalisation', 'capitalisation', 'capitalisation'],
-                            'blesse-capital': ['capitalisation', 'capitalisation', 'capitalisation'],
-                            'blesse-rente': ['rente', 'rente', 'rente'],
-                          };
-                          const modes = modeMap[uc] || ['capitalisation', 'capitalisation', 'capitalisation'];
-                          updateShared({ victimeDecedee: isDec, revenuActuel: isDec ? 0 : 1000 });
-                          setIvPosteData(prev => ({
-                            ...prev,
-                            [ivPosteId]: {
-                              ...prev[ivPosteId],
-                              lignes: (prev[ivPosteId]?.lignes || []).map((l, i) => ({
-                                ...l, mode: modes[i] || modes[0], anneesEchues: anneesVal,
-                              }))
-                            }
-                          }));
-                        }}
-                        className="text-caption px-2.5 py-1.5 border border-[#e7e5e3] rounded-lg bg-white text-[#292524] focus:outline-none focus:ring-1 focus:ring-[#292524]"
-                      >
-                        <option value="decede-capital-echu">Décédé + capital + échu</option>
-                        <option value="decede-rente">Décédé + rente</option>
-                        <option value="decede-mixte">Décédé + mixte</option>
-                        <option value="decede-sans-echu">Décédé + sans échu</option>
-                        <option value="blesse-capital">Blessé + capital</option>
-                        <option value="blesse-rente">Blessé + rente</option>
-                      </select>
+                    {/* Header — scenario selector + scenario badge */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c', letterSpacing: '0.02em' }}>Scénario</span>
+                        <select
+                          value={prpUseCase}
+                          onChange={(e) => {
+                            const uc = e.target.value;
+                            const nextMask = PRP_SCENARIO_MASKS[uc] || PRP_SCENARIO_MASKS['decede-capital-echu'];
+                            setPrpUseCase(uc);
+                            const anneesVal = nextMask.hasEchu ? 3 : 0;
+                            const modeMap = {
+                              'decede-capital-echu': ['capitalisation', 'capitalisation', 'capitalisation'],
+                              'decede-rente': ['rente', 'rente', 'rente'],
+                              'decede-mixte': ['capitalisation', 'rente', 'rente'],
+                              'decede-sans-echu': ['capitalisation', 'capitalisation', 'capitalisation'],
+                              'blesse-capital': ['capitalisation', 'capitalisation', 'capitalisation'],
+                              'blesse-rente': ['rente', 'rente', 'rente'],
+                            };
+                            const modes = modeMap[uc] || [nextMask.modeDefault, nextMask.modeDefault, nextMask.modeDefault];
+                            updateShared({ victimeDecedee: nextMask.isDecede, revenuActuel: nextMask.isDecede ? 0 : 1000 });
+                            setIvPosteData(prev => ({
+                              ...prev,
+                              [ivPosteId]: {
+                                ...prev[ivPosteId],
+                                lignes: (prev[ivPosteId]?.lignes || []).map((l, i) => ({
+                                  ...l, mode: modes[i] || modes[0], anneesEchues: anneesVal,
+                                }))
+                              }
+                            }));
+                          }}
+                          className="text-caption px-2.5 py-1.5 border border-[#e7e5e3] rounded-lg bg-white text-[#292524] focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                        >
+                          {Object.entries(PRP_SCENARIO_MASKS).map(([key, m]) => (
+                            <option key={key} value={key}>{m.label}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
-                    {/* TABLE 1 — Revenu de référence */}
+                    {/* ════════ Card 1 — Revenu de référence (foyer) ════════ */}
                     <div className={cardBlockClass + ' mb-4'}>
-                      <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard(`iv-${ivPosteId}-d-revref`)}>
+                      <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard(`iv-${ivPosteId}-d-revenu`)}>
                         <div className="flex items-center gap-3">
                           <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
-                            <Calculator className="w-3.5 h-3.5 text-[#78716c]" />
+                            <Wallet className="w-3.5 h-3.5 text-[#78716c]" />
                           </div>
                           <span className="text-[14px] font-medium text-[#292524]">Revenu de référence</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          {revenuRefMoyen > 0 ? (
-                            <span style={serifAmountStyle} className="text-[#292524]">{fmt(Math.round(revenuRefMoyen))}<span className="text-[14px] text-[#78716c] ml-1">/ mois</span></span>
+                          {revenuTotal > 0 ? (
+                            <span style={serifAmountStyle} className="text-[#292524]">{fmt(Math.round(revenuTotal))}<span className="text-[14px] text-[#78716c] ml-1">/ an</span></span>
                           ) : (
                             <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
                           )}
-                          {isIvCardExpanded(`iv-${ivPosteId}-d-revref`) ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+                          {isIvCardExpanded(`iv-${ivPosteId}-d-revenu`) ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
                         </div>
                       </div>
-                      {isIvCardExpanded(`iv-${ivPosteId}-d-revref`) && (<>
-                        <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
-                          <div className="w-[52px] pl-3" />
-                          <div className="flex-1 px-3"><span style={colHeaderStyle}>Source</span></div>
-                          <div className="w-[110px] px-3"><span style={colHeaderStyle}>Période</span></div>
-                          <div className="w-[130px] px-3 text-right"><span style={colHeaderStyle}>Net mensuel</span></div>
+                      {isIvCardExpanded(`iv-${ivPosteId}-d-revenu`) && (
+                        <div>
+                          {/* Sub-block 1: Défunt */}
+                          <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Défunt</span>
+                            <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmt(Math.round(revenuRefMoyen))} / mois</span>
+                          </div>
+                          {refLignes.map((ligne) => (
+                            <div key={ligne.id} className="flex items-center h-10 px-4 border-b border-[#e7e5e3] last:border-b-0 group hover:bg-[#fafaf9]">
+                              <FileText className={`w-3.5 h-3.5 mr-2 ${ligne.pieceIds?.length > 0 ? 'text-[#2563eb]' : 'text-[#d6d3d1]'}`} />
+                              <span className="flex-1 truncate" style={{ fontSize: 13, color: ligne.source ? '#292524' : '#a8a29e' }}>{ligne.source || '—'}</span>
+                              <span className="w-[80px] text-right" style={{ fontSize: 13, color: '#78716c' }}>{ligne.periode || '—'}</span>
+                              <span className="w-[100px] text-right" style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmt(ligne.netMensuel || 0)}</span>
+                              <button onClick={() => deleteRevenuRow('ref', ligne.id)} className="ml-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded">
+                                <Trash2 className="w-3.5 h-3.5 text-[#a8a29e] hover:text-red-500" />
+                              </button>
+                            </div>
+                          ))}
+                          <button onClick={() => addRevenuRow('ref')} className="w-full flex items-center gap-2 px-4 py-2 text-body-medium text-[#1e3a8a] hover:bg-[#fafaf9] border-b border-[#e7e5e3]">
+                            <Plus className="w-3.5 h-3.5" />Ajouter un revenu défunt
+                          </button>
+
+                          {/* Sub-block 2: Conjoint (only when décédé) */}
+                          {isDecede && (<>
+                            <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+                              <span style={{ fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Conjoint survivant</span>
+                              <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmt(Math.round(revenuConjointMensuel))} / mois</span>
+                            </div>
+                            {conjLignes.map((ligne) => (
+                              <div key={ligne.id} className="flex items-center h-10 px-4 border-b border-[#e7e5e3] last:border-b-0 group hover:bg-[#fafaf9]">
+                                <FileText className={`w-3.5 h-3.5 mr-2 ${ligne.pieceIds?.length > 0 ? 'text-[#2563eb]' : 'text-[#d6d3d1]'}`} />
+                                <span className="flex-1 truncate" style={{ fontSize: 13, color: ligne.source ? '#292524' : '#a8a29e' }}>{ligne.source || '—'}</span>
+                                <span className="w-[80px] text-right" style={{ fontSize: 13, color: '#78716c' }}>{ligne.periode || '—'}</span>
+                                <span className="w-[100px] text-right" style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmt(ligne.netMensuel || 0)}</span>
+                                <button onClick={() => deleteRevenuRow('conjoint', ligne.id)} className="ml-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded">
+                                  <Trash2 className="w-3.5 h-3.5 text-[#a8a29e] hover:text-red-500" />
+                                </button>
+                              </div>
+                            ))}
+                            <button onClick={() => addRevenuRow('conjoint')} className="w-full flex items-center gap-2 px-4 py-2 text-body-medium text-[#1e3a8a] hover:bg-[#fafaf9]">
+                              <Plus className="w-3.5 h-3.5" />Ajouter un revenu conjoint
+                            </button>
+                          </>)}
                         </div>
-                        {revenuRefLignes.map((ligne, idx) => (
-                          <div key={ligne.id} className={`relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors`}>
-                            <div className="w-[52px] flex items-center justify-center flex-shrink-0 pl-3">
-                              {ligne.pieceIds?.length > 0 ? (
-                                <span className="inline-flex items-center justify-center w-7 h-7 bg-[#DFE8F5] rounded-md relative">
-                                  <FileText className="w-4 h-4 text-[#2563eb]" />
-                                  {ligne.pieceIds.length > 1 && <span className="absolute -top-1.5 left-[18px] min-w-[16px] h-4 bg-[#1e3a8a] text-white text-counter font-medium rounded-full flex items-center justify-center border-2 border-white px-0.5">{ligne.pieceIds.length}</span>}
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center justify-center w-7 h-7 bg-[#F8F7F5] rounded-md border border-dashed border-[#e7e5e3]">
-                                  <FileText className="w-3.5 h-3.5 text-[#d6d3d1]" />
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex-1 px-3">
-                              <span className="truncate block" style={{ fontSize: 14, color: ligne.source ? '#292524' : '#a8a29e' }}>{ligne.source || '—'}</span>
-                            </div>
-                            <div className="w-[110px] px-3">
-                              <span style={{ fontSize: 14, color: ligne.periode ? '#292524' : '#a8a29e' }}>{ligne.periode || '—'}</span>
-                            </div>
-                            <div className="w-[130px] px-3 text-right">
-                              <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(ligne.netMensuel || 0)}</span>
-                            </div>
-                          </div>
-                        ))}
-                        {revenuRefLignes.length === 0 && (
-                          <div className="p-6 text-center">
-                            <span className="text-body text-[#a8a29e]">Aucun revenu de référence</span>
-                          </div>
-                        )}
-                        {revenuRefLignes.length > 0 && (
-                          <div className="flex items-center justify-between h-10 px-4 border-t border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
-                            <span style={{ fontSize: 12, fontWeight: 500, color: '#78716c' }}>Moyenne mensuelle</span>
-                            <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(revenuRefMoyen)}</span>
-                          </div>
-                        )}
-                        <button
-                          onClick={addRevenuRef}
-                          className="w-full flex items-center gap-2 px-4 py-2.5 text-body-medium text-[#1e3a8a] hover:bg-[#fafaf9] transition-colors border-t border-[#e7e5e3]"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Ajouter un revenu
-                        </button>
-                      </>)}
+                      )}
                     </div>
 
-                    {/* TABLE 2 — Calcul de la perte */}
+                    {/* ════════ Card 2 — Calcul de la perte (foyer) ════════ */}
                     <div className={cardBlockClass + ' mb-4'}>
                       <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard(`iv-${ivPosteId}-d-calcul`)}>
                         <div className="flex items-center gap-3">
                           <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
                             <Calculator className="w-3.5 h-3.5 text-[#78716c]" />
                           </div>
-                          <span className="text-[14px] font-medium text-[#292524]">Calcul de la perte</span>
+                          <span className="text-[14px] font-medium text-[#292524]">Perte annuelle nette</span>
                         </div>
                         <div className="flex items-center gap-2">
                           {perteAnnuelle > 0 ? (
@@ -11223,227 +11665,192 @@ export default function App() {
                         </div>
                       </div>
                       {isIvCardExpanded(`iv-${ivPosteId}-d-calcul`) && (
-                      <div className="p-4 space-y-3">
-                        {/* Revenu de référence — auto from Table 1 */}
-                        <div className="flex items-center justify-between">
-                          <span style={{ fontSize: 13, color: '#78716c' }}>{isDecede ? 'Revenu de référence annuel' : 'Revenu de référence mensuel'}</span>
-                          <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(isDecede ? revenuAnnuelRef : revenuRefMoyen)}</span>
-                        </div>
-
-                        {isDecede ? (
-                          <>
-                            {/* Décédé mode */}
+                        <div className="p-4 space-y-2">
+                          {isDecede ? (<>
                             <div className="flex items-center justify-between">
-                              <span style={{ fontSize: 13, color: '#78716c' }}>Revenu annuel du conjoint survivant</span>
-                              <span style={{ fontSize: 14, color: '#292524' }}>{fmt(revenuConjoint)}</span>
+                              <span style={{ fontSize: 13, color: '#78716c' }}>Méthode auto-consommation</span>
+                              <select
+                                value={shared.autoConsommationMethod || 'libre'}
+                                onChange={(e) => updateShared({ autoConsommationMethod: e.target.value })}
+                                className="text-caption px-2 py-1 border border-[#e7e5e3] rounded-md bg-white text-[#292524]"
+                              >
+                                {Object.entries(AUTO_CONSO_SCALES).map(([key, s]) => (
+                                  <option key={key} value={key}>{s.label}</option>
+                                ))}
+                              </select>
                             </div>
-                            <div className="flex items-center justify-between py-1 border-t border-[#e7e5e3]">
-                              <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>Revenu total du foyer</span>
-                              <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(revenuTotal)}</span>
-                            </div>
-
-                            <div className="flex items-center justify-between pt-2">
-                              <span style={{ fontSize: 13, color: '#78716c' }}>Méthode de calcul</span>
-                              <span style={{ fontSize: 14, color: '#292524' }}>{autoMethod === 'percentage' ? '% libre' : 'Par parts'}</span>
-                            </div>
-
-                            {autoMethod === 'parts' && (
+                            {(shared.autoConsommationMethod || 'libre') === 'libre' ? (
                               <div className="flex items-center justify-between">
-                                <span style={{ fontSize: 13, color: '#78716c' }}>Nombre de parts</span>
-                                <span style={{ fontSize: 14, color: '#292524' }}>{nombreParts}</span>
+                                <span style={{ fontSize: 13, color: '#78716c' }}>% libre</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={shared.partAutoConsommationLibre ?? shared.partAutoConsommation ?? 25}
+                                  onChange={(e) => updateShared({ partAutoConsommationLibre: parseFloat(e.target.value) || 0 })}
+                                  className="w-20 text-right px-2 py-1 border border-[#e7e5e3] rounded-md text-[14px]"
+                                />
+                              </div>
+                            ) : (
+                              <div className="text-[11px] text-[#78716c] italic">{AUTO_CONSO_SCALES[shared.autoConsommationMethod]?.description}</div>
+                            )}
+                            <div className="pt-2 mt-1 border-t border-[#e7e5e3] flex items-center justify-between">
+                              <span style={{ fontSize: 12, color: '#78716c', fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(revenuAnnuelRef)} × (1 − {partAutoConso}%)</span>
+                              <span style={{ fontSize: 14, fontWeight: 600, color: '#292524' }}>{fmt(Math.round(perteAnnuelle))}</span>
+                            </div>
+                            {autoConsoWarning && (
+                              <div className="flex items-start gap-2 px-3 py-2 mt-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                                <span style={{ fontSize: 12, color: '#92400e' }}>
+                                  Auto-consommation à {partAutoConso}% — hors fourchette jurisprudentielle [15-35%].
+                                </span>
                               </div>
                             )}
-
+                          </>) : (
                             <div className="flex items-center justify-between">
-                              <span style={{ fontSize: 13, color: '#78716c' }}>Part d'auto-consommation</span>
-                              <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{partAutoConsommation} %</span>
-                            </div>
-
-                            <div className="pt-3 mt-2 border-t border-[#e7e5e3] space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span style={{ fontSize: 13, color: '#78716c' }}>Perte annuelle brute</span>
-                                <span style={{ fontSize: 14, color: '#292524' }}>{fmt(perteAnnuelleBrute)}</span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>Perte annuelle nette (à répartir)</span>
-                                <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(perteAnnuelle)}</span>
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            {/* Blessé mode — simplified */}
-                            <div className="flex items-center justify-between">
-                              <span style={{ fontSize: 13, color: '#78716c' }}>Revenu actuel (victime)</span>
-                              <span style={{ fontSize: 14, color: '#292524' }}>{fmt(shared.revenuActuel || 0)}/mois</span>
-                            </div>
-                            <div className="flex items-center justify-between py-1 border-t border-[#e7e5e3]">
-                              <span style={{ fontSize: 13, color: '#78716c' }}>Perte mensuelle</span>
-                              <span style={{ fontSize: 14, color: '#292524' }}>{fmt(Math.max(0, revenuRefMoyen - (shared.revenuActuel || 0)))}</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>Perte annuelle</span>
+                              <span style={{ fontSize: 13, color: '#78716c' }}>Perte annuelle</span>
                               <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(perteAnnuelle)}</span>
                             </div>
-                          </>
-                        )}
-                      </div>
+                          )}
+                        </div>
                       )}
                     </div>
 
-                    {/* TABLE 3a — Échu (past losses) */}
-                    {ivLignes.some(l => (l.anneesEchues || 0) > 0) && (
-                      <div className={cardBlockClass + ' mb-4'}>
-                        <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard(`iv-${ivPosteId}-d-echu`)}>
-                          <div className="flex items-center gap-3">
-                            <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
-                              <Clock className="w-3.5 h-3.5 text-[#78716c]" />
-                            </div>
-                            <span className="text-[14px] font-medium text-[#292524]">Échu</span>
+                    {/* ════════ Card 3 — Cascade par bénéficiaire (Répartition + TP + Échu + À échoir) ════════ */}
+                    <div className={cardBlockClass + ' mb-4'}>
+                      <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard(`iv-${ivPosteId}-d-cascade`)}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
+                            <Hand className="w-3.5 h-3.5 text-[#78716c]" />
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span style={serifAmountStyle} className="text-[#292524]">{fmt(ivLignes.reduce((s, l) => s + computeLineAmounts(l).echu, 0))}</span>
-                            {isIvCardExpanded(`iv-${ivPosteId}-d-echu`) ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
-                          </div>
+                          <span className="text-[14px] font-medium text-[#292524]">Bénéficiaires</span>
                         </div>
-                        {isIvCardExpanded(`iv-${ivPosteId}-d-echu`) && (<>
-                          <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
-                            <div className="flex-1 px-3"><span style={colHeaderStyle}>Victime</span></div>
-                            <div className="w-[70px] px-2 text-right"><span style={colHeaderStyle}>Part</span></div>
-                            <div className="w-[100px] px-2 text-right"><span style={colHeaderStyle}>Perte/an</span></div>
-                            <div className="w-[70px] px-2 text-right"><span style={colHeaderStyle}>Années</span></div>
-                            <div className="w-[110px] px-2 text-right"><span style={colHeaderStyle}>Échu</span></div>
-                          </div>
-                          {victimesIndirectes.map(vi => {
-                            const ligne = ivLignes.find(l => l.victimeId === vi.id);
-                            if (!ligne) return null;
-                            const amounts = computeLineAmounts(ligne);
-                            return (
-                              <div key={vi.id} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
-                                onClick={() => setEditPanel({ type: 'iv-ligne-d', title: `${vi.prenom} ${vi.nom} — Échu`, data: { victimeId: vi.id, posteId: ivPosteId, partIndividuelle: ligne.partIndividuelle || 0, dureeIndemnisation: ligne.dureeIndemnisation || '', anneesEchues: ligne.anneesEchues || 0, mode: amounts.mode, coeffCapitalisation: amounts.coeff, perteAnnuelle } })}
+                        <div className="flex items-center gap-2">
+                          <span className="text-caption text-[#78716c]">{viData.length} {viData.length > 1 ? 'personnes' : 'personne'}</span>
+                          {isIvCardExpanded(`iv-${ivPosteId}-d-cascade`) ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
+                        </div>
+                      </div>
+                      {isIvCardExpanded(`iv-${ivPosteId}-d-cascade`) && (<>
+                        <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                          <div className="flex-1 px-3"><span style={colHeaderStyle}>Bénéficiaire</span></div>
+                          <div className="w-[60px] px-2 text-right"><span style={colHeaderStyle}>Part</span></div>
+                          <div className="w-[100px] px-2 text-right"><span style={colHeaderStyle}>Perte/an</span></div>
+                          <div className="w-[100px] px-2 text-right"><span style={colHeaderStyle}>TP/an</span></div>
+                          {showEchu && <div className="w-[100px] px-2 text-right"><span style={colHeaderStyle}>Échu</span></div>}
+                          <div className="w-[80px] px-2"><span style={colHeaderStyle}>Mode</span></div>
+                          <div className="w-[120px] px-2 text-right"><span style={colHeaderStyle}>À échoir</span></div>
+                        </div>
+                        {viData.map(({ vi, ligne, amounts }) => {
+                          const tpExpanded = isIvCardExpanded(`iv-${ivPosteId}-d-tp-${vi.id}`);
+                          const tpDeductions = ligne.deductionsTP || [];
+                          return (
+                            <div key={vi.id}>
+                              <div
+                                className="relative flex items-center h-[52px] border-b border-[#e7e5e3] bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
+                                onClick={() => setEditPanel({ type: 'iv-ligne-d', title: `${vi.prenom} ${vi.nom}`, data: { victimeId: vi.id, posteId: ivPosteId, partIndividuelle: ligne.partIndividuelle || 0, dureeIndemnisation: ligne.dureeIndemnisation || '', anneesEchues: ligne.anneesEchues || 0, mode: amounts.mode, coeffCapitalisation: amounts.coeff, perteAnnuelle } })}
                               >
                                 <div className="flex-1 px-3 flex items-center gap-2 min-w-0">
                                   {viAvatar(vi, 24)}
                                   <span className="truncate" style={{ fontSize: 13, color: '#292524' }}>{vi.prenom} {vi.nom}</span>
+                                  <span style={{ fontSize: 11, color: '#a8a29e' }}>· {vi.lien}</span>
                                 </div>
-                                <div className="w-[70px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{ligne.partIndividuelle}%</span></div>
-                                <div className="w-[100px] px-2 text-right"><span style={{ fontSize: 13, color: '#292524' }}>{fmt(amounts.perteVI)}</span></div>
-                                <div className="w-[70px] px-2 text-right"><span style={{ fontSize: 13, color: '#78716c' }}>{amounts.anneesEchues} ans</span></div>
-                                <div className="w-[110px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmt(amounts.echu)}</span></div>
+                                <div className="w-[60px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{ligne.partIndividuelle}%</span></div>
+                                <div className="w-[100px] px-2 text-right"><span style={{ fontSize: 13, color: '#292524' }}>{fmt(Math.round(amounts.perteVI))}</span></div>
+                                <div className="w-[100px] px-2 text-right">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); toggleCard(`iv-${ivPosteId}-d-tp-${vi.id}`); }}
+                                    className={`inline-flex items-center gap-1 ${amounts.totalTPAnnuel > 0 ? 'text-[#292524]' : 'text-[#a8a29e]'} hover:bg-[#eeece6] rounded px-1.5 py-0.5`}
+                                  >
+                                    <span style={{ fontSize: 13 }}>{amounts.totalTPAnnuel > 0 ? `−${fmt(Math.round(amounts.totalTPAnnuel))}` : '—'}</span>
+                                    <ChevronRight className={`w-3 h-3 transition-transform ${tpExpanded ? 'rotate-90' : ''}`} />
+                                  </button>
+                                </div>
+                                {showEchu && <div className="w-[100px] px-2 text-right"><span style={{ fontSize: 13, color: '#292524' }}>{fmt(Math.round(amounts.echu))}</span></div>}
+                                <div className="w-[80px] px-2">
+                                  {amounts.mode === 'capitalisation' ? (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ backgroundColor: '#dcfce7', color: '#166534' }}>CAPITAL</span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>RENTE</span>
+                                  )}
+                                </div>
+                                <div className="w-[120px] px-2 text-right">
+                                  {amounts.mode === 'capitalisation' ? (
+                                    <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmt(Math.round(amounts.aEchoir))}</span>
+                                  ) : (
+                                    <span style={{ fontSize: 12, color: '#92400e' }}>{fmt(Math.round(amounts.renteAnnuelle))}/an</span>
+                                  )}
+                                </div>
                               </div>
-                            );
-                          })}
-                          {/* Footer */}
-                          <div className="flex items-center h-10 border-t border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
-                            <div className="flex-1 px-3"><span style={{ fontSize: 12, fontWeight: 600, color: '#44403c' }}>Total échu</span></div>
-                            <div className="w-[70px] px-2 text-right"><span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>{sumParts}%</span></div>
-                            <div className="w-[100px] px-2 text-right"><span style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>{fmt(perteAnnuelle)}</span></div>
-                            <div className="w-[70px] px-2" />
-                            <div className="w-[110px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 600, color: '#292524' }}>{fmt(ivLignes.reduce((s, l) => s + computeLineAmounts(l).echu, 0))}</span></div>
-                          </div>
-                        </>)}
-                      </div>
-                    )}
-
-                    {/* TABLE 3b — À échoir (future losses) */}
-                    <div className={cardBlockClass + ' mb-4'}>
-                      <div className="flex items-center justify-between h-12 px-4 border-b border-[#e7e5e3] cursor-pointer" onClick={() => toggleCard(`iv-${ivPosteId}-d-aechoir`)}>
-                        <div className="flex items-center gap-3">
-                          <div className="w-6 h-6 bg-[#eeece6] rounded-[6px] flex items-center justify-center">
-                            <TrendingUp className="w-3.5 h-3.5 text-[#78716c]" />
-                          </div>
-                          <span className="text-[14px] font-medium text-[#292524]">À échoir</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {(() => {
-                            const totAEchoir = ivLignes.reduce((s, l) => s + computeLineAmounts(l).aEchoir, 0);
-                            const hasRente = ivLignes.some(l => (l.mode || 'capitalisation') === 'rente');
-                            return totAEchoir > 0 ? (
-                              <span style={serifAmountStyle} className="text-[#292524]">{fmt(totAEchoir)}</span>
-                            ) : hasRente ? (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>RENTE</span>
-                            ) : (
-                              <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
-                            );
-                          })()}
-                          {isIvCardExpanded(`iv-${ivPosteId}-d-aechoir`) ? <ChevronDown className="w-4 h-4 text-[#78716c]" /> : <ChevronRight className="w-4 h-4 text-[#78716c]" />}
-                        </div>
-                      </div>
-                      {isIvCardExpanded(`iv-${ivPosteId}-d-aechoir`) && (<>
-                        <div className="flex items-center h-10 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
-                          <div className="flex-1 px-3"><span style={colHeaderStyle}>Victime</span></div>
-                          <div className="w-[70px] px-2 text-right"><span style={colHeaderStyle}>Part</span></div>
-                          <div className="w-[100px] px-2 text-right"><span style={colHeaderStyle}>Perte/an</span></div>
-                          <div className="w-[100px] px-2"><span style={colHeaderStyle}>Durée</span></div>
-                          <div className="w-[70px] px-2"><span style={colHeaderStyle}>Mode</span></div>
-                          <div className="w-[55px] px-2 text-right"><span style={colHeaderStyle}>Coeff.</span></div>
-                          <div className="w-[110px] px-2 text-right"><span style={colHeaderStyle}>À échoir</span></div>
-                        </div>
-                        {victimesIndirectes.map(vi => {
-                          const ligne = ivLignes.find(l => l.victimeId === vi.id);
-                          if (!ligne) return null;
-                          const amounts = computeLineAmounts(ligne);
-                          return (
-                            <div key={vi.id} className="relative flex items-center h-[52px] border-b border-[#e7e5e3] last:border-b-0 bg-white group cursor-pointer hover:bg-[#fafaf9] transition-colors"
-                              onClick={() => setEditPanel({ type: 'iv-ligne-d', title: `${vi.prenom} ${vi.nom} — À échoir`, data: { victimeId: vi.id, posteId: ivPosteId, partIndividuelle: ligne.partIndividuelle || 0, dureeIndemnisation: ligne.dureeIndemnisation || '', anneesEchues: ligne.anneesEchues || 0, mode: amounts.mode, coeffCapitalisation: amounts.coeff, perteAnnuelle } })}
-                            >
-                              <div className="flex-1 px-3 flex items-center gap-2 min-w-0">
-                                {viAvatar(vi, 24)}
-                                <span className="truncate" style={{ fontSize: 13, color: '#292524' }}>{vi.prenom} {vi.nom}</span>
-                              </div>
-                              <div className="w-[70px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{ligne.partIndividuelle}%</span></div>
-                              <div className="w-[100px] px-2 text-right"><span style={{ fontSize: 13, color: '#292524' }}>{fmt(amounts.perteVI)}</span></div>
-                              <div className="w-[100px] px-2"><span className="truncate block" style={{ fontSize: 12, color: '#78716c' }}>{ligne.dureeIndemnisation || '—'}</span></div>
-                              <div className="w-[70px] px-2"><span style={{ fontSize: 12, color: '#78716c' }}>{amounts.mode === 'capitalisation' ? 'Capital' : 'Rente'}</span></div>
-                              <div className="w-[55px] px-2 text-right">
-                                {amounts.mode === 'capitalisation' ? (
-                                  <span style={{ fontSize: 13, color: '#292524' }}>{amounts.coeff}</span>
-                                ) : (
-                                  <span style={{ fontSize: 13, color: '#d6d3d1' }}>—</span>
-                                )}
-                              </div>
-                              <div className="w-[110px] px-2 text-right">
-                                {amounts.mode === 'capitalisation' ? (
-                                  <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>{fmt(amounts.aEchoir)}</span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                                    RENTE {fmt(amounts.perteVI)}/an
-                                  </span>
-                                )}
-                              </div>
+                              {/* Expandable TP sub-rows */}
+                              {tpExpanded && (
+                                <div className="border-b border-[#e7e5e3] bg-[#fafaf9]">
+                                  {tpDeductions.length === 0 ? (
+                                    <div className="px-12 py-2"><span style={{ fontSize: 12, color: '#a8a29e' }}>Aucune déduction TP</span></div>
+                                  ) : tpDeductions.map((tp) => (
+                                    <div
+                                      key={tp.id}
+                                      className="flex items-center h-9 pl-12 pr-3 hover:bg-[#f5f5f4] cursor-pointer group/tp"
+                                      onClick={() => setEditPanel({ type: 'iv-ligne-d-tp', title: tp.label, data: { victimeId: vi.id, posteId: ivPosteId, ...tp } })}
+                                    >
+                                      <span className="flex-1 truncate" style={{ fontSize: 12, color: '#44403c' }}>{tp.label}</span>
+                                      {tp.organisme && <span className="mx-2" style={{ fontSize: 11, color: '#78716c' }}>{tp.organisme}</span>}
+                                      <span className="w-[100px] text-right" style={{ fontSize: 12, fontWeight: 500, color: '#44403c' }}>−{fmt(tp.montantAnnuel || 0)} / an</span>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); deleteTPDeduction(vi.id, tp.id); }}
+                                        className="ml-2 opacity-0 group-hover/tp:opacity-100 p-1 hover:bg-red-50 rounded"
+                                      >
+                                        <Trash2 className="w-3 h-3 text-[#a8a29e] hover:text-red-500" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                  <button onClick={() => addTPDeduction(vi.id)} className="w-full flex items-center gap-2 pl-12 pr-3 py-2 text-caption text-[#1e3a8a] hover:bg-[#f5f5f4]">
+                                    <Plus className="w-3 h-3" />Ajouter une déduction
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
                         {/* Footer */}
-                        {(() => {
-                          const totAEchoir = ivLignes.reduce((s, l) => s + computeLineAmounts(l).aEchoir, 0);
-                          return (
-                            <div className="flex items-center h-10 border-t border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
-                              <div className="flex-1 px-3"><span style={{ fontSize: 12, fontWeight: 600, color: '#44403c' }}>Total à échoir</span></div>
-                              <div className="w-[70px] px-2" />
-                              <div className="w-[100px] px-2" />
-                              <div className="w-[100px] px-2" />
-                              <div className="w-[70px] px-2" />
-                              <div className="w-[55px] px-2" />
-                              <div className="w-[110px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 600, color: '#292524' }}>{totAEchoir > 0 ? fmt(totAEchoir) : '—'}</span></div>
-                            </div>
-                          );
-                        })()}
+                        <div className="flex items-center h-10 border-t border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                          <div className="flex-1 px-3"><span style={{ fontSize: 12, fontWeight: 600, color: '#44403c' }}>Total</span></div>
+                          <div className="w-[60px] px-2 text-right"><span style={{ fontSize: 12, fontWeight: 600, color: '#44403c' }}>{sumParts}%</span></div>
+                          <div className="w-[100px] px-2 text-right"><span style={{ fontSize: 12, fontWeight: 600, color: '#44403c' }}>{fmt(Math.round(perteAnnuelle))}</span></div>
+                          <div className="w-[100px] px-2 text-right"><span style={{ fontSize: 12, fontWeight: 600, color: '#44403c' }}>{totalTPAllVI > 0 ? '−' + fmt(Math.round(totalTPAllVI)) : '—'}</span></div>
+                          {showEchu && <div className="w-[100px] px-2 text-right"><span style={{ fontSize: 12, fontWeight: 600, color: '#44403c' }}>{fmt(Math.round(totalEchu))}</span></div>}
+                          <div className="w-[80px] px-2" />
+                          <div className="w-[120px] px-2 text-right"><span style={{ fontSize: 13, fontWeight: 600, color: '#292524' }}>{totalAEchoir > 0 ? fmt(Math.round(totalAEchoir)) : '—'}</span></div>
+                        </div>
+                        {conjointMissingTP && (
+                          <div className="flex items-start gap-2 px-3 py-2 m-3 bg-amber-50 border border-amber-200 rounded-lg">
+                            <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                            <span style={{ fontSize: 12, color: '#92400e' }}>
+                              Pension de réversion non déclarée pour {conjointVI.prenom} {conjointVI.nom}.
+                            </span>
+                          </div>
+                        )}
                       </>)}
                     </div>
 
-                    {/* TABLE 3c — Total par bénéficiaire (beige total block) */}
+                    {/* ════════ Card 4 — Total par bénéficiaire (beige) ════════ */}
                     <div className={totalBlockClass}>
                       <button onClick={() => toggleCard(`iv-${ivPosteId}-d-recap`)} className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-3">
                           <div className="w-6 h-6 bg-[#d6d3d1] rounded-[6px] flex items-center justify-center">
                             <User className="w-3.5 h-3.5 text-[#78716c]" />
                           </div>
-                          <span className="text-[14px] font-medium text-[#292524]">Total par bénéficiaire</span>
+                          <span className="text-[14px] font-medium text-[#292524]">Total à indemniser</span>
                         </div>
                         <div className="flex items-center gap-3">
-                          {totalDistribue > 0 ? (
+                          {hasMixedMode ? (
+                            <div className="text-right">
+                              {totalDistribue > 0 && <div style={serifAmountStyle} className="text-[#292524]">{fmt(Math.round(totalDistribue))}</div>}
+                              {totalRenteAnnuelle > 0 && <div style={{ fontSize: 12, color: '#92400e' }}>+ {fmt(Math.round(totalRenteAnnuelle))} / an</div>}
+                            </div>
+                          ) : totalDistribue > 0 ? (
                             <span style={serifAmountStyle} className="text-[#292524]">{fmt(Math.round(totalDistribue))}</span>
+                          ) : totalRenteAnnuelle > 0 ? (
+                            <span style={serifAmountStyle} className="text-[#92400e]">{fmt(Math.round(totalRenteAnnuelle))} / an</span>
                           ) : (
                             <span style={serifAmountStyle} className="text-[#a8a29e]">—</span>
                           )}
@@ -11453,29 +11860,32 @@ export default function App() {
                       {isIvCardExpanded(`iv-${ivPosteId}-d-recap`) && (<>
                         <div className="border-t border-[#d6d3d1] mt-3 mb-3" />
                         <div className="space-y-2">
-                          {victimesIndirectes.map(vi => {
-                            const ligne = ivLignes.find(l => l.victimeId === vi.id);
-                            if (!ligne) return null;
-                            const amounts = computeLineAmounts(ligne);
-                            return (
-                              <div key={vi.id} className="flex justify-between items-center">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  {viAvatar(vi, 24)}
-                                  <span style={{ fontSize: 14, color: '#78716c' }}>{vi.prenom} {vi.nom}</span>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                  {amounts.echu > 0 && <span style={{ fontSize: 12, color: '#a8a29e' }}>échu {fmt(amounts.echu)}</span>}
-                                  {amounts.mode === 'capitalisation' && amounts.aEchoir > 0 && <span style={{ fontSize: 12, color: '#a8a29e' }}>à échoir {fmt(amounts.aEchoir)}</span>}
-                                  {amounts.mode === 'rente' && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                                      RENTE {fmt(amounts.perteVI)}/an
-                                    </span>
-                                  )}
-                                  <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(amounts.total)}</span>
-                                </div>
+                          {viData.map(({ vi, amounts }) => (
+                            <div key={vi.id} className="flex justify-between items-center">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {viAvatar(vi, 24)}
+                                <span style={{ fontSize: 14, color: '#78716c' }}>{vi.prenom} {vi.nom}</span>
                               </div>
-                            );
-                          })}
+                              <div className="flex items-center gap-3">
+                                {amounts.mode === 'rente' ? (
+                                  <span style={{ fontSize: 12, color: '#92400e' }}>{fmt(Math.round(amounts.renteAnnuelle))}/an</span>
+                                ) : null}
+                                <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{fmt(Math.round(amounts.total))}</span>
+                              </div>
+                            </div>
+                          ))}
+                          {hasMixedMode && (<>
+                            <div className="border-t border-[#d6d3d1] mt-3 pt-3 flex justify-between items-center">
+                              <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>Total capital</span>
+                              <span style={{ fontSize: 14, fontWeight: 600, color: '#292524' }}>{fmt(Math.round(totalDistribue))}</span>
+                            </div>
+                            {totalRenteAnnuelle > 0 && (
+                              <div className="flex justify-between items-center">
+                                <span style={{ fontSize: 13, fontWeight: 500, color: '#292524' }}>+ Rentes annuelles</span>
+                                <span style={{ fontSize: 14, fontWeight: 600, color: '#92400e' }}>{fmt(Math.round(totalRenteAnnuelle))} / an</span>
+                              </div>
+                            )}
+                          </>)}
                         </div>
                       </>)}
                     </div>
@@ -11484,14 +11894,14 @@ export default function App() {
                       <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
                         <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" strokeWidth={1.5} />
                         <span style={{ fontSize: 12, color: '#92400e' }}>
-                          Somme des parts : {sumParts}% + auto-consommation {partAutoConsommation}% = {sumParts + partAutoConsommation}% (devrait être 100%)
+                          Somme des parts : {sumParts}% (devrait être 100%)
                         </span>
                       </div>
                     )}
-
                   </>
                 );
               })()}
+
             </div>
 
             {/* Total block — hidden for Type D (PRP uses Table 3c as total) */}
