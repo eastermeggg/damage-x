@@ -922,6 +922,7 @@ export default function App() {
   const [preferenceExtractStep, setPreferenceExtractStep] = useState(0);
   const [preferenceEnrichingSection, setPreferenceEnrichingSection] = useState(null); // section id being enriched
   const [preferenceTargetSection, setPreferenceTargetSection] = useState(null); // for routing file input
+  const [preferenceLearnFromChats, setPreferenceLearnFromChats] = useState(false);
   const preferenceFileInputRef = useRef(null);
 
   // ========== LISTE DES DOSSIERS ==========
@@ -16965,11 +16966,14 @@ export default function App() {
 
     const memoryEmpty = preferenceMasterPrompt.trim() === '';
 
+    // Saved JPs map directly to real decisions in mockDecisions so they can be
+    // auto-pinned across every matter. posteId attaches them to the relevant
+    // poste tab in addition to the global JP listing.
     const SAMPLE_SAVED_JPS = [
-      { id: 'jp-1', citation: 'Cass. 2e civ., 28 mai 2009', number: 'n° 08-16.829', context: 'DFP' },
-      { id: 'jp-2', citation: 'CE, 7 nov. 2008', number: 'Centre hospitalier de Cahors', context: 'aléa thérapeutique' },
-      { id: 'jp-3', citation: 'Cass. crim., 6 mars 2018', number: 'n° 17-81.122', context: "préjudice d'agrément" },
-      { id: 'jp-4', citation: 'CA Paris, 12 janv. 2023', number: 'n° 21/14782', context: 'assistance tierce personne' },
+      { id: 'jp-dfp-01',  decisionId: 'jp-dfp-01',  posteId: 'dfp',  citation: 'Cass. 2e civ., 6 juill. 2023',    number: 'n° 22-15.401', context: 'DFP' },
+      { id: 'jp-atpt-03', decisionId: 'jp-atpt-03', posteId: 'atpt', citation: 'CA Paris, 22 mars 2024',          number: 'n° 23/01234',  context: 'assistance tierce personne' },
+      { id: 'jp-se-01',   decisionId: 'jp-se-01',   posteId: 'se',   citation: 'CA Paris, 11 mai 2023',           number: 'n° 22/04211',  context: "souffrances endurées" },
+      { id: 'jp-pgpa-01', decisionId: 'jp-pgpa-01', posteId: 'pgpa', citation: 'CA Paris, 18 oct. 2023',          number: 'n° 22/09812',  context: 'pertes de gains professionnels actuels' },
     ];
 
     const startExtraction = () => {
@@ -16982,6 +16986,11 @@ export default function App() {
       setTimeout(() => {
         setPreferenceMasterPrompt(SAMPLE_MASTER_PROMPT);
         setSavedJurisprudences(SAMPLE_SAVED_JPS);
+        // Auto-pin each saved JP so it appears already-saved on every matter,
+        // both in the dossier-level JP tab and the relevant poste tab.
+        SAMPLE_SAVED_JPS.forEach(jpEntry => {
+          jp.pinDecision(jpEntry.decisionId, { posteId: jpEntry.posteId });
+        });
         setPreferenceExtracting(false);
         setPreferenceExtractStep(0);
         setToastMessage('Mémoire construite à partir de vos documents.');
@@ -17220,7 +17229,7 @@ export default function App() {
 
             {renderSettingsHeader(
               'Mémoire et préférences',
-              "Voici ce dont Plato se souvient à votre sujet et la manière dont vous travaillez. Plato s'inspire de vos documents et de vos instructions pour rédiger à votre style."
+              "Voici ce dont Plato se souvient à votre sujet et la manière dont vous travaillez. Plato s'inspire de vos documents et de vos instructions à chaque étape : rédaction, chiffrage, recherche de jurisprudences et plus encore."
             )}
 
             {/* ───────── FILLED STATE — single master-prompt textarea ───────── */}
@@ -17238,6 +17247,39 @@ export default function App() {
               })}
             </div>
 
+            {/* Conversation-history learning toggle — sits above the master-prompt input */}
+            <div className="mb-3 flex items-start justify-between gap-4 py-1">
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] font-medium text-[#292524] leading-5">
+                  Générer la mémoire/préférés à partir de l'historique des conversations
+                </div>
+                <div className="text-[12px] text-[#78716c] leading-5 mt-0.5">
+                  Autoriser Plato à mémoriser les préférences pertinentes de vos conversations.
+                </div>
+              </div>
+              <button
+                role="switch"
+                aria-checked={preferenceLearnFromChats}
+                onClick={() => {
+                  setPreferenceLearnFromChats(v => {
+                    const next = !v;
+                    setToastMessage(next ? 'Apprentissage depuis les conversations activé.' : 'Apprentissage depuis les conversations désactivé.');
+                    setTimeout(() => setToastMessage(null), 2500);
+                    return next;
+                  });
+                }}
+                className="relative flex-shrink-0 inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none mt-0.5"
+                style={{ backgroundColor: preferenceLearnFromChats ? '#292524' : '#d6d3d1' }}
+              >
+                <span
+                  className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                  style={{ transform: preferenceLearnFromChats ? 'translateX(18px)' : 'translateX(2px)', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
+                />
+              </button>
+            </div>
+
+            <div className="border-t border-[#e7e5e3] mb-5" />
+
             <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
               <textarea
                 value={preferenceMasterPrompt}
@@ -17250,8 +17292,7 @@ export default function App() {
             </div>
 
             {/* Save action — sits below the textarea card */}
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <p className="text-[12px] text-[#78716c]">Plato suit ces instructions à chaque rédaction d'acte.</p>
+            <div className="mt-4 flex items-center justify-end gap-3">
               <button
                 onClick={() => {
                   setToastMessage('Mémoire enregistrée.');
