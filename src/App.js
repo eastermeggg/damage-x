@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, CircleArrowDown, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp, Focus } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Users, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowRight, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, CircleArrowDown, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp, Focus, LogOut, CreditCard, SlidersHorizontal, Wand2, BookOpen, Globe } from 'lucide-react';
 import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -895,6 +895,34 @@ export default function App() {
     return 'list';
   }); // 'list' | 'dossier' | 'components'
   const [activeDossierId, setActiveDossierId] = useState(null);
+
+  // ========== SETTINGS ==========
+  const [settingsSection, setSettingsSection] = useState('general'); // 'general' | 'users' | 'preferences' | 'billing' | 'baremes' | 'templates'
+  const [billingState, setBillingState] = useState('paid'); // 'free' | 'paid' | 'over'
+  const [billingTierIndex, setBillingTierIndex] = useState(1); // selected tier in upgrade slider
+  const [billingUpgradeModalOpen, setBillingUpgradeModalOpen] = useState(false);
+  const [billingModalTab, setBillingModalTab] = useState('plan'); // 'plan' | 'credits'
+  const [billingCreditQty, setBillingCreditQty] = useState(1);
+  const [dossierIndicatorHover, setDossierIndicatorHover] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [workspaceMembers, setWorkspaceMembers] = useState([
+    { id: 'u-1', name: 'Meghan Régior', email: 'meghan@hexa.com', role: 'Admin', joinedDate: '12 janv. 2026', initials: 'MR', color: 'from-violet-400 to-indigo-500' },
+    { id: 'u-2', name: 'Antoine Mercier', email: 'antoine.mercier@hexa.com', role: 'Membre', joinedDate: '03 févr. 2026', initials: 'AM', color: 'from-emerald-400 to-teal-500' },
+    { id: 'u-3', name: 'Claire Dubois', email: 'claire.dubois@hexa.com', role: 'Membre', joinedDate: '14 mars 2026', initials: 'CD', color: 'from-rose-400 to-pink-500' },
+  ]);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('Membre');
+  const [preferenceDocs, setPreferenceDocs] = useState([]);
+  const [preferenceMasterPrompt, setPreferenceMasterPrompt] = useState('');
+  const [savedJurisprudences, setSavedJurisprudences] = useState([]);
+  const [preferenceDragOver, setPreferenceDragOver] = useState(false);
+  const [preferenceWriteRequested, setPreferenceWriteRequested] = useState(false);
+  const [preferenceExtracting, setPreferenceExtracting] = useState(false);
+  const [preferenceExtractStep, setPreferenceExtractStep] = useState(0);
+  const [preferenceEnrichingSection, setPreferenceEnrichingSection] = useState(null); // section id being enriched
+  const [preferenceTargetSection, setPreferenceTargetSection] = useState(null); // for routing file input
+  const preferenceFileInputRef = useRef(null);
 
   // ========== LISTE DES DOSSIERS ==========
   const [dossiers, setDossiers] = useState([]);
@@ -13842,58 +13870,151 @@ export default function App() {
   };
 
   // ========== RENDER PAGE LISTE ==========
-  const renderDossierListPage = () => (
-    <div className="h-screen flex relative" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: '#27272a' }}>
-      {/* Sidebar Rail */}
-      <div className="w-12 bg-white border-r border-[#e7e5e3] flex flex-col items-start flex-shrink-0">
-        {/* Header — Logo */}
-        <div className="w-full flex flex-col items-center justify-center py-3 border-b border-[#e7e5e3]">
-          <img src="/logo-plato.png" alt="Plato" className="w-6 h-6" />
+  // ========== SHARED SIDEBAR (used by Mes dossiers + Settings) ==========
+  // Avatar dropdown panel — used by home sidebar and collapsed rail
+  const renderUserDropdownPanel = (placement = 'above') => (
+    <>
+      <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+      <div
+        className="absolute z-50 bg-white border border-[#e7e5e3] shadow-lg overflow-hidden"
+        style={placement === 'right'
+          ? { left: 'calc(100% + 8px)', bottom: 0, borderRadius: 10, width: 240 }
+          : { left: 8, right: 8, bottom: 'calc(100% + 6px)', borderRadius: 10 }
+        }
+      >
+        <div className="px-3 py-2.5 border-b border-[#e7e5e3]">
+          <div className="text-[12px] text-[#78716c] truncate">meghan@hexa.com</div>
+        </div>
+        <button
+          onClick={() => { setSettingsSection('general'); setCurrentPage('settings'); setUserMenuOpen(false); }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-[#292524] hover:bg-[#fafaf9] transition-colors text-left"
+        >
+          <Settings className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+          Paramètres
+        </button>
+        <div className="border-t border-[#e7e5e3]" />
+        <button
+          onClick={() => { setUserMenuOpen(false); setToastMessage('Déconnecté.'); setTimeout(() => setToastMessage(null), 2000); }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-[#292524] hover:bg-[#fafaf9] transition-colors text-left"
+        >
+          <LogOut className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+          Se déconnecter
+        </button>
+      </div>
+    </>
+  );
+
+  // Collapsed rail (48px, icons only) — shown in settings alongside the settings sub-rail
+  const renderCollapsedRail = () => (
+    <div className="w-12 bg-white border-r border-[#e7e5e3] flex flex-col items-start flex-shrink-0">
+      <div className="w-full flex flex-col items-center justify-center py-3 border-b border-[#e7e5e3]">
+        <img src="/logo-plato.png" alt="Plato" className="w-6 h-6" />
+      </div>
+      <div className="flex-1 w-full flex flex-col gap-1 p-2">
+        <button
+          onClick={() => setCurrentPage('list')}
+          title="Mes dossiers"
+          className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'list' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+          style={{ borderRadius: 8 }}
+        >
+          <Folder className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => setCurrentPage('settings')}
+          title="Paramètres"
+          className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'settings' ? 'bg-[#eeece6] text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+          style={{ borderRadius: 8 }}
+        >
+          <Settings className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="w-full border-t border-[#e7e5e3] p-2 flex flex-col gap-2 items-center">
+        <button
+          onClick={() => setCurrentPage('components')}
+          title="UI Components"
+          className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'components' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+          style={{ borderRadius: 8 }}
+        >
+          <LayoutGrid className="w-4 h-4" />
+        </button>
+        <div className="relative">
+          <button
+            onClick={() => setUserMenuOpen(o => !o)}
+            title="Mon compte"
+            className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium cursor-pointer overflow-hidden hover:opacity-90 transition-opacity"
+            style={{ borderRadius: 10 }}
+          >
+            MR
+          </button>
+          {userMenuOpen && renderUserDropdownPanel('right')}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderHomeSidebar = () => {
+    const ITEMS = [
+      { id: 'list', label: 'Mes dossiers', icon: Folder, onClick: () => setCurrentPage('list'), active: currentPage === 'list' },
+      { id: 'settings', label: 'Paramètres', icon: Settings, onClick: () => setCurrentPage('settings'), active: currentPage === 'settings' },
+      { id: 'components', label: 'UI Components', icon: LayoutGrid, onClick: () => setCurrentPage('components'), active: currentPage === 'components' },
+    ];
+    return (
+      <div className="w-[244px] bg-white border-r border-[#e7e5e3] flex flex-col flex-shrink-0">
+        {/* Header — 48px with Plato logo + wordmark (logo at x=12 to align with collapsed rail) */}
+        <div className="h-12 pl-3 pr-4 border-b border-[#e7e5e3] flex items-center gap-2 flex-shrink-0">
+          <img src="/logo-plato.png" alt="Plato" className="w-6 h-6 flex-shrink-0" />
+          <span style={{ fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif", fontSize: '18px', fontWeight: 500, color: '#292524', letterSpacing: '-0.5px', lineHeight: '20px' }}>
+            Plato
+          </span>
         </div>
 
         {/* Nav items */}
-        <div className="flex-1 w-full flex flex-col gap-2 p-2">
-          <button
-            onClick={() => setCurrentPage('list')}
-            title="Mes dossiers"
-            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'list' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
-            style={{ borderRadius: 8 }}
-          >
-            <Folder className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setCurrentPage('baremes')}
-            title="Référentiels & Barèmes"
-            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'baremes' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
-            style={{ borderRadius: 8 }}
-          >
-            <Scale className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setCurrentPage('templates')}
-            title="Modèles d'actes"
-            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'templates' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
-            style={{ borderRadius: 8 }}
-          >
-            <ClipboardList className="w-4 h-4" />
-          </button>
+        <div className="flex-1 overflow-y-auto p-2">
+          <div className="flex flex-col gap-1">
+            {ITEMS.map(item => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={item.onClick}
+                  className={`h-8 flex items-center gap-2 px-2 transition-colors text-left ${item.active ? 'bg-[#eeece6] text-[#292524] font-medium' : 'text-[#78716c] hover:bg-[#fafaf9] hover:text-[#292524]'}`}
+                  style={{ borderRadius: 8, fontSize: '14px' }}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={item.active ? 2 : 1.5} />
+                  <span className="truncate">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Footer — UIKit + Avatar */}
-        <div className="w-full border-t border-[#e7e5e3] p-2 flex flex-col gap-2">
-          <button
-            onClick={() => setCurrentPage('components')}
-            title="UI Components"
-            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'components' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
-            style={{ borderRadius: 8 }}
-          >
-            <LayoutGrid className="w-4 h-4" />
-          </button>
-          <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium cursor-pointer overflow-hidden" style={{ borderRadius: 12 }}>
-            MR
+        {/* Footer — Avatar pill */}
+        <div className="border-t border-[#e7e5e3] p-2 flex-shrink-0">
+          <div className="relative">
+            <button
+              onClick={() => setUserMenuOpen(o => !o)}
+              className="w-full flex items-center gap-3 p-2 hover:bg-[#fafaf9] transition-colors text-left group"
+              style={{ borderRadius: 6 }}
+            >
+              <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[11px] font-medium flex-shrink-0 overflow-hidden" style={{ borderRadius: 6 }}>
+                MR
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[14px] font-medium text-[#292524] truncate leading-5">Meghan Régior</div>
+                <div className="text-[12px] text-[#a8a29e] truncate leading-4">Cabinet</div>
+              </div>
+              <ChevronDown className="w-4 h-4 text-[#a8a29e] group-hover:text-[#78716c] flex-shrink-0" strokeWidth={1.75} />
+            </button>
+            {userMenuOpen && renderUserDropdownPanel('above')}
           </div>
         </div>
       </div>
+    );
+  };
+
+  const renderDossierListPage = () => (
+    <div className="h-screen flex relative" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: '#27272a' }}>
+      {renderHomeSidebar()}
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
@@ -13903,13 +14024,138 @@ export default function App() {
             <h1 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '28px', fontWeight: 400, color: '#18181b', letterSpacing: '-0.01em' }}>
               Mes dossiers
             </h1>
-            <button
-              onClick={() => setDropModal({ files: [], rapportFileId: null, rapportDismissed: false })}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Nouveau dossier
-            </button>
+            <div className="flex items-center gap-3">
+              {(() => {
+                const used = billingState === 'free' ? 1 : billingState === 'over' ? 20 : 12;
+                const limit = billingState === 'free' ? 1 : 20;
+                const remaining = Math.max(0, limit - used);
+                const atLimit = remaining === 0;
+                const pct = Math.min(100, Math.round((used / limit) * 100));
+                // Donut math
+                const r = 7;
+                const circumference = 2 * Math.PI * r;
+                const dashFill = (pct / 100) * circumference;
+                const ringColor = atLimit ? '#ea580c' : pct >= 75 ? '#f59e0b' : '#16a34a';
+                const planLabel = billingState === 'free' ? 'Plan gratuit' : 'Cabinet+ — 20 dossiers / an';
+                return (
+                  <div
+                    className="relative"
+                    onMouseEnter={() => setDossierIndicatorHover(true)}
+                    onMouseLeave={() => setDossierIndicatorHover(false)}
+                  >
+                    <button
+                      onClick={() => { setSettingsSection('billing'); setCurrentPage('settings'); }}
+                      className={`relative flex items-center gap-2 h-10 px-4 rounded-lg text-[13px] font-medium transition-all overflow-hidden ${atLimit ? 'bg-[#fffbeb] border border-[#fde68a] text-[#92400e] hover:bg-[#fef3c7]' : 'bg-white border border-[#e7e5e3] text-[#292524] hover:bg-[#fafaf9] hover:border-[#a8a29e]'}`}
+                    >
+                      <span className="tabular-nums">{billingState === 'free' ? remaining : used} / {limit}</span>
+                      <span className="text-[12px] text-[#78716c] font-normal">
+                        {atLimit ? '— augmenter mon plan' : (billingState === 'free' ? `dossier${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''}` : 'dossiers')}
+                      </span>
+                      {/* Progress bar that doubles as the bottom border */}
+                      <span
+                        className="absolute left-0 bottom-0 h-[2px] transition-all duration-500"
+                        style={{ width: `${pct}%`, background: ringColor }}
+                      />
+                    </button>
+
+                    {/* Hover card — styled like the JP HoverCard */}
+                    {dossierIndicatorHover && (
+                      <div
+                        className="absolute right-0 top-full mt-2 z-50"
+                        style={{
+                          width: 320,
+                          borderRadius: 8,
+                          overflow: 'hidden',
+                          backgroundColor: 'white',
+                          border: '1px solid #e7e5e3',
+                          boxShadow: '0 8px 24px rgba(41, 37, 36, 0.08), 0 2px 8px rgba(41, 37, 36, 0.04)',
+                        }}
+                      >
+                        {/* Identity — accent label + serif headline */}
+                        <div style={{ padding: '12px 16px' }}>
+                          <div style={{
+                            fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500,
+                            color: atLimit ? '#92400e' : '#b9703f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4,
+                          }}>
+                            {atLimit ? 'Limite atteinte' : 'Mon plan'}
+                          </div>
+                          <div style={{
+                            fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif", fontSize: 16, color: '#292524',
+                            lineHeight: '20px',
+                          }}>
+                            {planLabel}
+                          </div>
+                        </div>
+
+                        {/* Key data: utilisé + restant */}
+                        <div style={{ padding: '0 16px 12px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', width: 64, flexShrink: 0 }}>
+                                Utilisé
+                              </span>
+                              <span style={{ fontSize: 14, color: '#44403c', lineHeight: '20px' }} className="tabular-nums">
+                                {used} <span style={{ color: '#a8a29e' }}>/ {limit}</span> dossier{limit > 1 ? 's' : ''}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', width: 64, flexShrink: 0 }}>
+                                Restant
+                              </span>
+                              <span style={{ fontSize: 14, color: atLimit ? '#92400e' : '#44403c', lineHeight: '20px', fontWeight: atLimit ? 500 : 400 }} className="tabular-nums">
+                                {remaining} dossier{remaining > 1 ? 's' : ''}
+                                {atLimit && <span style={{ color: '#a8a29e', fontWeight: 400 }}> · au max</span>}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Progress + cycle */}
+                        <div style={{ borderTop: '1px solid #f0efed', padding: '12px 16px' }}>
+                          <div className="flex items-baseline justify-between mb-2">
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              {billingState === 'free' ? 'Quota gratuit' : 'Cycle annuel'}
+                            </span>
+                            <span className="text-[12px] tabular-nums" style={{ color: '#78716c', fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500 }}>{pct}%</span>
+                          </div>
+                          <div className="h-1 rounded-full overflow-hidden" style={{ background: '#f0efed' }}>
+                            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: ringColor }} />
+                          </div>
+                          <p style={{ fontSize: 11, color: '#a8a29e', marginTop: 8, lineHeight: '16px' }}>
+                            {billingState === 'free' ? 'Aucun renouvellement' : 'Jusqu\'au 31 déc. 2026'}
+                          </p>
+                        </div>
+
+                        {/* CTA */}
+                        <button
+                          onClick={() => { setSettingsSection('billing'); setCurrentPage('settings'); setDossierIndicatorHover(false); }}
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                            width: '100%', padding: '8px 16px',
+                            backgroundColor: '#fafaf9', border: 'none',
+                            borderTop: '1px solid #f0efed',
+                            cursor: 'pointer', fontSize: 12, fontWeight: 500, color: '#44403c',
+                            transition: 'background-color 0.12s ease',
+                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#f0efed'; }}
+                          onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#fafaf9'; }}
+                        >
+                          {atLimit ? 'Augmenter mon plan' : 'Gérer mon abonnement'}
+                          <ArrowRight style={{ width: 12, height: 12, color: '#a8a29e' }} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+              <button
+                onClick={() => setDropModal({ files: [], rapportFileId: null, rapportDismissed: false })}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Nouveau dossier
+              </button>
+            </div>
           </div>
         </div>
 
@@ -16107,7 +16353,7 @@ export default function App() {
                           <div className="px-3 py-3 text-[12px] text-[#a8a29e] text-center">Aucun modèle trouvé</div>
                         )}
                         <button
-                          onClick={() => { setNewActeModalOpen(false); setCurrentPage('templates'); }}
+                          onClick={() => { setNewActeModalOpen(false); setSettingsSection('templates'); setCurrentPage('settings'); }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-left border-t border-[#e7e5e3] hover:bg-[#fafaf9] transition-colors"
                         >
                           <Plus className="w-3.5 h-3.5 text-[#78716c]" strokeWidth={2} />
@@ -16324,128 +16570,1358 @@ export default function App() {
     );
   };
 
-  // ========== RENDER MODÈLES D'ACTES LIBRARY PAGE ==========
-  const renderTemplatesLibraryPage = () => {
+  // ========== SETTINGS PAGE ==========
+  const renderInviteModal = () => {
+    if (!inviteModalOpen) return null;
+    const close = () => { setInviteModalOpen(false); setInviteEmail(''); setInviteRole('Membre'); };
+    const submit = () => {
+      const trimmed = inviteEmail.trim();
+      if (!trimmed) return;
+      const initials = trimmed.split('@')[0].slice(0, 2).toUpperCase();
+      const palettes = ['from-amber-400 to-orange-500', 'from-sky-400 to-blue-500', 'from-fuchsia-400 to-purple-500', 'from-lime-400 to-green-500'];
+      setWorkspaceMembers(prev => [...prev, {
+        id: `u-${Date.now()}`,
+        name: trimmed.split('@')[0].replace(/\./g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        email: trimmed,
+        role: inviteRole,
+        joinedDate: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }),
+        initials,
+        color: palettes[Math.floor(Math.random() * palettes.length)],
+        pending: true,
+      }]);
+      setToastMessage('Invitation envoyée.');
+      setTimeout(() => setToastMessage(null), 3000);
+      close();
+    };
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onClick={close}>
+        <div className="bg-white rounded-xl shadow-2xl" style={{ width: 480 }} onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#e7e5e3]">
+            <h2 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '18px', fontWeight: 400, color: '#18181b' }}>Inviter un membre</h2>
+            <button onClick={close} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#eeece6] transition-colors">
+              <X className="w-4 h-4 text-[#78716c]" />
+            </button>
+          </div>
+          <div className="px-6 py-5 space-y-4">
+            <div>
+              <label className="block text-[12px] font-medium text-[#44403c] mb-1.5">Email</label>
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="prenom.nom@hexa.com"
+                autoFocus
+                className="w-full px-3 py-2 text-[13px] border border-[#e7e5e3] rounded-lg focus:outline-none focus:border-[#a8a29e] transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-[12px] font-medium text-[#44403c] mb-1.5">Rôle</label>
+              <div className="flex gap-2">
+                {['Admin', 'Membre'].map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setInviteRole(r)}
+                    className={`flex-1 px-3 py-2 text-[13px] rounded-lg border transition-colors ${inviteRole === r ? 'border-[#292524] bg-[#292524] text-white' : 'border-[#e7e5e3] text-[#44403c] hover:bg-[#fafaf9]'}`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-[#a8a29e] mt-1.5">
+                {inviteRole === 'Admin' ? 'Accès complet : facturation, membres, référentiels.' : 'Peut créer et éditer des dossiers.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-[#e7e5e3] bg-[#fafaf9] rounded-b-xl">
+            <button onClick={close} className="px-3 py-1.5 text-[13px] text-[#44403c] hover:bg-[#eeece6] rounded-lg transition-colors">Annuler</button>
+            <button
+              onClick={submit}
+              disabled={!inviteEmail.trim()}
+              className="px-4 py-1.5 text-[13px] bg-[#292524] text-white rounded-lg hover:bg-[#44403c] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Envoyer l'invitation
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Editorial chapter intro — designed to live inside a max-w-5xl wrapper.
+  // monoLabel is opt-in: only render the surtitle + hairline when explicitly provided
+  // (otherwise it just duplicates the title in uppercase, which is visual noise).
+  const renderSettingsHeader = (title, subtitle, action, monoLabel = null) => (
+    <div className="pt-4 pb-8">
+      {monoLabel && (
+        <div className="flex items-baseline gap-3 mb-6">
+          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#292524', letterSpacing: '0.1em' }}>
+            {monoLabel}
+          </span>
+          <span className="flex-1 h-px bg-[#292524]/20" />
+        </div>
+      )}
+      <div className="flex items-end justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 style={{ fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif", fontSize: '36px', fontWeight: 400, color: '#18181b', letterSpacing: '-0.02em', lineHeight: 1.1, textWrap: 'balance' }}>
+            {title}
+          </h1>
+          {subtitle && <p className="text-[14px] text-[#78716c] mt-3 leading-relaxed">{subtitle}</p>}
+        </div>
+        {action}
+      </div>
+    </div>
+  );
+
+  const renderSettingsGeneral = () => (
+    <>
+      <div className="flex-1 overflow-y-auto px-8 py-10">
+        <div className="max-w-5xl w-full mx-auto">
+          {renderSettingsHeader(
+            'Général',
+            "Vos informations de profil et vos préférences personnelles."
+          )}
+          <div className="space-y-6">
+
+          {/* Profile */}
+          <div>
+            <h3 className="text-[12px] font-medium uppercase tracking-wider text-[#78716c] mb-2">Profil</h3>
+            <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden divide-y divide-[#e7e5e3]">
+              <div className="px-5 py-4 flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[14px] font-medium flex-shrink-0" style={{ borderRadius: 14 }}>
+                  MR
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-medium text-[#292524]">Photo de profil</div>
+                  <div className="text-[12px] text-[#78716c]">PNG ou JPG, 256×256 px minimum.</div>
+                </div>
+                <button
+                  onClick={() => setToastMessage('Changement de photo (démo).')}
+                  className="px-3 py-1.5 text-[12px] text-[#44403c] border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] transition-colors flex-shrink-0"
+                >
+                  Modifier
+                </button>
+              </div>
+              <div className="px-5 py-4 grid grid-cols-[180px_1fr] gap-4 items-center">
+                <label className="text-[13px] text-[#44403c]">Nom complet</label>
+                <input
+                  type="text"
+                  defaultValue="Meghan Régior"
+                  className="px-3 py-2 text-[13px] border border-[#e7e5e3] rounded-lg focus:outline-none focus:border-[#a8a29e] transition-colors"
+                />
+              </div>
+              <div className="px-5 py-4 grid grid-cols-[180px_1fr] gap-4 items-center">
+                <label className="text-[13px] text-[#44403c]">Email</label>
+                <input
+                  type="email"
+                  defaultValue="meghan@hexa.com"
+                  className="px-3 py-2 text-[13px] border border-[#e7e5e3] rounded-lg focus:outline-none focus:border-[#a8a29e] transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Préférences */}
+          <div>
+            <h3 className="text-[12px] font-medium uppercase tracking-wider text-[#78716c] mb-2">Préférences</h3>
+            <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden divide-y divide-[#e7e5e3]">
+              <div className="px-5 py-4 grid grid-cols-[180px_1fr] gap-4 items-center">
+                <label className="text-[13px] text-[#44403c] flex items-center gap-2">
+                  <Globe className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />
+                  Langue
+                </label>
+                <select className="px-3 py-2 text-[13px] border border-[#e7e5e3] rounded-lg focus:outline-none focus:border-[#a8a29e] transition-colors bg-white">
+                  <option>Français</option>
+                  <option>English</option>
+                </select>
+              </div>
+              <div className="px-5 py-4 grid grid-cols-[180px_1fr] gap-4 items-center">
+                <label className="text-[13px] text-[#44403c]">Fuseau horaire</label>
+                <select className="px-3 py-2 text-[13px] border border-[#e7e5e3] rounded-lg focus:outline-none focus:border-[#a8a29e] transition-colors bg-white">
+                  <option>Europe/Paris (UTC+1)</option>
+                  <option>Europe/London (UTC+0)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Sécurité */}
+          <div>
+            <h3 className="text-[12px] font-medium uppercase tracking-wider text-[#78716c] mb-2">Sécurité</h3>
+            <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden divide-y divide-[#e7e5e3]">
+              <div className="px-5 py-4 flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-[13px] text-[#292524] font-medium">Mot de passe</div>
+                  <div className="text-[12px] text-[#78716c] mt-0.5">Modifié il y a 3 mois.</div>
+                </div>
+                <button
+                  onClick={() => setToastMessage('Changement de mot de passe (démo).')}
+                  className="px-3 py-1.5 text-[12px] text-[#44403c] border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] transition-colors flex-shrink-0"
+                >
+                  Modifier
+                </button>
+              </div>
+              <div className="px-5 py-4 flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-[13px] text-[#292524] font-medium">Authentification à deux facteurs</div>
+                  <div className="text-[12px] text-[#78716c] mt-0.5">Sécurisez votre compte avec un code à usage unique.</div>
+                </div>
+                <button
+                  onClick={() => setToastMessage('Activation 2FA (démo).')}
+                  className="px-3 py-1.5 text-[12px] text-[#44403c] border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] transition-colors flex-shrink-0"
+                >
+                  Activer
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={() => {
+                setToastMessage('Profil enregistré.');
+                setTimeout(() => setToastMessage(null), 3000);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-[#292524] text-white text-[13px] font-medium rounded-lg hover:bg-[#44403c] transition-colors"
+            >
+              <Check className="w-3.5 h-3.5" />
+              Enregistrer
+            </button>
+          </div>
+
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderSettingsUsers = () => (
+    <>
+      <div className="flex-1 overflow-y-auto px-8 py-10">
+        <div className="max-w-5xl w-full mx-auto">
+          {renderSettingsHeader(
+            'Utilisateurs',
+            'Gérez les membres de votre espace de travail et leurs accès.',
+            <button
+              onClick={() => setInviteModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#292524] text-white text-[13px] font-medium rounded-lg hover:bg-[#44403c] transition-colors flex-shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              Inviter un membre
+            </button>
+          )}
+          <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-zinc-100">
+                <th className="px-5 py-3 text-left" style={colHeaderStyle}>Membre</th>
+                <th className="px-5 py-3 text-left" style={colHeaderStyle}>Rôle</th>
+                <th className="px-5 py-3 text-left" style={colHeaderStyle}>Ajouté le</th>
+                <th className="px-5 py-3 w-10"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#e7e5e3]">
+              {workspaceMembers.map(m => (
+                <tr key={m.id} className="bg-white hover:bg-[#fafaf9] transition-colors group">
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${m.color} flex items-center justify-center text-white text-[11px] font-medium flex-shrink-0`}>
+                        {m.initials}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[13px] font-medium text-[#292524] flex items-center gap-2">
+                          {m.name}
+                          {m.pending && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#fef3c7] text-[#92400e]">Invité</span>}
+                        </div>
+                        <div className="text-[12px] text-[#78716c]">{m.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded-full ${m.role === 'Admin' ? 'bg-[#e0e7ff] text-[#3730a3]' : 'bg-[#f5f5f4] text-[#57534e]'}`}>
+                      {m.role}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 text-[12px] text-[#78716c] tabular-nums">{m.joinedDate}</td>
+                  <td className="px-5 py-4">
+                    <button
+                      onClick={() => {
+                        if (m.id === 'u-1') return;
+                        setWorkspaceMembers(prev => prev.filter(x => x.id !== m.id));
+                        setToastMessage('Membre retiré.');
+                        setTimeout(() => setToastMessage(null), 3000);
+                      }}
+                      disabled={m.id === 'u-1'}
+                      className="p-1.5 rounded-lg text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#eeece6] opacity-0 group-hover:opacity-100 transition-all disabled:opacity-0"
+                      title={m.id === 'u-1' ? '' : 'Retirer'}
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderSettingsPreferences = () => {
+    const SECTIONS = [
+      { id: 'structure', icon: FileText, label: 'Structure de vos actes', enrichLabel: "Exemple d'acte" },
+      { id: 'jurisprudences', icon: Scale, label: 'Vos jurisprudences habituelles', enrichLabel: 'Jurisprudence' },
+      { id: 'quantum', icon: Calculator, label: 'Vos préférences de quantum', enrichLabel: 'Référence quantum' },
+      { id: 'referentiels', icon: ShieldCheck, label: 'Vos référentiels favoris', enrichLabel: 'Référentiel' },
+      { id: 'style', icon: Pencil, label: 'Votre style et ton', enrichLabel: 'Acte exemple' },
+      { id: 'consignes', icon: ListChecks, label: 'Vos consignes spécifiques', enrichLabel: 'Consigne' },
+    ];
+
+    const SAMPLE_MASTER_PROMPT = `01 — Structure de vos actes
+• Plan en trois parties : Faits et procédure / Discussion / Dispositif
+• Numérotation décimale (I, A, 1°), titres en gras sans soulignement
+• Citations de jurisprudence en bas de page, jamais dans le corps
+
+02 — Jurisprudences habituelles
+• Cass. 2e civ., 28 mai 2009, n° 08-16.829 — DFP
+• CE, 7 nov. 2008, Centre hospitalier de Cahors — aléa thérapeutique
+• Cass. crim., 6 mars 2018, n° 17-81.122 — préjudice d'agrément
+• CA Paris, 12 janv. 2023, n° 21/14782 — assistance tierce personne
+
+03 — Préférences de quantum
+• DFT total ≈ 1 800 €/mois (proportion selon classe)
+• DFP entre 5 et 25 % selon Mornet 2024
+• Souffrances endurées : ~8 000 € pour SE 4/7
+
+04 — Référentiels favoris
+• Mornet 2024 pour les barèmes d'indemnisation
+• ONIAM uniquement quand l'aléa thérapeutique est en cause
+• Nomenclature Dintilhac comme cadre de référence pour le DFP
+
+05 — Style et ton
+• Phrases courtes, voix active, ton sobre
+• Désignation « la concluante » plutôt que « ma cliente »
+• Préférer « il convient » à « il faut »
+• Éviter les adverbes superflus
+
+06 — Consignes spécifiques
+• Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux
+• Ne pas mélanger faits et discussion
+• Dispositif concis`;
+
+    // Empty scaffold used when the user picks "Écrire mes préférences manuellement"
+    const MANUAL_TEMPLATE = `01 — Structure de vos actes
+
+
+02 — Jurisprudences habituelles
+
+
+03 — Préférences de quantum
+
+
+04 — Référentiels favoris
+
+
+05 — Style et ton
+
+
+06 — Consignes spécifiques
+
+`;
+
+    const ENRICHMENT_SAMPLES = {
+      structure: '• Section « Subsidiairement » en fin d\'acte',
+      jurisprudences: '• Cass. 2e civ., 14 sept. 2023, n° 21-25.342',
+      quantum: '• Frais de logement adapté : ~2 500 €/mois',
+      referentiels: '• Référentiel CIVI pour les victimes d\'infraction',
+      style: '• Usage de « par ces motifs » avant le dispositif',
+      consignes: '• Toujours formuler les demandes en chiffres et lettres',
+    };
+
+    // Insert a new bullet at the end of a given section in the master prompt
+    const appendBulletToSection = (text, sectionNumber, bullet) => {
+      const lines = text.split('\n');
+      const headerPrefix = `${String(sectionNumber).padStart(2, '0')} — `;
+      let inSection = false;
+      let lastBulletLine = -1;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith(headerPrefix)) { inSection = true; continue; }
+        if (inSection && /^\d{2} — /.test(lines[i])) break;
+        if (inSection && lines[i].trim()) lastBulletLine = i;
+      }
+      if (lastBulletLine === -1) return text + '\n' + bullet;
+      const before = lines.slice(0, lastBulletLine + 1);
+      const after = lines.slice(lastBulletLine + 1);
+      return [...before, bullet, ...after].join('\n');
+    };
+
+    const EXTRACTION_STEPS = [
+      { label: 'Lecture des documents' },
+      { label: 'Analyse du style et de la structure' },
+      { label: 'Identification des jurisprudences' },
+      { label: 'Détection des référentiels et barèmes' },
+      { label: 'Construction de la mémoire' },
+    ];
+
+    const memoryEmpty = preferenceMasterPrompt.trim() === '';
+
+    const SAMPLE_SAVED_JPS = [
+      { id: 'jp-1', citation: 'Cass. 2e civ., 28 mai 2009', number: 'n° 08-16.829', context: 'DFP' },
+      { id: 'jp-2', citation: 'CE, 7 nov. 2008', number: 'Centre hospitalier de Cahors', context: 'aléa thérapeutique' },
+      { id: 'jp-3', citation: 'Cass. crim., 6 mars 2018', number: 'n° 17-81.122', context: "préjudice d'agrément" },
+      { id: 'jp-4', citation: 'CA Paris, 12 janv. 2023', number: 'n° 21/14782', context: 'assistance tierce personne' },
+    ];
+
+    const startExtraction = () => {
+      setPreferenceExtracting(true);
+      setPreferenceExtractStep(0);
+      const stepDuration = 950;
+      EXTRACTION_STEPS.forEach((_, idx) => {
+        setTimeout(() => setPreferenceExtractStep(idx + 1), (idx + 1) * stepDuration);
+      });
+      setTimeout(() => {
+        setPreferenceMasterPrompt(SAMPLE_MASTER_PROMPT);
+        setSavedJurisprudences(SAMPLE_SAVED_JPS);
+        setPreferenceExtracting(false);
+        setPreferenceExtractStep(0);
+        setToastMessage('Mémoire construite à partir de vos documents.');
+        setTimeout(() => setToastMessage(null), 3000);
+      }, EXTRACTION_STEPS.length * stepDuration + 500);
+    };
+
+    const processFiles = (files) => {
+      if (!files || files.length === 0) return;
+      const today = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+      const newDocs = files.map((f, i) => ({
+        id: `pd-${Date.now()}-${i}`,
+        fileName: f.name,
+        addedDate: today,
+        size: f.size ? `${Math.round(f.size / 1024)} Ko` : '—',
+      }));
+      setPreferenceDocs(prev => [...newDocs, ...prev]);
+      if (memoryEmpty) startExtraction();
+    };
+
+    const enrichSpecificSection = (sectionId, files) => {
+      if (files.length === 0) return;
+      setPreferenceEnrichingSection(sectionId);
+      const today = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+      const newDocs = files.map((f, i) => ({
+        id: `pd-${Date.now()}-${i}`,
+        fileName: f.name,
+        addedDate: today,
+        size: f.size ? `${Math.round(f.size / 1024)} Ko` : '—',
+        sectionId,
+      }));
+      setPreferenceDocs(prev => [...newDocs, ...prev]);
+      const sectionNumber = SECTIONS.findIndex(s => s.id === sectionId) + 1;
+      setTimeout(() => {
+        setPreferenceMasterPrompt(prev => appendBulletToSection(prev, sectionNumber, ENRICHMENT_SAMPLES[sectionId]));
+        setPreferenceEnrichingSection(null);
+        setToastMessage('Mémoire enrichie.');
+        setTimeout(() => setToastMessage(null), 3000);
+      }, 1800);
+    };
+
+    const handleDrop = (e) => {
+      e.preventDefault();
+      setPreferenceDragOver(false);
+      processFiles(Array.from(e.dataTransfer.files || []));
+    };
+
+    const handleFilePick = (e) => {
+      const files = Array.from(e.target.files || []);
+      if (preferenceTargetSection) {
+        enrichSpecificSection(preferenceTargetSection, files);
+        setPreferenceTargetSection(null);
+      } else {
+        processFiles(files);
+      }
+      e.target.value = '';
+    };
+
+    const enrichSection = (sectionId) => {
+      setPreferenceTargetSection(sectionId);
+      preferenceFileInputRef.current?.click();
+    };
+
+    const removeDoc = (id) => {
+      setPreferenceDocs(prev => prev.filter(d => d.id !== id));
+    };
+
+    const PLATO_LEARNS = [
+      { icon: FileText, title: "Structure de vos actes", example: "Conclusions, assignations, requêtes" },
+      { icon: Scale, title: "Vos jurisprudences habituelles", example: "Collection de JP, briefs d'arrêt" },
+      { icon: Calculator, title: "Vos préférences de quantum", example: "Montants habituels par poste" },
+      { icon: ShieldCheck, title: "Vos référentiels favoris", example: "Mornet, ONIAM, Dintilhac…" },
+      { icon: Pencil, title: "Votre style et ton", example: "Vocabulaire, formules, voix" },
+      { icon: ListChecks, title: "Vos consignes spécifiques", example: "Plan, citations, dispositif" },
+    ];
+
+    const isOnboarding = preferenceDocs.length === 0 && memoryEmpty && !preferenceWriteRequested && !preferenceExtracting;
+
+    /* Hidden file input — shared across all states */
+    const hiddenFileInput = (
+      <input
+        ref={preferenceFileInputRef}
+        type="file"
+        multiple
+        accept=".pdf,.docx,.doc,.txt"
+        onChange={handleFilePick}
+        className="hidden"
+      />
+    );
+
+    /* ───────── ONBOARDING + EXTRACTING share the same 2-column layout ───────── */
+    if (isOnboarding || preferenceExtracting) {
+      const dropBadges = ['Rédactions', 'Arrêts / JP'];
+      const stepPct = Math.round((preferenceExtractStep / EXTRACTION_STEPS.length) * 100);
+      const currentStepLabel = preferenceExtracting
+        ? EXTRACTION_STEPS[Math.min(preferenceExtractStep, EXTRACTION_STEPS.length - 1)].label
+        : null;
+      return (
+        <div className="flex-1 overflow-y-auto px-8 py-10">
+          {hiddenFileInput}
+          <div className="max-w-5xl w-full mx-auto">
+
+            {renderSettingsHeader(
+              'Apprenez à Plato comment vous travaillez.',
+              "Glissez vos actes, jurisprudences et briefs : Plato apprend votre méthode et rédige à votre style."
+            )}
+
+            {/* Two columns — drop documents (wider, left), PLATO APPREND list (narrower, right) */}
+            <div className="grid grid-cols-1 md:grid-cols-[1.7fr_1fr] gap-12">
+
+              {/* LEFT — Drop zone (always-on highlight: dark dashed border + cream gradient interior) */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setPreferenceDragOver(true); }}
+                onDragLeave={() => setPreferenceDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => preferenceFileInputRef.current?.click()}
+                className={`rounded-lg border border-dashed transition-all p-4 flex items-center justify-center min-h-[424px] cursor-pointer border-[#a8a29e] ${preferenceDragOver ? 'border-[#292524]' : ''}`}
+              >
+                <div
+                  className="flex-1 self-stretch flex flex-col items-center justify-center rounded-lg p-8 transition-all"
+                  style={{ background: preferenceDragOver
+                    ? 'linear-gradient(to top, #eeece6 0%, #eeece6 30%, rgba(238, 236, 230, 0) 100%)'
+                    : 'linear-gradient(to top, #eeece6 0%, rgba(238, 236, 230, 0) 56.957%)'
+                  }}
+                >
+                  <div className="flex flex-col items-center gap-8 max-w-[480px] w-full">
+                    {/* Circular icon — swap to spinner when extracting */}
+                    <div
+                      className="rounded-full p-4 border border-solid border-[#d6d3d1] bg-[#eeece6] flex items-center justify-center"
+                      style={{ boxShadow: '0 1px 2px rgba(26, 26, 26, 0.05)' }}
+                    >
+                      {preferenceExtracting
+                        ? <Loader2 className="w-6 h-6 text-[#292524] animate-spin" strokeWidth={1.75} />
+                        : <Upload className="w-6 h-6 text-[#292524]" strokeWidth={1.5} />
+                      }
+                    </div>
+
+                    {/* Text */}
+                    <div className="flex flex-col items-center gap-2 text-center w-full">
+                      <p className="text-[20px] text-[#292524] font-medium leading-7" style={{ letterSpacing: '-0.6px' }}>
+                        {preferenceExtracting ? 'Plato analyse vos documents' : 'Déposez vos documents'}
+                      </p>
+                      <p className="text-[14px] text-[#78716c] leading-5">
+                        {preferenceExtracting ? (
+                          currentStepLabel
+                        ) : (
+                          <>Déposez un ou plusieurs documents.<br />Plato lit, extrait et structure les informations pour chaque ligne.</>
+                        )}
+                      </p>
+                    </div>
+
+                    {preferenceExtracting ? (
+                      /* Progress bar in place of badges + button */
+                      <div className="flex flex-col items-center gap-2 w-full max-w-[280px]">
+                        <div className="h-[6px] w-full rounded-full overflow-hidden bg-[#eeece6]">
+                          <div className="h-full bg-[#292524] rounded-full transition-all duration-500" style={{ width: `${stepPct}%` }} />
+                        </div>
+                        <p className="text-[11px] text-[#a8a29e] tabular-nums">
+                          {Math.min(preferenceExtractStep, EXTRACTION_STEPS.length)} / {EXTRACTION_STEPS.length}
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Doc-type badges */}
+                        <div className="flex flex-wrap gap-3 justify-center w-full">
+                          {dropBadges.map((b, i) => (
+                            <span key={i} className="bg-[#eeece6] inline-flex items-center px-2 py-1 rounded-md text-[12px] text-[#44403c] font-medium leading-4">
+                              {b}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Primary button */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); preferenceFileInputRef.current?.click(); }}
+                          className="inline-flex items-center gap-2 h-10 px-6 bg-[#292524] text-white text-[14px] font-medium rounded-lg hover:bg-[#44403c] transition-colors"
+                          style={{ boxShadow: '0 1px 2px rgba(26, 26, 26, 0.05)' }}
+                        >
+                          <Upload className="w-4 h-4" />
+                          Ajoutez des documents
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* RIGHT — PLATO APPREND list with intro line */}
+              <div className="flex flex-col justify-center min-h-[424px]">
+                <p className="text-[13px] text-[#78716c] mb-3 leading-relaxed">
+                  Plato apprend et extrait :
+                </p>
+                <ul>
+                  {PLATO_LEARNS.map((it, i) => (
+                    <li key={i} className="grid grid-cols-[28px_1fr] gap-3 py-3">
+                      <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#a8a29e', letterSpacing: '0.04em' }} className="tabular-nums pt-0.5">
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-[14px] text-[#292524] font-medium leading-snug">{it.title}</div>
+                        <div className="text-[12px] text-[#a8a29e] mt-0.5 leading-snug">{it.example}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+            </div>
+
+            {/* Hairline + manual entry — left-aligned secondary action */}
+            <div className="mt-12 pt-5 border-t border-[#e7e5e3]">
+              <button
+                onClick={() => {
+                  // Pre-draft the master prompt with empty section scaffolding
+                  if (preferenceMasterPrompt.trim() === '') {
+                    setPreferenceMasterPrompt(MANUAL_TEMPLATE);
+                  }
+                  setPreferenceWriteRequested(true);
+                }}
+                className="text-[14px] font-medium text-[#1e3a8a] hover:text-[#1e40af] transition-colors"
+              >
+                Écrire mes préférences manuellement
+              </button>
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <div className="flex-1 overflow-y-auto px-8 py-10">
+          {hiddenFileInput}
+          <div className="max-w-5xl w-full mx-auto">
+
+            {renderSettingsHeader(
+              'Mémoire et préférences',
+              "Voici ce dont Plato se souvient à votre sujet et la manière dont vous travaillez. Plato s'inspire de vos documents et de vos instructions pour rédiger à votre style."
+            )}
+
+            {/* ───────── FILLED STATE — single master-prompt textarea ───────── */}
+
+            {/* Category chips — quick reminder of what Plato learned */}
+            <div className="mb-5 flex flex-wrap gap-2">
+              {PLATO_LEARNS.map((it, i) => {
+                const Icon = it.icon;
+                return (
+                  <span key={i} className="bg-[#eeece6] inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] text-[#44403c] font-medium leading-4">
+                    <Icon className="w-3.5 h-3.5 text-[#78716c]" strokeWidth={1.5} />
+                    {it.title}
+                  </span>
+                );
+              })}
+            </div>
+
+            <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
+              <textarea
+                value={preferenceMasterPrompt}
+                onChange={(e) => setPreferenceMasterPrompt(e.target.value)}
+                rows={Math.max(28, preferenceMasterPrompt.split('\n').length + 2)}
+                placeholder="Décrivez votre méthode : structure, jurisprudences, quantum, référentiels, style, consignes…"
+                className="w-full px-5 py-4 text-[13px] text-[#292524] resize-none focus:outline-none leading-relaxed bg-transparent"
+                style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
+              />
+            </div>
+
+            {/* Save action — sits below the textarea card */}
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <p className="text-[12px] text-[#78716c]">Plato suit ces instructions à chaque rédaction d'acte.</p>
+              <button
+                onClick={() => {
+                  setToastMessage('Mémoire enregistrée.');
+                  setTimeout(() => setToastMessage(null), 3000);
+                }}
+                className="flex items-center gap-2 h-9 px-4 bg-[#292524] text-white text-[13px] font-medium rounded-lg hover:bg-[#44403c] transition-colors"
+                style={{ boxShadow: '0 1px 2px rgba(26, 26, 26, 0.05)' }}
+              >
+                <Check className="w-3.5 h-3.5" strokeWidth={2} />
+                Enregistrer
+              </button>
+            </div>
+
+
+
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  const renderSettingsBilling = () => {
+    const TIERS = [
+      { matters: 5,   pricePerMatter: 200 },
+      { matters: 10,  pricePerMatter: 170 },
+      { matters: 20,  pricePerMatter: 140 },
+      { matters: 50,  pricePerMatter: 100 },
+      { matters: 100, pricePerMatter: 80  },
+      { matters: 150, pricePerMatter: 65  },
+      { matters: 200, pricePerMatter: 55  },
+      { matters: null, pricePerMatter: null }, // 200+ → custom
+    ];
+    const selectedTier = TIERS[billingTierIndex];
+    const selectedYearlyTotal = selectedTier.pricePerMatter ? selectedTier.matters * selectedTier.pricePerMatter : null;
+    const currentTierIndex = 2; // 20 dossiers
+    const currentTier = TIERS[currentTierIndex];
+    const currentYearlyTotal = currentTier.matters * currentTier.pricePerMatter;
+    const fmtEur = (n) => n.toLocaleString('fr-FR');
+
+    const FEATURES = [
+      { icon: Users, label: 'Utilisateurs illimités' },
+      { icon: Sparkles, label: 'Agent IA illimité' },
+      { icon: Calculator, label: 'Chiffrages illimités' },
+      { icon: BookOpen, label: 'Accès à Plato Jurisprudence illimité' },
+      { icon: ClipboardList, label: 'Bordereau et découpe automatique des documents', hint: "jusqu'à 1 000p par PDF" },
+      { icon: ShieldCheck, label: 'Tamponnage automatique des pièces' },
+      { icon: Download, label: 'Export PDF et Word' },
+    ];
+
+    // State-dependent values
+    const stateConfig = {
+      free: { used: 1, limit: 1, label: 'Plan gratuit', priceLabel: '0 € / an' },
+      paid: { used: 12, limit: currentTier.matters, label: `${currentTier.matters} dossiers / an`, priceLabel: `${fmtEur(currentYearlyTotal)} € HT / an` },
+      over: { used: currentTier.matters, limit: currentTier.matters, label: `${currentTier.matters} dossiers / an`, priceLabel: `${fmtEur(currentYearlyTotal)} € HT / an` },
+    };
+    const cfg = stateConfig[billingState];
+    const pct = Math.min(100, Math.round((cfg.used / cfg.limit) * 100));
+    const showUpgradeFlow = billingState === 'free' || billingState === 'over';
+
+    return (
+      <>
+        <div className="flex-1 overflow-y-auto px-8 py-10">
+          <div className="max-w-5xl w-full mx-auto">
+            {renderSettingsHeader(
+              'Plan',
+              "Votre plan et votre consommation.",
+              <div className="flex items-center gap-2 text-[10px] text-[#a8a29e]" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+                <span className="uppercase tracking-wider">Démo</span>
+                {[
+                  { id: 'free', label: 'free' },
+                  { id: 'paid', label: 'paid' },
+                  { id: 'over', label: 'paid · out' },
+                ].map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      setBillingState(s.id);
+                      if (s.id === 'over') setBillingTierIndex(currentTierIndex);
+                    }}
+                    className={`px-2 py-0.5 rounded-md transition-colors ${billingState === s.id ? 'bg-[#292524] text-white' : 'bg-[#eeece6] text-[#78716c] hover:bg-[#e7e5e3]'}`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="space-y-4">
+
+            {/* Alert banner — sits ABOVE the Plan actuel section */}
+            {billingState === 'over' && (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#fde68a] bg-[#fffbeb]">
+                <AlertTriangle className="w-4 h-4 text-[#92400e] flex-shrink-0" strokeWidth={1.75} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-medium text-[#92400e]">Vous avez utilisé tous vos dossiers</div>
+                  <div className="text-[12px] text-[#78350f]/80 mt-0.5">Choisissez un plan supérieur ou achetez des dossiers supplémentaires pour continuer.</div>
+                </div>
+              </div>
+            )}
+            {billingState === 'free' && (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#fde68a] bg-[#fffbeb]">
+                <AlertTriangle className="w-4 h-4 text-[#92400e] flex-shrink-0" strokeWidth={1.75} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-medium text-[#92400e]">Vous avez utilisé votre dossier gratuit</div>
+                  <div className="text-[12px] text-[#78350f]/80 mt-0.5">Pour créer un nouveau dossier, choisissez un plan ci-dessous. Le paiement se fait sur Stripe.</div>
+                </div>
+              </div>
+            )}
+
+            {/* Plan + usage — inline editorial block (no card) for visual harmony with pricing component */}
+            <div className="pt-2">
+              <div className="flex items-baseline gap-3 mb-4">
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', letterSpacing: '0.1em' }}>
+                  PLAN ACTUEL
+                </span>
+                <span className="flex-1 h-px bg-[#e7e5e3]" />
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <h2 style={{ fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif", fontSize: '24px', fontWeight: 400, color: '#18181b', letterSpacing: '-0.015em' }}>
+                      {cfg.label}
+                    </h2>
+                    <span className="text-[13px] text-[#78716c]">— {cfg.priceLabel}</span>
+                  </div>
+                  <p className="text-[12px] text-[#78716c] mt-1">
+                    {billingState === 'free' ? 'Aucun renouvellement.' : 'Renouvellement automatique le 1ᵉʳ mai 2026.'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setBillingTierIndex(billingState === 'free' ? 1 : currentTierIndex);
+                    setBillingUpgradeModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 h-9 px-3 bg-[#292524] text-white text-[13px] font-medium rounded-lg hover:bg-[#44403c] transition-colors flex-shrink-0"
+                  style={{ boxShadow: '0 1px 2px rgba(26, 26, 26, 0.05)' }}
+                >
+                  {billingState === 'free' ? 'Choisir mon plan' : billingState === 'over' ? 'Augmenter mon plan' : 'Gérer mon plan'}
+                </button>
+              </div>
+
+              <div className="mt-5">
+                {(() => {
+                  const remaining = Math.max(0, cfg.limit - cfg.used);
+                  if (billingState === 'free') {
+                    return (
+                      <div className="flex items-baseline gap-2 mb-2">
+                        <span className="text-[18px] font-medium text-[#292524] tabular-nums">{remaining}</span>
+                        <span className="text-[13px] text-[#78716c]">
+                          / {cfg.limit} dossier{cfg.limit > 1 ? 's' : ''} gratuit{cfg.limit > 1 ? 's' : ''} restant{remaining > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="flex items-baseline gap-2 mb-2">
+                      <span className="text-[18px] font-medium text-[#292524] tabular-nums">{cfg.used}</span>
+                      <span className="text-[13px] text-[#78716c]">/ {cfg.limit} dossier{cfg.limit > 1 ? 's' : ''} cette année</span>
+                      <span className={`text-[12px] tabular-nums ${pct >= 100 ? 'text-[#92400e] font-medium' : 'text-[#78716c]'}`}>· {pct}%</span>
+                    </div>
+                  );
+                })()}
+                <div className="h-1.5 w-full bg-[#eeece6] rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${pct >= 100 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-emerald-400 to-teal-500'}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                {billingState === 'paid' && (
+                  <p className="text-[12px] text-[#a8a29e] mt-2">Cycle annuel : 01 janv. 2026 → 31 déc. 2026</p>
+                )}
+              </div>
+
+              {/* Always remind the benefits/features (same list across free, paid, paid·out) */}
+              <div className="mt-6 bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden divide-y divide-[#e7e5e3]/60">
+                {FEATURES.map((f, i) => {
+                  const Icon = f.icon;
+                  return (
+                    <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+                      <Icon className="w-4 h-4 text-[#78716c] flex-shrink-0" strokeWidth={1.5} />
+                      <span className="text-[13px] text-[#292524] font-medium">{f.label}</span>
+                      {f.hint && <span className="text-[12px] text-[#a8a29e]">({f.hint})</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Upgrade modal — tabs: Modifier mon plan / Acheter des crédits */}
+            {billingUpgradeModalOpen && (() => {
+              const activeTab = billingModalTab;
+              const UNIT_PRICE = 150;
+              const creditTotal = billingCreditQty * UNIT_PRICE;
+              return (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+                  onClick={() => setBillingUpgradeModalOpen(false)}
+                >
+                  <div
+                    className="bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col"
+                    style={{ width: 720, maxHeight: '90vh' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Tabs row — doubles as the modal header (no separate title) */}
+                    <div className="px-6 pt-4 border-b border-[#e7e5e3] flex items-end justify-between gap-2">
+                      <div className="flex gap-1">
+                        {[
+                          { id: 'plan', label: 'Modifier mon plan' },
+                          { id: 'credits', label: 'Acheter des crédits unitaires' },
+                        ].map(t => {
+                          const active = activeTab === t.id;
+                          return (
+                            <button
+                              key={t.id}
+                              onClick={() => setBillingModalTab(t.id)}
+                              className={`relative px-3 pb-3 text-[13px] font-medium transition-colors ${active ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
+                            >
+                              {t.label}
+                              {active && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-[#292524]" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <button
+                        onClick={() => setBillingUpgradeModalOpen(false)}
+                        className="w-8 h-8 mb-1 rounded-lg flex items-center justify-center hover:bg-[#eeece6] transition-colors flex-shrink-0"
+                      >
+                        <X className="w-4 h-4 text-[#78716c]" />
+                      </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto px-8 py-6">
+                      {activeTab === 'plan' ? (
+                        <>
+                          {/* Serif headline with peach pill */}
+                          <h2 style={{ fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif", fontSize: '22px', fontWeight: 400, color: '#18181b', letterSpacing: '-0.015em', lineHeight: 1.3 }}>
+                            J'ai besoin de{' '}
+                            <span
+                              className="inline-flex items-center justify-center align-middle text-white tabular-nums"
+                              style={{ background: '#e88f5c', borderRadius: 9999, padding: '2px 12px', fontSize: '15px', fontWeight: 500, fontFamily: "'Inter', system-ui, sans-serif", lineHeight: 1.2, minWidth: 40 }}
+                            >
+                              {selectedTier.matters || '200+'}
+                            </span>
+                            {' '}nouveaux dossiers par an
+                          </h2>
+
+                          {/* Slider */}
+                          <div className="mt-5">
+                            <input
+                              type="range"
+                              min={0}
+                              max={TIERS.length - 1}
+                              step={1}
+                              value={billingTierIndex}
+                              onChange={(e) => setBillingTierIndex(Number(e.target.value))}
+                              className="w-full h-1 appearance-none bg-[#e7e5e3] rounded-full cursor-pointer accent-[#292524]"
+                            />
+                            <div className="flex justify-between mt-2.5">
+                              {TIERS.map((t, i) => (
+                                <button
+                                  key={i}
+                                  onClick={() => setBillingTierIndex(i)}
+                                  className={`text-[12px] tabular-nums transition-colors ${i === billingTierIndex ? 'text-[#292524] font-medium' : 'text-[#a8a29e] hover:text-[#78716c]'}`}
+                                >
+                                  {t.matters || '200+'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Price */}
+                          <div className="mt-6">
+                            <div className="flex items-baseline gap-1.5">
+                              <span style={{ fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif", fontSize: '36px', fontWeight: 400, color: '#18181b', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                                {selectedTier.pricePerMatter ? `${selectedTier.pricePerMatter}€` : 'Sur devis'}
+                              </span>
+                              {selectedTier.pricePerMatter && (
+                                <span className="text-[13px] text-[#78716c]">/dossier</span>
+                              )}
+                            </div>
+                            {selectedYearlyTotal && (
+                              <p className="text-[14px] text-[#44403c] mt-2">
+                                soit <span className="font-medium text-[#292524] tabular-nums">{fmtEur(selectedYearlyTotal)} €</span> HT par an
+                              </p>
+                            )}
+                            {!selectedTier.pricePerMatter && (
+                              <p className="text-[12px] text-[#78716c] mt-1">Volume sur mesure pour les cabinets de plus grande taille.</p>
+                            )}
+                          </div>
+
+                          {/* Features list */}
+                          <div className="mt-6 bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden divide-y divide-[#e7e5e3]/60">
+                            {FEATURES.map((f, i) => {
+                              const Icon = f.icon;
+                              return (
+                                <div key={i} className="flex items-center gap-3 px-5 py-2.5">
+                                  <Icon className="w-4 h-4 text-[#78716c] flex-shrink-0" strokeWidth={1.5} />
+                                  <span className="text-[13px] text-[#292524] font-medium">{f.label}</span>
+                                  {f.hint && <span className="text-[12px] text-[#a8a29e]">({f.hint})</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {/* Credits tab */}
+                          <p className="text-[14px] text-[#44403c] leading-relaxed max-w-md">
+                            Sans changer de plan, payez à la consommation. Idéal pour absorber un dépassement ponctuel.
+                          </p>
+
+                          {/* Quantity stepper */}
+                          <div className="mt-8 flex items-center gap-5">
+                            <div className="flex items-center gap-3">
+                              <span className="text-[12px] text-[#78716c]">Quantité</span>
+                              <div className="inline-flex items-center bg-white border border-[#e7e5e3] rounded-lg overflow-hidden">
+                                <button
+                                  onClick={() => setBillingCreditQty(Math.max(1, billingCreditQty - 1))}
+                                  className="w-9 h-10 flex items-center justify-center text-[#78716c] hover:bg-[#fafaf9] transition-colors"
+                                >
+                                  −
+                                </button>
+                                <span className="w-12 text-center text-[15px] font-medium tabular-nums text-[#292524]">
+                                  {billingCreditQty}
+                                </span>
+                                <button
+                                  onClick={() => setBillingCreditQty(billingCreditQty + 1)}
+                                  className="w-9 h-10 flex items-center justify-center text-[#78716c] hover:bg-[#fafaf9] transition-colors"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                            <span className="text-[12px] text-[#78716c]">×</span>
+                            <span className="text-[14px] text-[#292524] tabular-nums">{UNIT_PRICE} € HT</span>
+                          </div>
+
+                          {/* Total — big serif */}
+                          <div className="mt-8">
+                            <div className="text-[11px] font-medium text-[#78716c] uppercase tracking-wider mb-1">Total</div>
+                            <div className="flex items-baseline gap-1.5">
+                              <span style={{ fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif", fontSize: '36px', fontWeight: 400, color: '#18181b', letterSpacing: '-0.02em', lineHeight: 1 }} className="tabular-nums">
+                                {fmtEur(creditTotal)} €
+                              </span>
+                              <span className="text-[13px] text-[#78716c]">HT</span>
+                            </div>
+                            <p className="text-[12px] text-[#78716c] mt-2">
+                              {billingCreditQty} dossier{billingCreditQty > 1 ? 's' : ''} supplémentaire{billingCreditQty > 1 ? 's' : ''} · paiement unique
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Footer CTA */}
+                    <div className="px-6 py-4 border-t border-[#e7e5e3] bg-[#fafaf9] flex items-center justify-between gap-3">
+                      {activeTab === 'plan' ? (
+                        <>
+                          <p className="text-[12px] text-[#78716c]">
+                            {selectedTier.pricePerMatter
+                              ? 'Paiement sécurisé sur Stripe · facturation annuelle'
+                              : 'Au-delà de 200 dossiers — contactez notre équipe.'}
+                          </p>
+                          <button
+                            onClick={() => {
+                              if (!selectedTier.pricePerMatter) {
+                                setBillingUpgradeModalOpen(false);
+                                setToastMessage('Demande de contact envoyée (démo).');
+                                setTimeout(() => setToastMessage(null), 3000);
+                              } else {
+                                setBillingUpgradeModalOpen(false);
+                                setToastMessage(`Redirection vers Stripe Checkout pour ${selectedTier.matters} dossiers / an…`);
+                                setTimeout(() => {
+                                  setBillingState('paid');
+                                  setToastMessage(`Plan ${selectedTier.matters} dossiers / an activé.`);
+                                  setTimeout(() => setToastMessage(null), 3000);
+                                }, 1800);
+                              }
+                            }}
+                            className="flex items-center gap-2 h-10 px-5 bg-[#292524] text-white text-[14px] font-medium rounded-lg hover:bg-[#44403c] transition-colors"
+                          >
+                            {selectedTier.pricePerMatter ? 'Souscrire' : 'Nous contacter'}
+                            {selectedTier.pricePerMatter && <ExternalLink className="w-3.5 h-3.5" strokeWidth={2} />}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-[12px] text-[#78716c]">
+                            Paiement unique sur Stripe · sans engagement
+                          </p>
+                          <button
+                            onClick={() => {
+                              setBillingUpgradeModalOpen(false);
+                              setToastMessage(`Redirection vers Stripe Checkout pour ${billingCreditQty} dossier${billingCreditQty > 1 ? 's' : ''} (${fmtEur(creditTotal)} € HT)…`);
+                              setTimeout(() => setToastMessage(null), 3000);
+                            }}
+                            className="flex items-center gap-2 h-10 px-5 bg-[#292524] text-white text-[14px] font-medium rounded-lg hover:bg-[#44403c] transition-colors"
+                          >
+                            Acheter {billingCreditQty} dossier{billingCreditQty > 1 ? 's' : ''}
+                            <ExternalLink className="w-3.5 h-3.5" strokeWidth={2} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Stripe portal — broken down into 4 distinct clickable links (paid + over) */}
+            {(billingState === 'paid' || billingState === 'over') && (
+              <div className="pt-8">
+                <div className="flex items-baseline gap-3 mb-4">
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', letterSpacing: '0.1em' }}>
+                    GÉRER MON ABONNEMENT
+                  </span>
+                  <span className="flex-1 h-px bg-[#e7e5e3]" />
+                </div>
+                <div className="rounded-lg border border-[#e7e5e3]/60 overflow-hidden divide-y divide-[#e7e5e3]/60">
+                  {[
+                    { label: 'Mes factures', target: 'factures', external: true },
+                    { label: 'Changer ma méthode de paiement', target: 'paiement', external: true },
+                    ...(billingState === 'paid' ? [{ label: 'Acheter des crédits supplémentaires', target: 'crédits', external: true }] : []),
+                  ].map((link) => (
+                    <button
+                      key={link.target}
+                      onClick={() => {
+                        if (link.target === 'plan') {
+                          setBillingTierIndex(currentTierIndex);
+                          setBillingUpgradeModalOpen(true);
+                        } else {
+                          setToastMessage(`Redirection vers Stripe — ${link.label.toLowerCase()}…`);
+                          setTimeout(() => setToastMessage(null), 3000);
+                        }
+                      }}
+                      className="w-full flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-[#eeece6] transition-colors text-left group"
+                    >
+                      <span className="text-[14px] text-[#292524] font-medium">{link.label}</span>
+                      {link.external
+                        ? <ExternalLink className="w-4 h-4 text-[#a8a29e] group-hover:text-[#78716c] flex-shrink-0" strokeWidth={1.75} />
+                        : <ChevronRight className="w-4 h-4 text-[#a8a29e] group-hover:text-[#78716c] flex-shrink-0" strokeWidth={2} />
+                      }
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  const renderSettingsBaremes = () => (
+    <>
+      <div className="flex-1 overflow-y-auto px-8 py-10">
+        <div className="max-w-5xl w-full mx-auto">
+          {renderSettingsHeader(
+            'Référentiels & Barèmes',
+            "Les barèmes utilisés par l'agent pour calculer les indemnisations.",
+            <button
+              onClick={() => { setBaremeUploadFormOpen(true); setBaremeUploadData({ nom: '', type: 'bareme', notes: '', fileName: '' }); }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#292524] text-white text-[13px] font-medium rounded-lg hover:bg-[#44403c] transition-colors flex-shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              Ajouter un barème
+            </button>
+          )}
+          <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-zinc-100">
+                <th className="px-5 py-3 text-left" style={colHeaderStyle}>Nom</th>
+                <th className="px-5 py-3 text-left" style={colHeaderStyle}>Statut</th>
+                <th className="px-5 py-3 w-10"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#e7e5e3]">
+              {baremesLibrary.map(bareme => (
+                <tr
+                  key={bareme.id}
+                  onClick={() => bareme.status === 'active' && setBaremeViewerOpen(bareme.id)}
+                  className={`bg-white transition-colors group ${bareme.status === 'active' ? 'hover:bg-[#fafaf9] cursor-pointer' : 'opacity-75'}`}
+                >
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[#eeece6] flex items-center justify-center flex-shrink-0">
+                        <Scale className="w-4 h-4 text-[#a8a29e]" />
+                      </div>
+                      <span className="text-body-medium text-[#292524]">{bareme.label}</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    {bareme.status === 'active' ? (
+                      <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#dcfce7', color: '#065f46' }}>Actif</span>
+                    ) : (
+                      <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#92400e' }}>En traitement</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-4">
+                    {bareme.status === 'active' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setBaremeViewerOpen(bareme.id); }}
+                        className="p-1.5 rounded-lg text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#eeece6] opacity-0 group-hover:opacity-100 transition-all"
+                        title="Voir le barème"
+                      >
+                        <Table2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderSettingsTemplates = () => (
+    <>
+      <div className="flex-1 overflow-y-auto px-8 py-10">
+        <div className="max-w-5xl w-full mx-auto">
+          {renderSettingsHeader(
+            "Modèles d'actes",
+            "Vos modèles de référence pour la rédaction d'actes. L'agent peut s'en inspirer lors de la rédaction.",
+            <button
+              onClick={() => { setTemplateUploadFormOpen(true); setTemplateUploadData({ nom: '', actType: '', notes: '', fileName: '' }); }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#292524] text-white text-[13px] font-medium rounded-lg hover:bg-[#44403c] transition-colors flex-shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              Ajouter un modèle
+            </button>
+          )}
+          <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-zinc-100">
+                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Nom</th>
+                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Ajouté le</th>
+                  <th className="px-5 py-3 w-10"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#e7e5e3]">
+                {templatesLibrary.map(tpl => (
+                  <tr key={tpl.id} className="bg-white hover:bg-[#fafaf9] transition-colors group">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-[#eeece6] flex items-center justify-center flex-shrink-0">
+                          <FileText className="w-4 h-4 text-[#a8a29e]" strokeWidth={1.5} />
+                        </div>
+                        <span className="text-body-medium text-[#292524]">{tpl.fileName}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-body text-[#78716c] tabular-nums">{tpl.addedDate}</td>
+                    <td className="px-5 py-4">
+                      <button
+                        onClick={() => {
+                          setTemplatesLibrary(prev => prev.filter(t => t.id !== tpl.id));
+                          setToastMessage('Modèle supprimé.');
+                          setTimeout(() => setToastMessage(null), 3000);
+                        }}
+                        className="p-1.5 rounded-lg text-[#d6d3d1] hover:text-red-400 hover:bg-[#eeece6] opacity-0 group-hover:opacity-100 transition-all"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {templatesLibrary.length === 0 && (
+              <div className="py-16 text-center">
+                <ClipboardList className="w-8 h-8 text-[#d6d3d1] mx-auto mb-3" />
+                <p className="text-[14px] text-[#78716c] mb-1">Aucun modèle d'acte</p>
+                <p className="text-[12px] text-[#a8a29e]">Ajoutez vos modèles pour que l'agent puisse s'en inspirer lors de la rédaction.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderSettingsPage = () => {
+    const SECTION_GROUPS = [
+      {
+        label: 'Espace de travail',
+        items: [
+          { id: 'users', label: 'Utilisateurs', icon: Users },
+          { id: 'billing', label: 'Plan', icon: Receipt },
+        ],
+      },
+      {
+        label: 'Votre compte',
+        items: [
+          { id: 'general', label: 'Général', icon: User },
+          { id: 'preferences', label: 'Mémoire et préférences', icon: Brain },
+          { id: 'baremes', label: 'Référentiels', icon: Scale },
+          { id: 'templates', label: "Modèles d'actes", icon: BookOpen },
+        ],
+      },
+    ];
     return (
       <div className="h-screen flex relative" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: '#27272a' }}>
-        {/* Sidebar Rail */}
-        <div className="w-12 bg-white border-r border-[#e7e5e3] flex flex-col items-start flex-shrink-0">
-          <div className="w-full flex flex-col items-center justify-center py-3 border-b border-[#e7e5e3]">
-            <img src="/logo-plato.png" alt="Plato" className="w-6 h-6" />
-          </div>
-          <div className="flex-1 w-full flex flex-col gap-2 p-2">
-            <button
-              onClick={() => setCurrentPage('list')}
-              title="Mes dossiers"
-              className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'list' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
-              style={{ borderRadius: 8 }}
-            >
-              <Folder className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setCurrentPage('baremes')}
-              title="Référentiels & Barèmes"
-              className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'baremes' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
-              style={{ borderRadius: 8 }}
-            >
-              <Scale className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setCurrentPage('templates')}
-              title="Modèles d'actes"
-              className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'templates' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
-              style={{ borderRadius: 8 }}
-            >
-              <ClipboardList className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="w-full border-t border-[#e7e5e3] p-2 flex flex-col gap-2">
-            <button
-              onClick={() => setCurrentPage('components')}
-              title="UI Components"
-              className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'components' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
-              style={{ borderRadius: 8 }}
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium cursor-pointer overflow-hidden" style={{ borderRadius: 12 }}>
-              MR
-            </div>
+        {renderCollapsedRail()}
+
+        {/* Settings sub-rail */}
+        <div className="w-[244px] bg-white border-r border-[#e7e5e3] flex flex-col flex-shrink-0">
+          {/* Header with gradient + back chevron + serif title */}
+          <button
+            onClick={() => setCurrentPage('list')}
+            className="h-12 px-3 border-b border-[#e7e5e3] flex items-center gap-2 hover:bg-[#fafaf9] transition-colors group"
+            style={{ background: 'linear-gradient(to left, transparent 40.865%, #f8f7f5 100%)' }}
+          >
+            <ChevronLeft className="w-4 h-4 text-[#78716c] group-hover:text-[#292524]" strokeWidth={2} />
+            <span style={{ fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif", fontSize: '18px', fontWeight: 500, color: '#292524', letterSpacing: '-0.5px', lineHeight: '20px' }}>
+              Paramètres
+            </span>
+          </button>
+
+          {/* Section groups */}
+          <div className="flex-1 overflow-y-auto">
+            {SECTION_GROUPS.map((group, gIdx) => (
+              <div key={group.label} className={`px-2 py-2.5 ${gIdx < SECTION_GROUPS.length - 1 ? 'border-b border-[#e7e5e3]' : ''}`}>
+                <div className="px-2 py-1.5">
+                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', textTransform: 'uppercase', opacity: 0.7 }}>
+                    {group.label}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  {group.items.map(item => {
+                    const Icon = item.icon;
+                    const active = settingsSection === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setSettingsSection(item.id)}
+                        className={`h-8 flex items-center gap-2 px-2 transition-colors text-left ${active ? 'bg-[#eeece6] text-[#292524] font-medium' : 'text-[#78716c] hover:bg-[#fafaf9] hover:text-[#292524]'}`}
+                        style={{ borderRadius: 8, fontSize: '14px' }}
+                      >
+                        <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={active ? 2 : 1.5} />
+                        <span className="truncate">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Main content */}
         <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
-          {/* Header */}
-          <div className="px-8 pt-8 pb-6">
-            <div className="flex items-center justify-between">
-              <h1 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '28px', fontWeight: 400, color: '#18181b', letterSpacing: '-0.01em' }}>
-                Modèles d'actes
-              </h1>
-              <button
-                onClick={() => { setTemplateUploadFormOpen(true); setTemplateUploadData({ nom: '', actType: '', notes: '', fileName: '' }); }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Ajouter un modèle
-              </button>
-            </div>
-            <p className="mt-2 text-[13px] text-[#78716c]">
-              Vos modèles de référence pour la rédaction d'actes. L'agent peut s'en inspirer lors de la rédaction.
-            </p>
-          </div>
-
-          {/* Table */}
-          <div className="flex-1 overflow-y-auto px-8 pb-8">
-            <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-zinc-100">
-                    <th className="px-5 py-3 text-left" style={colHeaderStyle}>Nom du modèle</th>
-                    <th className="px-5 py-3 text-left w-[120px]" style={colHeaderStyle}>Date</th>
-                    <th className="px-5 py-3 w-10"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#e7e5e3]">
-                  {templatesLibrary.map(tpl => (
-                    <tr key={tpl.id} className="bg-white hover:bg-[#fafaf9] transition-colors group">
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2.5">
-                          <FileText className="w-4 h-4 text-[#a8a29e] flex-shrink-0" strokeWidth={1.5} />
-                          <span className="text-[13px] text-[#292524]">{tpl.fileName}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5 text-[12px] text-[#a8a29e]">{tpl.addedDate}</td>
-                      <td className="px-5 py-3.5">
-                        <button
-                          onClick={() => {
-                            setTemplatesLibrary(prev => prev.filter(t => t.id !== tpl.id));
-                            setToastMessage('Modèle supprimé.');
-                            setTimeout(() => setToastMessage(null), 3000);
-                          }}
-                          className="p-1.5 rounded-lg text-[#d6d3d1] hover:text-red-400 hover:bg-[#eeece6] opacity-0 group-hover:opacity-100 transition-all"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {templatesLibrary.length === 0 && (
-                <div className="py-16 text-center">
-                  <ClipboardList className="w-8 h-8 text-[#d6d3d1] mx-auto mb-3" />
-                  <p className="text-[14px] text-[#78716c] mb-1">Aucun modèle d'acte</p>
-                  <p className="text-[12px] text-[#a8a29e]">Ajoutez vos modèles pour que l'agent puisse s'en inspirer lors de la rédaction.</p>
-                </div>
-              )}
-            </div>
-          </div>
+          {settingsSection === 'users' && renderSettingsUsers()}
+          {settingsSection === 'general' && renderSettingsGeneral()}
+          {settingsSection === 'preferences' && renderSettingsPreferences()}
+          {settingsSection === 'billing' && renderSettingsBilling()}
+          {settingsSection === 'baremes' && renderSettingsBaremes()}
+          {settingsSection === 'templates' && renderSettingsTemplates()}
         </div>
 
-        {/* Modal */}
+        {/* Modals */}
+        {renderInviteModal()}
+        {baremeViewerOpen && renderBaremeViewer()}
+        {renderBaremeUploadModal()}
         {renderTemplateUploadModal()}
       </div>
     );
@@ -17015,136 +18491,6 @@ export default function App() {
       </div>
     );
   };
-
-  // ========== RENDER BARÈMES LIBRARY PAGE ==========
-  const renderBaremesLibraryPage = () => (
-    <div className="h-screen flex relative" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: '#27272a' }}>
-      {/* Sidebar Rail */}
-      <div className="w-12 bg-white border-r border-[#e7e5e3] flex flex-col items-start flex-shrink-0">
-        {/* Header — Logo */}
-        <div className="w-full flex flex-col items-center justify-center py-3 border-b border-[#e7e5e3]">
-          <img src="/logo-plato.png" alt="Plato" className="w-6 h-6" />
-        </div>
-
-        {/* Nav items */}
-        <div className="flex-1 w-full flex flex-col gap-2 p-2">
-          <button
-            onClick={() => setCurrentPage('list')}
-            title="Mes dossiers"
-            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'list' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
-            style={{ borderRadius: 8 }}
-          >
-            <Folder className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setCurrentPage('baremes')}
-            title="Référentiels & Barèmes"
-            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'baremes' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
-            style={{ borderRadius: 8 }}
-          >
-            <Scale className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setCurrentPage('templates')}
-            title="Modèles d'actes"
-            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'templates' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
-            style={{ borderRadius: 8 }}
-          >
-            <ClipboardList className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Footer — UIKit + Avatar */}
-        <div className="w-full border-t border-[#e7e5e3] p-2 flex flex-col gap-2">
-          <button
-            onClick={() => setCurrentPage('components')}
-            title="UI Components"
-            className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'components' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
-            style={{ borderRadius: 8 }}
-          >
-            <LayoutGrid className="w-4 h-4" />
-          </button>
-          <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium cursor-pointer overflow-hidden" style={{ borderRadius: 12 }}>
-            MR
-          </div>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
-        {/* Header */}
-        <div className="px-8 pt-8 pb-6">
-          <div className="flex items-center justify-between">
-            <h1 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '28px', fontWeight: 400, color: '#18181b', letterSpacing: '-0.01em' }}>
-              Référentiels & Barèmes
-            </h1>
-            <button
-              onClick={() => { setBaremeUploadFormOpen(true); setBaremeUploadData({ nom: '', type: 'bareme', notes: '', fileName: '' }); }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Ajouter un barème
-            </button>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="flex-1 overflow-y-auto px-8 pb-8">
-          <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-zinc-100">
-                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Nom</th>
-                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Statut</th>
-                  <th className="px-5 py-3 w-10"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#e7e5e3]">
-                {baremesLibrary.map(bareme => (
-                  <tr
-                    key={bareme.id}
-                    onClick={() => bareme.status === 'active' && setBaremeViewerOpen(bareme.id)}
-                    className={`bg-white transition-colors group ${bareme.status === 'active' ? 'hover:bg-[#fafaf9] cursor-pointer' : 'opacity-75'}`}
-                  >
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-[#eeece6] flex items-center justify-center flex-shrink-0">
-                          <Scale className="w-4 h-4 text-[#a8a29e]" />
-                        </div>
-                        <span className="text-body-medium text-[#292524]">{bareme.label}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      {bareme.status === 'active' ? (
-                        <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#dcfce7', color: '#065f46' }}>Actif</span>
-                      ) : (
-                        <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#92400e' }}>En traitement</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4">
-                      {bareme.status === 'active' && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setBaremeViewerOpen(bareme.id); }}
-                          className="p-1.5 rounded-lg text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#eeece6] opacity-0 group-hover:opacity-100 transition-all"
-                          title="Voir le barème"
-                        >
-                          <Table2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* Modals */}
-      {baremeViewerOpen && renderBaremeViewer()}
-      {renderBaremeUploadModal()}
-    </div>
-  );
 
   // ========== REASONING DEMO PAGE ==========
   const REASONING_SCENARIOS = {
@@ -17863,11 +19209,8 @@ export default function App() {
   if (currentPage === 'list') {
     return renderDossierListPage();
   }
-  if (currentPage === 'baremes') {
-    return renderBaremesLibraryPage();
-  }
-  if (currentPage === 'templates') {
-    return renderTemplatesLibraryPage();
+  if (currentPage === 'settings') {
+    return renderSettingsPage();
   }
 
   return (
