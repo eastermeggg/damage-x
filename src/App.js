@@ -923,6 +923,10 @@ export default function App() {
   const [preferenceEnrichingSection, setPreferenceEnrichingSection] = useState(null); // section id being enriched
   const [preferenceTargetSection, setPreferenceTargetSection] = useState(null); // for routing file input
   const [preferenceLearnFromChats, setPreferenceLearnFromChats] = useState(false);
+  // 'user' (Préférences) | 'matter' (matter JP tab / poste view) — drives the
+  // JPAddStepper's flow shape (single step in user context, two steps with
+  // Portée selection in matter context).
+  const [jpAddLaunchContext, setJpAddLaunchContext] = useState('matter');
   const preferenceFileInputRef = useRef(null);
 
   // ========== LISTE DES DOSSIERS ==========
@@ -5026,6 +5030,17 @@ export default function App() {
     const taxo = allTaxoPostes.find(p => p.id === pid);
     return taxo ? { id: pid, acronym: taxo.acronym, label: taxo.label } : null;
   }).filter(Boolean);
+
+  // Cross-scope summary used by JPListing's scope badges (Mes usuels / Cabinet / N matières)
+  const getJPAttachmentSummary = (decisionId) => {
+    const atts = jp.getAttachmentsForJP(decisionId);
+    const matterIds = new Set(atts.filter(a => a.scope === 'matter').map(a => a.scopeTargetId));
+    return {
+      user: atts.some(a => a.scope === 'user'),
+      workspace: atts.some(a => a.scope === 'workspace'),
+      matterCount: matterIds.size,
+    };
+  };
 
   // ========== CONTENT SUB-HEADER ==========
   const renderContentSubHeader = () => {
@@ -9350,8 +9365,76 @@ export default function App() {
 
       // JP tab — search + saved decisions
       if (currentLevel.activeTab === 'jp') {
+        // "Mes JP pertinentes pour ce dossier" — user-scope JPs whose lineItem
+        // matches a poste in this matter, surfaced above the search view.
+        const relevantUserAtts = jp.getRelevantUserUsualsForMatter(jp.DEFAULT_USER_ID, dossierPostes);
+        const relevantByDecision = new Map();
+        relevantUserAtts.forEach(a => {
+          if (!relevantByDecision.has(a.decisionId)) relevantByDecision.set(a.decisionId, []);
+          if (a.lineItem) relevantByDecision.get(a.decisionId).push(a.lineItem);
+        });
+        const matterPinnedIds = new Set(jp.jpState.pinnedJP.map(p => p.decisionId));
+        const relevantCards = Array.from(relevantByDecision.entries())
+          .map(([decisionId, lineItems]) => ({ decisionId, lineItems, decision: jp.getJPById(decisionId) }))
+          .filter(c => c.decision)
+          // Hide JPs already pinned to this matter — they show in JPSearchView's saved section
+          .filter(c => !matterPinnedIds.has(c.decisionId));
+
         return (
           <div className="flex-1 flex flex-col overflow-hidden">
+            {relevantCards.length > 0 && (
+              <div className="px-5 pt-4 pb-3 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Mes JP pertinentes pour ce dossier
+                  </span>
+                  <span className="text-[11px] text-[#c8c5c0]">{relevantCards.length}</span>
+                </div>
+                <div className="space-y-1.5">
+                  {relevantCards.map(({ decisionId, lineItems, decision: d }) => (
+                    <div
+                      key={decisionId}
+                      className="group bg-white rounded flex items-center gap-3 px-3 py-2 cursor-pointer"
+                      style={{ boxShadow: '0 1px 2px rgba(41,37,36,0.05)', transition: 'box-shadow 0.15s ease' }}
+                      onMouseOver={(e) => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(41,37,36,0.07)'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.boxShadow = '0 1px 2px rgba(41,37,36,0.05)'; }}
+                      onClick={() => jp.openDrawer(decisionId, [decisionId])}
+                    >
+                      <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                        <span style={{ fontSize: 13, color: '#292524', fontWeight: 500 }}>
+                          {d.jurisdiction}{d.chambre ? ` · ${d.chambre}` : ''}
+                        </span>
+                        {d.date && (
+                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#c8c5c0', textTransform: 'uppercase' }}>
+                            {d.date}
+                          </span>
+                        )}
+                        {lineItems.slice(0, 3).map(pid => (
+                          <span key={pid} className="badge badge-sm badge-secondary">{pid.toUpperCase()}</span>
+                        ))}
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Pin to this matter, attached to each matching lineItem
+                          jp.pinDecision(decisionId);
+                          lineItems.forEach(li => {
+                            if (dossierPostes.includes(li)) jp.attachToPoste(decisionId, li);
+                          });
+                          setToastMessage('Épinglée à ce dossier.');
+                          setTimeout(() => setToastMessage(null), 2500);
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] transition-colors flex-shrink-0"
+                        title="Épingler à ce dossier"
+                      >
+                        <Plus className="w-3 h-3" strokeWidth={2} />
+                        Épingler
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <JPSearchView
               pinnedJP={jp.jpState.pinnedJP}
               selectedDecisionId={jp.jpState.drawerDecisionId}
@@ -9361,6 +9444,30 @@ export default function App() {
               onUnpin={(id) => jp.unpinDecision(id)}
               onAddClick={() => jp.openStepper('jp-add')}
               posteOptions={jpPosteOptions}
+              isUserPinned={(id) => jp.getJPsByScope('user', jp.DEFAULT_USER_ID).some(a => a.decisionId === id)}
+              isWorkspacePinned={(id) => jp.getJPsByScope('workspace', jp.DEFAULT_WORKSPACE_ID).some(a => a.decisionId === id)}
+              onToggleUser={(id) => {
+                const existing = jp.getAttachmentsForJP(id).filter(a => a.scope === 'user' && a.scopeTargetId === jp.DEFAULT_USER_ID);
+                if (existing.length > 0) {
+                  existing.forEach(a => jp.removeAttachment(a.id));
+                  setToastMessage('Retiré de mes usuels.');
+                } else {
+                  jp.addAttachment(id, 'user', jp.DEFAULT_USER_ID);
+                  setToastMessage('Ajouté à mes usuels.');
+                }
+                setTimeout(() => setToastMessage(null), 2500);
+              }}
+              onToggleWorkspace={(id) => {
+                const existing = jp.getAttachmentsForJP(id).filter(a => a.scope === 'workspace' && a.scopeTargetId === jp.DEFAULT_WORKSPACE_ID);
+                if (existing.length > 0) {
+                  existing.forEach(a => jp.removeAttachment(a.id));
+                  setToastMessage('Retiré du Cabinet.');
+                } else {
+                  jp.addAttachment(id, 'workspace', jp.DEFAULT_WORKSPACE_ID);
+                  setToastMessage('Ajouté au Cabinet.');
+                }
+                setTimeout(() => setToastMessage(null), 2500);
+              }}
             />
           </div>
         );
@@ -9632,6 +9739,7 @@ export default function App() {
                 const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
                 setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
               }}
+              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
@@ -9936,6 +10044,7 @@ export default function App() {
                 const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
                 setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
               }}
+              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
@@ -10244,6 +10353,7 @@ export default function App() {
                 const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
                 setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
               }}
+              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
@@ -10463,6 +10573,7 @@ export default function App() {
                 const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
                 setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
               }}
+              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
@@ -10597,6 +10708,7 @@ export default function App() {
                 const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
                 setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
               }}
+              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
@@ -10728,6 +10840,7 @@ export default function App() {
                 const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
                 setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
               }}
+              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
@@ -10888,6 +11001,7 @@ export default function App() {
                 const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
                 setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
               }}
+              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
@@ -12084,6 +12198,7 @@ export default function App() {
                 const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
                 setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
               }}
+              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
@@ -14027,23 +14142,28 @@ export default function App() {
             </h1>
             <div className="flex items-center gap-3">
               {(() => {
+                // Cycle (yearly matters) — existing metric
                 const used = billingState === 'free' ? 1 : billingState === 'over' ? 20 : 12;
                 const limit = billingState === 'free' ? 1 : 20;
                 const remaining = Math.max(0, limit - used);
                 const atLimit = remaining === 0;
                 const pct = Math.min(100, Math.round((used / limit) * 100));
-                // Donut math
-                const r = 7;
-                const circumference = 2 * Math.PI * r;
-                const dashFill = (pct / 100) * circumference;
                 const ringColor = atLimit ? '#ea580c' : pct >= 75 ? '#f59e0b' : '#16a34a';
-                const planLabel = billingState === 'free' ? 'Plan gratuit' : 'Cabinet+ — 20 dossiers / an';
+
+                // Active matters — concurrent in-progress cap, distinct from yearly cycle
+                const maxActifs = billingState === 'free' ? 1 : 50; // Tier 3 (20/an) → 50 actifs
+                const usedActifs = billingState === 'free' ? 1 : billingState === 'over' ? maxActifs : 8;
+                const actifsAtLimit = usedActifs >= maxActifs;
+                const actifsPct = Math.min(100, Math.round((usedActifs / maxActifs) * 100));
+                const actifsRingColor = actifsAtLimit ? '#ea580c' : actifsPct >= 75 ? '#f59e0b' : '#16a34a';
+
                 return (
                   <div
                     className="relative"
                     onMouseEnter={() => setDossierIndicatorHover(true)}
                     onMouseLeave={() => setDossierIndicatorHover(false)}
                   >
+                    {/* Cycle pill (primary metric only) */}
                     <button
                       onClick={() => { setSettingsSection('billing'); setCurrentPage('settings'); }}
                       className={`relative flex items-center gap-2 h-10 px-4 rounded-lg text-[13px] font-medium transition-all overflow-hidden ${atLimit ? 'bg-[#fffbeb] border border-[#fde68a] text-[#92400e] hover:bg-[#fef3c7]' : 'bg-white border border-[#e7e5e3] text-[#292524] hover:bg-[#fafaf9] hover:border-[#a8a29e]'}`}
@@ -14052,98 +14172,120 @@ export default function App() {
                       <span className="text-[12px] text-[#78716c] font-normal">
                         {atLimit ? '— augmenter mon plan' : (billingState === 'free' ? `dossier${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''}` : 'dossiers')}
                       </span>
-                      {/* Progress bar that doubles as the bottom border */}
                       <span
                         className="absolute left-0 bottom-0 h-[2px] transition-all duration-500"
                         style={{ width: `${pct}%`, background: ringColor }}
                       />
                     </button>
 
-                    {/* Hover card — styled like the JP HoverCard */}
+                    {/* Hover card — bolder editorial treatment */}
                     {dossierIndicatorHover && (
                       <div
                         className="absolute right-0 top-full mt-2 z-50"
                         style={{
-                          width: 320,
-                          borderRadius: 8,
-                          overflow: 'hidden',
+                          width: 280,
+                          borderRadius: 10,
                           backgroundColor: 'white',
                           border: '1px solid #e7e5e3',
-                          boxShadow: '0 8px 24px rgba(41, 37, 36, 0.08), 0 2px 8px rgba(41, 37, 36, 0.04)',
+                          boxShadow: '0 16px 40px rgba(41, 37, 36, 0.12), 0 4px 12px rgba(41, 37, 36, 0.06)',
+                          fontFamily: "'Inter', system-ui, sans-serif",
+                          overflow: 'hidden',
                         }}
                       >
-                        {/* Identity — accent label + serif headline */}
-                        <div style={{ padding: '12px 16px' }}>
+                        {/* Identity strip — peach mono micro-label */}
+                        <div style={{ padding: '14px 18px 0' }}>
                           <div style={{
-                            fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500,
-                            color: atLimit ? '#92400e' : '#b9703f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4,
+                            fontFamily: "'IBM Plex Mono', monospace",
+                            fontSize: 10, fontWeight: 600, color: '#b9703f',
+                            textTransform: 'uppercase', letterSpacing: '0.12em',
                           }}>
                             {atLimit ? 'Limite atteinte' : 'Mon plan'}
-                          </div>
-                          <div style={{
-                            fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif", fontSize: 16, color: '#292524',
-                            lineHeight: '20px',
-                          }}>
-                            {planLabel}
+                            {billingState !== 'free' && <span style={{ color: '#d6c2af', margin: '0 6px' }}>/</span>}
+                            {billingState !== 'free' && <span style={{ color: '#a8a29e' }}>Cabinet+</span>}
                           </div>
                         </div>
 
-                        {/* Key data: utilisé + restant */}
-                        <div style={{ padding: '0 16px 12px' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-                              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', width: 64, flexShrink: 0 }}>
-                                Utilisé
-                              </span>
-                              <span style={{ fontSize: 14, color: '#44403c', lineHeight: '20px' }} className="tabular-nums">
-                                {used} <span style={{ color: '#a8a29e' }}>/ {limit}</span> dossier{limit > 1 ? 's' : ''}
-                              </span>
-                            </div>
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-                              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', width: 64, flexShrink: 0 }}>
-                                Restant
-                              </span>
-                              <span style={{ fontSize: 14, color: atLimit ? '#92400e' : '#44403c', lineHeight: '20px', fontWeight: atLimit ? 500 : 400 }} className="tabular-nums">
-                                {remaining} dossier{remaining > 1 ? 's' : ''}
-                                {atLimit && <span style={{ color: '#a8a29e', fontWeight: 400 }}> · au max</span>}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Progress + cycle */}
-                        <div style={{ borderTop: '1px solid #f0efed', padding: '12px 16px' }}>
-                          <div className="flex items-baseline justify-between mb-2">
-                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                              {billingState === 'free' ? 'Quota gratuit' : 'Cycle annuel'}
+                        {/* Hero metric — big serif */}
+                        <div style={{ padding: '4px 18px 14px' }}>
+                          <div className="flex items-baseline gap-2">
+                            <span style={{
+                              fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
+                              fontSize: 38, fontWeight: 400, color: atLimit ? '#92400e' : '#18181b',
+                              letterSpacing: '-0.02em', lineHeight: 1,
+                            }} className="tabular-nums">
+                              {billingState === 'free' ? remaining : used}
                             </span>
-                            <span className="text-[12px] tabular-nums" style={{ color: '#78716c', fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500 }}>{pct}%</span>
+                            <span style={{
+                              fontSize: 20, color: '#a8a29e', fontWeight: 300,
+                              letterSpacing: '-0.01em',
+                            }} className="tabular-nums">/ {limit}</span>
                           </div>
-                          <div className="h-1 rounded-full overflow-hidden" style={{ background: '#f0efed' }}>
-                            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: ringColor }} />
+                          <div style={{ fontSize: 12, color: '#78716c', marginTop: 4, lineHeight: '16px' }}>
+                            {billingState === 'free'
+                              ? `dossier${remaining > 1 ? 's' : ''} gratuit${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''}`
+                              : 'dossiers cette année'}
                           </div>
-                          <p style={{ fontSize: 11, color: '#a8a29e', marginTop: 8, lineHeight: '16px' }}>
-                            {billingState === 'free' ? 'Aucun renouvellement' : 'Jusqu\'au 31 déc. 2026'}
-                          </p>
+
+                          {/* Thick rounded progress with peach fill */}
+                          <div style={{
+                            marginTop: 12,
+                            height: 4, width: '100%',
+                            backgroundColor: '#f0efed',
+                            borderRadius: 999, overflow: 'hidden',
+                          }}>
+                            <div
+                              style={{
+                                height: '100%', width: `${pct}%`,
+                                background: atLimit
+                                  ? 'linear-gradient(90deg, #f59e0b, #ea580c)'
+                                  : pct >= 75
+                                    ? 'linear-gradient(90deg, #f59e0b, #d97706)'
+                                    : 'linear-gradient(90deg, #b9703f, #92410f)',
+                                borderRadius: 999,
+                                transition: 'width 0.5s ease',
+                              }}
+                            />
+                          </div>
                         </div>
 
-                        {/* CTA */}
-                        <button
-                          onClick={() => { setSettingsSection('billing'); setCurrentPage('settings'); setDossierIndicatorHover(false); }}
-                          style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                            width: '100%', padding: '8px 16px',
-                            backgroundColor: '#fafaf9', border: 'none',
+                        {/* Secondary metric — actifs (paid only) */}
+                        {billingState !== 'free' && (
+                          <div style={{
+                            padding: '12px 18px',
+                            backgroundColor: actifsAtLimit ? '#fffbeb' : '#fafaf9',
                             borderTop: '1px solid #f0efed',
-                            cursor: 'pointer', fontSize: 12, fontWeight: 500, color: '#44403c',
-                            transition: 'background-color 0.12s ease',
-                          }}
-                          onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#f0efed'; }}
-                          onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#fafaf9'; }}
-                        >
-                          {atLimit ? 'Augmenter mon plan' : 'Gérer mon abonnement'}
-                          <ArrowRight style={{ width: 12, height: 12, color: '#a8a29e' }} />
-                        </button>
+                          }}>
+                            <div className="flex items-baseline justify-between">
+                              <span style={{
+                                fontFamily: "'IBM Plex Mono', monospace",
+                                fontSize: 10, fontWeight: 500, color: '#a8a29e',
+                                textTransform: 'uppercase', letterSpacing: '0.1em',
+                              }}>
+                                En parallèle
+                              </span>
+                              <span className="tabular-nums" style={{
+                                fontSize: 13, fontWeight: 500,
+                                color: actifsAtLimit ? '#92400e' : '#44403c',
+                              }}>
+                                {usedActifs} <span style={{ color: '#a8a29e', fontWeight: 400 }}>/ {maxActifs}</span>
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Footer — cycle date */}
+                        {billingState === 'paid' && (
+                          <div style={{
+                            padding: '10px 18px',
+                            borderTop: '1px solid #f0efed',
+                            backgroundColor: '#fafaf9',
+                            fontFamily: "'IBM Plex Mono', monospace",
+                            fontSize: 10, fontWeight: 500, color: '#a8a29e',
+                            textTransform: 'uppercase', letterSpacing: '0.08em',
+                          }}>
+                            Jusqu'au 31 déc. 2026
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -16871,41 +17013,36 @@ export default function App() {
   const renderSettingsPreferences = () => {
     const SECTIONS = [
       { id: 'structure', icon: FileText, label: 'Structure de vos actes', enrichLabel: "Exemple d'acte" },
-      { id: 'jurisprudences', icon: Scale, label: 'Vos jurisprudences habituelles', enrichLabel: 'Jurisprudence' },
       { id: 'quantum', icon: Calculator, label: 'Vos préférences de quantum', enrichLabel: 'Référence quantum' },
       { id: 'referentiels', icon: ShieldCheck, label: 'Vos référentiels favoris', enrichLabel: 'Référentiel' },
       { id: 'style', icon: Pencil, label: 'Votre style et ton', enrichLabel: 'Acte exemple' },
       { id: 'consignes', icon: ListChecks, label: 'Vos consignes spécifiques', enrichLabel: 'Consigne' },
     ];
 
+    // Section 02 (Jurisprudences habituelles) lives outside the master prompt
+    // as structured cards. Numbers below remain stable for clarity.
     const SAMPLE_MASTER_PROMPT = `01 — Structure de vos actes
 • Plan en trois parties : Faits et procédure / Discussion / Dispositif
 • Numérotation décimale (I, A, 1°), titres en gras sans soulignement
 • Citations de jurisprudence en bas de page, jamais dans le corps
 
-02 — Jurisprudences habituelles
-• Cass. 2e civ., 28 mai 2009, n° 08-16.829 — DFP
-• CE, 7 nov. 2008, Centre hospitalier de Cahors — aléa thérapeutique
-• Cass. crim., 6 mars 2018, n° 17-81.122 — préjudice d'agrément
-• CA Paris, 12 janv. 2023, n° 21/14782 — assistance tierce personne
-
-03 — Préférences de quantum
+02 — Préférences de quantum
 • DFT total ≈ 1 800 €/mois (proportion selon classe)
 • DFP entre 5 et 25 % selon Mornet 2024
 • Souffrances endurées : ~8 000 € pour SE 4/7
 
-04 — Référentiels favoris
+03 — Référentiels favoris
 • Mornet 2024 pour les barèmes d'indemnisation
 • ONIAM uniquement quand l'aléa thérapeutique est en cause
 • Nomenclature Dintilhac comme cadre de référence pour le DFP
 
-05 — Style et ton
+04 — Style et ton
 • Phrases courtes, voix active, ton sobre
 • Désignation « la concluante » plutôt que « ma cliente »
 • Préférer « il convient » à « il faut »
 • Éviter les adverbes superflus
 
-06 — Consignes spécifiques
+05 — Consignes spécifiques
 • Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux
 • Ne pas mélanger faits et discussion
 • Dispositif concis`;
@@ -16914,25 +17051,21 @@ export default function App() {
     const MANUAL_TEMPLATE = `01 — Structure de vos actes
 
 
-02 — Jurisprudences habituelles
+02 — Préférences de quantum
 
 
-03 — Préférences de quantum
+03 — Référentiels favoris
 
 
-04 — Référentiels favoris
+04 — Style et ton
 
 
-05 — Style et ton
-
-
-06 — Consignes spécifiques
+05 — Consignes spécifiques
 
 `;
 
     const ENRICHMENT_SAMPLES = {
       structure: '• Section « Subsidiairement » en fin d\'acte',
-      jurisprudences: '• Cass. 2e civ., 14 sept. 2023, n° 21-25.342',
       quantum: '• Frais de logement adapté : ~2 500 €/mois',
       referentiels: '• Référentiel CIVI pour les victimes d\'infraction',
       style: '• Usage de « par ces motifs » avant le dispositif',
@@ -16986,10 +17119,10 @@ export default function App() {
       setTimeout(() => {
         setPreferenceMasterPrompt(SAMPLE_MASTER_PROMPT);
         setSavedJurisprudences(SAMPLE_SAVED_JPS);
-        // Auto-pin each saved JP so it appears already-saved on every matter,
-        // both in the dossier-level JP tab and the relevant poste tab.
+        // Each extracted JP becomes a user-scope JPAttachment, tagged with the
+        // poste so it surfaces in "Mes JP pertinentes" on matching matters.
         SAMPLE_SAVED_JPS.forEach(jpEntry => {
-          jp.pinDecision(jpEntry.decisionId, { posteId: jpEntry.posteId });
+          jp.addAttachment(jpEntry.decisionId, 'user', jp.DEFAULT_USER_ID, jpEntry.posteId);
         });
         setPreferenceExtracting(false);
         setPreferenceExtractStep(0);
@@ -17247,7 +17380,7 @@ export default function App() {
               })}
             </div>
 
-            {/* Conversation-history learning toggle — sits above the master-prompt input */}
+            {/* 1) Conversation-history learning toggle */}
             <div className="mb-3 flex items-start justify-between gap-4 py-1">
               <div className="flex-1 min-w-0">
                 <div className="text-[13px] font-medium text-[#292524] leading-5">
@@ -17280,18 +17413,128 @@ export default function App() {
 
             <div className="border-t border-[#e7e5e3] mb-5" />
 
+            {/* 2) Master prompt — labeled */}
+            <div className="mb-2">
+              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Vos instructions pour Plato
+              </span>
+            </div>
             <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
               <textarea
                 value={preferenceMasterPrompt}
                 onChange={(e) => setPreferenceMasterPrompt(e.target.value)}
-                rows={Math.max(28, preferenceMasterPrompt.split('\n').length + 2)}
-                placeholder="Décrivez votre méthode : structure, jurisprudences, quantum, référentiels, style, consignes…"
+                rows={Math.max(20, preferenceMasterPrompt.split('\n').length + 2)}
+                placeholder="Décrivez votre méthode : structure, quantum, référentiels, style, consignes…"
                 className="w-full px-5 py-4 text-[13px] text-[#292524] resize-none focus:outline-none leading-relaxed bg-transparent"
                 style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
               />
             </div>
 
-            {/* Save action — sits below the textarea card */}
+            {/* 3) Mes jurisprudences habituelles — structured JP cards */}
+            {(() => {
+              const userAttachments = jp.getJPsByScope('user', jp.DEFAULT_USER_ID);
+              const cardsByDecision = new Map();
+              userAttachments.forEach(a => {
+                if (!cardsByDecision.has(a.decisionId)) cardsByDecision.set(a.decisionId, []);
+                cardsByDecision.get(a.decisionId).push(a);
+              });
+              const cards = Array.from(cardsByDecision.entries()).map(([decisionId, atts]) => ({
+                decisionId,
+                attachments: atts,
+                decision: jp.getJPById(decisionId),
+              })).filter(c => c.decision);
+
+              return (
+                <div className="mt-6 mb-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                      Mes jurisprudences habituelles
+                      {cards.length > 0 && <span className="text-[#c8c5c0] ml-1.5">{cards.length}</span>}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setJpAddLaunchContext('user');
+                        jp.openStepper('jp-add');
+                      }}
+                      className="inline-flex items-center gap-1 text-[12px] font-medium text-[#78716c] hover:text-[#292524] transition-colors"
+                    >
+                      <Plus className="w-3 h-3" strokeWidth={2} />
+                      Ajouter
+                    </button>
+                  </div>
+
+                  {cards.length === 0 ? (
+                    <div className="bg-white rounded border border-dashed border-[#e7e5e3] py-6 px-4 flex flex-col items-center text-center">
+                      <Landmark className="w-4 h-4 text-[#d6d3d1]" strokeWidth={1.5} />
+                      <span className="text-[12px] text-[#a8a29e] mt-2">
+                        Aucune jurisprudence habituelle.
+                      </span>
+                      <span className="text-[11px] text-[#c8c5c0] mt-0.5">
+                        Ajoutez-en une depuis vos dossiers ou ici.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {cards.map(({ decisionId, attachments: atts, decision: d }) => {
+                        const lineItems = atts.map(a => a.lineItem).filter(Boolean);
+                        return (
+                          <div
+                            key={decisionId}
+                            onClick={() => jp.openDrawer(decisionId, [decisionId])}
+                            className="group bg-white rounded cursor-pointer flex items-center gap-3 px-3 py-2.5"
+                            style={{ boxShadow: '0 1px 2px rgba(41,37,36,0.05)', transition: 'box-shadow 0.15s ease' }}
+                            onMouseOver={(e) => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(41,37,36,0.07)'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.boxShadow = '0 1px 2px rgba(41,37,36,0.05)'; }}
+                          >
+                            <Landmark className="w-3 h-3 text-[#b9703f] flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span style={{ fontSize: 14, color: '#292524', fontWeight: 500 }}>
+                                  {d.jurisdiction}{d.chambre ? ` · ${d.chambre}` : ''}
+                                </span>
+                                {d.date && (
+                                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#c8c5c0', textTransform: 'uppercase' }}>
+                                    {d.date}
+                                  </span>
+                                )}
+                                {lineItems.slice(0, 3).map(pid => (
+                                  <span key={pid} className="badge badge-sm badge-secondary">{pid.toUpperCase()}</span>
+                                ))}
+                                {lineItems.length > 3 && (
+                                  <span style={{ fontSize: 11, color: '#a8a29e' }}>+{lineItems.length - 3}</span>
+                                )}
+                              </div>
+                              {d.category && (
+                                <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', marginTop: 1 }}>
+                                  {d.category}{d.victimProfile ? ` · ${d.victimProfile}` : ''}
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                atts.forEach(a => jp.removeAttachment(a.id));
+                                setToastMessage('Retiré de mes usuels.');
+                                setTimeout(() => setToastMessage(null), 2500);
+                              }}
+                              className="p-1 rounded text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#fafaf9] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                              title="Retirer de mes usuels"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Save action */}
             <div className="mt-4 flex items-center justify-end gap-3">
               <button
                 onClick={() => {
@@ -17316,14 +17559,14 @@ export default function App() {
 
   const renderSettingsBilling = () => {
     const TIERS = [
-      { matters: 5,   pricePerMatter: 200 },
-      { matters: 10,  pricePerMatter: 170 },
-      { matters: 20,  pricePerMatter: 140 },
-      { matters: 50,  pricePerMatter: 100 },
-      { matters: 100, pricePerMatter: 80  },
-      { matters: 150, pricePerMatter: 65  },
-      { matters: 200, pricePerMatter: 55  },
-      { matters: null, pricePerMatter: null }, // 200+ → custom
+      { matters: 5,   pricePerMatter: 200, maxActifs: 13  },
+      { matters: 10,  pricePerMatter: 170, maxActifs: 25  },
+      { matters: 20,  pricePerMatter: 140, maxActifs: 50  },
+      { matters: 50,  pricePerMatter: 100, maxActifs: 125 },
+      { matters: 100, pricePerMatter: 80,  maxActifs: 250 },
+      { matters: 150, pricePerMatter: 65,  maxActifs: 375 },
+      { matters: 200, pricePerMatter: 55,  maxActifs: 500 },
+      { matters: null, pricePerMatter: null, maxActifs: null }, // 200+ → custom
     ];
     const selectedTier = TIERS[billingTierIndex];
     const selectedYearlyTotal = selectedTier.pricePerMatter ? selectedTier.matters * selectedTier.pricePerMatter : null;
@@ -17344,9 +17587,9 @@ export default function App() {
 
     // State-dependent values
     const stateConfig = {
-      free: { used: 1, limit: 1, label: 'Plan gratuit', priceLabel: '0 € / an' },
-      paid: { used: 12, limit: currentTier.matters, label: `${currentTier.matters} dossiers / an`, priceLabel: `${fmtEur(currentYearlyTotal)} € HT / an` },
-      over: { used: currentTier.matters, limit: currentTier.matters, label: `${currentTier.matters} dossiers / an`, priceLabel: `${fmtEur(currentYearlyTotal)} € HT / an` },
+      free: { used: 1, limit: 1, usedActifs: 1, maxActifs: 1, label: 'Plan gratuit', priceLabel: '0 € / an' },
+      paid: { used: 12, limit: currentTier.matters, usedActifs: 8, maxActifs: currentTier.maxActifs, label: `${currentTier.matters} dossiers / an`, priceLabel: `${fmtEur(currentYearlyTotal)} € HT / an` },
+      over: { used: currentTier.matters, limit: currentTier.matters, usedActifs: currentTier.maxActifs, maxActifs: currentTier.maxActifs, label: `${currentTier.matters} dossiers / an`, priceLabel: `${fmtEur(currentYearlyTotal)} € HT / an` },
     };
     const cfg = stateConfig[billingState];
     const pct = Math.min(100, Math.round((cfg.used / cfg.limit) * 100));
@@ -17381,26 +17624,6 @@ export default function App() {
             )}
             <div className="space-y-4">
 
-            {/* Alert banner — sits ABOVE the Plan actuel section */}
-            {billingState === 'over' && (
-              <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#fde68a] bg-[#fffbeb]">
-                <AlertTriangle className="w-4 h-4 text-[#92400e] flex-shrink-0" strokeWidth={1.75} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-[#92400e]">Vous avez utilisé tous vos dossiers</div>
-                  <div className="text-[12px] text-[#78350f]/80 mt-0.5">Choisissez un plan supérieur ou achetez des dossiers supplémentaires pour continuer.</div>
-                </div>
-              </div>
-            )}
-            {billingState === 'free' && (
-              <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#fde68a] bg-[#fffbeb]">
-                <AlertTriangle className="w-4 h-4 text-[#92400e] flex-shrink-0" strokeWidth={1.75} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-[#92400e]">Vous avez utilisé votre dossier gratuit</div>
-                  <div className="text-[12px] text-[#78350f]/80 mt-0.5">Pour créer un nouveau dossier, choisissez un plan ci-dessous. Le paiement se fait sur Stripe.</div>
-                </div>
-              </div>
-            )}
-
             {/* Plan + usage — inline editorial block (no card) for visual harmony with pricing component */}
             <div className="pt-2">
               <div className="flex items-baseline gap-3 mb-4">
@@ -17433,36 +17656,144 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="mt-5">
-                {(() => {
-                  const remaining = Math.max(0, cfg.limit - cfg.used);
-                  if (billingState === 'free') {
-                    return (
-                      <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-[18px] font-medium text-[#292524] tabular-nums">{remaining}</span>
-                        <span className="text-[13px] text-[#78716c]">
-                          / {cfg.limit} dossier{cfg.limit > 1 ? 's' : ''} gratuit{cfg.limit > 1 ? 's' : ''} restant{remaining > 1 ? 's' : ''}
-                        </span>
-                      </div>
-                    );
-                  }
+              <div className="mt-5 grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-3">
+                {/* Primary card — dossiers cette année (hero) */}
+                <div
+                  className="bg-white border border-[#e7e5e3] overflow-hidden"
+                  style={{ borderRadius: 10, boxShadow: '0 1px 2px rgba(41,37,36,0.04)' }}
+                >
+                  <div style={{ padding: '16px 20px 0' }}>
+                    <div style={{
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      fontSize: 10, fontWeight: 600, color: '#b9703f',
+                      textTransform: 'uppercase', letterSpacing: '0.12em',
+                    }}>
+                      {billingState === 'free' ? 'Plan gratuit' : 'Cycle annuel'}
+                    </div>
+                  </div>
+                  <div style={{ padding: '6px 20px 18px' }}>
+                    {(() => {
+                      const remaining = Math.max(0, cfg.limit - cfg.used);
+                      const heroNum = billingState === 'free' ? remaining : cfg.used;
+                      return (
+                        <>
+                          <div className="flex items-baseline gap-2">
+                            <span style={{
+                              fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
+                              fontSize: 44, fontWeight: 400,
+                              color: pct >= 100 ? '#92400e' : '#18181b',
+                              letterSpacing: '-0.02em', lineHeight: 1,
+                            }} className="tabular-nums">
+                              {heroNum}
+                            </span>
+                            <span style={{
+                              fontSize: 22, color: '#a8a29e', fontWeight: 300,
+                              letterSpacing: '-0.01em',
+                            }} className="tabular-nums">
+                              / {cfg.limit}
+                            </span>
+                            {billingState !== 'free' && (
+                              <span className={`text-[12px] tabular-nums ml-1 ${pct >= 100 ? 'text-[#92400e] font-medium' : 'text-[#a8a29e]'}`}>
+                                · {pct}%
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 13, color: '#78716c', marginTop: 6, lineHeight: '18px' }}>
+                            {billingState === 'free'
+                              ? `dossier${remaining > 1 ? 's' : ''} gratuit${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''}`
+                              : 'dossiers cette année'}
+                          </div>
+
+                          <div style={{
+                            marginTop: 14, height: 4, width: '100%',
+                            backgroundColor: '#f0efed', borderRadius: 999, overflow: 'hidden',
+                          }}>
+                            <div
+                              style={{
+                                height: '100%', width: `${pct}%`,
+                                background: pct >= 100
+                                  ? 'linear-gradient(90deg, #f59e0b, #ea580c)'
+                                  : pct >= 75
+                                    ? 'linear-gradient(90deg, #f59e0b, #d97706)'
+                                    : 'linear-gradient(90deg, #b9703f, #92410f)',
+                                borderRadius: 999,
+                                transition: 'width 0.5s ease',
+                              }}
+                            />
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                  {(billingState !== 'free' || pct >= 100) && (
+                    <div style={{
+                      borderTop: '1px solid #f0efed',
+                      backgroundColor: pct >= 100 ? '#fffbeb' : '#fafaf9',
+                      padding: '10px 20px',
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      fontSize: 10, fontWeight: 500,
+                      color: pct >= 100 ? '#92400e' : '#a8a29e',
+                      textTransform: 'uppercase', letterSpacing: '0.08em',
+                    }}>
+                      {pct >= 100 ? 'Limite atteinte' : '01 janv. 2026 → 31 déc. 2026'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Secondary card — actifs en parallèle */}
+                {cfg.maxActifs && billingState !== 'free' ? (() => {
+                  const atLimitA = cfg.usedActifs >= cfg.maxActifs;
+                  const actifsPct = Math.min(100, Math.round((cfg.usedActifs / cfg.maxActifs) * 100));
                   return (
-                    <div className="flex items-baseline gap-2 mb-2">
-                      <span className="text-[18px] font-medium text-[#292524] tabular-nums">{cfg.used}</span>
-                      <span className="text-[13px] text-[#78716c]">/ {cfg.limit} dossier{cfg.limit > 1 ? 's' : ''} cette année</span>
-                      <span className={`text-[12px] tabular-nums ${pct >= 100 ? 'text-[#92400e] font-medium' : 'text-[#78716c]'}`}>· {pct}%</span>
+                    <div
+                      className="bg-white border border-[#e7e5e3] overflow-hidden flex flex-col"
+                      style={{ borderRadius: 10, boxShadow: '0 1px 2px rgba(41,37,36,0.04)' }}
+                    >
+                      <div style={{ padding: '16px 20px 0' }}>
+                        <div style={{
+                          fontFamily: "'IBM Plex Mono', monospace",
+                          fontSize: 10, fontWeight: 600, color: '#b9703f',
+                          textTransform: 'uppercase', letterSpacing: '0.12em',
+                        }}>
+                          En parallèle
+                        </div>
+                      </div>
+                      <div style={{ padding: '6px 20px 18px' }}>
+                        <div className="flex items-baseline gap-2">
+                          <span style={{
+                            fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
+                            fontSize: 32, fontWeight: 400,
+                            color: atLimitA ? '#92400e' : '#18181b',
+                            letterSpacing: '-0.02em', lineHeight: 1,
+                          }} className="tabular-nums">
+                            {cfg.usedActifs}
+                          </span>
+                          <span style={{
+                            fontSize: 18, color: '#a8a29e', fontWeight: 300,
+                            letterSpacing: '-0.01em',
+                          }} className="tabular-nums">
+                            / {cfg.maxActifs}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#78716c', marginTop: 6, lineHeight: '16px' }}>
+                          dossier{cfg.maxActifs > 1 ? 's' : ''} actif{cfg.maxActifs > 1 ? 's' : ''}
+                        </div>
+                      </div>
+                      <div style={{
+                        marginTop: 'auto',
+                        borderTop: '1px solid #f0efed',
+                        backgroundColor: atLimitA ? '#fffbeb' : '#fafaf9',
+                        padding: '10px 20px',
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize: 10, fontWeight: 500,
+                        color: atLimitA ? '#92400e' : '#a8a29e',
+                        textTransform: 'uppercase', letterSpacing: '0.08em',
+                      }}>
+                        {atLimitA ? 'Limite atteinte' : 'Limite simultanée'}
+                      </div>
                     </div>
                   );
-                })()}
-                <div className="h-1.5 w-full bg-[#eeece6] rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${pct >= 100 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-emerald-400 to-teal-500'}`}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-                {billingState === 'paid' && (
-                  <p className="text-[12px] text-[#a8a29e] mt-2">Cycle annuel : 01 janv. 2026 → 31 déc. 2026</p>
-                )}
+                })() : <div />}
               </div>
 
               {/* Always remind the benefits/features (same list across free, paid, paid·out) */}
@@ -17576,6 +17907,11 @@ export default function App() {
                             {selectedYearlyTotal && (
                               <p className="text-[14px] text-[#44403c] mt-2">
                                 soit <span className="font-medium text-[#292524] tabular-nums">{fmtEur(selectedYearlyTotal)} €</span> HT par an
+                              </p>
+                            )}
+                            {selectedTier.maxActifs && (
+                              <p className="text-[12px] text-[#78716c] mt-1.5">
+                                Jusqu'à <span className="font-medium text-[#292524] tabular-nums">{selectedTier.maxActifs}</span> dossiers actifs en parallèle
                               </p>
                             )}
                             {!selectedTier.pricePerMatter && (
@@ -19234,24 +19570,169 @@ export default function App() {
     );
   };
 
+  // ========== GLOBAL OVERLAYS (drawer, popover, stepper, toast) ==========
+  // Rendered alongside every page so that JP previews/Ajouter and toasts work
+  // from Settings, the dossier list, and the matter views alike.
+  const renderGlobalOverlays = () => (
+    <>
+      {/* JP Decision Drawer */}
+      {jp.jpState.drawerDecisionId && (
+        <DecisionDrawer
+          decisionId={jp.jpState.drawerDecisionId}
+          resultSet={jp.jpState.drawerResultSet}
+          resultIndex={jp.jpState.drawerIndex}
+          isPinned={jp.isDecisionPinned(jp.jpState.drawerDecisionId)}
+          pinnedPosteIds={(jp.jpState.pinnedJP.find(p => p.decisionId === jp.jpState.drawerDecisionId)?.posteIds) || []}
+          onClose={jp.closeDrawer}
+          onPrev={jp.drawerPrev}
+          onNext={jp.drawerNext}
+          onPin={(id) => jp.pinDecision(id)}
+          onUnpin={(id) => jp.unpinDecision(id)}
+          onAttachToPoste={(id, posteId) => { jp.pinDecision(id); jp.togglePoste(id, posteId); }}
+          posteOptions={jpPosteOptions}
+          userPinned={jp.getJPsByScope('user', jp.DEFAULT_USER_ID).some(a => a.decisionId === jp.jpState.drawerDecisionId)}
+          workspacePinned={jp.getJPsByScope('workspace', jp.DEFAULT_WORKSPACE_ID).some(a => a.decisionId === jp.jpState.drawerDecisionId)}
+          onToggleUser={(id) => {
+            const existing = jp.getAttachmentsForJP(id).filter(a => a.scope === 'user' && a.scopeTargetId === jp.DEFAULT_USER_ID);
+            if (existing.length > 0) {
+              existing.forEach(a => jp.removeAttachment(a.id));
+              setToastMessage('Retiré de mes usuels.');
+            } else {
+              jp.addAttachment(id, 'user', jp.DEFAULT_USER_ID);
+              setToastMessage('Ajouté à mes usuels.');
+            }
+            setTimeout(() => setToastMessage(null), 2500);
+          }}
+          onToggleWorkspace={(id) => {
+            const existing = jp.getAttachmentsForJP(id).filter(a => a.scope === 'workspace' && a.scopeTargetId === jp.DEFAULT_WORKSPACE_ID);
+            if (existing.length > 0) {
+              existing.forEach(a => jp.removeAttachment(a.id));
+              setToastMessage('Retiré du Cabinet.');
+            } else {
+              jp.addAttachment(id, 'workspace', jp.DEFAULT_WORKSPACE_ID);
+              setToastMessage('Ajouté au Cabinet.');
+            }
+            setTimeout(() => setToastMessage(null), 2500);
+          }}
+          attachments={jp.getAttachmentsForJP(jp.jpState.drawerDecisionId)}
+          onRemoveAttachment={(attachmentId) => {
+            jp.removeAttachment(attachmentId);
+            setToastMessage('Attachement retiré.');
+            setTimeout(() => setToastMessage(null), 2500);
+          }}
+        />
+      )}
+
+      {/* JP Popover Card */}
+      {jpPopover && (
+        <JPPopoverCard
+          decision={jpPopover.decision}
+          anchorRect={jpPopover.anchorRect}
+          onOpenDrawer={(id) => { const rs = jpPopover.resultSet; setJpPopover(null); jp.openDrawer(id, rs); }}
+          onMouseEnter={() => clearTimeout(jpPopoverTimeout.current)}
+          onMouseLeave={() => { jpPopoverTimeout.current = setTimeout(() => setJpPopover(null), 300); }}
+        />
+      )}
+
+      {/* JP Add Stepper Modal */}
+      {jp.jpState.activeStepper === 'jp-add' && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          onClick={() => { jp.closeStepper(); setJpAddLaunchContext('matter'); }}
+        >
+          <div className="w-[460px]" onClick={(e) => e.stopPropagation()}>
+            <JPAddStepper
+              onClose={() => { jp.closeStepper(); setJpAddLaunchContext('matter'); }}
+              posteOptions={jpPosteOptions}
+              launchContext={jpAddLaunchContext}
+              onSubmit={({ mode, canonicalId, reference, url, pdfFileName, attachments }) => {
+                let decisionId = canonicalId;
+                // Search mode without a canonical match: persist as an orphan
+                // customJP using the typed text as its reference.
+                if (!decisionId && mode === 'search' && reference) {
+                  decisionId = `custom-${Date.now()}`;
+                  jp.upsertCustomJP({
+                    id: decisionId,
+                    reference,
+                    jurisdiction: reference,
+                    date: '',
+                    lineItems: attachments.posteIds || [],
+                    source: 'manual',
+                    canonicalId: null,
+                    summary: '',
+                    amounts: [],
+                    owner: 'user',
+                  });
+                }
+                if (!decisionId) return;
+
+                if (attachments.matterTransverse) {
+                  jp.addAttachment(decisionId, 'matter', jp.DEFAULT_MATTER_ID);
+                }
+                attachments.posteIds.forEach(pid => {
+                  jp.addAttachment(decisionId, 'matter', jp.DEFAULT_MATTER_ID, pid);
+                });
+                if (attachments.user) {
+                  if (attachments.posteIds.length > 0) {
+                    attachments.posteIds.forEach(pid => jp.addAttachment(decisionId, 'user', jp.DEFAULT_USER_ID, pid));
+                  } else {
+                    jp.addAttachment(decisionId, 'user', jp.DEFAULT_USER_ID);
+                  }
+                }
+                if (attachments.workspace) {
+                  if (attachments.posteIds.length > 0) {
+                    attachments.posteIds.forEach(pid => jp.addAttachment(decisionId, 'workspace', jp.DEFAULT_WORKSPACE_ID, pid));
+                  } else {
+                    jp.addAttachment(decisionId, 'workspace', jp.DEFAULT_WORKSPACE_ID);
+                  }
+                }
+
+                const dest = [
+                  attachments.matterTransverse && 'au dossier',
+                  attachments.posteIds.length > 0 && `aux postes ${attachments.posteIds.map(p => p.toUpperCase()).join(', ')}`,
+                  attachments.user && 'à mes usuels',
+                  attachments.workspace && 'au Cabinet',
+                ].filter(Boolean).join(', ');
+                setToastMessage(dest ? `Décision ajoutée ${dest}.` : 'Décision ajoutée.');
+                setTimeout(() => setToastMessage(null), 3000);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toastMessage && (
+        <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 text-white text-body rounded-lg shadow-lg flex items-center gap-2 animate-fade-up bg-zinc-800`}>
+          {toastMessage?.type === 'ai' ? (
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#4a9168' }} />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 text-teal-400" />
+          )}
+          {typeof toastMessage === 'string' ? toastMessage : toastMessage?.text}
+        </div>
+      )}
+    </>
+  );
+
   // ========== ROUTING ==========
   if (currentPage === 'reasoning-demo') {
-    return renderReasoningDemoPage();
+    return (<>{renderReasoningDemoPage()}{renderGlobalOverlays()}</>);
   }
   if (currentPage === 'diff-engine') {
-    return renderDiffEnginePage();
+    return (<>{renderDiffEnginePage()}{renderGlobalOverlays()}</>);
   }
   if (currentPage === 'components') {
-    return renderComponentsPage();
+    return (<>{renderComponentsPage()}{renderGlobalOverlays()}</>);
   }
   if (currentPage === 'iv-structures') {
-    return renderIvStructuresPage();
+    return (<>{renderIvStructuresPage()}{renderGlobalOverlays()}</>);
   }
   if (currentPage === 'list') {
-    return renderDossierListPage();
+    return (<>{renderDossierListPage()}{renderGlobalOverlays()}</>);
   }
   if (currentPage === 'settings') {
-    return renderSettingsPage();
+    return (<>{renderSettingsPage()}{renderGlobalOverlays()}</>);
   }
 
   return (
@@ -19364,67 +19845,7 @@ export default function App() {
         </div>
       )}
 
-      {/* JP Decision Drawer */}
-      {jp.jpState.drawerDecisionId && (
-        <DecisionDrawer
-          decisionId={jp.jpState.drawerDecisionId}
-          resultSet={jp.jpState.drawerResultSet}
-          resultIndex={jp.jpState.drawerIndex}
-          isPinned={jp.isDecisionPinned(jp.jpState.drawerDecisionId)}
-          pinnedPosteIds={(jp.jpState.pinnedJP.find(p => p.decisionId === jp.jpState.drawerDecisionId)?.posteIds) || []}
-          onClose={jp.closeDrawer}
-          onPrev={jp.drawerPrev}
-          onNext={jp.drawerNext}
-          onPin={(id) => jp.pinDecision(id)}
-          onUnpin={(id) => jp.unpinDecision(id)}
-          onAttachToPoste={(id, posteId) => { jp.pinDecision(id); jp.togglePoste(id, posteId); }}
-          posteOptions={jpPosteOptions}
-        />
-      )}
-
-      {/* JP Popover Card */}
-      {jpPopover && (
-        <JPPopoverCard
-          decision={jpPopover.decision}
-          anchorRect={jpPopover.anchorRect}
-          onOpenDrawer={(id) => { const rs = jpPopover.resultSet; setJpPopover(null); jp.openDrawer(id, rs); }}
-          onMouseEnter={() => clearTimeout(jpPopoverTimeout.current)}
-          onMouseLeave={() => { jpPopoverTimeout.current = setTimeout(() => setJpPopover(null), 300); }}
-        />
-      )}
-
-      {/* JP Add Stepper Modal */}
-      {jp.jpState.activeStepper === 'jp-add' && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={jp.closeStepper}>
-          <div className="w-[460px]" onClick={(e) => e.stopPropagation()}>
-            <JPAddStepper
-              onClose={jp.closeStepper}
-              onSubmit={({ url, impact, posteId }) => {
-                // In the prototype, simulate adding a mock decision
-                const mockId = 'jp-atpt-01';
-                jp.pinDecision(mockId, { impact, posteId });
-                setChatMessages(prev => [...prev, {
-                  type: 'ai',
-                  text: `Décision ajoutée au dossier${posteId ? ` et assignée au poste ${posteId.toUpperCase()}` : ''}.`,
-                }]);
-              }}
-              posteOptions={jpPosteOptions}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Toast notification */}
-      {toastMessage && (
-        <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 text-white text-body rounded-lg shadow-lg flex items-center gap-2 animate-fade-up bg-zinc-800`}>
-          {toastMessage?.type === 'ai' ? (
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#4a9168' }} />
-          ) : (
-            <CheckCircle2 className="w-4 h-4 text-teal-400" />
-          )}
-          {typeof toastMessage === 'string' ? toastMessage : toastMessage?.text}
-        </div>
-      )}
+      {renderGlobalOverlays()}
     </div>
   );
 }
