@@ -5,6 +5,7 @@ import {
   User,
 } from 'lucide-react';
 import { getDecisionById, getPrimaryAmount, formatDateLong } from '../../data/mockDecisions';
+import SaveDestinationPopover from './SaveDestinationPopover';
 
 const fmt = (v) => v.toLocaleString('fr-FR');
 
@@ -38,6 +39,14 @@ export default function DecisionDrawer({
   onAttachToPoste,
   posteOptions = [],
   pinnedPosteIds = [],
+  // Phase 3: scope-aware Save popover.
+  userPinned = false,
+  workspacePinned = false,
+  onToggleUser,
+  onToggleWorkspace,
+  // Phase 6: full attachment list for the Attachements section.
+  attachments = [],
+  onRemoveAttachment,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSection, setActiveSection] = useState(null);
@@ -196,45 +205,18 @@ export default function DecisionDrawer({
                   {isPinned ? 'Sauvegardee' : 'Sauvegarder'}
                 </button>
                 {showPosteDropdown && (
-                  <div className="absolute top-full mt-1.5 right-0 w-[260px] bg-white border border-[#e7e5e3] rounded-lg shadow-lg overflow-hidden" style={{ zIndex: 40 }}>
-                    <div className="px-3 py-2 border-b border-[#f0efed]">
-                      <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        Sauvegarder dans...
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => { if (!isPinned) { onPin?.(decision.id); } setShowPosteDropdown(false); }}
-                      className="w-full text-left px-3 py-2.5 text-[12px] text-[#292524] hover:bg-[#fafaf9] transition-colors flex items-center gap-2"
-                      style={{ borderBottom: '1px solid #f0efed', backgroundColor: isPinned ? '#fafaf9' : 'transparent' }}>
-                      <div className="w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0"
-                        style={{ borderColor: isPinned ? '#b9703f' : '#d6d3d1', backgroundColor: isPinned ? '#b9703f' : 'white' }}>
-                        {isPinned && <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3.2 5.7L6.5 2.3" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                      </div>
-                      <Scale className="w-3.5 h-3.5 text-[#a8a29e]" />
-                      <span className="font-medium">Dossier</span>
-                      <span className="text-[#a8a29e] ml-0.5">(transverse)</span>
-                    </button>
-                    {posteOptions.length > 0 && (
-                      <div style={{ maxHeight: 220, overflowY: 'auto' }}>
-                        {posteOptions.map((p, i) => {
-                          const isChecked = pinnedPosteIds.includes(p.id);
-                          return (
-                            <button key={p.id}
-                              onClick={() => { onAttachToPoste?.(decision.id, p.id); }}
-                              className="w-full text-left px-3 py-2 text-[12px] text-[#292524] hover:bg-[#fafaf9] transition-colors flex items-center gap-2"
-                              style={{ borderBottom: i < posteOptions.length - 1 ? '1px solid #f0efed' : 'none' }}>
-                              <div className="w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0"
-                                style={{ borderColor: isChecked ? '#b9703f' : '#d6d3d1', backgroundColor: isChecked ? '#b9703f' : 'white' }}>
-                                {isChecked && <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3.2 5.7L6.5 2.3" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                              </div>
-                              <span className="badge badge-sm badge-secondary">{p.acronym}</span>
-                              <span className="text-[#78716c] truncate text-[12px]">{p.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                  <SaveDestinationPopover
+                    isPinned={isPinned}
+                    assignedPosteIds={pinnedPosteIds}
+                    posteOptions={posteOptions}
+                    onSaveToDossier={() => { if (!isPinned) onPin?.(decision.id); setShowPosteDropdown(false); }}
+                    onTogglePoste={(posteId) => onAttachToPoste?.(decision.id, posteId)}
+                    userPinned={userPinned}
+                    workspacePinned={workspacePinned}
+                    onToggleUser={onToggleUser ? () => onToggleUser(decision.id) : undefined}
+                    onToggleWorkspace={onToggleWorkspace ? () => onToggleWorkspace(decision.id) : undefined}
+                    onClose={() => setShowPosteDropdown(false)}
+                  />
                 )}
               </div>
               {isPinned && (
@@ -464,6 +446,48 @@ export default function DecisionDrawer({
                     <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase' }}>Total</span>
                     <span style={{ fontSize: 14, fontWeight: 700, color: '#292524' }}>{fmt(permTotal)} €</span>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Attachements — every scope this JP is pinned to */}
+            {attachments.length > 0 && (
+              <div className="px-4 py-3 border-b border-[#f0efed]">
+                <SidebarSectionHeader label="Attachements" />
+                <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
+                  {attachments.map((a, i) => {
+                    const scopeLabel = a.scope === 'workspace' ? 'Cabinet'
+                      : a.scope === 'user' ? 'Mes usuels'
+                      : 'Dossier';
+                    const dateStr = (() => {
+                      try { return new Date(a.addedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }); }
+                      catch { return ''; }
+                    })();
+                    return (
+                      <div
+                        key={a.id}
+                        className="group flex items-center gap-2 px-3 py-2"
+                        style={{ borderBottom: i < attachments.length - 1 ? '1px solid #f0efed' : 'none' }}
+                      >
+                        <span style={{ fontSize: 12, color: '#44403c', fontWeight: 500 }}>
+                          {scopeLabel}
+                        </span>
+                        {a.lineItem && (
+                          <span className="badge badge-sm badge-secondary">{a.lineItem.toUpperCase()}</span>
+                        )}
+                        <span className="flex-1 text-right text-[11px] text-[#a8a29e]">{dateStr}</span>
+                        {onRemoveAttachment && (
+                          <button
+                            onClick={() => onRemoveAttachment(a.id)}
+                            className="p-1 -mr-1 rounded text-[#d6d3d1] hover:text-[#ef4444] hover:bg-[#fef2f2] opacity-0 group-hover:opacity-100 transition-all"
+                            title="Retirer cet attachement"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

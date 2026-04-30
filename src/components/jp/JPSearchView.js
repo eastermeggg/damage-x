@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Search, X, ChevronDown, ChevronRight, SlidersHorizontal, Landmark,
-  Bookmark, BookmarkCheck, Plus, Trash2, FolderOpen, Tag,
+  Bookmark, BookmarkCheck, Plus, Trash2, Tag,
 } from 'lucide-react';
 import DECISIONS, { getDecisionsByIds, getPrimaryAmount, formatDateShort, formatDateLong } from '../../data/mockDecisions';
+import SaveDestinationPopover from './SaveDestinationPopover';
 
 const ALL_JURISDICTIONS = [...new Set(DECISIONS.map(d => d.jurisdiction))].sort();
 const ALL_POSTES = [...new Set(DECISIONS.flatMap(d => d.amounts.map(a => a.poste)))].sort();
@@ -68,95 +69,7 @@ function FilterCheckbox({ label, checked, onChange, title }) {
   );
 }
 
-const Checkmark = () => (
-  <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3.2 5.7L6.5 2.3" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
-);
-
-function SaveDestinationPopover({ isPinned, assignedPosteIds = [], onSaveToDossier, onTogglePoste, onClose, posteOptions }) {
-  const ref = useRef(null);
-  const [search, setSearch] = useState('');
-  useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [onClose]);
-
-  const filtered = posteOptions.filter(p => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return p.acronym.toLowerCase().includes(q) || p.label.toLowerCase().includes(q);
-  });
-
-  return (
-    <div ref={ref} className="absolute top-full right-0 mt-1.5 w-[260px] bg-white border border-[#e7e5e3] rounded-lg shadow-lg overflow-hidden" style={{ zIndex: 50 }}
-      onClick={(e) => e.stopPropagation()}>
-      <div className="px-3 py-2 border-b border-[#f0efed]">
-        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          Sauvegarder dans...
-        </span>
-      </div>
-
-      {/* Dossier (transverse) row */}
-      <button
-        onClick={onSaveToDossier}
-        className="w-full text-left px-3 py-2.5 text-[12px] text-[#292524] hover:bg-[#fafaf9] transition-colors flex items-center gap-2"
-        style={{ borderBottom: '1px solid #f0efed', backgroundColor: isPinned ? '#fafaf9' : 'transparent' }}
-      >
-        <div className="w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0"
-          style={{ borderColor: isPinned ? '#b9703f' : '#d6d3d1', backgroundColor: isPinned ? '#b9703f' : 'white' }}>
-          {isPinned && <Checkmark />}
-        </div>
-        <FolderOpen className="w-3.5 h-3.5 text-[#a8a29e]" />
-        <span className="font-medium">Dossier</span>
-        <span className="text-[#a8a29e] ml-0.5">(transverse)</span>
-      </button>
-
-      {/* Search within postes */}
-      {posteOptions.length > 6 && (
-        <div className="px-2.5 py-2 border-b border-[#f0efed]">
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#fafaf9] border border-[#e7e5e3]">
-            <Search className="w-3 h-3 text-[#a8a29e] flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Filtrer les postes..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-[11px] text-[#292524] placeholder-[#a8a29e] focus:outline-none"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Postes checklist */}
-      {filtered.length > 0 && (
-        <div style={{ maxHeight: 220, overflowY: 'auto' }}>
-          {filtered.map((p, i) => {
-            const isChecked = assignedPosteIds.includes(p.id);
-            return (
-              <button key={p.id}
-                onClick={() => onTogglePoste(p.id)}
-                className="w-full text-left px-3 py-2 text-[12px] text-[#292524] hover:bg-[#fafaf9] transition-colors flex items-center gap-2"
-                style={{ borderBottom: i < filtered.length - 1 ? '1px solid #f0efed' : 'none' }}
-              >
-                <div className="w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0"
-                  style={{ borderColor: isChecked ? '#b9703f' : '#d6d3d1', backgroundColor: isChecked ? '#b9703f' : 'white' }}>
-                  {isChecked && <Checkmark />}
-                </div>
-                <span className="badge badge-sm badge-secondary">{p.acronym}</span>
-                <span className="text-[#78716c] truncate text-[12px]">{p.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-      {search && filtered.length === 0 && (
-        <div className="px-3 py-3 text-[12px] text-[#a8a29e]">Aucun poste trouve</div>
-      )}
-    </div>
-  );
-}
-
-function JPSearchResultCard({ decision: d, isPinned, assignedPosteIds = [], isSelected, onOpen, onSaveToDossier, onTogglePoste, onUnpin, posteOptions }) {
+function JPSearchResultCard({ decision: d, isPinned, assignedPosteIds = [], isSelected, onOpen, onSaveToDossier, onTogglePoste, onUnpin, userPinned, workspacePinned, onToggleUser, onToggleWorkspace, posteOptions }) {
   const [showSavePopover, setShowSavePopover] = useState(false);
   return (
     <div
@@ -215,6 +128,10 @@ function JPSearchResultCard({ decision: d, isPinned, assignedPosteIds = [], isSe
               posteOptions={posteOptions}
               onSaveToDossier={() => { if (!isPinned) onSaveToDossier?.(); }}
               onTogglePoste={(posteId) => onTogglePoste?.(posteId)}
+              userPinned={userPinned}
+              workspacePinned={workspacePinned}
+              onToggleUser={onToggleUser}
+              onToggleWorkspace={onToggleWorkspace}
               onClose={() => setShowSavePopover(false)}
             />
           )}
@@ -271,6 +188,12 @@ export default function JPSearchView({
   onUnpin,
   onAddClick,
   posteOptions = [],
+  // Phase 3: scope-aware Save popover. Caller passes per-decision lookups so
+  // each card can reflect "Mes usuels" / "Cabinet" state and toggle them.
+  isUserPinned,         // (decisionId) => boolean
+  isWorkspacePinned,    // (decisionId) => boolean
+  onToggleUser,         // (decisionId) => void
+  onToggleWorkspace,    // (decisionId) => void
 }) {
   const [query, setQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(true);
@@ -579,6 +502,10 @@ export default function JPSearchView({
                       onSaveToDossier={() => onSaveToDossier?.(d.id)}
                       onTogglePoste={(posteId) => onTogglePoste?.(d.id, posteId)}
                       onUnpin={() => onUnpin?.(d.id)}
+                      userPinned={isUserPinned ? isUserPinned(d.id) : false}
+                      workspacePinned={isWorkspacePinned ? isWorkspacePinned(d.id) : false}
+                      onToggleUser={onToggleUser ? () => onToggleUser(d.id) : undefined}
+                      onToggleWorkspace={onToggleWorkspace ? () => onToggleWorkspace(d.id) : undefined}
                       posteOptions={posteOptions}
                     />
                   );

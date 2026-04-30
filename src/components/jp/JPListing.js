@@ -14,6 +14,10 @@ export default function JPListing({
   onSearchJP,
   posteLabel = '',
   compact = false,
+  // Phase 6: optional summary of cross-scope attachments for a JP. Caller may
+  // pass `(decisionId) => { workspace, user, matterCount }`. When omitted, no
+  // scope badges are rendered.
+  getAttachmentSummary,
 }) {
   const decisionIds = pinnedJP.map(p => p.decisionId);
   const decisions = getDecisionsByIds(decisionIds);
@@ -131,6 +135,40 @@ export default function JPListing({
                   {pIds.length > 3 && (
                     <span style={{ fontSize: 11, color: '#a8a29e' }}>+{pIds.length - 3}</span>
                   )}
+                  {getAttachmentSummary && (() => {
+                    const summary = getAttachmentSummary(d.id) || {};
+                    return (
+                      <>
+                        {summary.user && (
+                          <span
+                            className="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium"
+                            style={{ backgroundColor: '#fdf3ec', color: '#b9703f' }}
+                            title="Présent dans mes usuels"
+                          >
+                            Mes usuels
+                          </span>
+                        )}
+                        {summary.workspace && (
+                          <span
+                            className="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium"
+                            style={{ backgroundColor: '#f3eefb', color: '#7c3aed' }}
+                            title="Présent dans le Cabinet"
+                          >
+                            Cabinet
+                          </span>
+                        )}
+                        {summary.matterCount > 1 && (
+                          <span
+                            className="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium"
+                            style={{ backgroundColor: '#f5f5f4', color: '#57534e' }}
+                            title={`${summary.matterCount} matières`}
+                          >
+                            {summary.matterCount} matières
+                          </span>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
                 <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', marginTop: 1 }}>
                   {d.category}{d.victimProfile ? ` · ${d.victimProfile}` : ''}

@@ -5,3 +5,4 @@ export { default as JPListing } from './JPListing';
 export { default as JPAddStepper } from './JPAddStepper';
 export { default as SlashCommandPalette } from './SlashCommandPalette';
 export { default as JPSearchView } from './JPSearchView';
+export { default as SaveDestinationPopover } from './SaveDestinationPopover';
