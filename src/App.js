@@ -14144,7 +14144,7 @@ export default function App() {
                 <button
                   onClick={item.onClick}
                   className={`h-8 flex items-center transition-colors text-left ${
-                    collapsed ? 'w-8 justify-center px-0' : 'gap-2 px-2'
+                    collapsed ? 'w-8 justify-center px-0' : 'gap-2 w-full px-2'
                   } ${
                     item.active
                       ? 'bg-[#eeece6] text-[#292524] font-medium'
@@ -18212,7 +18212,7 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
                       <button
                         key={item.id}
                         onClick={() => setSettingsSection(item.id)}
-                        className={`h-8 flex items-center gap-2 px-2 transition-colors text-left ${active ? 'bg-[#eeece6] text-[#292524] font-medium' : 'text-[#78716c] hover:bg-[#fafaf9] hover:text-[#292524]'}`}
+                        className={`h-8 w-full flex items-center gap-2 px-2 transition-colors text-left ${active ? 'bg-[#eeece6] text-[#292524] font-medium' : 'text-[#78716c] hover:bg-[#fafaf9] hover:text-[#292524]'}`}
                         style={{ borderRadius: 8, fontSize: '14px' }}
                       >
                         <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={active ? 2 : 1.5} />
