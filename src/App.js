@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, Users, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowRight, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, CircleArrowDown, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp, Focus, LogOut, CreditCard, SlidersHorizontal, Wand2, BookOpen, Globe } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, UserRound, Users, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowRight, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, CircleArrowDown, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp, Focus, LogOut, CreditCard, SlidersHorizontal, Wand2, BookOpen, Globe, Crown } from 'lucide-react';
 import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -874,6 +874,73 @@ if (window.location.search.includes('reset')) {
   window.location.replace(window.location.pathname);
 }
 
+// Small hover-triggered info tooltip — renders a peach-tinted popover above
+// the icon with a short explanation. Used in PlanCard footer rows to explain
+// what each metric means.
+function InfoTip({ children, label, placement = 'top' }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span
+      className="relative inline-flex items-center cursor-help"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
+      tabIndex={0}
+      role="button"
+      aria-label={label || 'Plus d\'informations'}
+    >
+      <HelpCircle
+        className="w-3 h-3 opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
+        strokeWidth={1.75}
+      />
+      {open && (
+        <div
+          role="tooltip"
+          className="absolute z-50"
+          style={{
+            ...(placement === 'top'
+              ? { bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)' }
+              : { top: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)' }),
+            width: 260,
+            borderRadius: 6,
+            backgroundColor: 'white',
+            border: '1px solid #e7e5e3',
+            boxShadow: '0 8px 24px rgba(41,37,36,0.10), 0 2px 8px rgba(41,37,36,0.04)',
+            padding: '10px 12px',
+            fontFamily: "'Inter', system-ui, sans-serif",
+            fontSize: 12, fontWeight: 400, color: '#44403c',
+            lineHeight: '17px',
+            letterSpacing: 'normal',
+            textTransform: 'none',
+            whiteSpace: 'normal',
+            pointerEvents: 'none',
+          }}
+        >
+          {/* Tail — subtle peach accent that matches the brand */}
+          <span
+            aria-hidden
+            style={{
+              position: 'absolute',
+              left: '50%',
+              transform: 'translateX(-50%) rotate(45deg)',
+              width: 8, height: 8,
+              backgroundColor: 'white',
+              border: '1px solid #e7e5e3',
+              borderTop: 'none',
+              borderLeft: 'none',
+              ...(placement === 'top'
+                ? { bottom: -5 }
+                : { top: -5, borderTop: '1px solid #e7e5e3', borderLeft: '1px solid #e7e5e3', borderBottom: 'none', borderRight: 'none' }),
+            }}
+          />
+          {children}
+        </div>
+      )}
+    </span>
+  );
+}
+
 export default function App() {
 
   // ========== LOCALSTORAGE PERSISTENCE ==========
@@ -906,13 +973,15 @@ export default function App() {
   const [dossierIndicatorHover, setDossierIndicatorHover] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [workspaceMembers, setWorkspaceMembers] = useState([
-    { id: 'u-1', name: 'Meghan Régior', email: 'meghan@hexa.com', role: 'Admin', joinedDate: '12 janv. 2026', initials: 'MR', color: 'from-violet-400 to-indigo-500' },
-    { id: 'u-2', name: 'Antoine Mercier', email: 'antoine.mercier@hexa.com', role: 'Membre', joinedDate: '03 févr. 2026', initials: 'AM', color: 'from-emerald-400 to-teal-500' },
-    { id: 'u-3', name: 'Claire Dubois', email: 'claire.dubois@hexa.com', role: 'Membre', joinedDate: '14 mars 2026', initials: 'CD', color: 'from-rose-400 to-pink-500' },
+    { id: 'u-1', name: 'Meghan Régior',  email: 'meghan@hexa.com',           role: 'Admin',  joinedDate: '12 janv. 2026', dossiersCreated: 7, initials: 'MR', color: 'from-violet-400 to-indigo-500' },
+    { id: 'u-2', name: 'Antoine Mercier', email: 'antoine.mercier@hexa.com', role: 'Membre', joinedDate: '03 févr. 2026', dossiersCreated: 3, initials: 'AM', color: 'from-emerald-400 to-teal-500' },
+    { id: 'u-3', name: 'Claire Dubois',   email: 'claire.dubois@hexa.com',   role: 'Membre', joinedDate: '14 mars 2026',  dossiersCreated: 2, initials: 'CD', color: 'from-rose-400 to-pink-500' },
   ]);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteEmail, setInviteEmail] = useState(''); // current text being typed
+  const [inviteEmails, setInviteEmails] = useState([]); // array of confirmed emails
   const [inviteRole, setInviteRole] = useState('Membre');
+  const [memberMenuOpenId, setMemberMenuOpenId] = useState(null);
   const [preferenceDocs, setPreferenceDocs] = useState([]);
   const [preferenceMasterPrompt, setPreferenceMasterPrompt] = useState('');
   const [savedJurisprudences, setSavedJurisprudences] = useState([]);
@@ -1159,6 +1228,21 @@ export default function App() {
       {chessPiece('crown', VD_AVATAR.fill, size)}
     </div>
   );
+
+  // Workspace member avatar — same square-box + chess piece pattern as viAvatar.
+  // Palette cycles by member index; piece reflects role (Admin → king, Membre → pawn).
+  const userAvatar = (idx, role, size = 32) => {
+    const pal = VI_AVATAR_PALETTE[(idx >= 0 ? idx : 0) % VI_AVATAR_PALETTE.length];
+    const piece = role === 'Admin' ? 'king' : 'pawn';
+    return (
+      <div
+        className="flex items-end justify-center flex-shrink-0 overflow-hidden"
+        style={{ width: size, height: size, borderRadius: size <= 20 ? 4 : size <= 24 ? 6 : 8, backgroundColor: pal.bg, paddingTop: 2 }}
+      >
+        {chessPiece(piece, pal.fill, size)}
+      </div>
+    );
+  };
 
   const typesFaitGenerateur = ['Accident de la route', 'Accident du travail', 'Accident médical', 'Agression', 'Accident domestique', 'Autre'];
 
@@ -14021,67 +14105,34 @@ export default function App() {
   );
 
   // Collapsed rail (48px, icons only) — shown in settings alongside the settings sub-rail
-  const renderCollapsedRail = () => (
-    <div className="w-12 bg-white border-r border-[#e7e5e3] flex flex-col items-start flex-shrink-0">
-      <div className="w-full flex flex-col items-center justify-center py-3 border-b border-[#e7e5e3]">
-        <img src="/logo-plato.png" alt="Plato" className="w-6 h-6" />
-      </div>
-      <div className="flex-1 w-full flex flex-col gap-1 p-2">
-        <button
-          onClick={() => setCurrentPage('list')}
-          title="Mes dossiers"
-          className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'list' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
-          style={{ borderRadius: 8 }}
-        >
-          <Folder className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => setCurrentPage('settings')}
-          title="Paramètres"
-          className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'settings' ? 'bg-[#eeece6] text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
-          style={{ borderRadius: 8 }}
-        >
-          <Settings className="w-4 h-4" />
-        </button>
-      </div>
-      <div className="w-full border-t border-[#e7e5e3] p-2 flex flex-col gap-2 items-center">
-        <button
-          onClick={() => setCurrentPage('components')}
-          title="UI Components"
-          className={`w-8 h-8 flex items-center justify-center transition-colors ${currentPage === 'components' ? 'text-[#292524]' : 'text-[#78716c] hover:text-[#292524]'}`}
-          style={{ borderRadius: 8 }}
-        >
-          <LayoutGrid className="w-4 h-4" />
-        </button>
-        <div className="relative">
-          <button
-            onClick={() => setUserMenuOpen(o => !o)}
-            title="Mon compte"
-            className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium cursor-pointer overflow-hidden hover:opacity-90 transition-opacity"
-            style={{ borderRadius: 10 }}
-          >
-            MR
-          </button>
-          {userMenuOpen && renderUserDropdownPanel('right')}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderHomeSidebar = () => {
+  // Unified sidebar — single component that animates between expanded (244px)
+  // and collapsed (48px). When collapsed, labels fade out and only icons remain.
+  // Both the dossier list page and the settings page render this at the same
+  // JSX position so React reconciles the DOM and the width transition fires.
+  const renderUnifiedSidebar = ({ collapsed }) => {
     const ITEMS = [
       { id: 'list', label: 'Mes dossiers', icon: Folder, onClick: () => setCurrentPage('list'), active: currentPage === 'list' },
       { id: 'settings', label: 'Paramètres', icon: Settings, onClick: () => setCurrentPage('settings'), active: currentPage === 'settings' },
       { id: 'components', label: 'UI Components', icon: LayoutGrid, onClick: () => setCurrentPage('components'), active: currentPage === 'components' },
     ];
     return (
-      <div className="w-[244px] bg-white border-r border-[#e7e5e3] flex flex-col flex-shrink-0">
-        {/* Header — 48px with Plato logo + wordmark (logo at x=12 to align with collapsed rail) */}
-        <div className="h-12 pl-3 pr-4 border-b border-[#e7e5e3] flex items-center gap-2 flex-shrink-0">
+      <div
+        className="bg-white border-r border-[#e7e5e3] flex flex-col flex-shrink-0 overflow-hidden"
+        style={{
+          width: collapsed ? 48 : 244,
+          transition: 'width 250ms cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      >
+        {/* Header — logo (always) + wordmark (expanded only) */}
+        <div
+          className={`h-12 border-b border-[#e7e5e3] flex items-center flex-shrink-0 ${collapsed ? 'justify-center' : 'pl-3 pr-4 gap-2'}`}
+        >
           <img src="/logo-plato.png" alt="Plato" className="w-6 h-6 flex-shrink-0" />
-          <span style={{ fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif", fontSize: '18px', fontWeight: 500, color: '#292524', letterSpacing: '-0.5px', lineHeight: '20px' }}>
-            Plato
-          </span>
+          {!collapsed && (
+            <span style={{ fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif", fontSize: '18px', fontWeight: 500, color: '#292524', letterSpacing: '-0.5px', lineHeight: '20px' }}>
+              Plato
+            </span>
+          )}
         </div>
 
         {/* Nav items */}
@@ -14089,44 +14140,227 @@ export default function App() {
           <div className="flex flex-col gap-1">
             {ITEMS.map(item => {
               const Icon = item.icon;
-              return (
+              const btn = (
                 <button
-                  key={item.id}
                   onClick={item.onClick}
-                  className={`h-8 flex items-center gap-2 px-2 transition-colors text-left ${item.active ? 'bg-[#eeece6] text-[#292524] font-medium' : 'text-[#78716c] hover:bg-[#fafaf9] hover:text-[#292524]'}`}
+                  className={`h-8 flex items-center transition-colors text-left ${
+                    collapsed ? 'w-8 justify-center px-0' : 'gap-2 px-2'
+                  } ${
+                    item.active
+                      ? 'bg-[#eeece6] text-[#292524] font-medium'
+                      : 'text-[#78716c] hover:bg-[#fafaf9] hover:text-[#292524]'
+                  }`}
                   style={{ borderRadius: 8, fontSize: '14px' }}
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={item.active ? 2 : 1.5} />
-                  <span className="truncate">{item.label}</span>
+                  {!collapsed && <span className="truncate">{item.label}</span>}
                 </button>
+              );
+              if (!collapsed) return <div key={item.id}>{btn}</div>;
+              return (
+                <div key={item.id} className="relative group">
+                  {btn}
+                  <span
+                    role="tooltip"
+                    className="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-[#292524] px-2 py-1 text-[12px] font-medium text-white opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100 z-50"
+                  >
+                    {item.label}
+                  </span>
+                </div>
               );
             })}
           </div>
         </div>
 
-        {/* Footer — Avatar pill */}
-        <div className="border-t border-[#e7e5e3] p-2 flex-shrink-0">
-          <div className="relative">
+        {/* Workspace dossier indicator — hidden when collapsed */}
+        {!collapsed && (
+          <div className="border-t border-[#e7e5e3] flex-shrink-0">
+            {renderDossierIndicator()}
+          </div>
+        )}
+
+        {/* Avatar footer — full pill expanded, single-tap initials when collapsed */}
+        <div className={`border-t border-[#e7e5e3] flex-shrink-0 ${collapsed ? 'p-2 flex justify-center' : 'p-2'}`}>
+          <div className="relative group">
             <button
               onClick={() => setUserMenuOpen(o => !o)}
-              className="w-full flex items-center gap-3 p-2 hover:bg-[#fafaf9] transition-colors text-left group"
-              style={{ borderRadius: 6 }}
+              className={
+                collapsed
+                  ? 'w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium cursor-pointer overflow-hidden hover:opacity-90 transition-opacity'
+                  : 'w-full flex items-center gap-3 p-2 hover:bg-[#fafaf9] transition-colors text-left group'
+              }
+              style={{ borderRadius: collapsed ? 10 : 6 }}
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[11px] font-medium flex-shrink-0 overflow-hidden" style={{ borderRadius: 6 }}>
-                MR
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-medium text-[#292524] truncate leading-5">Meghan Régior</div>
-                <div className="text-[12px] text-[#a8a29e] truncate leading-4">Cabinet</div>
-              </div>
-              <ChevronDown className="w-4 h-4 text-[#a8a29e] group-hover:text-[#78716c] flex-shrink-0" strokeWidth={1.75} />
+              {collapsed ? 'MR' : (
+                <>
+                  <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[11px] font-medium flex-shrink-0 overflow-hidden" style={{ borderRadius: 6 }}>
+                    MR
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[14px] font-medium text-[#292524] truncate leading-5">Meghan Régior</div>
+                    <div className="text-[12px] text-[#a8a29e] truncate leading-4">Cabinet</div>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-[#a8a29e] group-hover:text-[#78716c] flex-shrink-0" strokeWidth={1.75} />
+                </>
+              )}
             </button>
-            {userMenuOpen && renderUserDropdownPanel('above')}
+            {collapsed && !userMenuOpen && (
+              <span
+                role="tooltip"
+                className="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-[#292524] px-2 py-1 text-[12px] font-medium text-white opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100 z-50"
+              >
+                Mon compte
+              </span>
+            )}
+            {userMenuOpen && renderUserDropdownPanel(collapsed ? 'right' : 'above')}
           </div>
         </div>
       </div>
     );
   };
+
+  const renderCollapsedRail = () => renderUnifiedSidebar({ collapsed: true });
+
+  // Workspace dossier-quota indicator. The full Figma "Small" PlanCard
+  // rendered directly inside the sidebar's footer (no hover-to-expand).
+  const renderDossierIndicator = () => {
+    const isFree = billingState === 'free';
+    const used = isFree ? 1 : (billingState === 'over' || billingState === 'credits') ? 20 : 12;
+    const limit = isFree ? 1 : 20;
+    const remaining = Math.max(0, limit - used);
+    const atLimit = remaining === 0;
+    const pct = Math.min(100, Math.round((used / limit) * 100));
+
+    const maxActifs = isFree ? 1 : 50;
+    const usedActifs = isFree ? 1 : billingState === 'over' ? maxActifs : 8;
+    const actifsAtLimit = usedActifs >= maxActifs;
+
+    const totalCredits = billingState === 'credits' ? 2 : 0;
+    const creditsUsed = billingState === 'credits' ? 1 : 0;
+    const hasExtras = totalCredits > 0;
+    const extrasAtLimit = hasExtras && creditsUsed >= totalCredits;
+    const bodyWarning = atLimit;
+
+    const headerLabel = isFree ? 'Essai gratuit' : 'Consommation dossiers';
+    const heroNum = isFree ? remaining : used;
+    const caption = isFree
+      ? `dossier${remaining > 1 ? 's' : ''} gratuit${remaining > 1 ? 's' : ''} disponible${remaining > 1 ? 's' : ''}`
+      : 'dossiers utilisés';
+    const showSuppl = !isFree && (creditsUsed > 0 || atLimit) && totalCredits > 0;
+
+    return (
+      <button
+        onClick={() => { setSettingsSection('billing'); setCurrentPage('settings'); }}
+        className="block w-full text-left overflow-hidden transition-colors"
+        style={{
+          backgroundColor: 'transparent',
+          fontFamily: "'Inter', system-ui, sans-serif",
+        }}
+      >
+        {/* Header — peach gradient when bodyWarning, padded 14×16 per Figma small */}
+        <div
+          style={{
+            padding: '14px 16px',
+            background: bodyWarning ? 'linear-gradient(180deg, #f9e6d3 0%, #ffffff 100%)' : 'transparent',
+          }}
+        >
+          <div style={{
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: 11, fontWeight: 500,
+            color: bodyWarning ? '#855b31' : '#78716c',
+            textTransform: 'uppercase', letterSpacing: 'normal',
+          }}>
+            {headerLabel}
+          </div>
+        </div>
+
+        {/* Body — pb-20 px-16, no top padding (header carries it), gap-10 */}
+        <div style={{ padding: '0 16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div className="flex items-baseline gap-1">
+              <span style={{
+                fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
+                fontSize: 30, fontWeight: 400,
+                color: bodyWarning ? '#bd6c1a' : '#000',
+                letterSpacing: '-0.6px', lineHeight: '28px',
+              }} className="tabular-nums">
+                {heroNum}
+              </span>
+              <span style={{
+                fontFamily: "'Inter', system-ui, sans-serif",
+                fontSize: 14, fontWeight: 500,
+                color: '#78716c', opacity: 0.5,
+                lineHeight: '20px',
+              }} className="tabular-nums">/ {limit}</span>
+            </div>
+            <div style={{
+              fontFamily: "'Inter', system-ui, sans-serif",
+              fontSize: 12, fontWeight: 500, color: '#78716c',
+              lineHeight: '16px',
+            }}>
+              {caption}
+            </div>
+          </div>
+
+          {/* Progress bar — solid peach 100% when bodyWarning (no track),
+              muted track + black fill at pct% otherwise. */}
+          <div style={{
+            height: 4, width: '100%', borderRadius: 9999, overflow: 'hidden',
+            backgroundColor: bodyWarning ? '#bd6c1a' : '#eeece6',
+          }}>
+            {!bodyWarning && (
+              <div style={{
+                height: '100%', width: `${pct}%`,
+                backgroundColor: '#000',
+                borderRadius: 9999,
+                transition: 'width 0.5s ease',
+              }} />
+            )}
+          </div>
+        </div>
+
+        {/* Footer row — Dossiers supplémentaires (conditional) */}
+        {showSuppl && (
+          <div
+            className="flex items-center justify-between"
+            style={{
+              borderTop: '1px solid #e7e5e3',
+              padding: '12px 16px',
+              backgroundColor: 'transparent',
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: 11, fontWeight: 500,
+              color: '#78716c',
+              textTransform: 'uppercase', letterSpacing: 'normal',
+            }}
+          >
+            <span>Dossier supplémentaires</span>
+            <span className="tabular-nums">{creditsUsed}/{totalCredits}</span>
+          </div>
+        )}
+
+        {/* Footer row — Actifs en cours (paid only) */}
+        {!isFree && (
+          <div
+            className="flex items-center justify-between"
+            style={{
+              borderTop: '1px solid #e7e5e3',
+              padding: '12px 16px',
+              backgroundColor: 'transparent',
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: 11, fontWeight: 500,
+              color: '#78716c',
+              textTransform: 'uppercase', letterSpacing: 'normal',
+            }}
+          >
+            <span>Actifs en cours</span>
+            <span className="tabular-nums">{usedActifs}/{maxActifs}</span>
+          </div>
+        )}
+      </button>
+    );
+  };
+
+  const renderHomeSidebar = () => renderUnifiedSidebar({ collapsed: false });
 
   const renderDossierListPage = () => (
     <div className="h-screen flex relative" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: '#27272a' }}>
@@ -14141,156 +14375,6 @@ export default function App() {
               Mes dossiers
             </h1>
             <div className="flex items-center gap-3">
-              {(() => {
-                // Cycle (yearly matters) — existing metric
-                const used = billingState === 'free' ? 1 : billingState === 'over' ? 20 : 12;
-                const limit = billingState === 'free' ? 1 : 20;
-                const remaining = Math.max(0, limit - used);
-                const atLimit = remaining === 0;
-                const pct = Math.min(100, Math.round((used / limit) * 100));
-                const ringColor = atLimit ? '#ea580c' : pct >= 75 ? '#f59e0b' : '#16a34a';
-
-                // Active matters — concurrent in-progress cap, distinct from yearly cycle
-                const maxActifs = billingState === 'free' ? 1 : 50; // Tier 3 (20/an) → 50 actifs
-                const usedActifs = billingState === 'free' ? 1 : billingState === 'over' ? maxActifs : 8;
-                const actifsAtLimit = usedActifs >= maxActifs;
-                const actifsPct = Math.min(100, Math.round((usedActifs / maxActifs) * 100));
-                const actifsRingColor = actifsAtLimit ? '#ea580c' : actifsPct >= 75 ? '#f59e0b' : '#16a34a';
-
-                return (
-                  <div
-                    className="relative"
-                    onMouseEnter={() => setDossierIndicatorHover(true)}
-                    onMouseLeave={() => setDossierIndicatorHover(false)}
-                  >
-                    {/* Cycle pill (primary metric only) */}
-                    <button
-                      onClick={() => { setSettingsSection('billing'); setCurrentPage('settings'); }}
-                      className={`relative flex items-center gap-2 h-10 px-4 rounded-lg text-[13px] font-medium transition-all overflow-hidden ${atLimit ? 'bg-[#fffbeb] border border-[#fde68a] text-[#92400e] hover:bg-[#fef3c7]' : 'bg-white border border-[#e7e5e3] text-[#292524] hover:bg-[#fafaf9] hover:border-[#a8a29e]'}`}
-                    >
-                      <span className="tabular-nums">{billingState === 'free' ? remaining : used} / {limit}</span>
-                      <span className="text-[12px] text-[#78716c] font-normal">
-                        {atLimit ? '— augmenter mon plan' : (billingState === 'free' ? `dossier${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''}` : 'dossiers')}
-                      </span>
-                      <span
-                        className="absolute left-0 bottom-0 h-[2px] transition-all duration-500"
-                        style={{ width: `${pct}%`, background: ringColor }}
-                      />
-                    </button>
-
-                    {/* Hover card — bolder editorial treatment */}
-                    {dossierIndicatorHover && (
-                      <div
-                        className="absolute right-0 top-full mt-2 z-50"
-                        style={{
-                          width: 280,
-                          borderRadius: 10,
-                          backgroundColor: 'white',
-                          border: '1px solid #e7e5e3',
-                          boxShadow: '0 16px 40px rgba(41, 37, 36, 0.12), 0 4px 12px rgba(41, 37, 36, 0.06)',
-                          fontFamily: "'Inter', system-ui, sans-serif",
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {/* Identity strip — peach mono micro-label */}
-                        <div style={{ padding: '14px 18px 0' }}>
-                          <div style={{
-                            fontFamily: "'IBM Plex Mono', monospace",
-                            fontSize: 10, fontWeight: 600, color: '#b9703f',
-                            textTransform: 'uppercase', letterSpacing: '0.12em',
-                          }}>
-                            {atLimit ? 'Limite atteinte' : 'Mon plan'}
-                            {billingState !== 'free' && <span style={{ color: '#d6c2af', margin: '0 6px' }}>/</span>}
-                            {billingState !== 'free' && <span style={{ color: '#a8a29e' }}>Cabinet+</span>}
-                          </div>
-                        </div>
-
-                        {/* Hero metric — big serif */}
-                        <div style={{ padding: '4px 18px 14px' }}>
-                          <div className="flex items-baseline gap-2">
-                            <span style={{
-                              fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
-                              fontSize: 38, fontWeight: 400, color: atLimit ? '#92400e' : '#18181b',
-                              letterSpacing: '-0.02em', lineHeight: 1,
-                            }} className="tabular-nums">
-                              {billingState === 'free' ? remaining : used}
-                            </span>
-                            <span style={{
-                              fontSize: 20, color: '#a8a29e', fontWeight: 300,
-                              letterSpacing: '-0.01em',
-                            }} className="tabular-nums">/ {limit}</span>
-                          </div>
-                          <div style={{ fontSize: 12, color: '#78716c', marginTop: 4, lineHeight: '16px' }}>
-                            {billingState === 'free'
-                              ? `dossier${remaining > 1 ? 's' : ''} gratuit${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''}`
-                              : 'dossiers cette année'}
-                          </div>
-
-                          {/* Thick rounded progress with peach fill */}
-                          <div style={{
-                            marginTop: 12,
-                            height: 4, width: '100%',
-                            backgroundColor: '#f0efed',
-                            borderRadius: 999, overflow: 'hidden',
-                          }}>
-                            <div
-                              style={{
-                                height: '100%', width: `${pct}%`,
-                                background: atLimit
-                                  ? 'linear-gradient(90deg, #f59e0b, #ea580c)'
-                                  : pct >= 75
-                                    ? 'linear-gradient(90deg, #f59e0b, #d97706)'
-                                    : 'linear-gradient(90deg, #b9703f, #92410f)',
-                                borderRadius: 999,
-                                transition: 'width 0.5s ease',
-                              }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Secondary metric — actifs (paid only) */}
-                        {billingState !== 'free' && (
-                          <div style={{
-                            padding: '12px 18px',
-                            backgroundColor: actifsAtLimit ? '#fffbeb' : '#fafaf9',
-                            borderTop: '1px solid #f0efed',
-                          }}>
-                            <div className="flex items-baseline justify-between">
-                              <span style={{
-                                fontFamily: "'IBM Plex Mono', monospace",
-                                fontSize: 10, fontWeight: 500, color: '#a8a29e',
-                                textTransform: 'uppercase', letterSpacing: '0.1em',
-                              }}>
-                                Actifs en cours
-                              </span>
-                              <span className="tabular-nums" style={{
-                                fontSize: 13, fontWeight: 500,
-                                color: actifsAtLimit ? '#92400e' : '#44403c',
-                              }}>
-                                {usedActifs} <span style={{ color: '#a8a29e', fontWeight: 400 }}>/ {maxActifs}</span>
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Footer — cycle date */}
-                        {billingState === 'paid' && (
-                          <div style={{
-                            padding: '10px 18px',
-                            borderTop: '1px solid #f0efed',
-                            backgroundColor: '#fafaf9',
-                            fontFamily: "'IBM Plex Mono', monospace",
-                            fontSize: 10, fontWeight: 500, color: '#a8a29e',
-                            textTransform: 'uppercase', letterSpacing: '0.08em',
-                          }}>
-                            Jusqu'au 31 déc. 2026
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
               <button
                 onClick={() => setDropModal({ files: [], rapportFileId: null, rapportDismissed: false })}
                 className="flex items-center gap-2 px-4 py-2.5 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors"
@@ -16716,73 +16800,231 @@ export default function App() {
   // ========== SETTINGS PAGE ==========
   const renderInviteModal = () => {
     if (!inviteModalOpen) return null;
-    const close = () => { setInviteModalOpen(false); setInviteEmail(''); setInviteRole('Membre'); };
-    const submit = () => {
-      const trimmed = inviteEmail.trim();
-      if (!trimmed) return;
-      const initials = trimmed.split('@')[0].slice(0, 2).toUpperCase();
-      const palettes = ['from-amber-400 to-orange-500', 'from-sky-400 to-blue-500', 'from-fuchsia-400 to-purple-500', 'from-lime-400 to-green-500'];
-      setWorkspaceMembers(prev => [...prev, {
-        id: `u-${Date.now()}`,
-        name: trimmed.split('@')[0].replace(/\./g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-        email: trimmed,
+    const isValidEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+    const close = () => {
+      setInviteModalOpen(false);
+      setInviteEmail('');
+      setInviteEmails([]);
+      setInviteRole('Membre');
+    };
+    // Pull emails out of a string (Enter / comma / space / paste). Returns
+    // valid new emails not already in the list.
+    const harvest = (raw) => {
+      const tokens = raw.split(/[\s,;]+/).map(t => t.trim()).filter(Boolean);
+      const valid = [];
+      for (const t of tokens) {
+        if (isValidEmail(t) && !inviteEmails.includes(t) && !valid.includes(t)) valid.push(t);
+      }
+      return valid;
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter' || e.key === ',' || e.key === ';' || e.key === ' ') {
+        const trimmed = inviteEmail.trim();
+        if (trimmed) {
+          e.preventDefault();
+          const next = harvest(trimmed);
+          if (next.length > 0) {
+            setInviteEmails(prev => [...prev, ...next]);
+            setInviteEmail('');
+          }
+        }
+      } else if (e.key === 'Backspace' && inviteEmail === '' && inviteEmails.length > 0) {
+        // Backspace on empty input → pop the last chip
+        setInviteEmails(prev => prev.slice(0, -1));
+      }
+    };
+    const handlePaste = (e) => {
+      const pasted = (e.clipboardData || window.clipboardData).getData('text');
+      if (/[\s,;]/.test(pasted)) {
+        e.preventDefault();
+        const next = harvest(pasted);
+        if (next.length > 0) setInviteEmails(prev => [...prev, ...next]);
+      }
+    };
+    const removeChip = (email) => setInviteEmails(prev => prev.filter(e => e !== email));
+
+    const palettes = ['from-amber-400 to-orange-500', 'from-sky-400 to-blue-500', 'from-fuchsia-400 to-purple-500', 'from-lime-400 to-green-500'];
+    const buildMember = (email) => {
+      const initials = email.split('@')[0].slice(0, 2).toUpperCase();
+      return {
+        id: `u-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: email.split('@')[0].replace(/\./g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        email,
         role: inviteRole,
         joinedDate: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }),
+        dossiersCreated: 0,
         initials,
         color: palettes[Math.floor(Math.random() * palettes.length)],
         pending: true,
-      }]);
-      setToastMessage('Invitation envoyée.');
+      };
+    };
+    const submit = () => {
+      // Roll a draft email into the list before sending
+      const finalEmails = [...inviteEmails];
+      const trimmed = inviteEmail.trim();
+      if (trimmed && isValidEmail(trimmed) && !finalEmails.includes(trimmed)) finalEmails.push(trimmed);
+      if (finalEmails.length === 0) return;
+      setWorkspaceMembers(prev => [...prev, ...finalEmails.map(buildMember)]);
+      const n = finalEmails.length;
+      setToastMessage(`${n} invitation${n > 1 ? 's' : ''} envoyée${n > 1 ? 's' : ''}.`);
       setTimeout(() => setToastMessage(null), 3000);
       close();
     };
+
+    const draftLooksValid = isValidEmail(inviteEmail.trim());
+    const canSubmit = inviteEmails.length > 0 || draftLooksValid;
+    const totalCount = inviteEmails.length + (draftLooksValid ? 1 : 0);
+
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onClick={close}>
-        <div className="bg-white rounded-xl shadow-2xl" style={{ width: 480 }} onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#e7e5e3]">
-            <h2 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '18px', fontWeight: 400, color: '#18181b' }}>Inviter un membre</h2>
-            <button onClick={close} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#eeece6] transition-colors">
-              <X className="w-4 h-4 text-[#78716c]" />
-            </button>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+        onClick={close}
+      >
+        <div
+          className="bg-white border border-[#e7e5e3] overflow-hidden"
+          style={{
+            width: 512,
+            borderRadius: 12,
+            boxShadow: '0 2px 4px -2px rgba(26,26,26,0.05), 0 4px 6px -1px rgba(26,26,26,0.05)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Card Header */}
+          <div className="flex items-start gap-3 pt-6 px-6 pb-0">
+            <h2
+              className="flex-1"
+              style={{
+                fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
+                fontSize: 24, fontWeight: 500, lineHeight: '28px',
+                letterSpacing: '-0.6px', color: '#292524',
+              }}
+            >
+              Inviter des collaborateurs
+            </h2>
           </div>
-          <div className="px-6 py-5 space-y-4">
-            <div>
-              <label className="block text-[12px] font-medium text-[#44403c] mb-1.5">Email</label>
-              <input
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="prenom.nom@hexa.com"
-                autoFocus
-                className="w-full px-3 py-2 text-[13px] border border-[#e7e5e3] rounded-lg focus:outline-none focus:border-[#a8a29e] transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-[12px] font-medium text-[#44403c] mb-1.5">Rôle</label>
-              <div className="flex gap-2">
-                {['Admin', 'Membre'].map(r => (
-                  <button
-                    key={r}
-                    onClick={() => setInviteRole(r)}
-                    className={`flex-1 px-3 py-2 text-[13px] rounded-lg border transition-colors ${inviteRole === r ? 'border-[#292524] bg-[#292524] text-white' : 'border-[#e7e5e3] text-[#44403c] hover:bg-[#fafaf9]'}`}
+
+          {/* Card Content */}
+          <div className="px-6 py-8 flex flex-col gap-7">
+            {/* Email field */}
+            <div className="flex flex-col gap-2">
+              <label
+                className="text-body-medium"
+                style={{ color: '#292524' }}
+              >
+                Adresse e-mail
+              </label>
+              <div
+                onClick={() => document.getElementById('invite-email-input')?.focus()}
+                className="bg-white border border-[#e7e5e3] flex flex-wrap items-center gap-1 px-3 py-2 cursor-text focus-within:ring-1 focus-within:ring-[#292524] focus-within:border-[#292524]"
+                style={{
+                  borderRadius: 8,
+                  boxShadow: '0 1px 2px 0 rgba(26,26,26,0.05)',
+                }}
+              >
+                {inviteEmails.map(em => (
+                  <span
+                    key={em}
+                    className="badge badge-sm badge-secondary group/chip"
+                    style={{ paddingRight: 4 }}
                   >
-                    {r}
-                  </button>
+                    <span>{em}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeChip(em); }}
+                      className="ml-1 w-4 h-4 flex items-center justify-center rounded text-[#78716c] hover:text-[#292524] hover:bg-white transition-colors"
+                      aria-label={`Retirer ${em}`}
+                    >
+                      <X className="w-3 h-3" strokeWidth={2} />
+                    </button>
+                  </span>
                 ))}
+                <input
+                  id="invite-email-input"
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
+                  placeholder={inviteEmails.length === 0 ? 'prenom.nom@cabinet.com' : ''}
+                  autoFocus
+                  className="flex-1 min-w-[160px] text-body text-[#292524] placeholder-[#a8a29e] bg-transparent focus:outline-none"
+                  style={{ height: 20 }}
+                />
               </div>
-              <p className="text-[11px] text-[#a8a29e] mt-1.5">
-                {inviteRole === 'Admin' ? 'Accès complet : facturation, membres, référentiels.' : 'Peut créer et éditer des dossiers.'}
+              <p className="text-caption text-[#78716c]" style={{ letterSpacing: '0.12px' }}>
+                Séparez par une virgule, un espace ou Entrée.
+              </p>
+            </div>
+
+            {/* Role toggle */}
+            <div className="flex flex-col gap-2">
+              <label
+                className="text-body-medium"
+                style={{ color: '#292524' }}
+              >
+                Rôle
+              </label>
+              <div className="flex items-start gap-2">
+                {[
+                  { id: 'Membre', icon: UserRound },
+                  { id: 'Admin',  icon: Crown },
+                ].map(({ id, icon: Icon }) => {
+                  const active = inviteRole === id;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => setInviteRole(id)}
+                      className="inline-flex items-center justify-center gap-2 h-9 px-2 py-2.5 transition-colors"
+                      style={{
+                        borderRadius: 8,
+                        backgroundColor: active ? '#292524' : '#f8f7f5',
+                        border: active ? '1px solid #292524' : '1px solid #e7e5e3',
+                        color: active ? 'white' : '#292524',
+                        minWidth: 36,
+                      }}
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={1.75} />
+                      <span className="text-body-medium leading-5">{id}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-caption text-[#78716c]" style={{ letterSpacing: '0.12px' }}>
+                {inviteRole === 'Admin'
+                  ? 'Accès complet : facturation, membres, référentiels.'
+                  : 'Peut créer et éditer des dossiers.'}
               </p>
             </div>
           </div>
-          <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-[#e7e5e3] bg-[#fafaf9] rounded-b-xl">
-            <button onClick={close} className="px-3 py-1.5 text-[13px] text-[#44403c] hover:bg-[#eeece6] rounded-lg transition-colors">Annuler</button>
+
+          {/* Card Footer */}
+          <div className="flex items-center justify-end gap-2 px-6 pt-0 pb-6">
+            <button
+              onClick={close}
+              className="inline-flex items-center justify-center gap-2 h-9 px-4 py-2 transition-colors"
+              style={{
+                borderRadius: 8,
+                backgroundColor: '#eeece6',
+                color: '#44403c',
+              }}
+            >
+              <span className="text-body-medium leading-5">Annuler</span>
+            </button>
             <button
               onClick={submit}
-              disabled={!inviteEmail.trim()}
-              className="px-4 py-1.5 text-[13px] bg-[#292524] text-white rounded-lg hover:bg-[#44403c] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={!canSubmit}
+              className="inline-flex items-center justify-center gap-2 h-9 px-4 py-2 bg-[#292524] hover:bg-[#44403c] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                borderRadius: 8,
+                color: 'white',
+                boxShadow: '0 0.5px 1px rgba(26,26,26,0.05)',
+              }}
             >
-              Envoyer l'invitation
+              <span className="text-body-medium leading-5">
+                {totalCount > 1
+                  ? `Inviter ${totalCount} collaborateurs`
+                  : 'Inviter le collaborateur'}
+              </span>
             </button>
           </div>
         </div>
@@ -16821,116 +17063,39 @@ export default function App() {
         <div className="max-w-5xl w-full mx-auto">
           {renderSettingsHeader(
             'Général',
-            "Vos informations de profil et vos préférences personnelles."
+            "Vos informations de compte."
           )}
-          <div className="space-y-6">
 
-          {/* Profile */}
-          <div>
-            <h3 className="text-[12px] font-medium uppercase tracking-wider text-[#78716c] mb-2">Profil</h3>
-            <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden divide-y divide-[#e7e5e3]">
-              <div className="px-5 py-4 flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[14px] font-medium flex-shrink-0" style={{ borderRadius: 14 }}>
-                  MR
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-[#292524]">Photo de profil</div>
-                  <div className="text-[12px] text-[#78716c]">PNG ou JPG, 256×256 px minimum.</div>
-                </div>
-                <button
-                  onClick={() => setToastMessage('Changement de photo (démo).')}
-                  className="px-3 py-1.5 text-[12px] text-[#44403c] border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] transition-colors flex-shrink-0"
-                >
-                  Modifier
-                </button>
-              </div>
-              <div className="px-5 py-4 grid grid-cols-[180px_1fr] gap-4 items-center">
-                <label className="text-[13px] text-[#44403c]">Nom complet</label>
-                <input
-                  type="text"
-                  defaultValue="Meghan Régior"
-                  className="px-3 py-2 text-[13px] border border-[#e7e5e3] rounded-lg focus:outline-none focus:border-[#a8a29e] transition-colors"
-                />
-              </div>
-              <div className="px-5 py-4 grid grid-cols-[180px_1fr] gap-4 items-center">
-                <label className="text-[13px] text-[#44403c]">Email</label>
-                <input
-                  type="email"
-                  defaultValue="meghan@hexa.com"
-                  className="px-3 py-2 text-[13px] border border-[#e7e5e3] rounded-lg focus:outline-none focus:border-[#a8a29e] transition-colors"
-                />
-              </div>
+          <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden divide-y divide-[#e7e5e3]">
+            <div className="px-5 py-4 grid grid-cols-[180px_1fr] gap-4 items-center">
+              <label className="text-body-medium text-[#44403c]">Nom complet</label>
+              <input
+                type="text"
+                defaultValue="Meghan Régior"
+                className="h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+              />
+            </div>
+            <div className="px-5 py-4 grid grid-cols-[180px_1fr] gap-4 items-center">
+              <label className="text-body-medium text-[#44403c]">Email</label>
+              <input
+                type="email"
+                defaultValue="meghan@hexa.com"
+                className="h-10 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+              />
             </div>
           </div>
 
-          {/* Préférences */}
-          <div>
-            <h3 className="text-[12px] font-medium uppercase tracking-wider text-[#78716c] mb-2">Préférences</h3>
-            <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden divide-y divide-[#e7e5e3]">
-              <div className="px-5 py-4 grid grid-cols-[180px_1fr] gap-4 items-center">
-                <label className="text-[13px] text-[#44403c] flex items-center gap-2">
-                  <Globe className="w-3.5 h-3.5 text-[#a8a29e]" strokeWidth={1.5} />
-                  Langue
-                </label>
-                <select className="px-3 py-2 text-[13px] border border-[#e7e5e3] rounded-lg focus:outline-none focus:border-[#a8a29e] transition-colors bg-white">
-                  <option>Français</option>
-                  <option>English</option>
-                </select>
-              </div>
-              <div className="px-5 py-4 grid grid-cols-[180px_1fr] gap-4 items-center">
-                <label className="text-[13px] text-[#44403c]">Fuseau horaire</label>
-                <select className="px-3 py-2 text-[13px] border border-[#e7e5e3] rounded-lg focus:outline-none focus:border-[#a8a29e] transition-colors bg-white">
-                  <option>Europe/Paris (UTC+1)</option>
-                  <option>Europe/London (UTC+0)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Sécurité */}
-          <div>
-            <h3 className="text-[12px] font-medium uppercase tracking-wider text-[#78716c] mb-2">Sécurité</h3>
-            <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden divide-y divide-[#e7e5e3]">
-              <div className="px-5 py-4 flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-[13px] text-[#292524] font-medium">Mot de passe</div>
-                  <div className="text-[12px] text-[#78716c] mt-0.5">Modifié il y a 3 mois.</div>
-                </div>
-                <button
-                  onClick={() => setToastMessage('Changement de mot de passe (démo).')}
-                  className="px-3 py-1.5 text-[12px] text-[#44403c] border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] transition-colors flex-shrink-0"
-                >
-                  Modifier
-                </button>
-              </div>
-              <div className="px-5 py-4 flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-[13px] text-[#292524] font-medium">Authentification à deux facteurs</div>
-                  <div className="text-[12px] text-[#78716c] mt-0.5">Sécurisez votre compte avec un code à usage unique.</div>
-                </div>
-                <button
-                  onClick={() => setToastMessage('Activation 2FA (démo).')}
-                  className="px-3 py-1.5 text-[12px] text-[#44403c] border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] transition-colors flex-shrink-0"
-                >
-                  Activer
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
+          <div className="mt-6 flex justify-end">
             <button
               onClick={() => {
                 setToastMessage('Profil enregistré.');
                 setTimeout(() => setToastMessage(null), 3000);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-[#292524] text-white text-[13px] font-medium rounded-lg hover:bg-[#44403c] transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors"
             >
               <Check className="w-3.5 h-3.5" />
               Enregistrer
             </button>
-          </div>
-
           </div>
         </div>
       </div>
@@ -16942,620 +17107,195 @@ export default function App() {
       <div className="flex-1 overflow-y-auto px-8 py-10">
         <div className="max-w-5xl w-full mx-auto">
           {renderSettingsHeader(
-            'Utilisateurs',
-            'Gérez les membres de votre espace de travail et leurs accès.',
+            'Collaborateurs',
+            'Gérez les membres de votre organisation et leurs accès.',
             <button
               onClick={() => setInviteModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#292524] text-white text-[13px] font-medium rounded-lg hover:bg-[#44403c] transition-colors flex-shrink-0"
+              className="flex items-center gap-2 h-9 px-4 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors flex-shrink-0"
+              style={{ boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
             >
               <Plus className="w-4 h-4" />
-              Inviter un membre
+              Inviter un collaborateur
             </button>
           )}
-          <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-zinc-100">
-                <th className="px-5 py-3 text-left" style={colHeaderStyle}>Membre</th>
-                <th className="px-5 py-3 text-left" style={colHeaderStyle}>Rôle</th>
-                <th className="px-5 py-3 text-left" style={colHeaderStyle}>Ajouté le</th>
-                <th className="px-5 py-3 w-10"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#e7e5e3]">
-              {workspaceMembers.map(m => (
-                <tr key={m.id} className="bg-white hover:bg-[#fafaf9] transition-colors group">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${m.color} flex items-center justify-center text-white text-[11px] font-medium flex-shrink-0`}>
-                        {m.initials}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[13px] font-medium text-[#292524] flex items-center gap-2">
-                          {m.name}
-                          {m.pending && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#fef3c7] text-[#92400e]">Invité</span>}
-                        </div>
-                        <div className="text-[12px] text-[#78716c]">{m.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded-full ${m.role === 'Admin' ? 'bg-[#e0e7ff] text-[#3730a3]' : 'bg-[#f5f5f4] text-[#57534e]'}`}>
-                      {m.role}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-[12px] text-[#78716c] tabular-nums">{m.joinedDate}</td>
-                  <td className="px-5 py-4">
-                    <button
-                      onClick={() => {
-                        if (m.id === 'u-1') return;
-                        setWorkspaceMembers(prev => prev.filter(x => x.id !== m.id));
-                        setToastMessage('Membre retiré.');
-                        setTimeout(() => setToastMessage(null), 3000);
-                      }}
-                      disabled={m.id === 'u-1'}
-                      className="p-1.5 rounded-lg text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#eeece6] opacity-0 group-hover:opacity-100 transition-all disabled:opacity-0"
-                      title={m.id === 'u-1' ? '' : 'Retirer'}
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
-                  </td>
+          <div className="rounded-md border border-[#e7e5e3] overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-white border-b border-[#e7e5e3]">
+                  <th className="px-3 py-3 text-left h-10" style={colHeaderStyle}>Nom</th>
+                  <th className="px-3 py-3 text-left h-10" style={colHeaderStyle}>Rôle</th>
+                  <th className="px-3 py-3 text-left h-10" style={colHeaderStyle}>Nombre de dossiers créé</th>
+                  <th className="px-3 py-3 h-10 w-11"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {workspaceMembers.map((m, idx) => {
+                  const isLast = idx === workspaceMembers.length - 1;
+                  return (
+                    <tr key={m.id} className={`bg-white hover:bg-[#fafaf9] transition-colors ${isLast ? '' : 'border-b border-[#e7e5e3]'} group`}>
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-3">
+                          {userAvatar(idx, m.role, 32)}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-body-medium text-[#292524]">{m.name}</span>
+                              {m.pending && (
+                                <span className="badge badge-sm badge-warning">Invité</span>
+                              )}
+                            </div>
+                            <div className="text-caption text-[#78716c]">{m.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className={`badge badge-sm ${m.role === 'Admin' ? 'badge-info' : 'badge-secondary'}`}>
+                          {m.role}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3">
+                        {m.pending ? (
+                          <span className="text-body text-[#a8a29e]">—</span>
+                        ) : (
+                          <span className="badge badge-sm badge-outline tabular-nums">{m.dossiersCreated || 0}</span>
+                        )}
+                      </td>
+                      <td className="pl-3 pr-4 py-3 align-middle">
+                        <div className="relative flex justify-end">
+                          <button
+                            onClick={() => setMemberMenuOpenId(prev => prev === m.id ? null : m.id)}
+                            className={`p-1 rounded-md text-[#a8a29e] hover:text-[#292524] hover:bg-[#eeece6] transition-all ${memberMenuOpenId === m.id ? 'opacity-100 bg-[#eeece6] text-[#292524]' : 'opacity-0 group-hover:opacity-100'}`}
+                            title="Actions"
+                            aria-haspopup="menu"
+                            aria-expanded={memberMenuOpenId === m.id}
+                          >
+                            <MoreVertical className="w-4 h-4" strokeWidth={1.75} />
+                          </button>
+                          {memberMenuOpenId === m.id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setMemberMenuOpenId(null)} />
+                              <div
+                                role="menu"
+                                className="absolute z-50 right-0 top-full mt-1 bg-white border border-[#e7e5e3] overflow-hidden"
+                                style={{
+                                  width: 242,
+                                  borderRadius: 8,
+                                  boxShadow: '0 4px 6px -4px rgba(26,26,26,0.05), 0 8px 10px -1px rgba(26,26,26,0.05)',
+                                }}
+                              >
+                                <div className="p-1">
+                                  <div className="px-2 py-1.5">
+                                    <span style={{
+                                      fontFamily: "'IBM Plex Mono', monospace",
+                                      fontSize: 11, fontWeight: 500,
+                                      color: '#78716c', opacity: 0.7,
+                                      textTransform: 'uppercase', letterSpacing: '0.04em',
+                                    }}>
+                                      Action collaborateurs
+                                    </span>
+                                  </div>
+                                  {m.id !== 'u-1' && (
+                                    <button
+                                      role="menuitem"
+                                      onClick={() => {
+                                        const nextRole = m.role === 'Admin' ? 'Membre' : 'Admin';
+                                        setWorkspaceMembers(prev => prev.map(x => x.id === m.id ? { ...x, role: nextRole } : x));
+                                        setMemberMenuOpenId(null);
+                                        setToastMessage(`Rôle changé en ${nextRole}.`);
+                                        setTimeout(() => setToastMessage(null), 2500);
+                                      }}
+                                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-body text-[#292524] hover:bg-[#fafaf9] transition-colors text-left"
+                                    >
+                                      Changer en {m.role === 'Admin' ? 'Membre' : 'Admin'}
+                                    </button>
+                                  )}
+                                  <button
+                                    role="menuitem"
+                                    onClick={() => {
+                                      if (m.id === 'u-1') {
+                                        setMemberMenuOpenId(null);
+                                        setToastMessage('Quitter l\'organisation — démo.');
+                                      } else {
+                                        setWorkspaceMembers(prev => prev.filter(x => x.id !== m.id));
+                                        setMemberMenuOpenId(null);
+                                        setToastMessage('Collaborateur supprimé.');
+                                      }
+                                      setTimeout(() => setToastMessage(null), 2500);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-body text-[#7f1d1d] hover:bg-[#fef2f2] transition-colors text-left"
+                                  >
+                                    <Trash2 className="w-4 h-4 flex-shrink-0" strokeWidth={1.75} />
+                                    {m.id === 'u-1' ? 'Quitter l\'organisation' : 'Supprimer de l\'organisation'}
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
     </>
   );
 
-  const renderSettingsPreferences = () => {
-    const SECTIONS = [
-      { id: 'structure', icon: FileText, label: 'Structure de vos actes', enrichLabel: "Exemple d'acte" },
-      { id: 'quantum', icon: Calculator, label: 'Vos préférences de quantum', enrichLabel: 'Référence quantum' },
-      { id: 'referentiels', icon: ShieldCheck, label: 'Vos référentiels favoris', enrichLabel: 'Référentiel' },
-      { id: 'style', icon: Pencil, label: 'Votre style et ton', enrichLabel: 'Acte exemple' },
-      { id: 'consignes', icon: ListChecks, label: 'Vos consignes spécifiques', enrichLabel: 'Consigne' },
-    ];
+  const renderSettingsPreferences = () => (
+    <>
+      <div className="flex-1 overflow-y-auto px-8 py-10">
+        <div className="max-w-5xl w-full mx-auto">
+          {renderSettingsHeader(
+            'Mémoire et préférences',
+            "Décrivez votre méthode de travail à Plato — structure d'actes habituelle, préférences de quantum, référentiels favoris, style et ton, consignes. L'agent s'inspire de ce texte à chaque rédaction."
+          )}
 
-    // Section 02 (Jurisprudences habituelles) lives outside the master prompt
-    // as structured cards. Numbers below remain stable for clarity.
-    const SAMPLE_MASTER_PROMPT = `01 — Structure de vos actes
-• Plan en trois parties : Faits et procédure / Discussion / Dispositif
-• Numérotation décimale (I, A, 1°), titres en gras sans soulignement
-• Citations de jurisprudence en bas de page, jamais dans le corps
+          <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
+            <textarea
+              value={preferenceMasterPrompt}
+              onChange={(e) => setPreferenceMasterPrompt(e.target.value)}
+              rows={Math.max(20, preferenceMasterPrompt.split('\n').length + 2)}
+              placeholder={`Ex.
 
-02 — Préférences de quantum
-• DFT total ≈ 1 800 €/mois (proportion selon classe)
-• DFP entre 5 et 25 % selon Mornet 2024
-• Souffrances endurées : ~8 000 € pour SE 4/7
+— Structure de vos actes
+Plan en trois parties : Faits et procédure / Discussion / Dispositif. Numérotation décimale (I, A, 1°), titres en gras sans soulignement. Citations de jurisprudence en bas de page, jamais dans le corps.
 
-03 — Référentiels favoris
-• Mornet 2024 pour les barèmes d'indemnisation
-• ONIAM uniquement quand l'aléa thérapeutique est en cause
-• Nomenclature Dintilhac comme cadre de référence pour le DFP
+— Préférences de quantum
+DFT total ≈ 1 800 €/mois. DFP entre 5 et 25 % selon Mornet 2024. Souffrances endurées : ~8 000 € pour SE 4/7.
 
-04 — Style et ton
-• Phrases courtes, voix active, ton sobre
-• Désignation « la concluante » plutôt que « ma cliente »
-• Préférer « il convient » à « il faut »
-• Éviter les adverbes superflus
+— Référentiels favoris
+Mornet 2024 pour les barèmes d'indemnisation. ONIAM uniquement pour l'aléa thérapeutique. Nomenclature Dintilhac comme cadre de référence pour le DFP.
 
-05 — Consignes spécifiques
-• Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux
-• Ne pas mélanger faits et discussion
-• Dispositif concis`;
+— Style et ton
+Phrases courtes, voix active, ton sobre. Désignation « la concluante » plutôt que « ma cliente ». Préférer « il convient » à « il faut ».
 
-    // Empty scaffold used when the user picks "Écrire mes préférences manuellement"
-    const MANUAL_TEMPLATE = `01 — Structure de vos actes
-
-
-02 — Préférences de quantum
-
-
-03 — Référentiels favoris
-
-
-04 — Style et ton
-
-
-05 — Consignes spécifiques
-
-`;
-
-    const ENRICHMENT_SAMPLES = {
-      structure: '• Section « Subsidiairement » en fin d\'acte',
-      quantum: '• Frais de logement adapté : ~2 500 €/mois',
-      referentiels: '• Référentiel CIVI pour les victimes d\'infraction',
-      style: '• Usage de « par ces motifs » avant le dispositif',
-      consignes: '• Toujours formuler les demandes en chiffres et lettres',
-    };
-
-    // Insert a new bullet at the end of a given section in the master prompt
-    const appendBulletToSection = (text, sectionNumber, bullet) => {
-      const lines = text.split('\n');
-      const headerPrefix = `${String(sectionNumber).padStart(2, '0')} — `;
-      let inSection = false;
-      let lastBulletLine = -1;
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].startsWith(headerPrefix)) { inSection = true; continue; }
-        if (inSection && /^\d{2} — /.test(lines[i])) break;
-        if (inSection && lines[i].trim()) lastBulletLine = i;
-      }
-      if (lastBulletLine === -1) return text + '\n' + bullet;
-      const before = lines.slice(0, lastBulletLine + 1);
-      const after = lines.slice(lastBulletLine + 1);
-      return [...before, bullet, ...after].join('\n');
-    };
-
-    const EXTRACTION_STEPS = [
-      { label: 'Lecture des documents' },
-      { label: 'Analyse du style et de la structure' },
-      { label: 'Identification des jurisprudences' },
-      { label: 'Détection des référentiels et barèmes' },
-      { label: 'Construction de la mémoire' },
-    ];
-
-    const memoryEmpty = preferenceMasterPrompt.trim() === '';
-
-    // Saved JPs map directly to real decisions in mockDecisions so they can be
-    // auto-pinned across every matter. posteId attaches them to the relevant
-    // poste tab in addition to the global JP listing.
-    const SAMPLE_SAVED_JPS = [
-      { id: 'jp-dfp-01',  decisionId: 'jp-dfp-01',  posteId: 'dfp',  citation: 'Cass. 2e civ., 6 juill. 2023',    number: 'n° 22-15.401', context: 'DFP' },
-      { id: 'jp-atpt-03', decisionId: 'jp-atpt-03', posteId: 'atpt', citation: 'CA Paris, 22 mars 2024',          number: 'n° 23/01234',  context: 'assistance tierce personne' },
-      { id: 'jp-se-01',   decisionId: 'jp-se-01',   posteId: 'se',   citation: 'CA Paris, 11 mai 2023',           number: 'n° 22/04211',  context: "souffrances endurées" },
-      { id: 'jp-pgpa-01', decisionId: 'jp-pgpa-01', posteId: 'pgpa', citation: 'CA Paris, 18 oct. 2023',          number: 'n° 22/09812',  context: 'pertes de gains professionnels actuels' },
-    ];
-
-    const startExtraction = () => {
-      setPreferenceExtracting(true);
-      setPreferenceExtractStep(0);
-      const stepDuration = 950;
-      EXTRACTION_STEPS.forEach((_, idx) => {
-        setTimeout(() => setPreferenceExtractStep(idx + 1), (idx + 1) * stepDuration);
-      });
-      setTimeout(() => {
-        setPreferenceMasterPrompt(SAMPLE_MASTER_PROMPT);
-        setSavedJurisprudences(SAMPLE_SAVED_JPS);
-        // Each extracted JP becomes a user-scope JPAttachment, tagged with the
-        // poste so it surfaces in "Mes JP pertinentes" on matching matters.
-        SAMPLE_SAVED_JPS.forEach(jpEntry => {
-          jp.addAttachment(jpEntry.decisionId, 'user', jp.DEFAULT_USER_ID, jpEntry.posteId);
-        });
-        setPreferenceExtracting(false);
-        setPreferenceExtractStep(0);
-        setToastMessage('Mémoire construite à partir de vos documents.');
-        setTimeout(() => setToastMessage(null), 3000);
-      }, EXTRACTION_STEPS.length * stepDuration + 500);
-    };
-
-    const processFiles = (files) => {
-      if (!files || files.length === 0) return;
-      const today = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
-      const newDocs = files.map((f, i) => ({
-        id: `pd-${Date.now()}-${i}`,
-        fileName: f.name,
-        addedDate: today,
-        size: f.size ? `${Math.round(f.size / 1024)} Ko` : '—',
-      }));
-      setPreferenceDocs(prev => [...newDocs, ...prev]);
-      if (memoryEmpty) startExtraction();
-    };
-
-    const enrichSpecificSection = (sectionId, files) => {
-      if (files.length === 0) return;
-      setPreferenceEnrichingSection(sectionId);
-      const today = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
-      const newDocs = files.map((f, i) => ({
-        id: `pd-${Date.now()}-${i}`,
-        fileName: f.name,
-        addedDate: today,
-        size: f.size ? `${Math.round(f.size / 1024)} Ko` : '—',
-        sectionId,
-      }));
-      setPreferenceDocs(prev => [...newDocs, ...prev]);
-      const sectionNumber = SECTIONS.findIndex(s => s.id === sectionId) + 1;
-      setTimeout(() => {
-        setPreferenceMasterPrompt(prev => appendBulletToSection(prev, sectionNumber, ENRICHMENT_SAMPLES[sectionId]));
-        setPreferenceEnrichingSection(null);
-        setToastMessage('Mémoire enrichie.');
-        setTimeout(() => setToastMessage(null), 3000);
-      }, 1800);
-    };
-
-    const handleDrop = (e) => {
-      e.preventDefault();
-      setPreferenceDragOver(false);
-      processFiles(Array.from(e.dataTransfer.files || []));
-    };
-
-    const handleFilePick = (e) => {
-      const files = Array.from(e.target.files || []);
-      if (preferenceTargetSection) {
-        enrichSpecificSection(preferenceTargetSection, files);
-        setPreferenceTargetSection(null);
-      } else {
-        processFiles(files);
-      }
-      e.target.value = '';
-    };
-
-    const enrichSection = (sectionId) => {
-      setPreferenceTargetSection(sectionId);
-      preferenceFileInputRef.current?.click();
-    };
-
-    const removeDoc = (id) => {
-      setPreferenceDocs(prev => prev.filter(d => d.id !== id));
-    };
-
-    const PLATO_LEARNS = [
-      { icon: FileText, title: "Structure de vos actes", example: "Conclusions, assignations, requêtes" },
-      { icon: Scale, title: "Vos jurisprudences habituelles", example: "Collection de JP, briefs d'arrêt" },
-      { icon: Calculator, title: "Vos préférences de quantum", example: "Montants habituels par poste" },
-      { icon: ShieldCheck, title: "Vos référentiels favoris", example: "Mornet, ONIAM, Dintilhac…" },
-      { icon: Pencil, title: "Votre style et ton", example: "Vocabulaire, formules, voix" },
-      { icon: ListChecks, title: "Vos consignes spécifiques", example: "Plan, citations, dispositif" },
-    ];
-
-    const isOnboarding = preferenceDocs.length === 0 && memoryEmpty && !preferenceWriteRequested && !preferenceExtracting;
-
-    /* Hidden file input — shared across all states */
-    const hiddenFileInput = (
-      <input
-        ref={preferenceFileInputRef}
-        type="file"
-        multiple
-        accept=".pdf,.docx,.doc,.txt"
-        onChange={handleFilePick}
-        className="hidden"
-      />
-    );
-
-    /* ───────── ONBOARDING + EXTRACTING share the same 2-column layout ───────── */
-    if (isOnboarding || preferenceExtracting) {
-      const dropBadges = ['Rédactions', 'Arrêts / JP'];
-      const stepPct = Math.round((preferenceExtractStep / EXTRACTION_STEPS.length) * 100);
-      const currentStepLabel = preferenceExtracting
-        ? EXTRACTION_STEPS[Math.min(preferenceExtractStep, EXTRACTION_STEPS.length - 1)].label
-        : null;
-      return (
-        <div className="flex-1 overflow-y-auto px-8 py-10">
-          {hiddenFileInput}
-          <div className="max-w-5xl w-full mx-auto">
-
-            {renderSettingsHeader(
-              'Apprenez à Plato comment travaille votre cabinet.',
-              "Déposez vos actes, jurisprudences et briefs : Plato apprend la méthode du cabinet et rédige au style maison."
-            )}
-
-            {/* Two columns — drop documents (wider, left), PLATO APPREND list (narrower, right) */}
-            <div className="grid grid-cols-1 md:grid-cols-[1.7fr_1fr] gap-12">
-
-              {/* LEFT — Drop zone (always-on highlight: dark dashed border + cream gradient interior) */}
-              <div
-                onDragOver={(e) => { e.preventDefault(); setPreferenceDragOver(true); }}
-                onDragLeave={() => setPreferenceDragOver(false)}
-                onDrop={handleDrop}
-                onClick={() => preferenceFileInputRef.current?.click()}
-                className={`rounded-lg border border-dashed transition-all p-4 flex items-center justify-center min-h-[424px] cursor-pointer border-[#a8a29e] ${preferenceDragOver ? 'border-[#292524]' : ''}`}
-              >
-                <div
-                  className="flex-1 self-stretch flex flex-col items-center justify-center rounded-lg p-8 transition-all"
-                  style={{ background: preferenceDragOver
-                    ? 'linear-gradient(to top, #eeece6 0%, #eeece6 30%, rgba(238, 236, 230, 0) 100%)'
-                    : 'linear-gradient(to top, #eeece6 0%, rgba(238, 236, 230, 0) 56.957%)'
-                  }}
-                >
-                  <div className="flex flex-col items-center gap-8 max-w-[480px] w-full">
-                    {/* Circular icon — swap to spinner when extracting */}
-                    <div
-                      className="rounded-full p-4 border border-solid border-[#d6d3d1] bg-[#eeece6] flex items-center justify-center"
-                      style={{ boxShadow: '0 1px 2px rgba(26, 26, 26, 0.05)' }}
-                    >
-                      {preferenceExtracting
-                        ? <Loader2 className="w-6 h-6 text-[#292524] animate-spin" strokeWidth={1.75} />
-                        : <Upload className="w-6 h-6 text-[#292524]" strokeWidth={1.5} />
-                      }
-                    </div>
-
-                    {/* Text */}
-                    <div className="flex flex-col items-center gap-2 text-center w-full">
-                      <p className="text-[20px] text-[#292524] font-medium leading-7" style={{ letterSpacing: '-0.6px' }}>
-                        {preferenceExtracting ? 'Plato analyse vos documents' : 'Déposez vos documents'}
-                      </p>
-                      <p className="text-[14px] text-[#78716c] leading-5">
-                        {preferenceExtracting ? (
-                          currentStepLabel
-                        ) : (
-                          <>Déposez un ou plusieurs documents.<br />Plato lit, extrait et structure les informations pour chaque ligne.</>
-                        )}
-                      </p>
-                    </div>
-
-                    {preferenceExtracting ? (
-                      /* Progress bar in place of badges + button */
-                      <div className="flex flex-col items-center gap-2 w-full max-w-[280px]">
-                        <div className="h-[6px] w-full rounded-full overflow-hidden bg-[#eeece6]">
-                          <div className="h-full bg-[#292524] rounded-full transition-all duration-500" style={{ width: `${stepPct}%` }} />
-                        </div>
-                        <p className="text-[11px] text-[#a8a29e] tabular-nums">
-                          {Math.min(preferenceExtractStep, EXTRACTION_STEPS.length)} / {EXTRACTION_STEPS.length}
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Doc-type badges */}
-                        <div className="flex flex-wrap gap-3 justify-center w-full">
-                          {dropBadges.map((b, i) => (
-                            <span key={i} className="bg-[#eeece6] inline-flex items-center px-2 py-1 rounded-md text-[12px] text-[#44403c] font-medium leading-4">
-                              {b}
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* Primary button */}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); preferenceFileInputRef.current?.click(); }}
-                          className="inline-flex items-center gap-2 h-10 px-6 bg-[#292524] text-white text-[14px] font-medium rounded-lg hover:bg-[#44403c] transition-colors"
-                          style={{ boxShadow: '0 1px 2px rgba(26, 26, 26, 0.05)' }}
-                        >
-                          <Upload className="w-4 h-4" />
-                          Ajoutez des documents
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* RIGHT — PLATO APPREND list with intro line */}
-              <div className="flex flex-col justify-center min-h-[424px]">
-                <p className="text-[13px] text-[#78716c] mb-3 leading-relaxed">
-                  Plato apprend et extrait :
-                </p>
-                <ul>
-                  {PLATO_LEARNS.map((it, i) => (
-                    <li key={i} className="grid grid-cols-[28px_1fr] gap-3 py-3">
-                      <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#a8a29e', letterSpacing: '0.04em' }} className="tabular-nums pt-0.5">
-                        {String(i + 1).padStart(2, '0')}
-                      </span>
-                      <div className="min-w-0">
-                        <div className="text-[14px] text-[#292524] font-medium leading-snug">{it.title}</div>
-                        <div className="text-[12px] text-[#a8a29e] mt-0.5 leading-snug">{it.example}</div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-            </div>
-
-            {/* Hairline + manual entry — left-aligned secondary action */}
-            <div className="mt-12 pt-5 border-t border-[#e7e5e3]">
-              <button
-                onClick={() => {
-                  // Pre-draft the master prompt with empty section scaffolding
-                  if (preferenceMasterPrompt.trim() === '') {
-                    setPreferenceMasterPrompt(MANUAL_TEMPLATE);
-                  }
-                  setPreferenceWriteRequested(true);
-                }}
-                className="text-[14px] font-medium text-[#1e3a8a] hover:text-[#1e40af] transition-colors"
-              >
-                Écrire mes préférences manuellement
-              </button>
-            </div>
-
+— Consignes spécifiques
+Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne pas mélanger faits et discussion. Dispositif concis.`}
+              className="w-full px-5 py-4 text-[13px] text-[#292524] resize-none focus:outline-none leading-relaxed bg-transparent"
+              style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
+            />
           </div>
-        </div>
-      );
-    }
 
-    return (
-      <>
-        <div className="flex-1 overflow-y-auto px-8 py-10">
-          {hiddenFileInput}
-          <div className="max-w-5xl w-full mx-auto">
-
-            {renderSettingsHeader(
-              'Mémoire et préférences',
-              "Voici ce que Plato a appris du fonctionnement de votre cabinet. Vos documents et vos instructions guident chaque étape : rédaction, chiffrage, recherche de jurisprudences et plus encore."
-            )}
-
-            {/* ───────── FILLED STATE — single master-prompt textarea ───────── */}
-
-            {/* Category chips — quick reminder of what Plato learned */}
-            <div className="mb-5 flex flex-wrap gap-2">
-              {PLATO_LEARNS.map((it, i) => {
-                const Icon = it.icon;
-                return (
-                  <span key={i} className="bg-[#eeece6] inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] text-[#44403c] font-medium leading-4">
-                    <Icon className="w-3.5 h-3.5 text-[#78716c]" strokeWidth={1.5} />
-                    {it.title}
-                  </span>
-                );
-              })}
-            </div>
-
-            {/* 1) Conversation-history learning toggle */}
-            <div className="mb-3 flex items-start justify-between gap-4 py-1">
-              <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-medium text-[#292524] leading-5">
-                  Apprendre du cabinet à partir des conversations
-                </div>
-                <div className="text-[12px] text-[#78716c] leading-5 mt-0.5">
-                  Autoriser Plato à enrichir la mémoire du cabinet avec les préférences pertinentes échangées en chat.
-                </div>
-              </div>
-              <button
-                role="switch"
-                aria-checked={preferenceLearnFromChats}
-                onClick={() => {
-                  setPreferenceLearnFromChats(v => {
-                    const next = !v;
-                    setToastMessage(next ? 'Apprentissage depuis les conversations activé.' : 'Apprentissage depuis les conversations désactivé.');
-                    setTimeout(() => setToastMessage(null), 2500);
-                    return next;
-                  });
-                }}
-                className="relative flex-shrink-0 inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none mt-0.5"
-                style={{ backgroundColor: preferenceLearnFromChats ? '#292524' : '#d6d3d1' }}
-              >
-                <span
-                  className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                  style={{ transform: preferenceLearnFromChats ? 'translateX(18px)' : 'translateX(2px)', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
-                />
-              </button>
-            </div>
-
-            <div className="border-t border-[#e7e5e3] mb-5" />
-
-            {/* 2) Master prompt — labeled */}
-            <div className="mb-2">
-              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                Instructions du cabinet pour Plato
-              </span>
-            </div>
-            <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
-              <textarea
-                value={preferenceMasterPrompt}
-                onChange={(e) => setPreferenceMasterPrompt(e.target.value)}
-                rows={Math.max(20, preferenceMasterPrompt.split('\n').length + 2)}
-                placeholder="Décrivez votre méthode : structure, quantum, référentiels, style, consignes…"
-                className="w-full px-5 py-4 text-[13px] text-[#292524] resize-none focus:outline-none leading-relaxed bg-transparent"
-                style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
-              />
-            </div>
-
-            {/* 3) Mes jurisprudences habituelles — structured JP cards */}
-            {(() => {
-              const userAttachments = jp.getJPsByScope('user', jp.DEFAULT_USER_ID);
-              const cardsByDecision = new Map();
-              userAttachments.forEach(a => {
-                if (!cardsByDecision.has(a.decisionId)) cardsByDecision.set(a.decisionId, []);
-                cardsByDecision.get(a.decisionId).push(a);
-              });
-              const cards = Array.from(cardsByDecision.entries()).map(([decisionId, atts]) => ({
-                decisionId,
-                attachments: atts,
-                decision: jp.getJPById(decisionId),
-              })).filter(c => c.decision);
-
-              return (
-                <div className="mt-6 mb-5">
-                  <div className="flex items-center justify-between mb-2">
-                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                      Jurisprudences habituelles du cabinet
-                      {cards.length > 0 && <span className="text-[#c8c5c0] ml-1.5">{cards.length}</span>}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setJpAddLaunchContext('user');
-                        jp.openStepper('jp-add');
-                      }}
-                      className="inline-flex items-center gap-1 text-[12px] font-medium text-[#78716c] hover:text-[#292524] transition-colors"
-                    >
-                      <Plus className="w-3 h-3" strokeWidth={2} />
-                      Ajouter
-                    </button>
-                  </div>
-
-                  {cards.length === 0 ? (
-                    <div className="bg-white rounded border border-dashed border-[#e7e5e3] py-6 px-4 flex flex-col items-center text-center">
-                      <Landmark className="w-4 h-4 text-[#d6d3d1]" strokeWidth={1.5} />
-                      <span className="text-[12px] text-[#a8a29e] mt-2">
-                        Aucune jurisprudence habituelle.
-                      </span>
-                      <span className="text-[11px] text-[#c8c5c0] mt-0.5">
-                        Ajoutez-en une depuis vos dossiers ou ici.
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {cards.map(({ decisionId, attachments: atts, decision: d }) => {
-                        const lineItems = atts.map(a => a.lineItem).filter(Boolean);
-                        return (
-                          <div
-                            key={decisionId}
-                            onClick={() => jp.openDrawer(decisionId, [decisionId])}
-                            className="group bg-white rounded cursor-pointer flex items-center gap-3 px-3 py-2.5"
-                            style={{ boxShadow: '0 1px 2px rgba(41,37,36,0.05)', transition: 'box-shadow 0.15s ease' }}
-                            onMouseOver={(e) => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(41,37,36,0.07)'; }}
-                            onMouseOut={(e) => { e.currentTarget.style.boxShadow = '0 1px 2px rgba(41,37,36,0.05)'; }}
-                          >
-                            <Landmark className="w-3 h-3 text-[#b9703f] flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span style={{ fontSize: 14, color: '#292524', fontWeight: 500 }}>
-                                  {d.jurisdiction}{d.chambre ? ` · ${d.chambre}` : ''}
-                                </span>
-                                {d.date && (
-                                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#c8c5c0', textTransform: 'uppercase' }}>
-                                    {d.date}
-                                  </span>
-                                )}
-                                {lineItems.slice(0, 3).map(pid => (
-                                  <span key={pid} className="badge badge-sm badge-secondary">{pid.toUpperCase()}</span>
-                                ))}
-                                {lineItems.length > 3 && (
-                                  <span style={{ fontSize: 11, color: '#a8a29e' }}>+{lineItems.length - 3}</span>
-                                )}
-                              </div>
-                              {d.category && (
-                                <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', marginTop: 1 }}>
-                                  {d.category}{d.victimProfile ? ` · ${d.victimProfile}` : ''}
-                                </div>
-                              )}
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                atts.forEach(a => jp.removeAttachment(a.id));
-                                setToastMessage('Retiré de mes usuels.');
-                                setTimeout(() => setToastMessage(null), 2500);
-                              }}
-                              className="p-1 rounded text-[#d6d3d1] hover:text-[#78716c] hover:bg-[#fafaf9] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                              title="Retirer de mes usuels"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* Save action */}
-            <div className="mt-4 flex items-center justify-end gap-3">
-              <button
-                onClick={() => {
-                  setToastMessage('Mémoire enregistrée.');
-                  setTimeout(() => setToastMessage(null), 3000);
-                }}
-                className="flex items-center gap-2 h-9 px-4 bg-[#292524] text-white text-[13px] font-medium rounded-lg hover:bg-[#44403c] transition-colors"
-                style={{ boxShadow: '0 1px 2px rgba(26, 26, 26, 0.05)' }}
-              >
-                <Check className="w-3.5 h-3.5" strokeWidth={2} />
-                Enregistrer
-              </button>
-            </div>
-
-
-
+          <div className="mt-4 flex items-center justify-end gap-3">
+            <button
+              onClick={() => {
+                setToastMessage('Mémoire enregistrée.');
+                setTimeout(() => setToastMessage(null), 3000);
+              }}
+              className="flex items-center gap-2 h-9 px-4 bg-[#292524] text-white text-[13px] font-medium rounded-lg hover:bg-[#44403c] transition-colors"
+              style={{ boxShadow: '0 1px 2px rgba(26, 26, 26, 0.05)' }}
+            >
+              <Check className="w-3.5 h-3.5" strokeWidth={2} />
+              Enregistrer
+            </button>
           </div>
+
         </div>
-      </>
-    );
-  };
+      </div>
+    </>
+  );
 
   const renderSettingsBilling = () => {
     const TIERS = [
@@ -17659,196 +17399,231 @@ export default function App() {
                 </button>
               </div>
 
-              <div className={`mt-5 grid grid-cols-1 gap-3 ${(cfg.credits || 0) > 0 ? 'md:grid-cols-[1.6fr_1fr_1fr]' : 'md:grid-cols-[1.6fr_1fr]'}`}>{/* cycle · (crédits) · actifs */}
-                {/* Primary card — dossiers cette année (hero) */}
-                <div
-                  className="bg-white border border-[#e7e5e3] overflow-hidden"
-                  style={{ borderRadius: 10, boxShadow: '0 1px 2px rgba(41,37,36,0.04)' }}
-                >
-                  <div style={{ padding: '16px 20px 0' }}>
-                    <div style={{
-                      fontFamily: "'IBM Plex Mono', monospace",
-                      fontSize: 10, fontWeight: 600, color: '#b9703f',
-                      textTransform: 'uppercase', letterSpacing: '0.12em',
-                    }}>
-                      {billingState === 'free' ? 'Plan gratuit' : 'Cycle annuel'}
-                    </div>
-                  </div>
-                  <div style={{ padding: '6px 20px 18px' }}>
-                    {(() => {
-                      const remaining = Math.max(0, cfg.limit - cfg.used);
-                      const heroNum = billingState === 'free' ? remaining : cfg.used;
-                      return (
-                        <>
-                          <div className="flex items-baseline gap-2">
-                            <span style={{
-                              fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
-                              fontSize: 44, fontWeight: 400,
-                              color: pct >= 100 ? '#92400e' : '#18181b',
-                              letterSpacing: '-0.02em', lineHeight: 1,
-                            }} className="tabular-nums">
-                              {heroNum}
-                            </span>
-                            <span style={{
-                              fontSize: 22, color: '#a8a29e', fontWeight: 300,
-                              letterSpacing: '-0.01em',
-                            }} className="tabular-nums">
-                              / {cfg.limit}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: 13, color: '#78716c', marginTop: 6, lineHeight: '18px' }}>
-                            {billingState === 'free'
-                              ? `dossier${remaining > 1 ? 's' : ''} gratuit${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''}`
-                              : 'dossiers cette année'}
-                          </div>
+              {/* PlanCard — Figma "Default" composable variants. Data-driven, no enum props.
+                  Header = mono label (peach gradient bg + warning text + " - LIMITE ATTEINTE" suffix when bodyWarning).
+                  Body = 48px serif + 24px denom + caption + 4px progress bar (solid peach when bodyWarning).
+                  Footer rows = label + info icon · mini progress (130px) · ratio (60px right). Peach inset rail when row's own counter at limit. */}
+              {(() => {
+                const isFree = billingState === 'free';
+                const remaining = Math.max(0, cfg.limit - cfg.used);
+                const mainAtLimit = pct >= 100;
+                const totalCredits = cfg.credits || 0;
+                const creditsUsed = cfg.creditsUsed || 0;
+                const hasExtras = totalCredits > 0;
+                const extrasAtLimit = hasExtras && creditsUsed >= totalCredits;
+                const bodyWarning = mainAtLimit;
+                const showSuppl = !isFree && (hasExtras || mainAtLimit) && totalCredits > 0;
+                const showActifs = cfg.maxActifs && !isFree;
+                const actifsAtLimitFooter = showActifs && cfg.usedActifs >= cfg.maxActifs;
 
+                const heroNum = isFree ? remaining : cfg.used;
+                const baseHeader = isFree ? 'Essai gratuit' : 'Consommation dossiers';
+                const headerLabel = bodyWarning
+                  ? `${baseHeader.toUpperCase()} ${isFree ? '-LIMITE ATTEINTE' : '- LIMITE ATTEINTE'}`
+                  : baseHeader.toUpperCase();
+                const subtitle = isFree
+                  ? `dossier${remaining > 1 ? 's' : ''} gratuit${remaining > 1 ? 's' : ''} disponible${remaining > 1 ? 's' : ''}`
+                  : 'dossiers utilisés';
+
+                // Body progress fill width:
+                //   free not at limit → full black (1/1 available)
+                //   free at limit → empty (0 available)
+                //   paid not at quota limit → proportional black fill
+                //   paid at quota limit → solid peach full (no track visible)
+                const barFillWidth = isFree
+                  ? (remaining > 0 ? 100 : 0)
+                  : Math.min(100, pct);
+                const barFillColor = bodyWarning ? '#bd6c1a' : '#000000';
+
+                // Footer mini-progress: 130px wide, 4px tall.
+                // Track: rgba(23,23,23,0.12). Default fill: #292524 at 50% (decorative).
+                // Warning: solid peach full bar (130px), no track.
+                const renderMiniProgress = (atLimit, ratio) => (
+                  <div
+                    aria-hidden
+                    style={{
+                      width: 130, height: 4, borderRadius: 999, overflow: 'hidden',
+                      backgroundColor: atLimit ? '#bd6c1a' : 'rgba(23,23,23,0.12)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {!atLimit && (
+                      <div style={{
+                        height: '100%',
+                        width: `${Math.min(100, ratio)}%`,
+                        backgroundColor: '#292524',
+                        borderRadius: 999,
+                        transition: 'width 0.5s ease',
+                      }} />
+                    )}
+                  </div>
+                );
+
+                return (
+                  <div
+                    className="mt-5 bg-white overflow-hidden"
+                    style={{
+                      borderRadius: 4,
+                      border: bodyWarning ? '1px solid rgba(238,185,126,0.5)' : '1px solid #e7e5e3',
+                      // shadow/lg from Figma — two layers
+                      boxShadow:
+                        '0 4px 6px -4px rgba(26,26,26,0.05), ' +
+                        '0 10px 15px -3px rgba(26,26,26,0.05)',
+                    }}
+                  >
+                    {/* Header — peach gradient when bodyWarning, white otherwise */}
+                    <div
+                      style={{
+                        padding: '20px',
+                        background: bodyWarning
+                          ? 'linear-gradient(180deg, #f9e6d3 0%, #ffffff 100%)'
+                          : 'transparent',
+                      }}
+                    >
+                      <div style={{
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize: 11, fontWeight: 500,
+                        color: bodyWarning ? '#855b31' : '#78716c',
+                        textTransform: 'uppercase', letterSpacing: 'normal',
+                      }}>
+                        {headerLabel}
+                      </div>
+                    </div>
+
+                    {/* Body */}
+                    <div style={{
+                      padding: '0 20px 24px',
+                      display: 'flex', flexDirection: 'column',
+                      gap: bodyWarning ? 10 : 16,
+                    }}>
+                      <div className="flex flex-col gap-0.5" style={{ letterSpacing: '-0.6px' }}>
+                        <div className="flex items-baseline gap-1">
+                          <span style={{
+                            fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
+                            fontSize: 48, fontWeight: 400,
+                            color: bodyWarning ? '#bd6c1a' : '#292524',
+                            letterSpacing: '-0.6px', lineHeight: '40px',
+                          }} className="tabular-nums">
+                            {heroNum}
+                          </span>
+                          <span style={{
+                            fontFamily: "'Inter', system-ui, sans-serif",
+                            fontSize: 24, fontWeight: 500,
+                            color: '#78716c', opacity: 0.5,
+                            lineHeight: '32px',
+                          }} className="tabular-nums">
+                            / {cfg.limit}
+                          </span>
+                        </div>
+                        <div style={{
+                          fontFamily: "'Inter', system-ui, sans-serif",
+                          fontSize: 12, fontWeight: 500, color: '#78716c',
+                          lineHeight: '16px',
+                        }}>
+                          {subtitle}
+                        </div>
+                      </div>
+
+                      {/* Body progress bar */}
+                      <div style={{
+                        height: 4, width: '100%', borderRadius: 999, overflow: 'hidden',
+                        backgroundColor: bodyWarning ? '#bd6c1a' : '#eeece6',
+                      }}>
+                        {!bodyWarning && barFillWidth > 0 && (
                           <div style={{
-                            marginTop: 14, height: 4, width: '100%',
-                            backgroundColor: '#f0efed', borderRadius: 999, overflow: 'hidden',
-                          }}>
-                            <div
-                              style={{
-                                height: '100%', width: `${pct}%`,
-                                background: pct >= 100
-                                  ? 'linear-gradient(90deg, #f59e0b, #ea580c)'
-                                  : pct >= 75
-                                    ? 'linear-gradient(90deg, #f59e0b, #d97706)'
-                                    : 'linear-gradient(90deg, #b9703f, #92410f)',
-                                borderRadius: 999,
-                                transition: 'width 0.5s ease',
-                              }}
-                            />
-                          </div>
-                        </>
+                            height: '100%', width: `${barFillWidth}%`,
+                            backgroundColor: barFillColor,
+                            borderRadius: 999,
+                            transition: 'width 0.5s ease',
+                          }} />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Footer row — Dossiers supplémentaires (conditional) */}
+                    {showSuppl && (() => {
+                      const supplRatio = totalCredits > 0 ? (creditsUsed / totalCredits) * 100 : 0;
+                      return (
+                        <div
+                          className="flex items-center justify-between gap-3"
+                          style={{
+                            borderTop: '1px solid #e7e5e3',
+                            padding: '16px 20px',
+                            backgroundColor: 'white',
+                            boxShadow: extrasAtLimit ? 'inset 3px 0 0 0 #bd6c1a' : 'none',
+                            fontFamily: "'IBM Plex Mono', monospace",
+                            fontSize: 11, fontWeight: 500,
+                            color: extrasAtLimit ? '#855b31' : '#78716c',
+                            textTransform: 'uppercase', letterSpacing: 'normal',
+                          }}
+                        >
+                          <span className="inline-flex items-center gap-2.5 min-w-0">
+                            <span>Dossiers supplémentaires</span>
+                            <InfoTip label="Information sur les dossiers supplémentaires">
+                              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 500, color: '#b9703f', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+                                Crédits dossier
+                              </div>
+                              <div>
+                                Dossiers achetés en supplément de votre forfait annuel. Ils s'activent automatiquement quand le quota est atteint, restent disponibles jusqu'à utilisation et n'expirent pas.
+                              </div>
+                            </InfoTip>
+                          </span>
+                          <span className="inline-flex items-center gap-2.5 flex-shrink-0">
+                            {renderMiniProgress(extrasAtLimit, supplRatio)}
+                            <span
+                              className="tabular-nums text-right"
+                              style={{ width: 60, color: extrasAtLimit ? '#855b31' : '#78716c' }}
+                            >
+                              {creditsUsed}/{totalCredits}
+                            </span>
+                          </span>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Footer row — Dossiers actifs en cours (paid only) */}
+                    {showActifs && (() => {
+                      const actifsRatio = cfg.maxActifs > 0 ? (cfg.usedActifs / cfg.maxActifs) * 100 : 0;
+                      return (
+                        <div
+                          className="flex items-center justify-between gap-3"
+                          style={{
+                            borderTop: '1px solid #e7e5e3',
+                            padding: '16px 20px',
+                            backgroundColor: 'white',
+                            boxShadow: actifsAtLimitFooter ? 'inset 3px 0 0 0 #bd6c1a' : 'none',
+                            fontFamily: "'IBM Plex Mono', monospace",
+                            fontSize: 11, fontWeight: 500,
+                            color: actifsAtLimitFooter ? '#855b31' : '#78716c',
+                            textTransform: 'uppercase', letterSpacing: 'normal',
+                          }}
+                        >
+                          <span className="inline-flex items-center gap-2.5 min-w-0">
+                            <span>Dossiers actifs en cours</span>
+                            <InfoTip label="Information sur les dossiers actifs en cours">
+                              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 500, color: '#b9703f', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+                                Capacité simultanée
+                              </div>
+                              <div>
+                                Nombre maximum de dossiers ouverts en parallèle, défini par votre forfait : <span className="tabular-nums">{cfg.limit}</span> dossiers/an donne droit à <span className="tabular-nums">{cfg.maxActifs}</span> dossiers actifs simultanés. Archivez un dossier — sans le supprimer — pour libérer une place.
+                              </div>
+                            </InfoTip>
+                          </span>
+                          <span className="inline-flex items-center gap-2.5 flex-shrink-0">
+                            {renderMiniProgress(actifsAtLimitFooter, actifsRatio)}
+                            <span
+                              className="tabular-nums text-right"
+                              style={{ width: 60, color: actifsAtLimitFooter ? '#855b31' : '#78716c' }}
+                            >
+                              {cfg.usedActifs}/{cfg.maxActifs}
+                            </span>
+                          </span>
+                        </div>
                       );
                     })()}
                   </div>
-                  {pct >= 100 && (
-                    <div style={{
-                      borderTop: '1px solid #f0efed',
-                      backgroundColor: '#fffbeb',
-                      padding: '10px 20px',
-                      fontFamily: "'IBM Plex Mono', monospace",
-                      fontSize: 10, fontWeight: 500, color: '#92400e',
-                      textTransform: 'uppercase', letterSpacing: '0.08em',
-                    }}>
-                      Limite atteinte
-                    </div>
-                  )}
-                </div>
-
-                {/* Crédits card — sits between cycle and actifs when present */}
-                {(cfg.credits || 0) > 0 && (() => {
-                  const remainingCredits = cfg.credits - (cfg.creditsUsed || 0);
-                  const allUsed = remainingCredits <= 0;
-                  return (
-                    <div
-                      className="bg-white border border-[#e7e5e3] overflow-hidden flex flex-col"
-                      style={{ borderRadius: 10, boxShadow: '0 1px 2px rgba(41,37,36,0.04)' }}
-                    >
-                      <div style={{ padding: '16px 20px 0' }}>
-                        <div style={{
-                          fontFamily: "'IBM Plex Mono', monospace",
-                          fontSize: 10, fontWeight: 600, color: '#b9703f',
-                          textTransform: 'uppercase', letterSpacing: '0.12em',
-                        }}>
-                          Crédits
-                        </div>
-                      </div>
-                      <div style={{ padding: '6px 20px 18px' }}>
-                        <div className="flex items-baseline gap-2">
-                          <span style={{
-                            fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
-                            fontSize: 32, fontWeight: 400,
-                            color: allUsed ? '#92400e' : '#18181b',
-                            letterSpacing: '-0.02em', lineHeight: 1,
-                          }} className="tabular-nums">
-                            {cfg.creditsUsed || 0}
-                          </span>
-                          <span style={{
-                            fontSize: 18, color: '#a8a29e', fontWeight: 300,
-                            letterSpacing: '-0.01em',
-                          }} className="tabular-nums">
-                            / {cfg.credits}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 12, color: '#78716c', marginTop: 6, lineHeight: '16px' }}>
-                          dossier{cfg.credits > 1 ? 's' : ''} supplémentaire{cfg.credits > 1 ? 's' : ''} acheté{cfg.credits > 1 ? 's' : ''}
-                        </div>
-                      </div>
-                      <div style={{
-                        marginTop: 'auto',
-                        borderTop: '1px solid #f0efed',
-                        backgroundColor: allUsed ? '#fffbeb' : '#fafaf9',
-                        padding: '10px 20px',
-                        fontFamily: "'IBM Plex Mono', monospace",
-                        fontSize: 10, fontWeight: 500,
-                        color: allUsed ? '#92400e' : '#a8a29e',
-                        textTransform: 'uppercase', letterSpacing: '0.08em',
-                      }}>
-                        {allUsed
-                          ? 'Tous utilisés'
-                          : `${remainingCredits} restant${remainingCredits > 1 ? 's' : ''}`}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Total active matters card */}
-                {cfg.maxActifs && billingState !== 'free' ? (() => {
-                  const atLimitA = cfg.usedActifs >= cfg.maxActifs;
-                  return (
-                    <div
-                      className="bg-white border border-[#e7e5e3] overflow-hidden flex flex-col"
-                      style={{ borderRadius: 10, boxShadow: '0 1px 2px rgba(41,37,36,0.04)' }}
-                    >
-                      <div style={{ padding: '16px 20px 0' }}>
-                        <div style={{
-                          fontFamily: "'IBM Plex Mono', monospace",
-                          fontSize: 10, fontWeight: 600, color: '#b9703f',
-                          textTransform: 'uppercase', letterSpacing: '0.12em',
-                        }}>
-                          Actifs en cours
-                        </div>
-                      </div>
-                      <div style={{ padding: '6px 20px 18px' }}>
-                        <div className="flex items-baseline gap-2">
-                          <span style={{
-                            fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
-                            fontSize: 32, fontWeight: 400,
-                            color: atLimitA ? '#92400e' : '#18181b',
-                            letterSpacing: '-0.02em', lineHeight: 1,
-                          }} className="tabular-nums">
-                            {cfg.usedActifs}
-                          </span>
-                          <span style={{
-                            fontSize: 18, color: '#a8a29e', fontWeight: 300,
-                            letterSpacing: '-0.01em',
-                          }} className="tabular-nums">
-                            / {cfg.maxActifs}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 12, color: '#78716c', marginTop: 6, lineHeight: '16px' }}>
-                          total dossier{cfg.maxActifs > 1 ? 's' : ''} actif{cfg.maxActifs > 1 ? 's' : ''} en cours
-                        </div>
-                      </div>
-                      {atLimitA && (
-                        <div style={{
-                          marginTop: 'auto',
-                          borderTop: '1px solid #f0efed',
-                          backgroundColor: '#fffbeb',
-                          padding: '10px 20px',
-                          fontFamily: "'IBM Plex Mono', monospace",
-                          fontSize: 10, fontWeight: 500, color: '#92400e',
-                          textTransform: 'uppercase', letterSpacing: '0.08em',
-                        }}>
-                          Limite atteinte
-                        </div>
-                      )}
-                    </div>
-                  );
-                })() : <div />}
-              </div>
+                );
+              })()}
 
               {/* Always remind the benefits/features (same list across free, paid, paid·out) */}
               <div className="mt-6 bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden divide-y divide-[#e7e5e3]/60">
@@ -18281,9 +18056,9 @@ export default function App() {
         ],
       },
       {
-        label: 'Espace de travail',
+        label: 'Organisation',
         items: [
-          { id: 'users', label: 'Utilisateurs', icon: Users },
+          { id: 'users', label: 'Collaborateurs', icon: Users },
           { id: 'billing', label: 'Plan', icon: Receipt },
           { id: 'preferences', label: 'Mémoire et préférences', icon: Brain },
           { id: 'baremes', label: 'Référentiels', icon: Scale },
