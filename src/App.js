@@ -14261,7 +14261,7 @@ export default function App() {
                                 fontSize: 10, fontWeight: 500, color: '#a8a29e',
                                 textTransform: 'uppercase', letterSpacing: '0.1em',
                               }}>
-                                En parallèle
+                                Actifs en cours
                               </span>
                               <span className="tabular-nums" style={{
                                 fontSize: 13, fontWeight: 500,
@@ -17227,8 +17227,8 @@ export default function App() {
           <div className="max-w-5xl w-full mx-auto">
 
             {renderSettingsHeader(
-              'Apprenez à Plato comment vous travaillez.',
-              "Glissez vos actes, jurisprudences et briefs : Plato apprend votre méthode et rédige à votre style."
+              'Apprenez à Plato comment travaille votre cabinet.',
+              "Déposez vos actes, jurisprudences et briefs : Plato apprend la méthode du cabinet et rédige au style maison."
             )}
 
             {/* Two columns — drop documents (wider, left), PLATO APPREND list (narrower, right) */}
@@ -17362,7 +17362,7 @@ export default function App() {
 
             {renderSettingsHeader(
               'Mémoire et préférences',
-              "Voici ce dont Plato se souvient à votre sujet et la manière dont vous travaillez. Plato s'inspire de vos documents et de vos instructions à chaque étape : rédaction, chiffrage, recherche de jurisprudences et plus encore."
+              "Voici ce que Plato a appris du fonctionnement de votre cabinet. Vos documents et vos instructions guident chaque étape : rédaction, chiffrage, recherche de jurisprudences et plus encore."
             )}
 
             {/* ───────── FILLED STATE — single master-prompt textarea ───────── */}
@@ -17384,10 +17384,10 @@ export default function App() {
             <div className="mb-3 flex items-start justify-between gap-4 py-1">
               <div className="flex-1 min-w-0">
                 <div className="text-[13px] font-medium text-[#292524] leading-5">
-                  Générer la mémoire/préférés à partir de l'historique des conversations
+                  Apprendre du cabinet à partir des conversations
                 </div>
                 <div className="text-[12px] text-[#78716c] leading-5 mt-0.5">
-                  Autoriser Plato à mémoriser les préférences pertinentes de vos conversations.
+                  Autoriser Plato à enrichir la mémoire du cabinet avec les préférences pertinentes échangées en chat.
                 </div>
               </div>
               <button
@@ -17416,7 +17416,7 @@ export default function App() {
             {/* 2) Master prompt — labeled */}
             <div className="mb-2">
               <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                Vos instructions pour Plato
+                Instructions du cabinet pour Plato
               </span>
             </div>
             <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
@@ -17448,7 +17448,7 @@ export default function App() {
                 <div className="mt-6 mb-5">
                   <div className="flex items-center justify-between mb-2">
                     <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                      Mes jurisprudences habituelles
+                      Jurisprudences habituelles du cabinet
                       {cards.length > 0 && <span className="text-[#c8c5c0] ml-1.5">{cards.length}</span>}
                     </span>
                     <button
@@ -17587,9 +17587,11 @@ export default function App() {
 
     // State-dependent values
     const stateConfig = {
-      free: { used: 1, limit: 1, usedActifs: 1, maxActifs: 1, label: 'Plan gratuit', priceLabel: '0 € / an' },
-      paid: { used: 12, limit: currentTier.matters, usedActifs: 8, maxActifs: currentTier.maxActifs, label: `${currentTier.matters} dossiers / an`, priceLabel: `${fmtEur(currentYearlyTotal)} € HT / an` },
-      over: { used: currentTier.matters, limit: currentTier.matters, usedActifs: currentTier.maxActifs, maxActifs: currentTier.maxActifs, label: `${currentTier.matters} dossiers / an`, priceLabel: `${fmtEur(currentYearlyTotal)} € HT / an` },
+      free:    { used: 1,                   limit: 1,                   usedActifs: 1,                  maxActifs: 1,                   credits: 0, creditsUsed: 0, label: 'Plan gratuit',                 priceLabel: '0 € / an' },
+      paid:    { used: 12,                  limit: currentTier.matters, usedActifs: 8,                  maxActifs: currentTier.maxActifs, credits: 0, creditsUsed: 0, label: `${currentTier.matters} dossiers / an`, priceLabel: `${fmtEur(currentYearlyTotal)} € HT / an` },
+      // Plan exhausted (20/20) + 2 extra credits purchased, 1 already used
+      credits: { used: currentTier.matters, limit: currentTier.matters, usedActifs: 14,                 maxActifs: currentTier.maxActifs, credits: 2, creditsUsed: 1, label: `${currentTier.matters} dossiers / an`, priceLabel: `${fmtEur(currentYearlyTotal)} € HT / an` },
+      over:    { used: currentTier.matters, limit: currentTier.matters, usedActifs: currentTier.maxActifs, maxActifs: currentTier.maxActifs, credits: 0, creditsUsed: 0, label: `${currentTier.matters} dossiers / an`, priceLabel: `${fmtEur(currentYearlyTotal)} € HT / an` },
     };
     const cfg = stateConfig[billingState];
     const pct = Math.min(100, Math.round((cfg.used / cfg.limit) * 100));
@@ -17607,6 +17609,7 @@ export default function App() {
                 {[
                   { id: 'free', label: 'free' },
                   { id: 'paid', label: 'paid' },
+                  { id: 'credits', label: 'paid · +crédits' },
                   { id: 'over', label: 'paid · out' },
                 ].map(s => (
                   <button
@@ -17656,7 +17659,7 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="mt-5 grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-3">
+              <div className={`mt-5 grid grid-cols-1 gap-3 ${(cfg.credits || 0) > 0 ? 'md:grid-cols-[1.6fr_1fr_1fr]' : 'md:grid-cols-[1.6fr_1fr]'}`}>{/* cycle · (crédits) · actifs */}
                 {/* Primary card — dossiers cette année (hero) */}
                 <div
                   className="bg-white border border-[#e7e5e3] overflow-hidden"
@@ -17692,11 +17695,6 @@ export default function App() {
                             }} className="tabular-nums">
                               / {cfg.limit}
                             </span>
-                            {billingState !== 'free' && (
-                              <span className={`text-[12px] tabular-nums ml-1 ${pct >= 100 ? 'text-[#92400e] font-medium' : 'text-[#a8a29e]'}`}>
-                                · {pct}%
-                              </span>
-                            )}
                           </div>
                           <div style={{ fontSize: 13, color: '#78716c', marginTop: 6, lineHeight: '18px' }}>
                             {billingState === 'free'
@@ -17725,25 +17723,24 @@ export default function App() {
                       );
                     })()}
                   </div>
-                  {(billingState !== 'free' || pct >= 100) && (
+                  {pct >= 100 && (
                     <div style={{
                       borderTop: '1px solid #f0efed',
-                      backgroundColor: pct >= 100 ? '#fffbeb' : '#fafaf9',
+                      backgroundColor: '#fffbeb',
                       padding: '10px 20px',
                       fontFamily: "'IBM Plex Mono', monospace",
-                      fontSize: 10, fontWeight: 500,
-                      color: pct >= 100 ? '#92400e' : '#a8a29e',
+                      fontSize: 10, fontWeight: 500, color: '#92400e',
                       textTransform: 'uppercase', letterSpacing: '0.08em',
                     }}>
-                      {pct >= 100 ? 'Limite atteinte' : '01 janv. 2026 → 31 déc. 2026'}
+                      Limite atteinte
                     </div>
                   )}
                 </div>
 
-                {/* Secondary card — actifs en parallèle */}
-                {cfg.maxActifs && billingState !== 'free' ? (() => {
-                  const atLimitA = cfg.usedActifs >= cfg.maxActifs;
-                  const actifsPct = Math.min(100, Math.round((cfg.usedActifs / cfg.maxActifs) * 100));
+                {/* Crédits card — sits between cycle and actifs when present */}
+                {(cfg.credits || 0) > 0 && (() => {
+                  const remainingCredits = cfg.credits - (cfg.creditsUsed || 0);
+                  const allUsed = remainingCredits <= 0;
                   return (
                     <div
                       className="bg-white border border-[#e7e5e3] overflow-hidden flex flex-col"
@@ -17755,7 +17752,63 @@ export default function App() {
                           fontSize: 10, fontWeight: 600, color: '#b9703f',
                           textTransform: 'uppercase', letterSpacing: '0.12em',
                         }}>
-                          En parallèle
+                          Crédits
+                        </div>
+                      </div>
+                      <div style={{ padding: '6px 20px 18px' }}>
+                        <div className="flex items-baseline gap-2">
+                          <span style={{
+                            fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
+                            fontSize: 32, fontWeight: 400,
+                            color: allUsed ? '#92400e' : '#18181b',
+                            letterSpacing: '-0.02em', lineHeight: 1,
+                          }} className="tabular-nums">
+                            {cfg.creditsUsed || 0}
+                          </span>
+                          <span style={{
+                            fontSize: 18, color: '#a8a29e', fontWeight: 300,
+                            letterSpacing: '-0.01em',
+                          }} className="tabular-nums">
+                            / {cfg.credits}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#78716c', marginTop: 6, lineHeight: '16px' }}>
+                          dossier{cfg.credits > 1 ? 's' : ''} supplémentaire{cfg.credits > 1 ? 's' : ''} acheté{cfg.credits > 1 ? 's' : ''}
+                        </div>
+                      </div>
+                      <div style={{
+                        marginTop: 'auto',
+                        borderTop: '1px solid #f0efed',
+                        backgroundColor: allUsed ? '#fffbeb' : '#fafaf9',
+                        padding: '10px 20px',
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize: 10, fontWeight: 500,
+                        color: allUsed ? '#92400e' : '#a8a29e',
+                        textTransform: 'uppercase', letterSpacing: '0.08em',
+                      }}>
+                        {allUsed
+                          ? 'Tous utilisés'
+                          : `${remainingCredits} restant${remainingCredits > 1 ? 's' : ''}`}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Total active matters card */}
+                {cfg.maxActifs && billingState !== 'free' ? (() => {
+                  const atLimitA = cfg.usedActifs >= cfg.maxActifs;
+                  return (
+                    <div
+                      className="bg-white border border-[#e7e5e3] overflow-hidden flex flex-col"
+                      style={{ borderRadius: 10, boxShadow: '0 1px 2px rgba(41,37,36,0.04)' }}
+                    >
+                      <div style={{ padding: '16px 20px 0' }}>
+                        <div style={{
+                          fontFamily: "'IBM Plex Mono', monospace",
+                          fontSize: 10, fontWeight: 600, color: '#b9703f',
+                          textTransform: 'uppercase', letterSpacing: '0.12em',
+                        }}>
+                          Actifs en cours
                         </div>
                       </div>
                       <div style={{ padding: '6px 20px 18px' }}>
@@ -17776,21 +17829,22 @@ export default function App() {
                           </span>
                         </div>
                         <div style={{ fontSize: 12, color: '#78716c', marginTop: 6, lineHeight: '16px' }}>
-                          dossier{cfg.maxActifs > 1 ? 's' : ''} actif{cfg.maxActifs > 1 ? 's' : ''}
+                          total dossier{cfg.maxActifs > 1 ? 's' : ''} actif{cfg.maxActifs > 1 ? 's' : ''} en cours
                         </div>
                       </div>
-                      <div style={{
-                        marginTop: 'auto',
-                        borderTop: '1px solid #f0efed',
-                        backgroundColor: atLimitA ? '#fffbeb' : '#fafaf9',
-                        padding: '10px 20px',
-                        fontFamily: "'IBM Plex Mono', monospace",
-                        fontSize: 10, fontWeight: 500,
-                        color: atLimitA ? '#92400e' : '#a8a29e',
-                        textTransform: 'uppercase', letterSpacing: '0.08em',
-                      }}>
-                        {atLimitA ? 'Limite atteinte' : 'Limite simultanée'}
-                      </div>
+                      {atLimitA && (
+                        <div style={{
+                          marginTop: 'auto',
+                          borderTop: '1px solid #f0efed',
+                          backgroundColor: '#fffbeb',
+                          padding: '10px 20px',
+                          fontFamily: "'IBM Plex Mono', monospace",
+                          fontSize: 10, fontWeight: 500, color: '#92400e',
+                          textTransform: 'uppercase', letterSpacing: '0.08em',
+                        }}>
+                          Limite atteinte
+                        </div>
+                      )}
                     </div>
                   );
                 })() : <div />}
@@ -17809,6 +17863,7 @@ export default function App() {
                   );
                 })}
               </div>
+
             </div>
 
             {/* Upgrade modal — tabs: Modifier mon plan / Acheter des crédits */}
@@ -18038,8 +18093,8 @@ export default function App() {
               );
             })()}
 
-            {/* Stripe portal — broken down into 4 distinct clickable links (paid + over) */}
-            {(billingState === 'paid' || billingState === 'over') && (
+            {/* Stripe portal — broken down into clickable links on every paid scenario */}
+            {billingState !== 'free' && (
               <div className="pt-8">
                 <div className="flex items-baseline gap-3 mb-4">
                   <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', letterSpacing: '0.1em' }}>
@@ -18051,7 +18106,7 @@ export default function App() {
                   {[
                     { label: 'Mes factures', target: 'factures', external: true },
                     { label: 'Changer ma méthode de paiement', target: 'paiement', external: true },
-                    ...(billingState === 'paid' ? [{ label: 'Acheter des crédits supplémentaires', target: 'crédits', external: true }] : []),
+                    ...(billingState !== 'over' ? [{ label: 'Acheter des crédits supplémentaires', target: 'crédits', external: true }] : []),
                   ].map((link) => (
                     <button
                       key={link.target}
@@ -18220,16 +18275,16 @@ export default function App() {
   const renderSettingsPage = () => {
     const SECTION_GROUPS = [
       {
+        label: 'Votre compte',
+        items: [
+          { id: 'general', label: 'Général', icon: User },
+        ],
+      },
+      {
         label: 'Espace de travail',
         items: [
           { id: 'users', label: 'Utilisateurs', icon: Users },
           { id: 'billing', label: 'Plan', icon: Receipt },
-        ],
-      },
-      {
-        label: 'Votre compte',
-        items: [
-          { id: 'general', label: 'Général', icon: User },
           { id: 'preferences', label: 'Mémoire et préférences', icon: Brain },
           { id: 'baremes', label: 'Référentiels', icon: Scale },
           { id: 'templates', label: "Modèles d'actes", icon: BookOpen },
