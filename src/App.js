@@ -965,7 +965,7 @@ export default function App() {
 
   // ========== SETTINGS ==========
   const [settingsSection, setSettingsSection] = useState('general'); // 'general' | 'users' | 'preferences' | 'billing' | 'baremes' | 'templates'
-  const [billingState, setBillingState] = useState('paid'); // 'free' | 'paid' | 'over'
+  const [billingState, setBillingState] = useState('paid'); // 'free' | 'trial' | 'trial-end' | 'paid' | 'credits' | 'over'
   const [billingTierIndex, setBillingTierIndex] = useState(1); // selected tier in upgrade slider
   const [billingUpgradeModalOpen, setBillingUpgradeModalOpen] = useState(false);
   const [billingModalTab, setBillingModalTab] = useState('plan'); // 'plan' | 'credits'
@@ -14225,14 +14225,21 @@ export default function App() {
   // rendered directly inside the sidebar's footer (no hover-to-expand).
   const renderDossierIndicator = () => {
     const isFree = billingState === 'free';
-    const used = isFree ? 1 : (billingState === 'over' || billingState === 'credits') ? 20 : 12;
+    const isTrial = billingState === 'trial' || billingState === 'trial-end';
+    // Trial = 7-day grace period on top of the chosen plan. Demo: 5 days mid-trial, 1 day end-of-trial.
+    const trialDaysTotal = 7;
+    const trialDaysRemaining = billingState === 'trial' ? 5 : billingState === 'trial-end' ? 1 : 0;
+    const trialEndingSoon = isTrial && trialDaysRemaining > 0 && trialDaysRemaining <= 2;
+    const trialPctRemaining = isTrial ? Math.max(0, Math.min(100, (trialDaysRemaining / trialDaysTotal) * 100)) : 0;
+    // Trial uses the same consumption shape as paid (chosen tier matters).
+    const used = isFree ? 1 : (billingState === 'over' || billingState === 'credits') ? 20 : billingState === 'trial' ? 1 : billingState === 'trial-end' ? 4 : 12;
     const limit = isFree ? 1 : 20;
     const remaining = Math.max(0, limit - used);
     const atLimit = remaining === 0;
     const pct = Math.min(100, Math.round((used / limit) * 100));
 
     const maxActifs = isFree ? 1 : 50;
-    const usedActifs = isFree ? 1 : billingState === 'over' ? maxActifs : 8;
+    const usedActifs = isFree ? 1 : billingState === 'over' ? maxActifs : billingState === 'trial' ? 1 : billingState === 'trial-end' ? 3 : 8;
     const actifsAtLimit = usedActifs >= maxActifs;
 
     const totalCredits = billingState === 'credits' ? 2 : 0;
@@ -14246,7 +14253,32 @@ export default function App() {
     const caption = isFree
       ? `dossier${remaining > 1 ? 's' : ''} gratuit${remaining > 1 ? 's' : ''} disponible${remaining > 1 ? 's' : ''}`
       : 'dossiers utilisés';
-    const showSuppl = !isFree && (creditsUsed > 0 || atLimit) && totalCredits > 0;
+    const showSuppl = !isFree && !isTrial && (creditsUsed > 0 || atLimit) && totalCredits > 0;
+
+    // During trial, the body emphasizes DAYS REMAINING (hero) and consumption rows are
+    // hidden (focus on time pressure). Outside trial, body shows dossier consumption.
+    // Trial colors per Figma: info-blue (#1e3a8a) when fresh, warning-brown (#855b31) when ending.
+    const heroBigNum = isTrial ? trialDaysRemaining : heroNum;
+    const heroDenom = isTrial ? trialDaysTotal : limit;
+    const heroCaption = isTrial
+      ? `jour${trialDaysRemaining > 1 ? 's' : ''} d'essai restant${trialDaysRemaining > 1 ? 's' : ''}`
+      : caption;
+    const bodyHeaderText = isTrial ? 'Essai gratuit' : headerLabel;
+    // Trial uses info colors (fresh) or warning colors (ending). Non-trial uses the existing peach-when-at-limit palette.
+    const trialInfoBg = 'linear-gradient(180deg, #e0eaf6 0%, #ffffff 100%)';
+    const peachBg = 'linear-gradient(180deg, #f9e6d3 0%, #ffffff 100%)';
+    const headerBg = isTrial
+      ? (trialEndingSoon ? peachBg : trialInfoBg)
+      : (bodyWarning ? peachBg : 'transparent');
+    const headerTextColor = isTrial
+      ? (trialEndingSoon ? '#855b31' : '#1e3a8a')
+      : (bodyWarning ? '#855b31' : '#78716c');
+    const heroNumColor = isTrial
+      ? (trialEndingSoon ? '#bd6c1a' : '#1e3a8a')
+      : (bodyWarning ? '#bd6c1a' : '#000');
+    const barPct = isTrial ? trialPctRemaining : pct;
+    const barWarn = isTrial ? false : bodyWarning;
+    const barFill = isTrial ? (trialEndingSoon ? '#bd6c1a' : '#000') : '#000';
 
     return (
       <button
@@ -14257,20 +14289,21 @@ export default function App() {
           fontFamily: "'Inter', system-ui, sans-serif",
         }}
       >
-        {/* Header — peach gradient when bodyWarning, padded 14×16 per Figma small */}
+        {/* Header — info gradient (fresh trial), peach gradient (warning), transparent otherwise */}
         <div
           style={{
             padding: '14px 16px',
-            background: bodyWarning ? 'linear-gradient(180deg, #f9e6d3 0%, #ffffff 100%)' : 'transparent',
+            background: headerBg,
           }}
         >
           <div style={{
             fontFamily: "'IBM Plex Mono', monospace",
             fontSize: 11, fontWeight: 500,
-            color: bodyWarning ? '#855b31' : '#78716c',
+            color: headerTextColor,
             textTransform: 'uppercase', letterSpacing: 'normal',
-          }}>
-            {headerLabel}
+          }} className="inline-flex items-center gap-1.5">
+            {isTrial && <Clock className="w-3 h-3 flex-shrink-0" strokeWidth={1.75} />}
+            <span>{bodyHeaderText}</span>
           </div>
         </div>
 
@@ -14281,37 +14314,37 @@ export default function App() {
               <span style={{
                 fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
                 fontSize: 30, fontWeight: 400,
-                color: bodyWarning ? '#bd6c1a' : '#000',
+                color: heroNumColor,
                 letterSpacing: '-0.6px', lineHeight: '28px',
               }} className="tabular-nums">
-                {heroNum}
+                {heroBigNum}
               </span>
               <span style={{
                 fontFamily: "'Inter', system-ui, sans-serif",
                 fontSize: 14, fontWeight: 500,
                 color: '#78716c', opacity: 0.5,
                 lineHeight: '20px',
-              }} className="tabular-nums">/ {limit}</span>
+              }} className="tabular-nums">/ {heroDenom}</span>
             </div>
             <div style={{
               fontFamily: "'Inter', system-ui, sans-serif",
               fontSize: 12, fontWeight: 500, color: '#78716c',
               lineHeight: '16px',
             }}>
-              {caption}
+              {heroCaption}
             </div>
           </div>
 
-          {/* Progress bar — solid peach 100% when bodyWarning (no track),
-              muted track + black fill at pct% otherwise. */}
+          {/* Progress bar — solid peach 100% when warning (no track),
+              muted track + fill otherwise. */}
           <div style={{
             height: 4, width: '100%', borderRadius: 9999, overflow: 'hidden',
-            backgroundColor: bodyWarning ? '#bd6c1a' : '#eeece6',
+            backgroundColor: barWarn ? '#bd6c1a' : '#eeece6',
           }}>
-            {!bodyWarning && (
+            {!barWarn && (
               <div style={{
-                height: '100%', width: `${pct}%`,
-                backgroundColor: '#000',
+                height: '100%', width: `${barPct}%`,
+                backgroundColor: barFill,
                 borderRadius: 9999,
                 transition: 'width 0.5s ease',
               }} />
@@ -14338,8 +14371,8 @@ export default function App() {
           </div>
         )}
 
-        {/* Footer row — Actifs en cours (paid only) */}
-        {!isFree && (
+        {/* Footer row — Actifs en cours (paid only, not during trial since hero is days) */}
+        {!isFree && !isTrial && (
           <div
             className="flex items-center justify-between"
             style={{
@@ -17328,6 +17361,11 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
     // State-dependent values
     const stateConfig = {
       free:    { used: 1,                   limit: 1,                   usedActifs: 1,                  maxActifs: 1,                   credits: 0, creditsUsed: 0, label: 'Plan gratuit',                 priceLabel: '0 € / an' },
+      // 7-day Stripe-style trial layered on top of a chosen plan. Same plan label as `paid`,
+      // same consumption, just unbilled until day 8. Demo: day 2 of 7 → 5 days remaining.
+      trial:    { used: 1,                  limit: currentTier.matters, usedActifs: 1,                  maxActifs: currentTier.maxActifs, credits: 0, creditsUsed: 0, label: `${currentTier.matters} dossiers / an`, priceLabel: `Gratuit pendant 7 jours`, daysRemaining: 5, trialDays: 7, trialEndDate: '9 mai 2026' },
+      // End-of-trial — 1 day remaining (peach warning, urgency).
+      'trial-end': { used: 4,               limit: currentTier.matters, usedActifs: 3,                  maxActifs: currentTier.maxActifs, credits: 0, creditsUsed: 0, label: `${currentTier.matters} dossiers / an`, priceLabel: `Gratuit pendant 7 jours`, daysRemaining: 1, trialDays: 7, trialEndDate: '5 mai 2026' },
       paid:    { used: 12,                  limit: currentTier.matters, usedActifs: 8,                  maxActifs: currentTier.maxActifs, credits: 0, creditsUsed: 0, label: `${currentTier.matters} dossiers / an`, priceLabel: `${fmtEur(currentYearlyTotal)} € HT / an` },
       // Plan exhausted (20/20) + 2 extra credits purchased, 1 already used
       credits: { used: currentTier.matters, limit: currentTier.matters, usedActifs: 14,                 maxActifs: currentTier.maxActifs, credits: 2, creditsUsed: 1, label: `${currentTier.matters} dossiers / an`, priceLabel: `${fmtEur(currentYearlyTotal)} € HT / an` },
@@ -17342,12 +17380,14 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
         <div className="flex-1 overflow-y-auto px-8 py-10">
           <div className="max-w-5xl w-full mx-auto">
             {renderSettingsHeader(
-              'Plan',
-              "Votre plan et votre consommation.",
+              'Plan et facturation',
+              "Votre plan, votre consommation et vos factures.",
               <div className="flex items-center gap-2 text-[10px] text-[#a8a29e]" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
                 <span className="uppercase tracking-wider">Démo</span>
                 {[
                   { id: 'free', label: 'free' },
+                  { id: 'trial', label: 'trial · 5j' },
+                  { id: 'trial-end', label: 'trial · 1j' },
                   { id: 'paid', label: 'paid' },
                   { id: 'credits', label: 'paid · +crédits' },
                   { id: 'over', label: 'paid · out' },
@@ -17381,10 +17421,29 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
                     <h2 style={{ fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif", fontSize: '24px', fontWeight: 400, color: '#18181b', letterSpacing: '-0.015em' }}>
                       {cfg.label}
                     </h2>
-                    <span className="text-[13px] text-[#78716c]">— {cfg.priceLabel}</span>
+                    {(billingState === 'trial' || billingState === 'trial-end') ? (
+                      <span className="text-[13px] text-[#78716c]">
+                        Période d'essai jusqu'au{' '}
+                        <span className="font-medium text-[#292524]">{cfg.trialEndDate}</span>
+                      </span>
+                    ) : (
+                      <span className="text-[13px] text-[#78716c]">— {cfg.priceLabel}</span>
+                    )}
                   </div>
                   <p className="text-[12px] text-[#78716c] mt-1">
-                    {billingState === 'free' ? 'Aucun renouvellement.' : 'Renouvellement automatique le 1ᵉʳ mai 2026.'}
+                    {billingState === 'free' ? (
+                      'Aucun renouvellement.'
+                    ) : (billingState === 'trial' || billingState === 'trial-end') ? (
+                      <>
+                        Première facturation prévue le{' '}
+                        <span className="font-medium text-[#292524]">{cfg.trialEndDate}</span>
+                        {' '}-{' '}
+                        <span className="font-medium text-[#292524] tabular-nums">{fmtEur(currentYearlyTotal)} € HT</span>
+                        . Annulable à tout moment, sans débit.
+                      </>
+                    ) : (
+                      'Renouvellement automatique le 1ᵉʳ mai 2026.'
+                    )}
                   </p>
                 </div>
                 <button
@@ -17405,14 +17464,21 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
                   Footer rows = label + info icon · mini progress (130px) · ratio (60px right). Peach inset rail when row's own counter at limit. */}
               {(() => {
                 const isFree = billingState === 'free';
+                const isTrial = billingState === 'trial' || billingState === 'trial-end';
                 const remaining = Math.max(0, cfg.limit - cfg.used);
+                const daysRemaining = isTrial ? (cfg.daysRemaining ?? 0) : 0;
+                const trialDays = isTrial ? (cfg.trialDays ?? 7) : 0;
                 const mainAtLimit = pct >= 100;
+                const trialEndingSoon = isTrial && daysRemaining > 0 && daysRemaining <= 2;
+                const trialExpired = isTrial && daysRemaining <= 0;
                 const totalCredits = cfg.credits || 0;
                 const creditsUsed = cfg.creditsUsed || 0;
                 const hasExtras = totalCredits > 0;
                 const extrasAtLimit = hasExtras && creditsUsed >= totalCredits;
+                // bodyWarning controls hero/body styling (consumption-driven). Trial doesn't paint it peach.
                 const bodyWarning = mainAtLimit;
                 const showSuppl = !isFree && (hasExtras || mainAtLimit) && totalCredits > 0;
+                // Trial users have full access to the paid tier — show the simultaneous-actifs row.
                 const showActifs = cfg.maxActifs && !isFree;
                 const actifsAtLimitFooter = showActifs && cfg.usedActifs >= cfg.maxActifs;
 
@@ -17428,12 +17494,21 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
                 // Body progress fill width:
                 //   free not at limit → full black (1/1 available)
                 //   free at limit → empty (0 available)
-                //   paid not at quota limit → proportional black fill
+                //   paid/trial not at quota limit → proportional black fill (consumption)
                 //   paid at quota limit → solid peach full (no track visible)
                 const barFillWidth = isFree
                   ? (remaining > 0 ? 100 : 0)
                   : Math.min(100, pct);
                 const barFillColor = bodyWarning ? '#bd6c1a' : '#000000';
+
+                // Trial header colors per Figma: info-blue when fresh, warning-brown when ending.
+                const trialTextColor = trialEndingSoon || trialExpired ? '#855b31' : '#1e3a8a';
+                const trialBg = trialEndingSoon || trialExpired
+                  ? 'linear-gradient(180deg, #f9e6d3 0%, #ffffff 100%)'
+                  : 'linear-gradient(180deg, #e0eaf6 0%, #ffffff 100%)';
+                const trialBorderColor = trialEndingSoon || trialExpired
+                  ? 'rgba(238,185,126,0.5)'
+                  : 'rgba(147,170,209,0.5)';
 
                 // Footer mini-progress: 130px wide, 4px tall.
                 // Track: rgba(23,23,23,0.12). Default fill: #292524 at 50% (decorative).
@@ -17464,35 +17539,71 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
                     className="mt-5 bg-white overflow-hidden"
                     style={{
                       borderRadius: 4,
-                      border: bodyWarning ? '1px solid rgba(238,185,126,0.5)' : '1px solid #e7e5e3',
+                      border: bodyWarning
+                        ? '1px solid rgba(238,185,126,0.5)'
+                        : isTrial
+                          ? `1px solid ${trialBorderColor}`
+                          : '1px solid #e7e5e3',
                       // shadow/lg from Figma — two layers
                       boxShadow:
                         '0 4px 6px -4px rgba(26,26,26,0.05), ' +
                         '0 10px 15px -3px rgba(26,26,26,0.05)',
                     }}
                   >
-                    {/* Header — peach gradient when bodyWarning, white otherwise */}
-                    <div
-                      style={{
-                        padding: '20px',
-                        background: bodyWarning
-                          ? 'linear-gradient(180deg, #f9e6d3 0%, #ffffff 100%)'
-                          : 'transparent',
-                      }}
-                    >
-                      <div style={{
-                        fontFamily: "'IBM Plex Mono', monospace",
-                        fontSize: 11, fontWeight: 500,
-                        color: bodyWarning ? '#855b31' : '#78716c',
-                        textTransform: 'uppercase', letterSpacing: 'normal',
-                      }}>
-                        {headerLabel}
+                    {/* Header — trial badge (icon + ESSAI GRATUIT left + EXPIRE DANS X JOURS right)
+                        when in trial, otherwise the consumption label.
+                        Peach gradient when bodyWarning OR trial ending. */}
+                    {isTrial ? (
+                      <div
+                        style={{
+                          padding: '16px 20px',
+                          borderBottom: '1px solid #e7e5e3',
+                          background: trialBg,
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          gap: 12,
+                          fontFamily: "'IBM Plex Mono', monospace",
+                          fontSize: 11, fontWeight: 500,
+                          color: trialTextColor,
+                          textTransform: 'uppercase', letterSpacing: 'normal',
+                        }}
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <Clock className="w-3 h-3" strokeWidth={1.75} />
+                          <span>Essai gratuit</span>
+                        </span>
+                        {!trialExpired && (
+                          <span>
+                            Expire dans{' '}
+                            <span className="tabular-nums" style={{ fontWeight: 700 }}>
+                              {daysRemaining} jour{daysRemaining > 1 ? 's' : ''}
+                            </span>
+                          </span>
+                        )}
+                        {trialExpired && <span style={{ fontWeight: 700 }}>Expiré</span>}
                       </div>
-                    </div>
+                    ) : (
+                      <div
+                        style={{
+                          padding: '20px',
+                          background: bodyWarning
+                            ? 'linear-gradient(180deg, #f9e6d3 0%, #ffffff 100%)'
+                            : 'transparent',
+                        }}
+                      >
+                        <div style={{
+                          fontFamily: "'IBM Plex Mono', monospace",
+                          fontSize: 11, fontWeight: 500,
+                          color: bodyWarning ? '#855b31' : '#78716c',
+                          textTransform: 'uppercase', letterSpacing: 'normal',
+                        }}>
+                          {headerLabel}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Body */}
                     <div style={{
-                      padding: '0 20px 24px',
+                      padding: isTrial ? '20px 20px 24px' : '0 20px 24px',
                       display: 'flex', flexDirection: 'column',
                       gap: bodyWarning ? 10 : 16,
                     }}>
@@ -18059,10 +18170,10 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
         label: 'Organisation',
         items: [
           { id: 'users', label: 'Collaborateurs', icon: Users },
-          { id: 'billing', label: 'Plan', icon: Receipt },
-          { id: 'preferences', label: 'Mémoire et préférences', icon: Brain },
+          { id: 'billing', label: 'Plan et facturation', icon: Receipt },
           { id: 'baremes', label: 'Référentiels', icon: Scale },
           { id: 'templates', label: "Modèles d'actes", icon: BookOpen },
+          { id: 'preferences', label: 'Mémoire et préférences', icon: Brain },
         ],
       },
     ];
