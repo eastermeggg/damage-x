@@ -6,19 +6,22 @@ const colHeaderStyle = { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 5
 
 export default function ActesList({ actes = [], onOpen, onNewActe, onSendPrompt }) {
   if (actes.length === 0) {
+    const canCreate = !!(onSendPrompt || onNewActe);
     return (
       <div className="flex-1 flex items-center justify-center py-20">
         <EmptyState
           icon={Pencil}
-          title="Rédigez votre premier acte"
-          description="Assignation, référé, demande d'expertise, e-mails... demandez n'importe quel type d'acte à Plato."
-          primaryAction={{
+          title={canCreate ? 'Rédigez votre premier acte' : 'Aucun acte rédigé'}
+          description={canCreate
+            ? "Assignation, référé, demande d'expertise, e-mails... demandez n'importe quel type d'acte à Plato."
+            : "Ce dossier est en lecture seule."}
+          primaryAction={canCreate ? {
             label: 'Rédiger un acte',
             onClick: () => {
               if (onSendPrompt) onSendPrompt('Rédige une assignation');
               else if (onNewActe) onNewActe();
             },
-          }}
+          } : undefined}
         />
       </div>
     );
