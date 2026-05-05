@@ -1826,11 +1826,17 @@ export default function App() {
       chatAnalysisTimeouts.current.forEach(t => clearTimeout(t));
       chatAnalysisTimeouts.current = [];
 
-      // Phase 1: Welcome message
-      setChatMessages(prev => [
-        ...prev,
-        { type: 'ai', text: welcome.greeting },
-      ]);
+      // Phase 1: Welcome message — skipped when the user invited the poste from the
+      // canvas "+ poste" modal (their own user message provides the context).
+      const skipGreeting = chatJustInvitedPoste.current === posteId;
+      if (skipGreeting) {
+        chatJustInvitedPoste.current = null;
+      } else {
+        setChatMessages(prev => [
+          ...prev,
+          { type: 'ai', text: welcome.greeting },
+        ]);
+      }
 
       // Phase 2: Thinking — reading docs
       const t1 = setTimeout(() => {
@@ -3057,16 +3063,6 @@ export default function App() {
   // (handleCreateProcedureFromWizard supprimé - wizard supprimé)
 
   // ========== ACTIONS IA — Génération à la demande ==========
-  const handleGenerateResume = async () => {
-    setAiGenerating('resume');
-    await new Promise(r => setTimeout(r, 2000));
-    setFaitGenerateur(prev => ({
-      ...prev,
-      resume: `M. ${victimeData.prenom} ${victimeData.nom}, ${victimeData.sexe === 'Homme' ? 'âgé' : 'âgée'} de ${calcAge(victimeData.dateNaissance)} ans, a été victime d'un ${faitGenerateur.type.toLowerCase()} survenu le ${faitGenerateur.dateAccident}. L'accident a entraîné un traumatisme nécessitant une prise en charge médicale immédiate avec hospitalisation. La consolidation a été fixée au ${faitGenerateur.dateConsolidation || '[date à préciser]'}.`
-    }));
-    setAiGenerating(null);
-  };
-
   const handleGenerateExpertise = async () => {
     setAiGenerating('expertise');
     await new Promise(r => setTimeout(r, 2500));
@@ -3462,6 +3458,24 @@ export default function App() {
     }
   };
 
+  // ========== CANVAS-ANCHORED PROMPT TRIGGERS ==========
+  // Fires a hardcoded natural-language prompt into Chato (as if the user typed it).
+  // Used by empty-state buttons on the canvas — see .context/attachments/prompt-suggestions-v1.md
+  // - scenarioKey: play a DEMO_SCENARIOS entry that already includes USER_MESSAGE.
+  // - aiReply: when no scenario, push a single inline AI confirmation after the user bubble.
+  const fireCanvasPrompt = (text, { scenarioKey = null, aiReply = null, aiDelay = 400 } = {}) => {
+    if (scenarioKey) {
+      jp.playScenario(scenarioKey);
+      return;
+    }
+    setChatMessages(prev => [...prev, { type: 'user', text }]);
+    if (aiReply) {
+      setTimeout(() => {
+        setChatMessages(prev => [...prev, { type: 'ai', text: aiReply }]);
+      }, aiDelay);
+    }
+  };
+
   // ========== CHAT SEND — handles user messages + intent detection ==========
   const handleChatSend = () => {
     const text = chatInputValue.trim();
@@ -3511,6 +3525,38 @@ export default function App() {
       // PRP commands
       if (cmd === 'prp' || cmd === 'prp-compute' || cmd === 'prp-alerts') {
         runPrpCommand(cmd);
+        return;
+      }
+
+      // /empty — wipe the matter to its empty state (info, chiffrage, JP) but keep documents.
+      // Useful for testing the canvas-anchored prompt-suggestion empty states.
+      if (cmd === 'empty' || cmd === 'reset' || cmd === 'empty-matter') {
+        setFaitGenerateur({ type: '', dateAccident: '', datePremiereConstatation: '', dateConsolidation: '', resume: '' });
+        setCommentaireExpertise('');
+        setResumeAffaire('');
+        setVictimesIndirectes([]);
+        setDossierPostes([]);
+        setIvDossierPostes([]);
+        setDsaLignes([]);
+        setDftLignes([]);
+        setPgpaData(EMPTY_DOSSIER.pgpaData);
+        setPgpfData(EMPTY_DOSSIER.pgpfData);
+        setFdaLignes([]);
+        setDsfData({ lignes: [] });
+        setFormPosteData({});
+        setIvPosteData({});
+        setIvPosteSharedData({});
+        setPosteNotes({ dsa: '', dft: '', pgpa: '' });
+        jp.dispatch({ type: 'REMOVE_ATTACHMENTS_MATCHING', predicate: () => true });
+        // Reset chat-side analysis tracking so freshly-added postes get analyzed again
+        chatAnalyzedPostes.current = new Set();
+        chatPostesAnnounced.current = false;
+        chatExtractionAnnounced.current = false;
+        setChatMessages(prev => [...prev, {
+          type: 'user', text: `/${cmd}`
+        }, {
+          type: 'ai', text: 'Dossier vidé. Les pièces sont conservées. Vous pouvez maintenant tester les empty states du canvas (info dossier, chiffrage, JP).'
+        }]);
         return;
       }
 
@@ -4183,6 +4229,8 @@ export default function App() {
   const [attachMenuOpen, setAttachMenuOpen] = useState(false); // false | 'main' | 'pieces' | 'templates'
   const [attachSearch, setAttachSearch] = useState('');
   const attachMenuRef = useRef(null);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const suggestionsRef = useRef(null);
   // @-mention state
   const [mentionQuery, setMentionQuery] = useState(null); // null or { query: string, startIdx: number }
   const [mentionIdx, setMentionIdx] = useState(0); // highlighted index in dropdown
@@ -4193,6 +4241,7 @@ export default function App() {
   const chatScrollRef = useRef(null);
   const prevChatCountRef = useRef(0);
   const chatAnalyzedPostes = useRef(new Set()); // track which postes chat has already analyzed
+  const chatJustInvitedPoste = useRef(null); // posteId set by canvas "+ poste" trigger; suppresses greeting in welcome useEffect
 
   // Close attach menu on click outside
   useEffect(() => {
@@ -4203,6 +4252,16 @@ export default function App() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [attachMenuOpen]);
+
+  // Close suggestions menu on click outside
+  useEffect(() => {
+    if (!suggestionsOpen) return;
+    const handleClick = (e) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target)) setSuggestionsOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [suggestionsOpen]);
 
   // Close dossier overflow menu on click outside
   useEffect(() => {
@@ -5144,9 +5203,54 @@ export default function App() {
                     );
                   })()}
 
-                  <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors" disabled={chatLocked} style={{ opacity: chatLocked ? 0.4 : 1 }}>
-                    <Lightbulb className="w-4 h-4 text-[#78716c]" />
-                  </button>
+                  <div className="relative" ref={suggestionsRef}>
+                    <button
+                      className={`w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors ${suggestionsOpen ? 'bg-stone-100' : ''}`}
+                      disabled={chatLocked}
+                      style={{ opacity: chatLocked ? 0.4 : 1 }}
+                      onClick={() => { if (!chatLocked) setSuggestionsOpen(o => !o); }}
+                    >
+                      <Lightbulb className="w-4 h-4 text-[#78716c]" />
+                    </button>
+                    {suggestionsOpen && (() => {
+                      const CHAT_SUGGESTIONS = [
+                        { icon: Sparkles, text: 'Complète les informations du dossier' },
+                        { icon: Calculator, text: 'Chiffrons les préjudices de ce dossier' },
+                        { icon: HelpCircle, text: 'Quels sont les préjudices à chiffrer sur ce dossier' },
+                        { icon: Pencil, text: 'Rédiger un acte' },
+                        { icon: BookOpen, text: 'Rédiger un historique des faits' },
+                        { icon: Landmark, text: 'Chercher une JP' },
+                      ];
+                      return (
+                        <div className="absolute bottom-10 left-0 z-50 bg-white rounded-[8px] border border-[#e7e5e3] overflow-hidden" style={{ width: 320, boxShadow: '0px 2px 4px -2px rgba(26,26,26,0.05), 0px 4px 6px -1px rgba(26,26,26,0.05)' }}>
+                          <div className="bg-[#f8f7f5] px-2.5 py-2 border-b border-[#e7e5e3]">
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                              Suggestions
+                            </span>
+                          </div>
+                          <div className="p-1">
+                            {CHAT_SUGGESTIONS.map((s) => {
+                              const Icon = s.icon;
+                              return (
+                                <button
+                                  key={s.text}
+                                  className="w-full flex items-center gap-2 px-2 py-1.5 text-left rounded-[6px] hover:bg-[#fafaf9] transition-colors"
+                                  onClick={() => {
+                                    setChatInputValue(s.text);
+                                    setSuggestionsOpen(false);
+                                    setTimeout(() => chatTextareaRef.current?.focus(), 0);
+                                  }}
+                                >
+                                  <Icon className="w-3.5 h-3.5 text-[#a8a29e] flex-shrink-0" strokeWidth={1.5} />
+                                  <span className="text-[13px] text-[#292524]">{s.text}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
                 <button
                   className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
@@ -8721,15 +8825,11 @@ export default function App() {
                       <div className="text-caption text-[#a8a29e]">Résumé des faits</div>
                       {!faitGenerateur.resume && (
                         <button
-                          onClick={handleGenerateResume}
-                          disabled={aiGenerating === 'resume'}
-                          className="flex items-center gap-1 text-caption-medium text-violet-500 hover:text-violet-700 transition-colors disabled:opacity-50"
+                          onClick={() => fireCanvasPrompt('Complète les informations du dossier', { scenarioKey: 'canvas-dossier-info' })}
+                          className="flex items-center gap-1 text-caption-medium text-violet-500 hover:text-violet-700 transition-colors"
                         >
-                          {aiGenerating === 'resume' ? (
-                            <><Loader2 className="w-3 h-3 animate-spin" strokeWidth={2} />Génération...</>
-                          ) : (
-                            <><Sparkles className="w-3 h-3" strokeWidth={2} />Générer avec l'IA</>
-                          )}
+                          <Sparkles className="w-3 h-3" strokeWidth={2} />
+                          Compléter les informations du dossier
                         </button>
                       )}
                     </div>
@@ -8937,7 +9037,12 @@ export default function App() {
               <EmptyState
                 icon={ClipboardList}
                 title="Aucun poste de préjudice"
-                description="Sélectionnez un poste dans le menu latéral pour commencer le chiffrage."
+                description="Demandez à Plato d'identifier les postes pertinents, ou sélectionnez-en un manuellement dans le menu latéral."
+                primaryAction={{
+                  label: 'Commençons le chiffrage',
+                  icon: Sparkles,
+                  onClick: () => fireCanvasPrompt('Commençons le chiffrage de ce dossier', { scenarioKey: 'canvas-commencer-chiffrage' }),
+                }}
               />
             </div>
           );
@@ -9410,6 +9515,9 @@ export default function App() {
                             {showCat && <div className="px-4 pt-3 pb-1" style={colHeaderStyle}>{p.categoryTitle}</div>}
                             <button
                               onClick={() => {
+                                const isNewlyAdded = isIvFilter
+                                  ? !alreadyEnabledIv.includes(p.id)
+                                  : !isEnabled;
                                 if (isIvFilter) {
                                   // Add IV poste
                                   if (!alreadyEnabledIv.includes(p.id)) {
@@ -9429,6 +9537,11 @@ export default function App() {
                                 }
                                 setPosteSearchOpen(false);
                                 setPosteSearchVictimeFilter(null);
+                                if (isNewlyAdded) {
+                                  const acronym = (p.acronym || p.id).toUpperCase();
+                                  chatJustInvitedPoste.current = p.id;
+                                  fireCanvasPrompt(`Calculons ensemble les ${acronym} pour ce dossier`);
+                                }
                               }}
                               className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-stone-50 transition-colors text-left"
                             >
@@ -9891,10 +10004,7 @@ export default function App() {
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
               onAddClick={() => jp.openStepper('jp-add')}
               posteLabel={currentLevel.title}
-              onSearchJP={() => {
-                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
-                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
-              }}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
@@ -10196,10 +10306,7 @@ export default function App() {
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
               onAddClick={() => jp.openStepper('jp-add')}
               posteLabel={currentLevel.title}
-              onSearchJP={() => {
-                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
-                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
-              }}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
@@ -10505,10 +10612,7 @@ export default function App() {
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
               onAddClick={() => jp.openStepper('jp-add')}
               posteLabel={currentLevel.title}
-              onSearchJP={() => {
-                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
-                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
-              }}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
@@ -10725,10 +10829,7 @@ export default function App() {
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
               onAddClick={() => jp.openStepper('jp-add')}
               posteLabel={currentLevel.title}
-              onSearchJP={() => {
-                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
-                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
-              }}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
@@ -10860,10 +10961,7 @@ export default function App() {
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
               onAddClick={() => jp.openStepper('jp-add')}
               posteLabel={currentLevel.title}
-              onSearchJP={() => {
-                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
-                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
-              }}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
@@ -10992,10 +11090,7 @@ export default function App() {
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
               onAddClick={() => jp.openStepper('jp-add')}
               posteLabel={currentLevel.title}
-              onSearchJP={() => {
-                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
-                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
-              }}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
@@ -11153,10 +11248,7 @@ export default function App() {
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
               onAddClick={() => jp.openStepper('jp-add')}
               posteLabel={currentLevel.title}
-              onSearchJP={() => {
-                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
-                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
-              }}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
@@ -12350,10 +12442,7 @@ export default function App() {
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
               onAddClick={() => jp.openStepper('jp-add')}
               posteLabel={currentLevel.title}
-              onSearchJP={() => {
-                const prompt = `Recherche des jurisprudences pertinentes pour le poste ${currentLevel.title} (${currentLevel.fullTitle || currentLevel.title}) dans ce dossier.`;
-                setChatMessages(prev => [...prev, { type: 'user', text: prompt }]);
-              }}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>

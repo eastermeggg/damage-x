@@ -58,7 +58,7 @@ export default function JPListing({
               }}
             >
               <Search style={{ width: 13, height: 13 }} />
-              Laisser Plato trouver une JP
+              Rechercher une JP
             </button>
           )}
         </div>
