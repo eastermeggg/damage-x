@@ -228,6 +228,12 @@ export default function useDemoCommands({ setChatMessages, setNavStack, tabsConf
               pills: action.pills || [],
             }]);
             break;
+          case 'AGENT_PLAIN_MESSAGE':
+            setChatMessages?.(prev => [...prev, {
+              type: 'ai',
+              text: action.text,
+            }]);
+            break;
           case 'OPEN_DRAWER':
             dispatch({ type: 'OPEN_DRAWER', decisionId: action.decisionId, resultSet: action.resultSet });
             break;

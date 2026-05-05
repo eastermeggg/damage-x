@@ -90,6 +90,41 @@ export const DEMO_SCENARIOS = {
       { type: 'OPEN_DRAWER', decisionId: 'jp-atpt-01', resultSet: ['jp-atpt-01', 'jp-atpt-02', 'jp-atpt-03', 'jp-atpt-06'] },
     ],
   },
+
+  // Canvas-anchored prompt suggestions (see .context/attachments/prompt-suggestions-v1.md)
+  'canvas-dossier-info': {
+    label: 'Compléter le dossier',
+    description: 'Chato lit les pièces et propose un résumé / pose des questions',
+    actions: [
+      { type: 'USER_MESSAGE', text: 'Complète les informations du dossier' },
+      { type: 'DELAY', ms: 400 },
+      { type: 'AGENT_REASONING', headline: 'Lecture du dossier', detail: 'Analyse des pièces et des informations déjà saisies…' },
+      { type: 'DELAY', ms: 1200 },
+      { type: 'AGENT_PLAIN_MESSAGE', text: "J'ai parcouru les pièces du dossier. Quelques précisions me seraient utiles :\n\n• La date d'accident retenue est-elle bien le **14/03/2024** (PV de gendarmerie n°2024-031) ?\n• Souhaitez-vous que je rédige un résumé des faits à partir du PV et du rapport d'expertise ?" },
+    ],
+  },
+  'canvas-commencer-chiffrage': {
+    label: 'Commencer le chiffrage',
+    description: 'Chato propose les postes pertinents à chiffrer',
+    actions: [
+      { type: 'USER_MESSAGE', text: 'Commençons le chiffrage de ce dossier' },
+      { type: 'DELAY', ms: 400 },
+      { type: 'AGENT_REASONING', headline: 'Analyse du dossier', detail: 'Identification des postes de préjudice pertinents au regard des pièces et de l\'expertise…' },
+      { type: 'DELAY', ms: 1400 },
+      { type: 'AGENT_PLAIN_MESSAGE', text: "Au vu du dossier, je propose de chiffrer les postes suivants en priorité :\n\n• **DSA** — Dépenses de santé actuelles (factures CPAM disponibles)\n• **DFT** — Déficit fonctionnel temporaire (période d'arrêt de 4 mois)\n• **PGPA** — Pertes de gains professionnels actuels\n• **DFP** — Déficit fonctionnel permanent (taux fixé à 12% par l'expert)\n\nPar lequel souhaitez-vous commencer ?" },
+    ],
+  },
+  'canvas-jp-generic': {
+    label: 'Rechercher une JP',
+    description: 'Chato cherche une JP contextuelle pour le poste courant',
+    actions: [
+      { type: 'USER_MESSAGE', text: 'Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier' },
+      { type: 'DELAY', ms: 400 },
+      { type: 'AGENT_REASONING', headline: 'Recherche JP', detail: 'Interrogation de la base Plato JP en fonction du poste et du profil de la victime…' },
+      { type: 'DELAY', ms: 1200 },
+      { type: 'AGENT_MESSAGE', text: "Voici 3 décisions qui me paraissent pertinentes au regard du dossier :\n\n{pill:jp-atpt-01} Cour d'appel de Paris, sur un profil similaire (étudiante, région parisienne). {pill:jp-dfp-01} Cassation, qui pose le barème actuel pour le point de DFP. {pill:jp-dft-01} CA Lyon, pour la valorisation du DFT en période d'arrêt prolongé.", pills: ['jp-atpt-01', 'jp-dfp-01', 'jp-dft-01'] },
+    ],
+  },
 };
 
 export const SCENARIO_LIST = Object.entries(DEMO_SCENARIOS).map(([key, s]) => ({
