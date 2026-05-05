@@ -12,6 +12,7 @@ import { REDACTION_SCENARIOS, REDACTION_COMMAND_LIST, REDACTION_COMMAND_MAP, RED
 import ActCanvas from './components/redaction/ActCanvas';
 import EmptyState from './components/EmptyState';
 import ActesList from './components/redaction/ActesList';
+import AlertDialog from './components/AlertDialog';
 import { BASELINE_DSA_LIGNES, BASELINE_DFT_LIGNES, BASELINE_PGPA_DATA, BASELINE_PGPF_DATA, BASELINE_FORM_POSTE_DATA, BASELINE_FDA_LIGNES, BASELINE_DSF_DATA } from './data/baselineData';
 import { NATURE_CREANCE, NATURE_TO_POSTE, NATURE_LABELS } from './data/tpScenarios';
 
@@ -1000,6 +1001,11 @@ export default function App() {
 
   // ========== LISTE DES DOSSIERS ==========
   const [dossiers, setDossiers] = useState([]);
+  const [dossierListTab, setDossierListTab] = useState('en-cours'); // 'en-cours' | 'termines'
+  const [dossierMenuOpen, setDossierMenuOpen] = useState(false);
+  const dossierMenuRef = useRef(null);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+  const [reopenConfirmOpen, setReopenConfirmOpen] = useState(false);
 
   const [navStack, setNavStack] = useState([]);
   const [, setExpandedCategories] = useState(['patrimoniaux-temp', 'extra-patrimoniaux-temp', 'patrimoniaux-perm']);
@@ -1391,7 +1397,7 @@ export default function App() {
   };
 
   // ========== INFORMATIONS DOSSIER ==========
-  const [dossierStatut, setDossierStatut] = useState('ouvert'); // 'ouvert' | 'fermé' | 'archive'
+  const [dossierStatut, setDossierStatut] = useState('ouvert'); // 'ouvert' | 'fermé'
   const [dossierRef, setDossierRef] = useState('DOS-2024-001');
   const [dossierIntitule, setDossierIntitule] = useState('Dossier Dupont');
   const [dossierDateOuverture, setDossierDateOuverture] = useState('15/03/2023');
@@ -1595,7 +1601,7 @@ export default function App() {
   useEffect(() => {
     const savedGlobal = lsLoad(LS_GLOBAL);
     if (savedGlobal) {
-      setDossiers(savedGlobal.dossiers);
+      setDossiers((savedGlobal.dossiers || []).map(d => ({ ...d, statut: d.statut ?? 'ouvert' })));
       setCurrentPage(savedGlobal.currentPage || 'list');
       setActiveDossierId(savedGlobal.activeDossierId);
       // Migration: rename 'détail' → 'info dossier' in saved navStack
@@ -2304,13 +2310,15 @@ export default function App() {
             >
               <Download className="w-4 h-4" strokeWidth={1.5} />
             </button>
-            <button
-              onClick={copyBordereau}
-              className="flex items-center gap-2 h-8 px-3 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)] transition-colors"
-            >
-              <Copy className="w-4 h-4" strokeWidth={1.5} />
-              Copier bordereau
-            </button>
+            {dossierStatut !== 'fermé' && (
+              <button
+                onClick={copyBordereau}
+                className="flex items-center gap-2 h-8 px-3 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)] transition-colors"
+              >
+                <Copy className="w-4 h-4" strokeWidth={1.5} />
+                Copier bordereau
+              </button>
+            )}
           </div>
         </div>
 
@@ -3079,7 +3087,8 @@ export default function App() {
       typeFait: formData.typeFait,
       date: formData.dateAccident,
       lastEditBy: 'Meghan R.',
-      lastEditDate: new Date().toLocaleDateString('fr-FR')
+      lastEditDate: new Date().toLocaleDateString('fr-FR'),
+      statut: 'ouvert'
     }, ...prev]);
 
     setVictimeData({
@@ -3980,15 +3989,19 @@ export default function App() {
   // ========== TOP BAR ==========
   const renderTopBar = () => {
     const dossierTabs = tabsConfig.dossier;
+    const isClosed = dossierStatut === 'fermé';
     return (
       <div className="w-full h-14 bg-white border-b border-stone-200/60 flex items-center justify-between px-4 flex-shrink-0 relative">
-        {/* Left: Home + victim name */}
+        {/* Left: Home + victim name + status */}
         <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
-          <button onClick={backToList} className="w-8 h-8 flex items-center justify-center bg-[#eeece6] rounded-[6px] hover:bg-[#e7e5e3] transition-colors flex-shrink-0">
-            <Folder className="w-4 h-4 text-[#44403c]" strokeWidth={1.5} />
+          <button onClick={backToList} title="Retour à la liste des dossiers" className="w-8 h-8 flex items-center justify-center bg-[#eeece6] rounded-[6px] hover:bg-[#e7e5e3] transition-colors flex-shrink-0">
+            <ChevronLeft className="w-4 h-4 text-[#44403c]" strokeWidth={1.75} />
           </button>
           <span className="truncate" style={{ fontFamily: "'RL Para Trial Central', Georgia, serif", fontSize: '16px', fontWeight: 500, color: '#292524', letterSpacing: '-0.3px' }}>
             {victimeData.prenom} {victimeData.nom}
+          </span>
+          <span className={`badge badge-sm ${isClosed ? 'badge-warning' : 'badge-success'}`}>
+            {isClosed ? 'Terminé' : 'En cours'}
           </span>
         </div>
 
@@ -4002,10 +4015,11 @@ export default function App() {
                 ? currentLevel.activeTab === tabKey
                 : navStack[0]?.activeTab === tabKey;
 
-              // Diff diamond: check activeDiffs for pending diffs in this tab's zone
+              // Diff diamond: check activeDiffs for pending diffs in this tab's zone.
+              // Hidden in closed dossiers — no edits possible, so no diff signals.
               const tabZoneMap = { dossier: 'infos_dossier', chiffrage: 'postes', 'pièces': 'pieces' };
               const tabZone = tabZoneMap[tabKey];
-              const zoneDiffs = tabZone ? activeDiffs.filter(d => d.zone === tabZone && !d.approved && !d.rejected) : [];
+              const zoneDiffs = tabZone && !isClosed ? activeDiffs.filter(d => d.zone === tabZone && !d.approved && !d.rejected) : [];
               // Determine dominant diff type for color
               const hasAdds = zoneDiffs.some(d => d.type === 'add');
               const hasEdits = zoneDiffs.some(d => d.type === 'edit');
@@ -4013,9 +4027,9 @@ export default function App() {
               const diffDiamondColor = hasEdits ? ROW_DIFF_COLORS.edit : hasDeletes ? ROW_DIFF_COLORS.delete : hasAdds ? ROW_DIFF_COLORS.add : null;
               const showDiffDiamond = zoneDiffs.length > 0;
 
-              // Legacy streaming dot (only if no diff diamond)
+              // Legacy streaming dot (only if no diff diamond and dossier is open)
               const hasExtracted = tab === 'Dossier' && infoDossierStreaming?.fieldsRevealed?.length > 0;
-              const showStreamingDot = hasExtracted && !isActive && !showDiffDiamond;
+              const showStreamingDot = hasExtracted && !isActive && !showDiffDiamond && !isClosed;
 
               return (
                 <button
@@ -4054,35 +4068,71 @@ export default function App() {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2 justify-end">
-          {/* Chiffrage CTAs removed from header — now in content page */}
-          <div className="w-px h-5 bg-[#e7e5e3]" />
-          {chatSidebarOpen ? (
+          {/* Overflow menu */}
+          <div className="relative" ref={dossierMenuRef}>
             <button
-              onClick={() => setChatSidebarOpen(false)}
-              className="p-1.5 hover:bg-stone-100 rounded-lg transition-colors"
-              title="Masquer le chat"
+              onClick={() => setDossierMenuOpen(prev => !prev)}
+              className={`p-1.5 rounded-lg transition-colors ${dossierMenuOpen ? 'bg-stone-100' : 'hover:bg-stone-100'}`}
+              title="Plus d'options"
             >
-              <PanelRightClose className="w-5 h-5 text-stone-500" strokeWidth={1.5} />
+              <MoreVertical className="w-5 h-5 text-stone-500" strokeWidth={1.5} />
             </button>
-          ) : (
-            <button
-              onClick={() => setChatSidebarOpen(true)}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all hover:shadow-md"
-              title="Ouvrir Plato Assistant"
-              style={{
-                border: '1px solid #aabcd5',
-                boxShadow: '0px 1px 2px 0px rgba(0,0,0,0.05)',
-                backgroundImage: `url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 36' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'><rect x='0' y='0' height='100%25' width='100%25' fill='url(%23grad)' opacity='0.2'/><defs><radialGradient id='grad' gradientUnits='userSpaceOnUse' cx='0' cy='0' r='10' gradientTransform='matrix(0 -3.29 7.6 -0.48 100 18)'><stop stop-color='rgba(185,112,63,1)' offset='0'/><stop stop-color='rgba(203,148,111,0.75)' offset='0.25'/><stop stop-color='rgba(220,183,159,0.5)' offset='0.5'/><stop stop-color='rgba(255,255,255,0)' offset='1'/></radialGradient></defs></svg>"), linear-gradient(90deg, #f8f7f5 0%, #f8f7f5 100%)`,
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                <rect width="16" height="16" rx="3" fill="#E8713A" />
-                <path d="M4.5 11V5.5H7.25C7.75 5.5 8.15 5.65 8.45 5.95C8.75 6.25 8.9 6.6 8.9 7.05C8.9 7.5 8.75 7.85 8.45 8.15C8.15 8.45 7.75 8.6 7.25 8.6H5.8V11H4.5ZM5.8 7.5H7.1C7.3 7.5 7.45 7.45 7.55 7.35C7.65 7.25 7.7 7.1 7.7 6.95C7.7 6.8 7.65 6.65 7.55 6.55C7.45 6.45 7.3 6.4 7.1 6.4H5.8V7.5Z" fill="white" />
-              </svg>
-              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '12px', color: '#50443e', whiteSpace: 'nowrap' }}>
-                PLATO ASSISTANT
-              </span>
-            </button>
+            {dossierMenuOpen && (
+              <div className="absolute top-full right-0 mt-1 z-50 bg-white rounded-[8px] border border-[#e7e5e3] overflow-hidden" style={{ minWidth: 220, boxShadow: '0px 2px 4px -2px rgba(26,26,26,0.05), 0px 4px 6px -1px rgba(26,26,26,0.05)' }}>
+                <div className="p-1">
+                  {isClosed ? (
+                    <button
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left rounded-[6px] hover:bg-[#fafaf9] transition-colors"
+                      onClick={() => { setDossierMenuOpen(false); setReopenConfirmOpen(true); }}
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-[#78716c]" strokeWidth={1.5} />
+                      <span className="text-[14px] text-[#292524]">Reprendre le dossier</span>
+                    </button>
+                  ) : (
+                    <button
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left rounded-[6px] hover:bg-[#fef2f2] transition-colors"
+                      onClick={() => { setDossierMenuOpen(false); setCloseConfirmOpen(true); }}
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5 text-[#991b1b]" strokeWidth={1.5} />
+                      <span className="text-[14px] text-[#991b1b]">Marquer comme terminé</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          {!isClosed && (
+            <>
+              <div className="w-px h-5 bg-[#e7e5e3]" />
+              {chatSidebarOpen ? (
+                <button
+                  onClick={() => setChatSidebarOpen(false)}
+                  className="p-1.5 hover:bg-stone-100 rounded-lg transition-colors"
+                  title="Masquer le chat"
+                >
+                  <PanelRightClose className="w-5 h-5 text-stone-500" strokeWidth={1.5} />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setChatSidebarOpen(true)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all hover:shadow-md"
+                  title="Ouvrir Plato Assistant"
+                  style={{
+                    border: '1px solid #aabcd5',
+                    boxShadow: '0px 1px 2px 0px rgba(0,0,0,0.05)',
+                    backgroundImage: `url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 36' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'><rect x='0' y='0' height='100%25' width='100%25' fill='url(%23grad)' opacity='0.2'/><defs><radialGradient id='grad' gradientUnits='userSpaceOnUse' cx='0' cy='0' r='10' gradientTransform='matrix(0 -3.29 7.6 -0.48 100 18)'><stop stop-color='rgba(185,112,63,1)' offset='0'/><stop stop-color='rgba(203,148,111,0.75)' offset='0.25'/><stop stop-color='rgba(220,183,159,0.5)' offset='0.5'/><stop stop-color='rgba(255,255,255,0)' offset='1'/></radialGradient></defs></svg>"), linear-gradient(90deg, #f8f7f5 0%, #f8f7f5 100%)`,
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                    <rect width="16" height="16" rx="3" fill="#E8713A" />
+                    <path d="M4.5 11V5.5H7.25C7.75 5.5 8.15 5.65 8.45 5.95C8.75 6.25 8.9 6.6 8.9 7.05C8.9 7.5 8.75 7.85 8.45 8.15C8.15 8.45 7.75 8.6 7.25 8.6H5.8V11H4.5ZM5.8 7.5H7.1C7.3 7.5 7.45 7.45 7.55 7.35C7.65 7.25 7.7 7.1 7.7 6.95C7.7 6.8 7.65 6.65 7.55 6.55C7.45 6.45 7.3 6.4 7.1 6.4H5.8V7.5Z" fill="white" />
+                  </svg>
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '12px', color: '#50443e', whiteSpace: 'nowrap' }}>
+                    PLATO ASSISTANT
+                  </span>
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -4154,6 +4204,16 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [attachMenuOpen]);
 
+  // Close dossier overflow menu on click outside
+  useEffect(() => {
+    if (!dossierMenuOpen) return;
+    const handleClick = (e) => {
+      if (dossierMenuRef.current && !dossierMenuRef.current.contains(e.target)) setDossierMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [dossierMenuOpen]);
+
   // ========== JP STATE ==========
   const jp = useDemoCommands({ setChatMessages, setNavStack, tabsConfig: { dossier: ['Dossier', 'Chiffrage', 'Pièces', 'Actes', 'JP'], poste: [] } });
   const [jpPopover, setJpPopover] = useState(null); // { decision, anchorRect }
@@ -4193,6 +4253,8 @@ export default function App() {
 
   const renderChatSidebar = () => {
     const hasContent = chatInputValue.trim().length > 0 || stagedDocs.length > 0;
+    const isDossierClosed = dossierStatut === 'fermé';
+    const chatLocked = chatBlocked || isDossierClosed;
 
     return (
       <>
@@ -4771,11 +4833,11 @@ export default function App() {
                 <textarea
                   ref={chatTextareaRef}
                   className="w-full text-[14px] resize-none focus:outline-none"
-                  style={{ color: chatInputValue ? '#11181c' : '#78716c', lineHeight: '20px', minHeight: 20, maxHeight: 120, opacity: chatBlocked ? 0.5 : 1, cursor: chatBlocked ? 'not-allowed' : undefined }}
-                  placeholder={chatBlocked ? 'Plato analyse vos documents...' : selectedActeZone ? 'Demandez une modification sur cette partie…' : 'Demander à Plato Master de calculer, rechercher des JP, rédiger des actes...'}
+                  style={{ color: chatInputValue ? '#11181c' : '#78716c', lineHeight: '20px', minHeight: 20, maxHeight: 120, opacity: chatLocked ? 0.5 : 1, cursor: chatLocked ? 'not-allowed' : undefined }}
+                  placeholder={isDossierClosed ? 'Dossier terminé — Plato indisponible' : chatBlocked ? 'Plato analyse vos documents...' : selectedActeZone ? 'Demandez une modification sur cette partie…' : 'Demander à Plato Master de calculer, rechercher des JP, rédiger des actes...'}
                   value={chatInputValue}
                   onChange={(e) => {
-                    if (chatBlocked) return;
+                    if (chatLocked) return;
                     const val = e.target.value;
                     setChatInputValue(val);
                     // Detect @mention
@@ -4819,12 +4881,12 @@ export default function App() {
                       }
                       if (e.key === 'Escape') { e.preventDefault(); setMentionQuery(null); return; }
                     }
-                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!chatBlocked) handleChatSend(); }
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!chatLocked) handleChatSend(); }
                   }}
                   onFocus={() => setChatInputFocused(true)}
                   onBlur={() => { setChatInputFocused(false); setTimeout(() => setMentionQuery(null), 150); }}
                   rows={1}
-                  disabled={chatBlocked}
+                  disabled={chatLocked}
                 />
                 {/* @mention dropdown — grouped by type */}
                 {mentionQuery !== null && (() => {
@@ -4888,15 +4950,15 @@ export default function App() {
               <div
                 className="flex items-center justify-between px-3 py-3"
                 style={{
-                  background: (hasContent && !chatBlocked) ? 'linear-gradient(to bottom, white 44.66%, #eeece6 100%)' : 'transparent',
+                  background: (hasContent && !chatLocked) ? 'linear-gradient(to bottom, white 44.66%, #eeece6 100%)' : 'transparent',
                 }}
               >
                 <div className="flex items-center gap-0.5 relative" ref={attachMenuRef}>
                   <button
                     className={`w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors ${attachMenuOpen ? 'bg-stone-100' : ''}`}
-                    disabled={chatBlocked}
-                    style={{ opacity: chatBlocked ? 0.4 : 1 }}
-                    onClick={() => { if (!chatBlocked) setAttachMenuOpen(attachMenuOpen ? false : 'main'); }}
+                    disabled={chatLocked}
+                    style={{ opacity: chatLocked ? 0.4 : 1 }}
+                    onClick={() => { if (!chatLocked) setAttachMenuOpen(attachMenuOpen ? false : 'main'); }}
                   >
                     <Paperclip className="w-4 h-4 text-[#78716c]" />
                   </button>
@@ -5082,21 +5144,21 @@ export default function App() {
                     );
                   })()}
 
-                  <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors" disabled={chatBlocked} style={{ opacity: chatBlocked ? 0.4 : 1 }}>
+                  <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors" disabled={chatLocked} style={{ opacity: chatLocked ? 0.4 : 1 }}>
                     <Lightbulb className="w-4 h-4 text-[#78716c]" />
                   </button>
                 </div>
                 <button
                   className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
                   style={{
-                    backgroundColor: (hasContent && !chatBlocked) ? '#b9703f' : '#eeece6',
-                    boxShadow: (hasContent && !chatBlocked) ? '0px 1px 2px 0px rgba(26,26,26,0.05)' : 'none',
-                    opacity: (hasContent && !chatBlocked) ? 1 : 0.5,
-                    cursor: (hasContent && !chatBlocked) ? 'pointer' : 'default',
+                    backgroundColor: (hasContent && !chatLocked) ? '#b9703f' : '#eeece6',
+                    boxShadow: (hasContent && !chatLocked) ? '0px 1px 2px 0px rgba(26,26,26,0.05)' : 'none',
+                    opacity: (hasContent && !chatLocked) ? 1 : 0.5,
+                    cursor: (hasContent && !chatLocked) ? 'pointer' : 'default',
                   }}
-                  onClick={(hasContent && !chatBlocked) ? handleChatSend : undefined}
+                  onClick={(hasContent && !chatLocked) ? handleChatSend : undefined}
                 >
-                  <ArrowUp className="w-4 h-4" style={{ color: (hasContent && !chatBlocked) ? 'white' : '#78716c' }} />
+                  <ArrowUp className="w-4 h-4" style={{ color: (hasContent && !chatLocked) ? 'white' : '#78716c' }} />
                 </button>
               </div>
             </>
@@ -5144,9 +5206,11 @@ export default function App() {
               </span>
               <span className="text-[14px] font-medium text-[#292524]">{currentLevel.fullTitle || currentLevel.title}</span>
             </div>
-            <button onClick={() => setShowExportModal(true)} className="h-8 flex items-center gap-2 px-4 text-[14px] font-medium text-white bg-[#292524] rounded-lg hover:bg-[#44403c] transition-colors" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
-              Copier chiffrage
-            </button>
+            {dossierStatut !== 'fermé' && (
+              <button onClick={() => setShowExportModal(true)} className="h-8 flex items-center gap-2 px-4 text-[14px] font-medium text-white bg-[#292524] rounded-lg hover:bg-[#44403c] transition-colors" style={{ boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)' }}>
+                Copier chiffrage
+              </button>
+            )}
           </div>
         </div>
       );
@@ -6331,9 +6395,8 @@ export default function App() {
                     <FormSection title="Statut">
                       <FormField label="État du dossier">
                         <select id="dossier-statut" defaultValue={dossierStatut} className={selectClass}>
-                          <option value="ouvert">Ouvert</option>
-                          <option value="ferme">Fermé</option>
-                          <option value="archive">Archivé</option>
+                          <option value="ouvert">En cours</option>
+                          <option value="fermé">Terminé</option>
                         </select>
                       </FormField>
                       <FormField label="Date d'ouverture">
@@ -8512,12 +8575,14 @@ export default function App() {
                     </svg>
                     <span className="text-[11px] font-medium text-[#78716c] uppercase tracking-wider" style={colHeaderStyle}>Victimes indirectes</span>
                   </div>
-                  <button
-                    onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Nouvelle victime indirecte', data: null })}
-                    className="flex items-center gap-1 px-2 py-1 text-caption text-[#78716c] hover:bg-[#eeece6] rounded transition-colors"
-                  >
-                    <Plus className="w-3 h-3" strokeWidth={1.5} />Ajouter
-                  </button>
+                  {dossierStatut !== 'fermé' && (
+                    <button
+                      onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Nouvelle victime indirecte', data: null })}
+                      className="flex items-center gap-1 px-2 py-1 text-caption text-[#78716c] hover:bg-[#eeece6] rounded transition-colors"
+                    >
+                      <Plus className="w-3 h-3" strokeWidth={1.5} />Ajouter
+                    </button>
+                  )}
                 </div>
                 {victimesIndirectes.length > 0 ? (
                   <div className="divide-y divide-[#e7e5e3]">
@@ -8715,12 +8780,14 @@ export default function App() {
                     </svg>
                     <span className="text-body-medium">Victimes indirectes</span>
                   </div>
-                  <button
-                    onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Nouvelle victime indirecte', data: null })}
-                    className="flex items-center gap-1 px-2 py-1 text-caption text-[#78716c] hover:bg-[#eeece6] rounded transition-colors"
-                  >
-                    <Plus className="w-3 h-3" strokeWidth={1.5} />Ajouter
-                  </button>
+                  {dossierStatut !== 'fermé' && (
+                    <button
+                      onClick={() => setEditPanel({ type: 'victime-indirecte', title: 'Nouvelle victime indirecte', data: null })}
+                      className="flex items-center gap-1 px-2 py-1 text-caption text-[#78716c] hover:bg-[#eeece6] rounded transition-colors"
+                    >
+                      <Plus className="w-3 h-3" strokeWidth={1.5} />Ajouter
+                    </button>
+                  )}
                 </div>
                 {victimesIndirectes.length > 0 ? (
                   <div className="divide-y divide-[#e7e5e3]">
@@ -8942,21 +9009,25 @@ export default function App() {
                 <span style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{fmt(totalIndem)}</span>
               </div>
               <div className="flex-1" />
-              <button
-                className="h-9 px-3 flex items-center gap-2 border border-[#d6d3d1] rounded-lg whitespace-nowrap hover:bg-stone-50 transition-colors"
-                style={{ fontSize: 14, fontWeight: 500, color: '#44403c' }}
-              >
-                <Download className="w-3.5 h-3.5 text-[#78716c]" />
-                Exporter
-              </button>
-              <button
-                className="h-9 px-3 flex items-center gap-2 rounded-lg whitespace-nowrap hover:opacity-90 transition-opacity"
-                style={{ fontSize: 14, fontWeight: 500, color: 'white', backgroundColor: '#292524' }}
-                onClick={() => setPosteSearchOpen(true)}
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Ajouter un poste
-              </button>
+              {dossierStatut !== 'fermé' && (
+                <>
+                  <button
+                    className="h-9 px-3 flex items-center gap-2 border border-[#d6d3d1] rounded-lg whitespace-nowrap hover:bg-stone-50 transition-colors"
+                    style={{ fontSize: 14, fontWeight: 500, color: '#44403c' }}
+                  >
+                    <Download className="w-3.5 h-3.5 text-[#78716c]" />
+                    Exporter
+                  </button>
+                  <button
+                    className="h-9 px-3 flex items-center gap-2 rounded-lg whitespace-nowrap hover:opacity-90 transition-opacity"
+                    style={{ fontSize: 14, fontWeight: 500, color: 'white', backgroundColor: '#292524' }}
+                    onClick={() => setPosteSearchOpen(true)}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Ajouter un poste
+                  </button>
+                </>
+              )}
             </div>
 
             {/* ===== Victim-sectioned category tables ===== */}
@@ -9433,12 +9504,13 @@ export default function App() {
 
       // Actes tab — drafted legal documents
       if (currentLevel.activeTab === 'actes') {
+        const isClosed = dossierStatut === 'fermé';
         return (
           <ActesList
             actes={redaction.redactionState.dossierActes}
             onOpen={(id) => redaction.openCanvas(id)}
-            onNewActe={() => setNewActeModalOpen(true)}
-            onSendPrompt={() => {
+            onNewActe={isClosed ? undefined : () => setNewActeModalOpen(true)}
+            onSendPrompt={isClosed ? undefined : () => {
               setChatMessages(prev => [...prev, { type: 'user', text: 'Écrire mon premier acte' }]);
               setChatInputValue('');
               setTimeout(() => redaction.playScenario('redaction-onboarding'), 200);
@@ -12331,6 +12403,23 @@ export default function App() {
     setActiveDossierId(null);
   };
 
+  const handleCloseDossier = () => {
+    if (!activeDossierId) return;
+    setDossierStatut('fermé');
+    setDossiers(prev => prev.map(d => d.id === activeDossierId ? { ...d, statut: 'fermé' } : d));
+    setCloseConfirmOpen(false);
+    setDossierMenuOpen(false);
+    setChatSidebarOpen(false);
+  };
+
+  const handleReopenDossier = () => {
+    if (!activeDossierId) return;
+    setDossierStatut('ouvert');
+    setDossiers(prev => prev.map(d => d.id === activeDossierId ? { ...d, statut: 'ouvert' } : d));
+    setReopenConfirmOpen(false);
+    setDossierMenuOpen(false);
+  };
+
   // ========== RENDER WIZARD CRÉATION DOSSIER ==========
   // ========== MODALE EXPORT (surfacing, non-actionable) ==========
   const renderExportModal = () => {
@@ -12400,6 +12489,86 @@ export default function App() {
     );
   };
 
+  // ========== MODALES FERMETURE / RÉOUVERTURE DOSSIER ==========
+  const renderCloseDossierModal = () => (
+    <AlertDialog
+      open={closeConfirmOpen}
+      onOpenChange={setCloseConfirmOpen}
+      icon={AlertTriangle}
+      iconVariant="destructive"
+      title="Marquer ce dossier comme terminé ?"
+      description="Cette action est irrémédiable."
+      actionLabel="Marquer comme terminé"
+      actionVariant="destructive"
+      onAction={handleCloseDossier}
+    >
+      <ul className="space-y-2">
+        <li className="text-body text-[#44403c] leading-relaxed">
+          Le dossier passe en lecture seule&nbsp;: plus aucune modification possible (chiffrage, pièces, rédactions).
+        </li>
+        <li className="text-body text-[#44403c] leading-relaxed">
+          Reprendre un dossier terminé consommera un crédit sur votre quota.
+        </li>
+      </ul>
+    </AlertDialog>
+  );
+
+  const renderReopenDossierModal = () => {
+    // Mirrors renderDossierIndicator quota math so the disable logic stays in sync with the PlanCard component.
+    const isFree = billingState === 'free';
+    const used = isFree ? 1 : (billingState === 'over' || billingState === 'credits') ? 20 : billingState === 'trial' ? 1 : billingState === 'trial-end' ? 4 : 12;
+    const limit = isFree ? 1 : 20;
+    const remaining = Math.max(0, limit - used);
+    const maxActifs = isFree ? 1 : 50;
+    const usedActifs = isFree ? 1 : billingState === 'over' ? maxActifs : billingState === 'trial' ? 1 : billingState === 'trial-end' ? 3 : 8;
+    const matterAvailable = remaining > 0;
+    const actifsAtLimit = usedActifs >= maxActifs;
+    const cannotReopen = !matterAvailable || actifsAtLimit;
+
+    const warningText = cannotReopen
+      ? (!matterAvailable
+          ? 'Quota annuel atteint. Augmentez votre forfait pour ré-ouvrir ce dossier.'
+          : 'Limite de dossiers en cours atteinte. Marquez un dossier comme terminé pour libérer une place.')
+      : null;
+
+    const description = cannotReopen
+      ? 'Votre forfait actuel ne permet pas de ré-ouvrir ce dossier.'
+      : 'Le dossier redeviendra modifiable. Cette action consommera un crédit sur votre quota.';
+
+    const handleReopenAction = () => {
+      if (cannotReopen) {
+        setReopenConfirmOpen(false);
+        setSettingsSection('billing');
+        setCurrentPage('settings');
+      } else {
+        handleReopenDossier();
+      }
+    };
+
+    return (
+      <AlertDialog
+        open={reopenConfirmOpen}
+        onOpenChange={setReopenConfirmOpen}
+        icon={RefreshCw}
+        iconVariant="warning"
+        title="Reprendre ce dossier ?"
+        description={description}
+        warning={warningText}
+        actionLabel={cannotReopen ? 'Voir mon plan' : 'Reprendre le dossier'}
+        actionVariant="primary"
+        onAction={handleReopenAction}
+      >
+        {/* PlanCard — same component used in the sidebar. Click closes the modal and routes to billing. */}
+        <div
+          className="rounded-lg border border-[#e7e5e3] bg-white overflow-hidden mt-1"
+          onClickCapture={() => setReopenConfirmOpen(false)}
+        >
+          {renderDossierIndicator()}
+        </div>
+      </AlertDialog>
+    );
+  };
+
   // ========== DROP FIRST — HANDLERS ==========
   const handleDropFirstCreate = () => {
     if (!dropModal || dropModal.files.length === 0) return;
@@ -12426,7 +12595,8 @@ export default function App() {
 
     setDossiers(prev => [{
       id: newId, reference: refName, typeFait: hasRapport ? 'Accident de la voie publique' : '',
-      date: new Date().toLocaleDateString('fr-FR'), lastEditBy: 'Meghan R.', lastEditDate: new Date().toLocaleDateString('fr-FR')
+      date: new Date().toLocaleDateString('fr-FR'), lastEditBy: 'Meghan R.', lastEditDate: new Date().toLocaleDateString('fr-FR'),
+      statut: 'ouvert'
     }, ...prev]);
 
     setVictimeData(extracted
@@ -12903,20 +13073,22 @@ export default function App() {
           {/* Content with padding */}
           <div className="p-4 flex-1 overflow-y-auto">
             {/* Drop zone */}
-            <div
-              className="mb-4 flex items-center justify-center gap-4 h-16 border border-dashed border-[#d6d3d1] rounded-lg cursor-pointer transition-colors hover:border-[#a8a29e]"
-              style={{ background: 'linear-gradient(to top, rgba(238,236,230,0) 50%, #f8f7f5 100%)' }}
-              onClick={() => document.getElementById('add-pieces-input')?.click()}
-              onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
-              onDrop={e => { e.preventDefault(); e.stopPropagation(); handleAddMorePieces(e.dataTransfer.files); }}
-            >
-              <Upload className="w-5 h-5 text-[#78716c]" strokeWidth={1.5} />
-              <span className="text-sm">
-                <span className="text-[#78716c]">Déposez ou </span>
-                <span className="font-medium text-[#1e3a8a]">cliquez</span>
-                <span className="text-[#78716c]"> pour ajouter de nouvelles pièces</span>
-              </span>
-            </div>
+            {dossierStatut !== 'fermé' && (
+              <div
+                className="mb-4 flex items-center justify-center gap-4 h-16 border border-dashed border-[#d6d3d1] rounded-lg cursor-pointer transition-colors hover:border-[#a8a29e]"
+                style={{ background: 'linear-gradient(to top, rgba(238,236,230,0) 50%, #f8f7f5 100%)' }}
+                onClick={() => document.getElementById('add-pieces-input')?.click()}
+                onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={e => { e.preventDefault(); e.stopPropagation(); handleAddMorePieces(e.dataTransfer.files); }}
+              >
+                <Upload className="w-5 h-5 text-[#78716c]" strokeWidth={1.5} />
+                <span className="text-sm">
+                  <span className="text-[#78716c]">Déposez ou </span>
+                  <span className="font-medium text-[#1e3a8a]">cliquez</span>
+                  <span className="text-[#78716c]"> pour ajouter de nouvelles pièces</span>
+                </span>
+              </div>
+            )}
 
             {/* Reorder hint banner */}
             {showReorderHint && !manualReorder && (
@@ -12965,13 +13137,15 @@ export default function App() {
                 >
                   <Download className="w-4 h-4 text-[#44403c]" strokeWidth={1.5} />
                 </button>
-                <button
-                  onClick={handleCopyBordereau}
-                  className="flex items-center gap-2 h-8 px-3 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)] transition-colors"
-                >
-                  <Copy className="w-4 h-4" strokeWidth={1.5} />
-                  Copier bordereau
-                </button>
+                {dossierStatut !== 'fermé' && (
+                  <button
+                    onClick={handleCopyBordereau}
+                    className="flex items-center gap-2 h-8 px-3 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)] transition-colors"
+                  >
+                    <Copy className="w-4 h-4" strokeWidth={1.5} />
+                    Copier bordereau
+                  </button>
+                )}
               </div>
             </div>
             <div className="border border-[#e7e5e3] rounded-[6px] overflow-visible bg-white">
@@ -14395,14 +14569,19 @@ export default function App() {
 
   const renderHomeSidebar = () => renderUnifiedSidebar({ collapsed: false });
 
-  const renderDossierListPage = () => (
+  const renderDossierListPage = () => {
+    const enCoursCount = dossiers.filter(d => (d.statut ?? 'ouvert') !== 'fermé').length;
+    const terminesCount = dossiers.filter(d => d.statut === 'fermé').length;
+    const filteredDossiers = dossiers.filter(d => dossierListTab === 'termines' ? d.statut === 'fermé' : (d.statut ?? 'ouvert') !== 'fermé');
+
+    return (
     <div className="h-screen flex relative" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: '#27272a' }}>
       {renderHomeSidebar()}
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
         {/* Header */}
-        <div className="px-8 pt-8 pb-6">
+        <div className="px-8 pt-8 pb-4">
           <div className="flex items-center justify-between">
             <h1 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '28px', fontWeight: 400, color: '#18181b', letterSpacing: '-0.01em' }}>
               Mes dossiers
@@ -14419,8 +14598,48 @@ export default function App() {
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="px-8 border-b border-[#e7e5e3]">
+          <div className="flex gap-1">
+            {[
+              { key: 'en-cours', label: 'Dossiers en cours', count: enCoursCount },
+              { key: 'termines', label: 'Dossiers terminés', count: terminesCount },
+            ].map(tab => {
+              const isActive = dossierListTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setDossierListTab(tab.key)}
+                  className={`relative px-4 py-3 text-body-medium transition-colors ${isActive ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}`}
+                >
+                  <span className="flex items-center gap-2">
+                    {tab.label}
+                    <span className={`tabular-nums text-caption-medium px-1.5 py-0.5 rounded ${isActive ? 'bg-[#eeece6] text-[#44403c]' : 'bg-transparent text-[#a8a29e]'}`}>{tab.count}</span>
+                  </span>
+                  {isActive && <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-stone-800 rounded-full" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Table */}
-        <div className="flex-1 overflow-y-auto px-8 pb-8">
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          {filteredDossiers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-12 h-12 rounded-xl bg-[#eeece6] flex items-center justify-center mb-3">
+                <Folder className="w-5 h-5 text-[#a8a29e]" strokeWidth={1.5} />
+              </div>
+              <p className="text-body-medium text-[#292524] mb-1">
+                {dossierListTab === 'termines' ? 'Aucun dossier terminé' : 'Aucun dossier en cours'}
+              </p>
+              <p className="text-body text-[#78716c]">
+                {dossierListTab === 'termines'
+                  ? 'Les dossiers terminés apparaîtront ici.'
+                  : 'Créez un nouveau dossier pour commencer.'}
+              </p>
+            </div>
+          ) : (
           <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
             <table className="w-full">
               <thead>
@@ -14428,12 +14647,15 @@ export default function App() {
                   <th className="px-5 py-3 text-left" style={colHeaderStyle}>Référence</th>
                   <th className="px-5 py-3 text-left" style={colHeaderStyle}>Type de fait</th>
                   <th className="px-5 py-3 text-left" style={colHeaderStyle}>Date</th>
+                  <th className="px-5 py-3 text-left" style={colHeaderStyle}>Statut</th>
                   <th className="px-5 py-3 text-left" style={colHeaderStyle}>Dernier édit</th>
                   <th className="px-5 py-3 w-10"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e7e5e3]">
-                {dossiers.map(dossier => (
+                {filteredDossiers.map(dossier => {
+                  const isClosed = dossier.statut === 'fermé';
+                  return (
                   <tr
                     key={dossier.id}
                     onClick={() => openDossier(dossier)}
@@ -14449,6 +14671,11 @@ export default function App() {
                     </td>
                     <td className="px-5 py-4 text-body text-[#78716c]">{dossier.typeFait}</td>
                     <td className="px-5 py-4 text-body text-[#78716c] tabular-nums">{dossier.date}</td>
+                    <td className="px-5 py-4">
+                      <span className={`badge badge-sm ${isClosed ? 'badge-warning' : 'badge-success'}`}>
+                        {isClosed ? 'Terminé' : 'En cours'}
+                      </span>
+                    </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
@@ -14466,16 +14693,19 @@ export default function App() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
+          )}
         </div>
       </div>
       {renderCreationWizard()}
       {renderDropFirstModal()}
     </div>
-  );
+    );
+  };
 
   // ========== MAIN ==========
   // Obtenir le parent pour le bouton back
@@ -17716,7 +17946,7 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
                                 Capacité simultanée
                               </div>
                               <div>
-                                Nombre maximum de dossiers ouverts en parallèle, défini par votre forfait : <span className="tabular-nums">{cfg.limit}</span> dossiers/an donne droit à <span className="tabular-nums">{cfg.maxActifs}</span> dossiers actifs simultanés. Archivez un dossier — sans le supprimer — pour libérer une place.
+                                Nombre maximum de dossiers ouverts en parallèle, défini par votre forfait : <span className="tabular-nums">{cfg.limit}</span> dossiers/an donne droit à <span className="tabular-nums">{cfg.maxActifs}</span> dossiers actifs simultanés. Marquez un dossier comme terminé — sans le supprimer — pour libérer une place.
                               </div>
                             </InfoTip>
                           </span>
@@ -19678,7 +19908,8 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
 
   return (
     <div
-      className="h-screen flex flex-col"
+      key={activeDossierId}
+      className="h-screen flex flex-col animate-fade-up"
       style={{
         backgroundColor: '#F8F7F5',
         fontFamily: "'Inter', system-ui, sans-serif",
@@ -19686,6 +19917,29 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
         color: '#27272a'
       }}
     >
+      {/* Closed-dossier banner — full viewport width, above the top nav (Figma node 2018:119250) */}
+      {dossierStatut === 'fermé' && (
+        <div
+          className="w-full h-12 flex items-center justify-between px-4 flex-shrink-0"
+          style={{ backgroundColor: '#f9ecd6' }}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <Eye className="w-4 h-4 flex-shrink-0" style={{ color: '#855b31' }} strokeWidth={1.75} />
+            <p className="text-body-medium truncate" style={{ color: '#855b31' }}>
+              Dossier terminé en lecture seule.
+              <span className="ml-1 font-normal">Reprendre consomme un crédit.</span>
+            </p>
+          </div>
+          <button
+            onClick={() => setReopenConfirmOpen(true)}
+            className="text-body-medium underline underline-offset-2 hover:opacity-80 transition-opacity flex-shrink-0"
+            style={{ color: '#855b31' }}
+          >
+            Reprendre le dossier
+          </button>
+        </div>
+      )}
+
       {/* Horizontal split: left content column + right chat sidebar */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Top Bar + Content */}
@@ -19693,16 +19947,20 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
           {renderTopBar()}
           {renderContentSubHeader()}
           <div className={`flex-1 ${currentLevel.activeTab === 'jp' || currentLevel.type === 'acte' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-            <div className={`${currentLevel.activeTab === 'jp' || currentLevel.type === 'acte' ? 'h-full' : 'min-h-full'} flex flex-col ${currentLevel.type === 'dossier' && currentLevel.activeTab !== 'jp' ? 'px-8 pt-6 pb-8' : ''}`}>{renderContent()}</div>
+            <div
+              className={`${currentLevel.activeTab === 'jp' || currentLevel.type === 'acte' ? 'h-full' : 'min-h-full'} flex flex-col ${currentLevel.type === 'dossier' && currentLevel.activeTab !== 'jp' ? 'px-8 pt-6 pb-8' : ''}`}
+            >{renderContent()}</div>
           </div>
         </div>
 
         {/* Right: Edit Panel or Chat Sidebar (full viewport height) */}
-        {editPanel ? renderEditPanel() : (chatSidebarOpen && renderChatSidebar())}
+        {editPanel ? renderEditPanel() : (dossierStatut !== 'fermé' && chatSidebarOpen && renderChatSidebar())}
       </div>
 
       {renderAddModal()}
       {renderExportModal()}
+      {renderCloseDossierModal()}
+      {renderReopenDossierModal()}
       {renderSmartProcedureWizard()}
       {baremeViewerOpen && renderBaremeViewer()}
       {renderNewActeModal()}
