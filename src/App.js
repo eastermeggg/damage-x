@@ -1028,13 +1028,14 @@ export default function App() {
   const [showChiffrageParams, setShowChiffrageParams] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(null); // null | 'resume' | 'expertise'
-  const [creationWizard, setCreationWizard] = useState(null); // null | { step: 'infos', formData: {...} } | { step: 'mode-chiffrage', formData: {...} }
+  const [creationWizard, setCreationWizard] = useState(null); // null | { step: 'infos', formData: {...} }
 
   // ========== DROP FIRST STATE ==========
   const [dropModal, setDropModal] = useState(null); // null | { files: [...], rapportFileId: null|string, rapportDismissed: false }
   const [dropFirstPieces, setDropFirstPieces] = useState([]); // array of { id, originalName, cleanName, type, date, postesLies, summary, extractedInfo, pages, status, sourceFile?, pageRange?, siblings?, poolRef }
   const [dropFirstHasRapport, setDropFirstHasRapport] = useState(false);
   const [dropFirstProcessingDone, setDropFirstProcessingDone] = useState(false);
+  const [dropFirstActive, setDropFirstActive] = useState(false); // true → render new (drop-first) info dossier layout
   const [infoDossierStreaming, setInfoDossierStreaming] = useState(null); // null | { active, fieldsRevealed: [], streamingField: null, streamingText: '' }
   const [pieceOverviewPanel, setPieceOverviewPanel] = useState(null); // null | pieceId
   const [piecesFilter, setPiecesFilter] = useState({ types: [], search: '' });
@@ -1546,7 +1547,7 @@ export default function App() {
     dossierPostes, formPosteData,
     ivDossierPostes, ivPosteData, ivPosteSharedData,
     dropFirstPieces: dropFirstPieces.map(p => ({ ...p, justCompleted: false })),
-    dropFirstHasRapport, dropFirstProcessingDone,
+    dropFirstHasRapport, dropFirstProcessingDone, dropFirstActive,
   });
 
   const loadDossierData = (dossierId) => {
@@ -1584,6 +1585,7 @@ export default function App() {
     setDropFirstPieces(data.dropFirstPieces ?? []);
     setDropFirstHasRapport(data.dropFirstHasRapport ?? false);
     setDropFirstProcessingDone(data.dropFirstProcessingDone ?? false);
+    setDropFirstActive(data.dropFirstActive ?? (data.dropFirstPieces?.length > 0));
     setInfoDossierStreaming(null);
     setPieceOverviewPanel(null);
     setPiecesFilter({ type: null, search: '' });
@@ -2331,41 +2333,53 @@ export default function App() {
         {/* Content container with padding */}
         <div className="p-4">
           {/* Drop zone */}
-          {showUploadZone && (
-            <div
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setIsDragging(false);
-                Array.from(e.dataTransfer.files).forEach(file => {
-                  const newPiece = {
-                    id: `p-${Date.now()}-${Math.random()}`,
-                    nom: file.name,
-                    nomOriginal: file.name,
-                    intitule: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
-                    date: new Date().toLocaleDateString('fr-FR'),
-                    type: file.name.toLowerCase().includes('facture') ? 'Facture'
-                      : file.name.toLowerCase().includes('bulletin') ? 'Bulletin'
-                      : file.name.toLowerCase().includes('ordo') ? 'Ordonnance'
-                      : file.name.toLowerCase().includes('irm') || file.name.toLowerCase().includes('radio') ? 'Imagerie'
-                      : 'Document',
-                    used: false
-                  };
-                  setPieces(prev => [...prev, newPiece]);
-                });
-              }}
-              className={`mb-4 flex items-center justify-center gap-4 h-16 border border-dashed rounded-lg cursor-pointer transition-colors ${isDragging ? 'border-[#d6d3d1] bg-[#f5f5f4]' : 'border-[#d6d3d1] hover:border-[#a8a29e]'}`}
-              style={{ background: isDragging ? '#f5f5f4' : 'linear-gradient(to top, rgba(238,236,230,0) 50%, #f8f7f5 100%)' }}
-            >
-              <Upload className="w-5 h-5 text-[#78716c]" strokeWidth={1.5} />
-              <span className="text-sm">
-                <span className="text-[#78716c]">Déposez ou </span>
-                <span className="font-medium text-[#1e3a8a]">cliquez</span>
-                <span className="text-[#78716c]"> pour ajouter de nouvelles pièces</span>
-              </span>
-            </div>
-          )}
+          {showUploadZone && (() => {
+            const acceptDroppedFiles = (files) => {
+              Array.from(files).forEach(file => {
+                const newPiece = {
+                  id: `p-${Date.now()}-${Math.random()}`,
+                  nom: file.name,
+                  nomOriginal: file.name,
+                  intitule: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
+                  date: new Date().toLocaleDateString('fr-FR'),
+                  type: file.name.toLowerCase().includes('facture') ? 'Facture'
+                    : file.name.toLowerCase().includes('bulletin') ? 'Bulletin'
+                    : file.name.toLowerCase().includes('ordo') ? 'Ordonnance'
+                    : file.name.toLowerCase().includes('irm') || file.name.toLowerCase().includes('radio') ? 'Imagerie'
+                    : 'Document',
+                  used: false
+                };
+                setPieces(prev => [...prev, newPiece]);
+              });
+            };
+            return (
+              <>
+                <input
+                  id="legacy-pieces-input"
+                  type="file"
+                  multiple
+                  accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                  className="hidden"
+                  onChange={e => { acceptDroppedFiles(e.target.files); e.target.value = ''; }}
+                />
+                <div
+                  onClick={() => document.getElementById('legacy-pieces-input')?.click()}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => { e.preventDefault(); setIsDragging(false); acceptDroppedFiles(e.dataTransfer.files); }}
+                  className={`mb-4 flex items-center justify-center gap-4 h-16 border border-dashed rounded-lg cursor-pointer transition-colors ${isDragging ? 'border-[#d6d3d1] bg-[#f5f5f4]' : 'border-[#d6d3d1] hover:border-[#a8a29e]'}`}
+                  style={{ background: isDragging ? '#f5f5f4' : 'linear-gradient(to top, rgba(238,236,230,0) 50%, #f8f7f5 100%)' }}
+                >
+                  <Upload className="w-5 h-5 text-[#78716c]" strokeWidth={1.5} />
+                  <span className="text-sm">
+                    <span className="text-[#78716c]">Déposez ou </span>
+                    <span className="font-medium text-[#1e3a8a]">cliquez</span>
+                    <span className="text-[#78716c]"> pour ajouter de nouvelles pièces</span>
+                  </span>
+                </div>
+              </>
+            );
+          })()}
 
           {/* Reorder hint banner */}
           {showReorderHint && piecesSortMode === 'chrono' && (
@@ -3114,18 +3128,27 @@ export default function App() {
     setDossierNotes('');
     setCommentaireExpertise('');
     setResumeAffaire('');
-    setVictimesIndirectes(EMPTY_DOSSIER.victimesIndirectes);
+    setVictimesIndirectes([]);
     setPieces([]);
-    setDsaLignes(BASELINE_DSA_LIGNES);
-    setDftLignes(BASELINE_DFT_LIGNES);
-    setPgpaData(BASELINE_PGPA_DATA);
-    setPgpfData(BASELINE_PGPF_DATA);
-    setFormPosteData(BASELINE_FORM_POSTE_DATA);
-    setFdaLignes(BASELINE_FDA_LIGNES);
-    setDsfData(BASELINE_DSF_DATA);
-    setIvDossierPostes(EMPTY_DOSSIER.ivDossierPostes);
-    setIvPosteData(EMPTY_DOSSIER.ivPosteData);
-    setIvPosteSharedData(EMPTY_DOSSIER.ivPosteSharedData);
+    setDsaLignes([]);
+    setDftLignes([]);
+    setPgpaData(EMPTY_DOSSIER.pgpaData);
+    setPgpfData(EMPTY_DOSSIER.pgpfData);
+    setFormPosteData({});
+    setFdaLignes([]);
+    setDsfData({ lignes: [] });
+    setDossierPostes([]);
+    setIvDossierPostes([]);
+    setIvPosteData({});
+    setIvPosteSharedData({});
+
+    // Use the new (drop-first style) dossier layout for manually created matters.
+    setDropFirstActive(true);
+    setDropFirstPieces([]);
+    setDropFirstHasRapport(false);
+    setDropFirstProcessingDone(false);
+    setRapportBannerDismissed(false);
+    setInfoDossierStreaming(null);
 
     // Reset chat state for new dossier
     setChatMessages([]);
@@ -3531,10 +3554,12 @@ export default function App() {
       // /empty — wipe the matter to its empty state (info, chiffrage, JP) but keep documents.
       // Useful for testing the canvas-anchored prompt-suggestion empty states.
       if (cmd === 'empty' || cmd === 'reset' || cmd === 'empty-matter') {
+        setVictimeData(EMPTY_DOSSIER.victimeData);
         setFaitGenerateur({ type: '', dateAccident: '', datePremiereConstatation: '', dateConsolidation: '', resume: '' });
         setCommentaireExpertise('');
         setResumeAffaire('');
         setVictimesIndirectes([]);
+        setRapportBannerDismissed(false);
         setDossierPostes([]);
         setIvDossierPostes([]);
         setDsaLignes([]);
@@ -4169,10 +4194,7 @@ export default function App() {
                     backgroundImage: `url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 36' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'><rect x='0' y='0' height='100%25' width='100%25' fill='url(%23grad)' opacity='0.2'/><defs><radialGradient id='grad' gradientUnits='userSpaceOnUse' cx='0' cy='0' r='10' gradientTransform='matrix(0 -3.29 7.6 -0.48 100 18)'><stop stop-color='rgba(185,112,63,1)' offset='0'/><stop stop-color='rgba(203,148,111,0.75)' offset='0.25'/><stop stop-color='rgba(220,183,159,0.5)' offset='0.5'/><stop stop-color='rgba(255,255,255,0)' offset='1'/></radialGradient></defs></svg>"), linear-gradient(90deg, #f8f7f5 0%, #f8f7f5 100%)`,
                   }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                    <rect width="16" height="16" rx="3" fill="#E8713A" />
-                    <path d="M4.5 11V5.5H7.25C7.75 5.5 8.15 5.65 8.45 5.95C8.75 6.25 8.9 6.6 8.9 7.05C8.9 7.5 8.75 7.85 8.45 8.15C8.15 8.45 7.75 8.6 7.25 8.6H5.8V11H4.5ZM5.8 7.5H7.1C7.3 7.5 7.45 7.45 7.55 7.35C7.65 7.25 7.7 7.1 7.7 6.95C7.7 6.8 7.65 6.65 7.55 6.55C7.45 6.45 7.3 6.4 7.1 6.4H5.8V7.5Z" fill="white" />
-                  </svg>
+                  <PlatoIcon size={16} />
                   <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '12px', color: '#50443e', whiteSpace: 'nowrap' }}>
                     PLATO ASSISTANT
                   </span>
@@ -4209,10 +4231,9 @@ export default function App() {
   };
 
   // Plato logo icon (orange P) — reusable
-  const PlatoIcon = ({ size = 16 }) => (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-      <rect width="16" height="16" rx="3" fill="#E8713A" />
-      <path d="M4.5 11V5.5H7.25C7.75 5.5 8.15 5.65 8.45 5.95C8.75 6.25 8.9 6.6 8.9 7.05C8.9 7.5 8.75 7.85 8.45 8.15C8.15 8.45 7.75 8.6 7.25 8.6H5.8V11H4.5ZM5.8 7.5H7.1C7.3 7.5 7.45 7.45 7.55 7.35C7.65 7.25 7.7 7.1 7.7 6.95C7.7 6.8 7.65 6.65 7.55 6.55C7.45 6.45 7.3 6.4 7.1 6.4H5.8V7.5Z" fill="white" />
+  const PlatoIcon = ({ size = 16, color = '#292524' }) => (
+    <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+      <path d="M73.5996 0C75.8398 0 76.9608 -0.000427067 77.8164 0.435547C78.5689 0.819016 79.181 1.43109 79.5645 2.18359C80.0004 3.03924 80 4.16018 80 6.40039V73.5996C80 75.8398 80.0004 76.9608 79.5645 77.8164C79.181 78.5689 78.5689 79.181 77.8164 79.5645C76.9608 80.0004 75.8398 80 73.5996 80H55L53 70H57V62H23V70H27L25 80H6.40039C4.16018 80 3.03924 80.0004 2.18359 79.5645C1.43109 79.181 0.819016 78.5689 0.435547 77.8164C-0.000427067 76.9608 0 75.8398 0 73.5996V6.40039C0 4.16018 -0.000427067 3.03924 0.435547 2.18359C0.819016 1.43109 1.43109 0.819016 2.18359 0.435547C3.03924 -0.000427067 4.16018 0 6.40039 0H73.5996ZM28.916 39.083L21 32L15 36L26 56H54L65 36L59 32L51.083 39.083L40 28L28.916 39.083ZM33 17L40 24L47 17L40 10L33 17Z" fill={color} />
     </svg>
   );
 
@@ -4342,10 +4363,56 @@ export default function App() {
           >
             {chatMessages.length === 0 && (
               <div className="flex flex-col items-center justify-center flex-1 py-12 px-6">
-                <PlatoIcon />
-                <p style={{ fontSize: 14, color: '#a8a29e', textAlign: 'center', marginTop: 12, lineHeight: '18px' }}>
-                  Ajoutez un poste depuis l'onglet Chiffrage ou demandez-moi directement de calculer un préjudice.
-                </p>
+                {dropFirstActive ? (
+                  <>
+                    <div className="relative mb-5 animate-fade-up">
+                      <div
+                        aria-hidden
+                        className="absolute inset-0 -m-3 rounded-full"
+                        style={{
+                          background: 'radial-gradient(circle, rgba(232,113,58,0.28) 0%, rgba(232,113,58,0) 70%)',
+                          filter: 'blur(6px)',
+                        }}
+                      />
+                      <div className="relative">
+                        <PlatoIcon size={48} />
+                      </div>
+                    </div>
+                    <h2 style={{ fontFamily: "'RL Para Trial Central', 'Albra', Georgia, serif", fontSize: 26, fontWeight: 500, color: '#292524', letterSpacing: '-0.5px', lineHeight: '32px', textAlign: 'center' }}>
+                      Bonjour Meghan
+                    </h2>
+                    <p style={{ fontSize: 14, color: '#78716c', textAlign: 'center', marginTop: 10, lineHeight: '20px', maxWidth: 300 }}>
+                      Bienvenue sur votre nouveau dossier. Je suis{' '}
+                      <span style={{ color: '#E8713A', fontWeight: 600 }}>Plato</span>, votre assistant dédié à l'évaluation du préjudice corporel.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => fireCanvasPrompt('Démarrer avec Plato', { scenarioKey: 'canvas-commencer-dossier' })}
+                      className="group relative mt-6 inline-flex items-center justify-center rounded-[10px] overflow-hidden cursor-pointer"
+                      style={{ boxShadow: '0px 2px 6px -2px rgba(232,113,58,0.35), 0px 4px 14px -4px rgba(168,85,247,0.25)' }}
+                    >
+                      <span
+                        aria-hidden
+                        className="absolute inset-[-50%]"
+                        style={{
+                          background: 'conic-gradient(from 0deg, #E8713A, #f59e0b, #c084fc, #f472b6, #E8713A)',
+                          animation: 'spin-slow 4s linear infinite',
+                        }}
+                      />
+                      <span className="relative m-[1.5px] inline-flex items-center gap-2 rounded-[8.5px] bg-[#292524] px-5 py-2.5 transition-colors group-hover:bg-[#1c1917]">
+                        <Sparkles className="w-4 h-4 text-white" strokeWidth={2} fill="currentColor" />
+                        <span className="text-[13px] font-medium text-white whitespace-nowrap">Démarrer avec Plato</span>
+                      </span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <PlatoIcon />
+                    <p style={{ fontSize: 14, color: '#a8a29e', textAlign: 'center', marginTop: 12, lineHeight: '18px' }}>
+                      Ajoutez un poste depuis l'onglet Chiffrage ou demandez-moi directement de calculer un préjudice.
+                    </p>
+                  </>
+                )}
               </div>
             )}
             {chatMessages.map((msg, i) => {
@@ -8364,7 +8431,7 @@ export default function App() {
     if (currentLevel.type === 'dossier') {
       if (currentLevel.activeTab === 'dossier') {
         // Drop-First Info Dossier (new layout with streaming)
-        if (dropFirstPieces.length > 0) {
+        if (dropFirstActive || dropFirstPieces.length > 0) {
           const streaming = infoDossierStreaming;
           const isStreaming = streaming?.active;
           const revealed = streaming?.fieldsRevealed || [];
@@ -8385,7 +8452,7 @@ export default function App() {
           const rapportName = rapportPiece?.cleanName || rapportPiece?.originalName || 'Rapport d\'expertise';
 
           const renderField = (key, label, value, isLongText = false) => {
-            const hasValue = isRevealed(key) && value;
+            const hasValue = !!value;
             const isActive = isCurrentlyStreaming(key);
 
             // Diff awareness: look up pending diff for this field
@@ -8470,43 +8537,8 @@ export default function App() {
             );
           };
 
-          // Track B: CTA banner (no rapport, not dismissed)
-          const showRapportCTA = !dropFirstHasRapport && !rapportBannerDismissed && !isStreaming;
-
-          const handleAddRapportLater = (files) => {
-            const fileList = Array.from(files);
-            if (fileList.length === 0) return;
-            setRapportBannerDismissed(true);
-            setDropFirstHasRapport(true);
-            // Add to pieces table
-            const poolEntry = DROP_FIRST_DOCUMENT_POOL[0]; // Expertise entry
-            const newItem = {
-              id: `dfp-rapport-${Date.now()}`, originalName: fileList[0].name,
-              cleanName: null, type: null, date: null, postesLies: [], summary: null,
-              extractedInfo: null, pages: null, status: 'pending', poolRef: poolEntry,
-              sourceFile: null, pageRange: null, siblings: null,
-              fakeSize: (Math.random() * 4 + 0.5).toFixed(1) + ' Mo', isRapport: true,
-            };
-            setDropFirstPieces(prev => [...prev, newItem]);
-            setDropFirstProcessingDone(false);
-            setTimeout(() => startProcessingSimulation([newItem], false), 300);
-            // Start streaming
-            setTimeout(() => startInfoDossierStreaming(), 1500);
-          };
-
           return (
             <div className="space-y-4" data-zone-id="infos_dossier">
-              {/* Track B: Add rapport CTA */}
-              {showRapportCTA && (
-                <div className="banner banner-minimal banner-ai">
-                  <div className="banner-body">
-                    <Sparkles className="w-4 h-4 banner-icon flex-shrink-0" fill="currentColor" />
-                    <p className="banner-title">Pour remplir automatiquement les informations du dossier, <span className="underline cursor-pointer" onClick={() => document.getElementById('rapport-later-input')?.click()}>ajoutez un rapport d'expertise</span>. <span className="banner-btn-ghost cursor-pointer" onClick={() => setRapportBannerDismissed(true)}>Ignorer</span></p>
-                    <input id="rapport-later-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" className="hidden" onChange={e => handleAddRapportLater(e.target.files)} />
-                  </div>
-                </div>
-              )}
-
               {/* Streaming in-progress banner */}
               {isStreaming && (
                 <div className="banner banner-minimal banner-ai">
@@ -8747,8 +8779,28 @@ export default function App() {
         }
 
         // Legacy Info Dossier (existing form-based layout)
+        const isDossierInfoEmpty =
+          !victimeData.nom && !victimeData.prenom && !victimeData.dateNaissance &&
+          !faitGenerateur.type && !faitGenerateur.dateAccident && !faitGenerateur.resume &&
+          victimesIndirectes.length === 0;
         return (
-          <div className="grid grid-cols-3 gap-4 items-start">
+          <div className="space-y-4">
+            {isDossierInfoEmpty && (
+              <div className="banner banner-minimal banner-ai">
+                <div className="banner-body">
+                  <Sparkles className="w-4 h-4 banner-icon flex-shrink-0" fill="currentColor" />
+                  <p className="banner-title">Le dossier est vide.</p>
+                  <button
+                    type="button"
+                    className="banner-btn-primary"
+                    onClick={() => fireCanvasPrompt('Complète les informations du dossier', { scenarioKey: 'canvas-dossier-info' })}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" /> Remplir les informations dossier
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-3 gap-4 items-start">
             {/* Colonne gauche */}
             <div className="col-span-2 space-y-4">
               {/* Infos Victime */}
@@ -8974,6 +9026,7 @@ export default function App() {
                   </div>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         );
@@ -9611,7 +9664,7 @@ export default function App() {
         );
       }
       if (currentLevel.activeTab === 'pièces') {
-        if (dropFirstPieces.length > 0) return renderDropFirstPiecesTab();
+        if (dropFirstActive || dropFirstPieces.length > 0) return renderDropFirstPiecesTab();
         return renderPiecesList(pieces, true);
       }
 
@@ -12740,6 +12793,7 @@ export default function App() {
     setDropFirstPieces(processingItems);
     setDropFirstHasRapport(hasRapport);
     setDropFirstProcessingDone(false);
+    setDropFirstActive(true);
     setPieceOverviewPanel(null);
     setPiecesFilter({ type: null, search: '' });
     setRapportBannerDismissed(false);
@@ -14230,98 +14284,11 @@ export default function App() {
                 Annuler
               </button>
               <button
-                onClick={() => setCreationWizard(prev => ({ ...prev, step: 'mode-chiffrage' }))}
+                onClick={() => handleCreateDossier(formData, 'dossier')}
                 disabled={!canSubmitInfos}
                 className="px-5 py-2.5 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Créer le dossier
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (step === 'mode-chiffrage') {
-      return (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden">
-            {/* Header */}
-            <div className="px-6 py-5 border-b border-zinc-100">
-              <h2 className="text-lg font-semibold text-[#292524]">Comment souhaitez-vous créer votre chiffrage ?</h2>
-            </div>
-
-            {/* Body */}
-            <div className="px-6 py-6">
-              {/* Options principales */}
-              <div className="flex gap-4">
-                {/* Option 1: Importer le rapport */}
-                <div
-                  onClick={() => document.getElementById('wizard-file-input').click()}
-                  className="flex-1 p-6 border-2 border-[#e7e5e3] rounded-xl hover:border-zinc-400 hover:bg-[#fafaf9] cursor-pointer transition-all group"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-[#eeece6] flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
-                    <Upload className="w-6 h-6 text-[#78716c]" />
-                  </div>
-                  <h3 className="text-heading-sm text-[#292524] mb-2">Importer mon rapport d'expertise</h3>
-                  <p className="text-body text-[#78716c] leading-relaxed">Extraction automatique des données. Pré-remplissage des postes et calculs.</p>
-                  <input
-                    id="wizard-file-input"
-                    type="file"
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => {
-                      const files = e.target.files;
-                      if (files && files.length > 0) {
-                        handleCreateDossier(formData);
-                        setTimeout(() => handleDocumentUploadForExtraction(files), 100);
-                      }
-                    }}
-                  />
-                </div>
-
-                {/* Option 2: Saisie manuelle */}
-                <div
-                  onClick={() => handleCreateDossier(formData, 'chiffrage')}
-                  className="flex-1 p-6 border-2 border-[#e7e5e3] rounded-xl hover:border-zinc-400 hover:bg-[#fafaf9] cursor-pointer transition-all group"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-[#eeece6] flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
-                    <Edit3 className="w-6 h-6 text-[#78716c]" />
-                  </div>
-                  <h3 className="text-heading-sm text-[#292524] mb-2">Saisir les données manuellement</h3>
-                  <p className="text-body text-[#78716c] leading-relaxed">Le rapport est sous vos yeux. Renseignez les informations à la main.</p>
-                </div>
-              </div>
-
-              {/* Option 3: Pas encore de rapport (secondaire) */}
-              <div
-                onClick={() => handleCreateDossier(formData, 'dossier')}
-                className="mt-4 px-4 py-3 border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] cursor-pointer transition-all flex items-center gap-3 group"
-              >
-                <div className="w-8 h-8 rounded-lg bg-[#F8F7F5] flex items-center justify-center flex-shrink-0 group-hover:bg-[#eeece6] transition-colors">
-                  <FileText className="w-4 h-4 text-[#a8a29e]" />
-                </div>
-                <div>
-                  <h3 className="text-body-medium text-[#78716c] group-hover:text-[#44403c] transition-colors">Je n'ai pas encore le rapport d'expertise</h3>
-                  <p className="text-caption text-[#a8a29e] leading-relaxed">Créer le dossier maintenant, le chiffrage pourra démarrer après.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-zinc-100 flex justify-end gap-3">
-              <button
-                onClick={() => setCreationWizard(prev => ({ ...prev, step: 'infos' }))}
-                className="px-4 py-2.5 text-body text-[#78716c] hover:text-[#44403c] hover:bg-[#eeece6] rounded-lg transition-colors"
-              >
-                Retour
-              </button>
-              <button
-                onClick={() => setCreationWizard(null)}
-                className="px-4 py-2.5 text-body text-[#78716c] hover:text-[#44403c] hover:bg-[#eeece6] rounded-lg transition-colors"
-              >
-                Annuler
               </button>
             </div>
           </div>
@@ -14449,18 +14416,16 @@ export default function App() {
               onClick={() => setUserMenuOpen(o => !o)}
               className={
                 collapsed
-                  ? 'w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium cursor-pointer overflow-hidden hover:opacity-90 transition-opacity'
+                  ? 'flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity'
                   : 'w-full flex items-center gap-3 p-2 hover:bg-[#fafaf9] transition-colors text-left group'
               }
-              style={{ borderRadius: collapsed ? 10 : 6 }}
+              style={collapsed ? undefined : { borderRadius: 6 }}
             >
-              {collapsed ? 'MR' : (
+              {collapsed ? userAvatar(0, 'Admin', 32) : (
                 <>
-                  <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[11px] font-medium flex-shrink-0 overflow-hidden" style={{ borderRadius: 6 }}>
-                    MR
-                  </div>
+                  {userAvatar(0, 'Admin', 32)}
                   <div className="flex-1 min-w-0">
-                    <div className="text-[14px] font-medium text-[#292524] truncate leading-5">Meghan Régior</div>
+                    <div className="text-[14px] font-medium text-[#292524] truncate leading-5">Meghan R.</div>
                     <div className="text-[12px] text-[#a8a29e] truncate leading-4">Cabinet</div>
                   </div>
                   <ChevronDown className="w-4 h-4 text-[#a8a29e] group-hover:text-[#78716c] flex-shrink-0" strokeWidth={1.75} />
@@ -14767,9 +14732,9 @@ export default function App() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
-                          <span className="text-counter text-white">{dossier.lastEditBy.split(' ').map(n => n[0]).join('')}</span>
-                        </div>
+                        {userAvatar(0, 'Admin', 20)}
+                        <span className="text-body text-[#292524]">{dossier.lastEditBy}</span>
+                        <span className="text-body text-[#a8a29e]">·</span>
                         <span className="text-body text-[#78716c]">{dossier.lastEditDate}</span>
                       </div>
                     </td>
