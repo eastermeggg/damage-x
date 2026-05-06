@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, UserRound, Users, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowRight, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, CircleArrowDown, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp, Focus, LogOut, CreditCard, SlidersHorizontal, Wand2, BookOpen, Globe, Crown } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, PencilLine, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, UserRound, Users, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowRight, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, CircleArrowDown, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp, Focus, LogOut, CreditCard, SlidersHorizontal, Wand2, BookOpen, Globe, Crown, AlignLeft, ScanLine } from 'lucide-react';
 import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -11,6 +11,8 @@ import useRedactionCommands from './hooks/useRedactionCommands';
 import { REDACTION_SCENARIOS, REDACTION_COMMAND_LIST, REDACTION_COMMAND_MAP, REDACTION_ACT_TYPES } from './data/redactionScenarios';
 import ActCanvas from './components/redaction/ActCanvas';
 import EmptyState from './components/EmptyState';
+import PromptSuggestionCard from './components/PromptSuggestionCard';
+import SuggestionsMenu from './components/SuggestionsMenu';
 import ActesList from './components/redaction/ActesList';
 import AlertDialog from './components/AlertDialog';
 import { BASELINE_DSA_LIGNES, BASELINE_DFT_LIGNES, BASELINE_PGPA_DATA, BASELINE_PGPF_DATA, BASELINE_FORM_POSTE_DATA, BASELINE_FDA_LIGNES, BASELINE_DSF_DATA } from './data/baselineData';
@@ -1028,13 +1030,14 @@ export default function App() {
   const [showChiffrageParams, setShowChiffrageParams] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(null); // null | 'resume' | 'expertise'
-  const [creationWizard, setCreationWizard] = useState(null); // null | { step: 'infos', formData: {...} } | { step: 'mode-chiffrage', formData: {...} }
+  const [creationWizard, setCreationWizard] = useState(null); // null | { step: 'infos', formData: {...} }
 
   // ========== DROP FIRST STATE ==========
   const [dropModal, setDropModal] = useState(null); // null | { files: [...], rapportFileId: null|string, rapportDismissed: false }
   const [dropFirstPieces, setDropFirstPieces] = useState([]); // array of { id, originalName, cleanName, type, date, postesLies, summary, extractedInfo, pages, status, sourceFile?, pageRange?, siblings?, poolRef }
   const [dropFirstHasRapport, setDropFirstHasRapport] = useState(false);
   const [dropFirstProcessingDone, setDropFirstProcessingDone] = useState(false);
+  const [dropFirstActive, setDropFirstActive] = useState(false); // true → render new (drop-first) info dossier layout
   const [infoDossierStreaming, setInfoDossierStreaming] = useState(null); // null | { active, fieldsRevealed: [], streamingField: null, streamingText: '' }
   const [pieceOverviewPanel, setPieceOverviewPanel] = useState(null); // null | pieceId
   const [piecesFilter, setPiecesFilter] = useState({ types: [], search: '' });
@@ -1546,7 +1549,7 @@ export default function App() {
     dossierPostes, formPosteData,
     ivDossierPostes, ivPosteData, ivPosteSharedData,
     dropFirstPieces: dropFirstPieces.map(p => ({ ...p, justCompleted: false })),
-    dropFirstHasRapport, dropFirstProcessingDone,
+    dropFirstHasRapport, dropFirstProcessingDone, dropFirstActive,
   });
 
   const loadDossierData = (dossierId) => {
@@ -1584,6 +1587,7 @@ export default function App() {
     setDropFirstPieces(data.dropFirstPieces ?? []);
     setDropFirstHasRapport(data.dropFirstHasRapport ?? false);
     setDropFirstProcessingDone(data.dropFirstProcessingDone ?? false);
+    setDropFirstActive(data.dropFirstActive ?? (data.dropFirstPieces?.length > 0));
     setInfoDossierStreaming(null);
     setPieceOverviewPanel(null);
     setPiecesFilter({ type: null, search: '' });
@@ -2331,41 +2335,53 @@ export default function App() {
         {/* Content container with padding */}
         <div className="p-4">
           {/* Drop zone */}
-          {showUploadZone && (
-            <div
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setIsDragging(false);
-                Array.from(e.dataTransfer.files).forEach(file => {
-                  const newPiece = {
-                    id: `p-${Date.now()}-${Math.random()}`,
-                    nom: file.name,
-                    nomOriginal: file.name,
-                    intitule: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
-                    date: new Date().toLocaleDateString('fr-FR'),
-                    type: file.name.toLowerCase().includes('facture') ? 'Facture'
-                      : file.name.toLowerCase().includes('bulletin') ? 'Bulletin'
-                      : file.name.toLowerCase().includes('ordo') ? 'Ordonnance'
-                      : file.name.toLowerCase().includes('irm') || file.name.toLowerCase().includes('radio') ? 'Imagerie'
-                      : 'Document',
-                    used: false
-                  };
-                  setPieces(prev => [...prev, newPiece]);
-                });
-              }}
-              className={`mb-4 flex items-center justify-center gap-4 h-16 border border-dashed rounded-lg cursor-pointer transition-colors ${isDragging ? 'border-[#d6d3d1] bg-[#f5f5f4]' : 'border-[#d6d3d1] hover:border-[#a8a29e]'}`}
-              style={{ background: isDragging ? '#f5f5f4' : 'linear-gradient(to top, rgba(238,236,230,0) 50%, #f8f7f5 100%)' }}
-            >
-              <Upload className="w-5 h-5 text-[#78716c]" strokeWidth={1.5} />
-              <span className="text-sm">
-                <span className="text-[#78716c]">Déposez ou </span>
-                <span className="font-medium text-[#1e3a8a]">cliquez</span>
-                <span className="text-[#78716c]"> pour ajouter de nouvelles pièces</span>
-              </span>
-            </div>
-          )}
+          {showUploadZone && (() => {
+            const acceptDroppedFiles = (files) => {
+              Array.from(files).forEach(file => {
+                const newPiece = {
+                  id: `p-${Date.now()}-${Math.random()}`,
+                  nom: file.name,
+                  nomOriginal: file.name,
+                  intitule: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
+                  date: new Date().toLocaleDateString('fr-FR'),
+                  type: file.name.toLowerCase().includes('facture') ? 'Facture'
+                    : file.name.toLowerCase().includes('bulletin') ? 'Bulletin'
+                    : file.name.toLowerCase().includes('ordo') ? 'Ordonnance'
+                    : file.name.toLowerCase().includes('irm') || file.name.toLowerCase().includes('radio') ? 'Imagerie'
+                    : 'Document',
+                  used: false
+                };
+                setPieces(prev => [...prev, newPiece]);
+              });
+            };
+            return (
+              <>
+                <input
+                  id="legacy-pieces-input"
+                  type="file"
+                  multiple
+                  accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                  className="hidden"
+                  onChange={e => { acceptDroppedFiles(e.target.files); e.target.value = ''; }}
+                />
+                <div
+                  onClick={() => document.getElementById('legacy-pieces-input')?.click()}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => { e.preventDefault(); setIsDragging(false); acceptDroppedFiles(e.dataTransfer.files); }}
+                  className={`mb-4 flex items-center justify-center gap-4 h-16 border border-dashed rounded-lg cursor-pointer transition-colors ${isDragging ? 'border-[#d6d3d1] bg-[#f5f5f4]' : 'border-[#d6d3d1] hover:border-[#a8a29e]'}`}
+                  style={{ background: isDragging ? '#f5f5f4' : 'linear-gradient(to top, rgba(238,236,230,0) 50%, #f8f7f5 100%)' }}
+                >
+                  <Upload className="w-5 h-5 text-[#78716c]" strokeWidth={1.5} />
+                  <span className="text-sm">
+                    <span className="text-[#78716c]">Déposez ou </span>
+                    <span className="font-medium text-[#1e3a8a]">cliquez</span>
+                    <span className="text-[#78716c]"> pour ajouter de nouvelles pièces</span>
+                  </span>
+                </div>
+              </>
+            );
+          })()}
 
           {/* Reorder hint banner */}
           {showReorderHint && piecesSortMode === 'chrono' && (
@@ -3114,18 +3130,27 @@ export default function App() {
     setDossierNotes('');
     setCommentaireExpertise('');
     setResumeAffaire('');
-    setVictimesIndirectes(EMPTY_DOSSIER.victimesIndirectes);
+    setVictimesIndirectes([]);
     setPieces([]);
-    setDsaLignes(BASELINE_DSA_LIGNES);
-    setDftLignes(BASELINE_DFT_LIGNES);
-    setPgpaData(BASELINE_PGPA_DATA);
-    setPgpfData(BASELINE_PGPF_DATA);
-    setFormPosteData(BASELINE_FORM_POSTE_DATA);
-    setFdaLignes(BASELINE_FDA_LIGNES);
-    setDsfData(BASELINE_DSF_DATA);
-    setIvDossierPostes(EMPTY_DOSSIER.ivDossierPostes);
-    setIvPosteData(EMPTY_DOSSIER.ivPosteData);
-    setIvPosteSharedData(EMPTY_DOSSIER.ivPosteSharedData);
+    setDsaLignes([]);
+    setDftLignes([]);
+    setPgpaData(EMPTY_DOSSIER.pgpaData);
+    setPgpfData(EMPTY_DOSSIER.pgpfData);
+    setFormPosteData({});
+    setFdaLignes([]);
+    setDsfData({ lignes: [] });
+    setDossierPostes([]);
+    setIvDossierPostes([]);
+    setIvPosteData({});
+    setIvPosteSharedData({});
+
+    // Use the new (drop-first style) dossier layout for manually created matters.
+    setDropFirstActive(true);
+    setDropFirstPieces([]);
+    setDropFirstHasRapport(false);
+    setDropFirstProcessingDone(false);
+    setRapportBannerDismissed(false);
+    setInfoDossierStreaming(null);
 
     // Reset chat state for new dossier
     setChatMessages([]);
@@ -3531,10 +3556,12 @@ export default function App() {
       // /empty — wipe the matter to its empty state (info, chiffrage, JP) but keep documents.
       // Useful for testing the canvas-anchored prompt-suggestion empty states.
       if (cmd === 'empty' || cmd === 'reset' || cmd === 'empty-matter') {
+        setVictimeData(EMPTY_DOSSIER.victimeData);
         setFaitGenerateur({ type: '', dateAccident: '', datePremiereConstatation: '', dateConsolidation: '', resume: '' });
         setCommentaireExpertise('');
         setResumeAffaire('');
         setVictimesIndirectes([]);
+        setRapportBannerDismissed(false);
         setDossierPostes([]);
         setIvDossierPostes([]);
         setDsaLignes([]);
@@ -4169,10 +4196,7 @@ export default function App() {
                     backgroundImage: `url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 36' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'><rect x='0' y='0' height='100%25' width='100%25' fill='url(%23grad)' opacity='0.2'/><defs><radialGradient id='grad' gradientUnits='userSpaceOnUse' cx='0' cy='0' r='10' gradientTransform='matrix(0 -3.29 7.6 -0.48 100 18)'><stop stop-color='rgba(185,112,63,1)' offset='0'/><stop stop-color='rgba(203,148,111,0.75)' offset='0.25'/><stop stop-color='rgba(220,183,159,0.5)' offset='0.5'/><stop stop-color='rgba(255,255,255,0)' offset='1'/></radialGradient></defs></svg>"), linear-gradient(90deg, #f8f7f5 0%, #f8f7f5 100%)`,
                   }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                    <rect width="16" height="16" rx="3" fill="#E8713A" />
-                    <path d="M4.5 11V5.5H7.25C7.75 5.5 8.15 5.65 8.45 5.95C8.75 6.25 8.9 6.6 8.9 7.05C8.9 7.5 8.75 7.85 8.45 8.15C8.15 8.45 7.75 8.6 7.25 8.6H5.8V11H4.5ZM5.8 7.5H7.1C7.3 7.5 7.45 7.45 7.55 7.35C7.65 7.25 7.7 7.1 7.7 6.95C7.7 6.8 7.65 6.65 7.55 6.55C7.45 6.45 7.3 6.4 7.1 6.4H5.8V7.5Z" fill="white" />
-                  </svg>
+                  <PlatoIcon size={16} />
                   <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '12px', color: '#50443e', whiteSpace: 'nowrap' }}>
                     PLATO ASSISTANT
                   </span>
@@ -4209,10 +4233,9 @@ export default function App() {
   };
 
   // Plato logo icon (orange P) — reusable
-  const PlatoIcon = ({ size = 16 }) => (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-      <rect width="16" height="16" rx="3" fill="#E8713A" />
-      <path d="M4.5 11V5.5H7.25C7.75 5.5 8.15 5.65 8.45 5.95C8.75 6.25 8.9 6.6 8.9 7.05C8.9 7.5 8.75 7.85 8.45 8.15C8.15 8.45 7.75 8.6 7.25 8.6H5.8V11H4.5ZM5.8 7.5H7.1C7.3 7.5 7.45 7.45 7.55 7.35C7.65 7.25 7.7 7.1 7.7 6.95C7.7 6.8 7.65 6.65 7.55 6.55C7.45 6.45 7.3 6.4 7.1 6.4H5.8V7.5Z" fill="white" />
+  const PlatoIcon = ({ size = 16, color = '#292524' }) => (
+    <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+      <path d="M73.5996 0C75.8398 0 76.9608 -0.000427067 77.8164 0.435547C78.5689 0.819016 79.181 1.43109 79.5645 2.18359C80.0004 3.03924 80 4.16018 80 6.40039V73.5996C80 75.8398 80.0004 76.9608 79.5645 77.8164C79.181 78.5689 78.5689 79.181 77.8164 79.5645C76.9608 80.0004 75.8398 80 73.5996 80H55L53 70H57V62H23V70H27L25 80H6.40039C4.16018 80 3.03924 80.0004 2.18359 79.5645C1.43109 79.181 0.819016 78.5689 0.435547 77.8164C-0.000427067 76.9608 0 75.8398 0 73.5996V6.40039C0 4.16018 -0.000427067 3.03924 0.435547 2.18359C0.819016 1.43109 1.43109 0.819016 2.18359 0.435547C3.03924 -0.000427067 4.16018 0 6.40039 0H73.5996ZM28.916 39.083L21 32L15 36L26 56H54L65 36L59 32L51.083 39.083L40 28L28.916 39.083ZM33 17L40 24L47 17L40 10L33 17Z" fill={color} />
     </svg>
   );
 
@@ -4340,14 +4363,58 @@ export default function App() {
             style={{ backgroundColor: '#F8F7F5' }}
             ref={chatScrollRef}
           >
-            {chatMessages.length === 0 && (
-              <div className="flex flex-col items-center justify-center flex-1 py-12 px-6">
-                <PlatoIcon />
-                <p style={{ fontSize: 14, color: '#a8a29e', textAlign: 'center', marginTop: 12, lineHeight: '18px' }}>
-                  Ajoutez un poste depuis l'onglet Chiffrage ou demandez-moi directement de calculer un préjudice.
-                </p>
-              </div>
-            )}
+            {chatMessages.length === 0 && (() => {
+              const EMPTY_ACTIONS = [
+                {
+                  icon: Sparkles,
+                  label: 'Compléter les infos du dossier',
+                  onClick: () => fireCanvasPrompt('Complète les informations du dossier', { scenarioKey: 'canvas-dossier-info' }),
+                },
+                {
+                  icon: Calculator,
+                  label: 'Commencer le chiffrage',
+                  onClick: () => fireCanvasPrompt('Commençons le chiffrage de ce dossier', { scenarioKey: 'canvas-commencer-chiffrage' }),
+                },
+                {
+                  icon: Pencil,
+                  label: 'Rédiger un acte',
+                  onClick: () => {
+                    setChatMessages(prev => [...prev, { type: 'user', text: 'Rédiger mon premier acte' }]);
+                    setChatInputValue('');
+                    setTimeout(() => redaction.playScenario('redaction-onboarding'), 200);
+                  },
+                },
+              ];
+              return (
+                <div className="flex flex-col items-center justify-center flex-1 py-12 px-6">
+                  <div className="mb-4">
+                    <PlatoIcon size={20} />
+                  </div>
+                  <h2 style={{ fontFamily: "'RL Para Trial Central', 'Albra', Georgia, serif", fontSize: 22, fontWeight: 500, color: '#292524', letterSpacing: '-0.4px', lineHeight: '28px', textAlign: 'center', maxWidth: 280 }}>
+                    Bonjour Meghan, je suis Plato.
+                  </h2>
+                  <p style={{ fontSize: 13, color: '#78716c', textAlign: 'center', marginTop: 8, lineHeight: '18px', maxWidth: 280 }}>
+                    Par où voulez-vous commencer&nbsp;?
+                  </p>
+                  <div className="mt-6 w-full max-w-[320px] flex flex-col gap-2">
+                    {EMPTY_ACTIONS.map((a, i) => (
+                      <div
+                        key={a.label}
+                        className="animate-fade-up w-full"
+                        style={{ animationDelay: `${i * 70}ms` }}
+                      >
+                        <PromptSuggestionCard
+                          icon={a.icon}
+                          label={a.label}
+                          onClick={a.onClick}
+                          disabled={chatLocked}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             {chatMessages.map((msg, i) => {
               // User message bubble
               if (msg.type === 'user') {
@@ -8364,7 +8431,7 @@ export default function App() {
     if (currentLevel.type === 'dossier') {
       if (currentLevel.activeTab === 'dossier') {
         // Drop-First Info Dossier (new layout with streaming)
-        if (dropFirstPieces.length > 0) {
+        if (dropFirstActive || dropFirstPieces.length > 0) {
           const streaming = infoDossierStreaming;
           const isStreaming = streaming?.active;
           const revealed = streaming?.fieldsRevealed || [];
@@ -8385,7 +8452,7 @@ export default function App() {
           const rapportName = rapportPiece?.cleanName || rapportPiece?.originalName || 'Rapport d\'expertise';
 
           const renderField = (key, label, value, isLongText = false) => {
-            const hasValue = isRevealed(key) && value;
+            const hasValue = !!value;
             const isActive = isCurrentlyStreaming(key);
 
             // Diff awareness: look up pending diff for this field
@@ -8470,43 +8537,8 @@ export default function App() {
             );
           };
 
-          // Track B: CTA banner (no rapport, not dismissed)
-          const showRapportCTA = !dropFirstHasRapport && !rapportBannerDismissed && !isStreaming;
-
-          const handleAddRapportLater = (files) => {
-            const fileList = Array.from(files);
-            if (fileList.length === 0) return;
-            setRapportBannerDismissed(true);
-            setDropFirstHasRapport(true);
-            // Add to pieces table
-            const poolEntry = DROP_FIRST_DOCUMENT_POOL[0]; // Expertise entry
-            const newItem = {
-              id: `dfp-rapport-${Date.now()}`, originalName: fileList[0].name,
-              cleanName: null, type: null, date: null, postesLies: [], summary: null,
-              extractedInfo: null, pages: null, status: 'pending', poolRef: poolEntry,
-              sourceFile: null, pageRange: null, siblings: null,
-              fakeSize: (Math.random() * 4 + 0.5).toFixed(1) + ' Mo', isRapport: true,
-            };
-            setDropFirstPieces(prev => [...prev, newItem]);
-            setDropFirstProcessingDone(false);
-            setTimeout(() => startProcessingSimulation([newItem], false), 300);
-            // Start streaming
-            setTimeout(() => startInfoDossierStreaming(), 1500);
-          };
-
           return (
             <div className="space-y-4" data-zone-id="infos_dossier">
-              {/* Track B: Add rapport CTA */}
-              {showRapportCTA && (
-                <div className="banner banner-minimal banner-ai">
-                  <div className="banner-body">
-                    <Sparkles className="w-4 h-4 banner-icon flex-shrink-0" fill="currentColor" />
-                    <p className="banner-title">Pour remplir automatiquement les informations du dossier, <span className="underline cursor-pointer" onClick={() => document.getElementById('rapport-later-input')?.click()}>ajoutez un rapport d'expertise</span>. <span className="banner-btn-ghost cursor-pointer" onClick={() => setRapportBannerDismissed(true)}>Ignorer</span></p>
-                    <input id="rapport-later-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" className="hidden" onChange={e => handleAddRapportLater(e.target.files)} />
-                  </div>
-                </div>
-              )}
-
               {/* Streaming in-progress banner */}
               {isStreaming && (
                 <div className="banner banner-minimal banner-ai">
@@ -8747,8 +8779,28 @@ export default function App() {
         }
 
         // Legacy Info Dossier (existing form-based layout)
+        const isDossierInfoEmpty =
+          !victimeData.nom && !victimeData.prenom && !victimeData.dateNaissance &&
+          !faitGenerateur.type && !faitGenerateur.dateAccident && !faitGenerateur.resume &&
+          victimesIndirectes.length === 0;
         return (
-          <div className="grid grid-cols-3 gap-4 items-start">
+          <div className="space-y-4">
+            {isDossierInfoEmpty && (
+              <div className="banner banner-minimal banner-ai">
+                <div className="banner-body">
+                  <Sparkles className="w-4 h-4 banner-icon flex-shrink-0" fill="currentColor" />
+                  <p className="banner-title">Le dossier est vide.</p>
+                  <button
+                    type="button"
+                    className="banner-btn-primary"
+                    onClick={() => fireCanvasPrompt('Complète les informations du dossier', { scenarioKey: 'canvas-dossier-info' })}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" /> Remplir les informations dossier
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-3 gap-4 items-start">
             {/* Colonne gauche */}
             <div className="col-span-2 space-y-4">
               {/* Infos Victime */}
@@ -8975,6 +9027,7 @@ export default function App() {
                 </div>
               </div>
             </div>
+            </div>
           </div>
         );
       }
@@ -9039,7 +9092,7 @@ export default function App() {
                 title="Aucun poste de préjudice"
                 description="Demandez à Plato d'identifier les postes pertinents, ou sélectionnez-en un manuellement dans le menu latéral."
                 primaryAction={{
-                  label: 'Commençons le chiffrage',
+                  label: 'Commencer le chiffrage',
                   icon: Sparkles,
                   onClick: () => fireCanvasPrompt('Commençons le chiffrage de ce dossier', { scenarioKey: 'canvas-commencer-chiffrage' }),
                 }}
@@ -9611,7 +9664,7 @@ export default function App() {
         );
       }
       if (currentLevel.activeTab === 'pièces') {
-        if (dropFirstPieces.length > 0) return renderDropFirstPiecesTab();
+        if (dropFirstActive || dropFirstPieces.length > 0) return renderDropFirstPiecesTab();
         return renderPiecesList(pieces, true);
       }
 
@@ -9624,7 +9677,7 @@ export default function App() {
             onOpen={(id) => redaction.openCanvas(id)}
             onNewActe={isClosed ? undefined : () => setNewActeModalOpen(true)}
             onSendPrompt={isClosed ? undefined : () => {
-              setChatMessages(prev => [...prev, { type: 'user', text: 'Écrire mon premier acte' }]);
+              setChatMessages(prev => [...prev, { type: 'user', text: 'Rédiger mon premier acte' }]);
               setChatInputValue('');
               setTimeout(() => redaction.playScenario('redaction-onboarding'), 200);
             }}
@@ -12740,6 +12793,7 @@ export default function App() {
     setDropFirstPieces(processingItems);
     setDropFirstHasRapport(hasRapport);
     setDropFirstProcessingDone(false);
+    setDropFirstActive(true);
     setPieceOverviewPanel(null);
     setPiecesFilter({ type: null, search: '' });
     setRapportBannerDismissed(false);
@@ -14230,98 +14284,11 @@ export default function App() {
                 Annuler
               </button>
               <button
-                onClick={() => setCreationWizard(prev => ({ ...prev, step: 'mode-chiffrage' }))}
+                onClick={() => handleCreateDossier(formData, 'dossier')}
                 disabled={!canSubmitInfos}
                 className="px-5 py-2.5 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Créer le dossier
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (step === 'mode-chiffrage') {
-      return (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden">
-            {/* Header */}
-            <div className="px-6 py-5 border-b border-zinc-100">
-              <h2 className="text-lg font-semibold text-[#292524]">Comment souhaitez-vous créer votre chiffrage ?</h2>
-            </div>
-
-            {/* Body */}
-            <div className="px-6 py-6">
-              {/* Options principales */}
-              <div className="flex gap-4">
-                {/* Option 1: Importer le rapport */}
-                <div
-                  onClick={() => document.getElementById('wizard-file-input').click()}
-                  className="flex-1 p-6 border-2 border-[#e7e5e3] rounded-xl hover:border-zinc-400 hover:bg-[#fafaf9] cursor-pointer transition-all group"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-[#eeece6] flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
-                    <Upload className="w-6 h-6 text-[#78716c]" />
-                  </div>
-                  <h3 className="text-heading-sm text-[#292524] mb-2">Importer mon rapport d'expertise</h3>
-                  <p className="text-body text-[#78716c] leading-relaxed">Extraction automatique des données. Pré-remplissage des postes et calculs.</p>
-                  <input
-                    id="wizard-file-input"
-                    type="file"
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => {
-                      const files = e.target.files;
-                      if (files && files.length > 0) {
-                        handleCreateDossier(formData);
-                        setTimeout(() => handleDocumentUploadForExtraction(files), 100);
-                      }
-                    }}
-                  />
-                </div>
-
-                {/* Option 2: Saisie manuelle */}
-                <div
-                  onClick={() => handleCreateDossier(formData, 'chiffrage')}
-                  className="flex-1 p-6 border-2 border-[#e7e5e3] rounded-xl hover:border-zinc-400 hover:bg-[#fafaf9] cursor-pointer transition-all group"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-[#eeece6] flex items-center justify-center mb-4 group-hover:bg-zinc-200 transition-colors">
-                    <Edit3 className="w-6 h-6 text-[#78716c]" />
-                  </div>
-                  <h3 className="text-heading-sm text-[#292524] mb-2">Saisir les données manuellement</h3>
-                  <p className="text-body text-[#78716c] leading-relaxed">Le rapport est sous vos yeux. Renseignez les informations à la main.</p>
-                </div>
-              </div>
-
-              {/* Option 3: Pas encore de rapport (secondaire) */}
-              <div
-                onClick={() => handleCreateDossier(formData, 'dossier')}
-                className="mt-4 px-4 py-3 border border-[#e7e5e3] rounded-lg hover:bg-[#fafaf9] cursor-pointer transition-all flex items-center gap-3 group"
-              >
-                <div className="w-8 h-8 rounded-lg bg-[#F8F7F5] flex items-center justify-center flex-shrink-0 group-hover:bg-[#eeece6] transition-colors">
-                  <FileText className="w-4 h-4 text-[#a8a29e]" />
-                </div>
-                <div>
-                  <h3 className="text-body-medium text-[#78716c] group-hover:text-[#44403c] transition-colors">Je n'ai pas encore le rapport d'expertise</h3>
-                  <p className="text-caption text-[#a8a29e] leading-relaxed">Créer le dossier maintenant, le chiffrage pourra démarrer après.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-zinc-100 flex justify-end gap-3">
-              <button
-                onClick={() => setCreationWizard(prev => ({ ...prev, step: 'infos' }))}
-                className="px-4 py-2.5 text-body text-[#78716c] hover:text-[#44403c] hover:bg-[#eeece6] rounded-lg transition-colors"
-              >
-                Retour
-              </button>
-              <button
-                onClick={() => setCreationWizard(null)}
-                className="px-4 py-2.5 text-body text-[#78716c] hover:text-[#44403c] hover:bg-[#eeece6] rounded-lg transition-colors"
-              >
-                Annuler
               </button>
             </div>
           </div>
@@ -14449,18 +14416,16 @@ export default function App() {
               onClick={() => setUserMenuOpen(o => !o)}
               className={
                 collapsed
-                  ? 'w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium cursor-pointer overflow-hidden hover:opacity-90 transition-opacity'
+                  ? 'flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity'
                   : 'w-full flex items-center gap-3 p-2 hover:bg-[#fafaf9] transition-colors text-left group'
               }
-              style={{ borderRadius: collapsed ? 10 : 6 }}
+              style={collapsed ? undefined : { borderRadius: 6 }}
             >
-              {collapsed ? 'MR' : (
+              {collapsed ? userAvatar(0, 'Admin', 32) : (
                 <>
-                  <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[11px] font-medium flex-shrink-0 overflow-hidden" style={{ borderRadius: 6 }}>
-                    MR
-                  </div>
+                  {userAvatar(0, 'Admin', 32)}
                   <div className="flex-1 min-w-0">
-                    <div className="text-[14px] font-medium text-[#292524] truncate leading-5">Meghan Régior</div>
+                    <div className="text-[14px] font-medium text-[#292524] truncate leading-5">Meghan R.</div>
                     <div className="text-[12px] text-[#a8a29e] truncate leading-4">Cabinet</div>
                   </div>
                   <ChevronDown className="w-4 h-4 text-[#a8a29e] group-hover:text-[#78716c] flex-shrink-0" strokeWidth={1.75} />
@@ -14767,9 +14732,9 @@ export default function App() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
-                          <span className="text-counter text-white">{dossier.lastEditBy.split(' ').map(n => n[0]).join('')}</span>
-                        </div>
+                        {userAvatar(0, 'Admin', 20)}
+                        <span className="text-body text-[#292524]">{dossier.lastEditBy}</span>
+                        <span className="text-body text-[#a8a29e]">·</span>
                         <span className="text-body text-[#78716c]">{dossier.lastEditDate}</span>
                       </div>
                     </td>
@@ -15096,23 +15061,42 @@ export default function App() {
           <button onClick={() => setCurrentPage('list')} className="flex items-center gap-2 text-body-medium text-[#78716c] hover:text-[#292524] mb-6 transition-colors">
             <ChevronRight className="w-4 h-4 rotate-180" /> Retour
           </button>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#292524', marginBottom: 16 }}>UI Components</div>
-          <nav className="flex flex-col gap-1">
-            {['Diff Rows', 'Panel Diff Inputs', 'Reasoning', 'Chat Messages', 'Field Streaming', 'Badges & Pills', 'Buttons', 'Barème Components', 'Artifact Cards'].map(s => (
-              /* Hypothèses diff is a subsection of Diff Rows — no separate nav entry needed */
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10 }}>
+            Composants
+          </div>
+          <nav className="flex flex-col gap-1 mb-6">
+            {[
+              'Buttons',
+              'Prompt Suggestion Card',
+              'Suggestions Menu',
+              'Badges & Pills',
+              'Diff Rows',
+              'Panel Diff Inputs',
+              'Field Streaming',
+              'Reasoning',
+              'Chat Messages',
+              'Artifact Cards',
+              'Barème Components',
+            ].map(s => (
               <a key={s} href={`#section-${s.toLowerCase().replace(/\s+/g, '-')}`} className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">{s}</a>
             ))}
-            <div className="mt-4 pt-4 border-t border-[#e7e5e3]">
-              <button onClick={() => setCurrentPage('reasoning-demo')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5" /> Reasoning Demo
-              </button>
-              <button onClick={() => setCurrentPage('diff-engine')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5" /> Diff Engine
-              </button>
-              <button onClick={() => setCurrentPage('iv-structures')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
-                <Table2 className="w-3.5 h-3.5" /> IV Table Structures
-              </button>
-            </div>
+          </nav>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10 }}>
+            Pages
+          </div>
+          <nav className="flex flex-col gap-1">
+            <button onClick={() => setCurrentPage('diff-engine')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
+              <FileText className="w-3.5 h-3.5" /> Diff Engine
+            </button>
+            <button onClick={() => setCurrentPage('iv-structures')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
+              <Table2 className="w-3.5 h-3.5" /> IV Table Structures
+            </button>
+            <button onClick={() => setCurrentPage('prompt-suggestions')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
+              <Lightbulb className="w-3.5 h-3.5" /> Prompt Suggestions
+            </button>
+            <button onClick={() => setCurrentPage('reasoning-demo')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
+              <Brain className="w-3.5 h-3.5" /> Reasoning Demo
+            </button>
           </nav>
         </div>
 
@@ -15925,6 +15909,138 @@ export default function App() {
                   Informations du dossier extraites
                 </div>
               </>)}
+            </div>
+
+            {/* ====== PROMPT SUGGESTION CARD ====== */}
+            <div id="section-prompt-suggestion-card" className={sectionClass}>
+              {sectionTitle('Prompt Suggestion Card')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 8, maxWidth: 680 }}>
+                Carte cliquable (320px) pour exposer un prompt comme un CTA visuel. Utilisée pour le chat empty state — les 3 prompts cold start (Compléter / Chiffrer / Rédiger).
+              </p>
+              <p style={{ fontSize: 13, color: '#78716c', marginBottom: 16, maxWidth: 680 }}>
+                Source&nbsp;: <code style={{ fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", backgroundColor: '#f5f5f4', padding: '2px 6px', borderRadius: 4, color: '#292524' }}>src/components/PromptSuggestionCard.js</code>
+                {' · '}
+                Figma&nbsp;: <code style={{ fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", backgroundColor: '#f5f5f4', padding: '2px 6px', borderRadius: 4, color: '#292524' }}>2057:17330</code>
+              </p>
+
+              {subTitle('États')}
+              <div className="flex items-start gap-12 mb-8">
+                <div className="flex flex-col gap-2">
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Default</span>
+                  <PromptSuggestionCard icon={Sparkles} label="Compléter les infos du dossier" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Hover (pinned)</span>
+                  <PromptSuggestionCard icon={Calculator} label="Commencer le chiffrage" pinHover />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Disabled</span>
+                  <PromptSuggestionCard icon={Pencil} label="Rédiger un acte" disabled />
+                </div>
+              </div>
+
+              {subTitle('Exemple — chat empty state (3 chips)')}
+              <div className="flex flex-col gap-2 mb-2" style={{ maxWidth: 320 }}>
+                <PromptSuggestionCard icon={Sparkles}   label="Compléter les infos du dossier" />
+                <PromptSuggestionCard icon={Calculator} label="Commencer le chiffrage" />
+                <PromptSuggestionCard icon={Pencil}     label="Rédiger un acte" />
+              </div>
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 8 }}>Survolez chaque carte pour voir la transition default → hover.</p>
+            </div>
+
+            {/* ====== SUGGESTIONS MENU ====== */}
+            <div id="section-suggestions-menu" className={sectionClass}>
+              {sectionTitle('Suggestions Menu')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 8, maxWidth: 680 }}>
+                Menu compact (popover-style) qui liste des prompts proposés à l'agent. Header mono uppercase + body de rows simples (icon + label). Utilisé pour l'ampoule du chat input.
+              </p>
+              <p style={{ fontSize: 13, color: '#78716c', marginBottom: 16, maxWidth: 680 }}>
+                Source&nbsp;: <code style={{ fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", backgroundColor: '#f5f5f4', padding: '2px 6px', borderRadius: 4, color: '#292524' }}>src/components/SuggestionsMenu.js</code>
+                {' · '}
+                Figma&nbsp;: <code style={{ fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", backgroundColor: '#f5f5f4', padding: '2px 6px', borderRadius: 4, color: '#292524' }}>2057:17743</code>
+              </p>
+
+              {subTitle('Variant — chat empty state (5 items)')}
+              <div className="mb-8" style={{ maxWidth: 320 }}>
+                <SuggestionsMenu
+                  items={[
+                    { icon: AlignLeft,   label: 'Compléter les informations dossier' },
+                    { icon: PencilLine,  label: 'Rédiger un document' },
+                    { icon: Calculator,  label: 'Commencer le chiffrage' },
+                    { icon: ScanLine,    label: 'Identifier les postes à chiffrer' },
+                    { icon: Scale,       label: 'Rechercher une jurisprudence' },
+                  ]}
+                />
+              </div>
+
+              {subTitle('API')}
+              <div className="border border-[#e7e5e3] rounded-md overflow-hidden mb-8" style={{ maxWidth: 760 }}>
+                <div className="flex" style={{ backgroundColor: '#fafaf9', borderBottom: '1px solid #e7e5e3' }}>
+                  {['Prop', 'Type', 'Default', 'Description'].map((h, i) => (
+                    <div
+                      key={h}
+                      className="px-3 py-2"
+                      style={{
+                        fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500,
+                        color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em',
+                        width: i === 0 ? 110 : i === 1 ? 220 : i === 2 ? 130 : undefined,
+                        flex: i === 3 ? 1 : 'none',
+                        borderRight: i < 3 ? '1px solid #e7e5e3' : 'none',
+                      }}
+                    >
+                      {h}
+                    </div>
+                  ))}
+                </div>
+                {[
+                  ['header',    'string',                                              "Suggestions d'actions",  'Texte du bandeau (mono uppercase).'],
+                  ['items',     '{icon, label, onClick, disabled}[]',                  '[]',                     "Liste des suggestions. Click → handler doit dispatcher un user message."],
+                  ['disabled',  'boolean',                                             'false',                  "Désactive toutes les rows."],
+                  ['className', 'string',                                              "''",                     "Classes additionnelles pour l'outer popover."],
+                ].map(([prop, type, def, desc], ri) => (
+                  <div
+                    key={prop}
+                    className="flex bg-white"
+                    style={{ borderBottom: ri < 3 ? '1px solid #e7e5e3' : 'none' }}
+                  >
+                    <div className="px-3 py-2.5" style={{ width: 110, borderRight: '1px solid #e7e5e3', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#292524' }}>{prop}</div>
+                    <div className="px-3 py-2.5" style={{ width: 220, borderRight: '1px solid #e7e5e3', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#78716c' }}>{type}</div>
+                    <div className="px-3 py-2.5" style={{ width: 130, borderRight: '1px solid #e7e5e3', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#a8a29e' }}>{def}</div>
+                    <div className="flex-1 px-3 py-2.5" style={{ fontSize: 13, color: '#44403c', lineHeight: '18px' }}>{desc}</div>
+                  </div>
+                ))}
+              </div>
+
+              {subTitle('Variant — ampoule menu (4 items)')}
+              <div className="mb-2" style={{ maxWidth: 320 }}>
+                <SuggestionsMenu
+                  header="Suggestions"
+                  items={[
+                    { icon: Sparkles,   label: "Complète les informations du dossier à partir du rapport d'expertise" },
+                    { icon: Calculator, label: 'Chiffre les préjudices de ce dossier' },
+                    { icon: HelpCircle, label: 'Quels sont les préjudices à chiffrer ?' },
+                    { icon: Pencil,     label: 'Rédige une demande amiable de provision' },
+                  ]}
+                />
+              </div>
+              <p style={{ fontSize: 12, color: '#a8a29e', marginBottom: 24 }}>Header configurable&nbsp;— même composant pour les deux contextes.</p>
+
+              {subTitle('Où c\'est utilisé')}
+              <ul style={{ fontSize: 13, color: '#44403c', lineHeight: '22px', marginBottom: 8, listStyle: 'disc', paddingLeft: 20 }}>
+                <li>
+                  <strong>Chat sidebar empty state</strong>{' '}
+                  <span style={{ color: '#78716c' }}>— 5 suggestions tant que le chat est vide.</span>{' '}
+                  <code style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", backgroundColor: '#f5f5f4', padding: '1px 5px', borderRadius: 4 }}>renderChatSidebar</code>
+                </li>
+                <li>
+                  <strong>Ampoule</strong>{' '}
+                  <span style={{ color: '#78716c' }}>— popover au-dessus de l'input avec 4 prompts d'aide à la formulation.</span>
+                </li>
+                <li>
+                  <strong>UI Kit — Prompt Suggestions</strong>{' '}
+                  <span style={{ color: '#78716c' }}>— spec page.</span>
+                </li>
+              </ul>
             </div>
 
             {/* ====== BARÈME COMPONENTS ====== */}
@@ -19129,6 +19245,441 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
     );
   };
 
+  // ========== EMPTY STATES PAGE ==========
+  const renderPromptSuggestionsPage = () => {
+    const codeInline = (text) => <code style={{ fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", backgroundColor: '#f5f5f4', padding: '2px 6px', borderRadius: 4, color: '#292524' }}>{text}</code>;
+
+    // Spec doc styles & components
+    const specPara = { fontSize: 15, color: '#292524', lineHeight: '26px', maxWidth: 680, marginBottom: 16 };
+    const subSectionTitle = { fontFamily: "'RL Para Trial Central', 'Albra', Georgia, serif", fontSize: 18, fontWeight: 500, color: '#292524', letterSpacing: '-0.2px', marginBottom: 8, marginTop: 8 };
+    const chipCode = { fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, backgroundColor: '#fafaf9', border: '1px solid #e7e5e3', padding: '2px 7px', borderRadius: 4, color: '#292524', whiteSpace: 'nowrap' };
+
+    const SpecTable = ({ head, rows, colWidths = [] }) => (
+      <div className="mb-6 overflow-hidden rounded-md border" style={{ borderColor: '#e7e5e3', maxWidth: 760 }}>
+        <div className="flex" style={{ backgroundColor: '#fafaf9', borderBottom: '1px solid #e7e5e3' }}>
+          {head.map((h, i) => (
+            <div
+              key={i}
+              className="px-4 py-2.5"
+              style={{
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500,
+                color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em',
+                width: colWidths[i], flex: colWidths[i] ? 'none' : 1,
+                borderRight: i < head.length - 1 ? '1px solid #e7e5e3' : 'none',
+              }}
+            >
+              {h}
+            </div>
+          ))}
+        </div>
+        {rows.map((row, ri) => (
+          <div
+            key={ri}
+            className="flex bg-white"
+            style={{ borderBottom: ri < rows.length - 1 ? '1px solid #e7e5e3' : 'none' }}
+          >
+            {row.map((cell, ci) => (
+              <div
+                key={ci}
+                className="px-4 py-3"
+                style={{
+                  fontSize: 13, color: '#292524', lineHeight: '20px',
+                  width: colWidths[ci], flex: colWidths[ci] ? 'none' : 1,
+                  borderRight: ci < row.length - 1 ? '1px solid #e7e5e3' : 'none',
+                  display: 'flex', alignItems: 'center',
+                }}
+              >
+                {cell}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+
+    const Quote = ({ children, variant }) => {
+      const isWarning = variant === 'warning';
+      return (
+        <blockquote
+          className="mb-6 px-4 py-3"
+          style={{
+            borderLeft: `3px solid ${isWarning ? '#f59e0b' : '#d6d3d1'}`,
+            backgroundColor: isWarning ? '#fffbeb' : '#fafaf9',
+            color: isWarning ? '#78350f' : '#44403c',
+            fontSize: 14,
+            lineHeight: '22px',
+            maxWidth: 680,
+            margin: '0 0 24px 0',
+          }}
+        >
+          {children}
+        </blockquote>
+      );
+    };
+
+    // Specimen frame: simulates the chat sidebar (~340px wide, light bg, header)
+    const Specimen = ({ title, condition, children }) => (
+      <div className="mb-12">
+        <div className="flex items-center justify-between mb-3">
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#292524' }}>{title}</h3>
+          <span style={{ fontSize: 12, color: '#78716c' }}>Condition&nbsp;: {condition}</span>
+        </div>
+        <div
+          className="border border-[#e7e5e3] rounded-lg overflow-hidden flex flex-col"
+          style={{ width: 360, height: 540, backgroundColor: '#F8F7F5' }}
+        >
+          <div className="px-4 h-12 border-b flex items-center gap-2.5 flex-shrink-0 bg-white" style={{ borderColor: '#e7e5e3' }}>
+            <PlatoIcon />
+            <span className="flex-1" style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '12px', color: '#78716c', lineHeight: '32px' }}>
+              PLATO MASTER
+            </span>
+          </div>
+          <div className="flex-1 overflow-hidden flex flex-col items-center justify-center px-6 py-8">
+            {children}
+          </div>
+        </div>
+      </div>
+    );
+
+    // Chat empty state — 3 chips (cold start, manual or after drop)
+    const EMPTY_ACTIONS_SPEC = [
+      { icon: Sparkles,   label: 'Compléter les infos du dossier' },
+      { icon: Calculator, label: 'Commencer le chiffrage' },
+      { icon: Pencil,     label: 'Rédiger un acte' },
+    ];
+    const variantEmptyState = (
+      <>
+        <div className="mb-4">
+          <PlatoIcon size={20} />
+        </div>
+        <h2 style={{ fontFamily: "'RL Para Trial Central', 'Albra', Georgia, serif", fontSize: 22, fontWeight: 500, color: '#292524', letterSpacing: '-0.4px', lineHeight: '28px', textAlign: 'center', maxWidth: 280 }}>
+          Bonjour Meghan, je suis Plato.
+        </h2>
+        <p style={{ fontSize: 13, color: '#78716c', textAlign: 'center', marginTop: 8, lineHeight: '18px', maxWidth: 280 }}>
+          Par où voulez-vous commencer&nbsp;?
+        </p>
+        <div className="mt-6 w-full max-w-[320px] flex flex-col gap-2">
+          {EMPTY_ACTIONS_SPEC.map((a, i) => (
+            <div
+              key={a.label}
+              className="animate-fade-up w-full"
+              style={{ animationDelay: `${i * 70}ms` }}
+            >
+              <PromptSuggestionCard icon={a.icon} label={a.label} />
+            </div>
+          ))}
+        </div>
+      </>
+    );
+
+    // Canvas-area specimen frame: simulates a wider canvas tab
+    const CanvasSpecimen = ({ title, condition, children }) => (
+      <div className="mb-12">
+        <div className="flex items-center justify-between mb-3">
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#292524' }}>{title}</h3>
+          <span style={{ fontSize: 12, color: '#78716c' }}>Condition&nbsp;: {condition}</span>
+        </div>
+        <div
+          className="border border-[#e7e5e3] rounded-lg overflow-hidden flex flex-col bg-white"
+          style={{ width: 640, height: 420 }}
+        >
+          <div className="px-5 h-12 border-b flex items-center gap-3 flex-shrink-0" style={{ borderColor: '#e7e5e3', backgroundColor: '#fafaf9' }}>
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: 11, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {title.replace(/^Canvas — /, '')}
+            </span>
+          </div>
+          <div className="flex-1 flex items-center justify-center px-8 py-12">
+            {children}
+          </div>
+        </div>
+      </div>
+    );
+
+    // Lightbulb menu — 4 suggestions per spec
+    const LIGHTBULB_SPEC_ITEMS = [
+      { icon: Sparkles,   label: "Complète les informations du dossier à partir du rapport d'expertise" },
+      { icon: Calculator, label: 'Chiffre les préjudices de ce dossier' },
+      { icon: HelpCircle, label: 'Quels sont les préjudices à chiffrer ?' },
+      { icon: Pencil,     label: 'Rédige une demande amiable de provision' },
+    ];
+
+    // Lightbulb specimen — exact reproduction of the production chat input box
+    // (white rounded-2 box with stone outer ring, optional 2px white inner border,
+    //  textarea placeholder, bottom action bar with Paperclip + Lightbulb on the
+    //  left and Send on the right). The Suggestions popover is anchored above
+    //  the lightbulb button via absolute bottom-10 left-0 z-50, mirroring
+    //  src/App.js renderChatSidebar (lines 5269–5320).
+    const LightbulbSpecimen = () => (
+      <div className="mb-12">
+        <div className="flex items-center justify-between mb-3">
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#292524' }}>Variant — Suggestions menu (anchored au-dessus de l'input)</h3>
+          <span style={{ fontSize: 12, color: '#78716c' }}>Condition&nbsp;: {codeInline('suggestionsOpen === true')}</span>
+        </div>
+        <div
+          className="rounded-lg flex flex-col justify-end relative overflow-visible"
+          style={{ width: 380, height: 460, backgroundColor: '#F8F7F5', padding: 16, border: '1px solid #e7e5e3' }}
+        >
+          {/* Production chat input box — exact replica */}
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: 2,
+              border: '2px solid white',
+              boxShadow: '0px 0px 0px 1px #d6d3d1, 0px 4px 6px -4px rgba(26,26,26,0.05), 0px 8px 10px -1px rgba(26,26,26,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            {/* Textarea */}
+            <div style={{ padding: '12px 12px 32px 12px' }}>
+              <span className="text-[14px]" style={{ color: '#78716c', lineHeight: '20px' }}>
+                Demander à Plato Master de calculer, rechercher des JP, rédiger des actes...
+              </span>
+            </div>
+            {/* Bottom bar */}
+            <div className="flex items-center justify-between px-3 py-3">
+              <div className="flex items-center gap-0.5">
+                <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors">
+                  <Paperclip className="w-4 h-4 text-[#78716c]" />
+                </button>
+                <div className="relative">
+                  <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-stone-100 transition-colors">
+                    <Lightbulb className="w-4 h-4 text-[#78716c]" />
+                  </button>
+                  {/* Suggestions popover — same SuggestionsMenu DS component */}
+                  <div className="absolute bottom-10 left-0 z-50">
+                    <SuggestionsMenu header="Suggestions" items={LIGHTBULB_SPEC_ITEMS} className="w-[320px]" />
+                  </div>
+                </div>
+              </div>
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ backgroundColor: '#eeece6', opacity: 0.5 }}>
+                <ArrowUp className="w-4 h-4 text-[#78716c]" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+
+    // Trigger → user-message visualization. Used for B.1, B.2, B.3 in the spec.
+    const TriggerFlow = ({ trigger, message }) => (
+      <div className="flex items-center gap-6" style={{ width: '100%', justifyContent: 'center' }}>
+        <div className="flex-shrink-0">{trigger}</div>
+        <ArrowRight className="w-6 h-6 text-[#a8a29e] flex-shrink-0" strokeWidth={1.5} />
+        <div className="flex flex-col items-end flex-shrink-0" style={{ width: 220 }}>
+          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 6 }}>
+            User message envoyé
+          </span>
+          <div
+            className="text-white text-[13px]"
+            style={{ backgroundColor: '#292524', borderRadius: 2, padding: '10px 12px', boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)', maxWidth: '100%' }}
+          >
+            {message}
+          </div>
+        </div>
+      </div>
+    );
+
+    // B.1 — Chiffrage empty state, scaled to fit the flow specimen
+    const triggerChiffrageEmpty = (
+      <div style={{ width: 280 }}>
+        <EmptyState
+          icon={ClipboardList}
+          title="Aucun poste de préjudice"
+          description="Demandez à Plato d'identifier les postes pertinents."
+          primaryAction={{
+            label: 'Commencer le chiffrage',
+            icon: Sparkles,
+            onClick: () => {},
+          }}
+        />
+      </div>
+    );
+
+    // B.3 — Actes empty state, scaled to fit the flow specimen
+    const triggerActesEmpty = (
+      <div style={{ width: 280 }}>
+        <EmptyState
+          icon={Pencil}
+          title="Rédigez votre premier acte"
+          description="Demandez n'importe quel type d'acte à Plato."
+          primaryAction={{
+            label: 'Rédiger un acte',
+            onClick: () => {},
+          }}
+        />
+      </div>
+    );
+
+    // B.2 — Add poste modal mock (the trigger surface)
+    const triggerAddPosteModal = (
+      <div className="bg-white rounded-[8px] border border-[#e7e5e3] overflow-hidden" style={{ width: 260, boxShadow: '0px 4px 12px -4px rgba(26,26,26,0.12)' }}>
+        <div className="px-4 py-3 border-b border-[#e7e5e3]">
+          <span className="text-[13px] font-medium text-[#292524]">Ajouter un poste</span>
+        </div>
+        <div className="p-2 flex flex-col gap-1">
+          {[
+            { acr: 'DFP',  label: 'Déficit fonctionnel permanent', selected: true },
+            { acr: 'PGPA', label: 'Pertes de gains professionnels actuels', selected: false },
+            { acr: 'DSA',  label: 'Dépenses de santé actuelles', selected: false },
+          ].map(p => (
+            <div
+              key={p.acr}
+              className="flex items-center gap-2 px-2 py-1.5 rounded-[6px]"
+              style={p.selected ? { backgroundColor: 'rgba(232,113,58,0.12)' } : {}}
+            >
+              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: p.selected ? '#E8713A' : '#78716c', fontWeight: 500, width: 36 }}>
+                {p.acr}
+              </span>
+              <span className="text-[12px] text-[#292524] flex-1 truncate">{p.label}</span>
+              {p.selected && <Check className="w-3.5 h-3.5 text-[#E8713A]" strokeWidth={2} />}
+            </div>
+          ))}
+        </div>
+        <div className="px-3 py-2 border-t border-[#e7e5e3] flex justify-end">
+          <button className="bg-[#292524] text-white text-[12px] font-medium px-3 py-1.5 rounded-[6px]">Confirmer</button>
+        </div>
+      </div>
+    );
+
+    return (
+      <div className="h-screen flex" style={{ backgroundColor: '#F8F7F5', fontFamily: "'Inter', system-ui, sans-serif" }}>
+        {/* Sidebar */}
+        <div className="w-[220px] flex-shrink-0 border-r border-[#e7e5e3] bg-white overflow-y-auto" style={{ padding: '20px 16px' }}>
+          <button onClick={() => setCurrentPage('components')} className="flex items-center gap-2 text-body-medium text-[#78716c] hover:text-[#292524] mb-6 transition-colors">
+            <ChevronRight className="w-4 h-4 rotate-180" /> Retour
+          </button>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#292524', marginBottom: 16 }}>Prompt Suggestions</div>
+          <nav className="flex flex-col gap-1 mb-4">
+            <a href="#ps-scope" className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">Scope</a>
+            <a href="#ps-tldr" className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">TL;DR</a>
+          </nav>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8 }}>A. Chat empty state</div>
+          <nav className="flex flex-col gap-1 mb-4">
+            <a href="#ps-chat" className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">3 chips</a>
+          </nav>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8 }}>B. Triggers canvas</div>
+          <nav className="flex flex-col gap-1 mb-4">
+            <a href="#ps-canvas-chiffrage" className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">B.1 — Chiffrage vide</a>
+            <a href="#ps-canvas-add-poste" className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">B.2 — Ajout poste</a>
+            <a href="#ps-canvas-actes" className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">B.3 — Actes vide</a>
+          </nav>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8 }}>C. Ampoule</div>
+          <nav className="flex flex-col gap-1">
+            <a href="#ps-lightbulb" className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">Suggestions menu</a>
+          </nav>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto" style={{ padding: '32px 48px' }}>
+          <div style={{ maxWidth: 880 }}>
+            <h1 style={{ fontFamily: "'RL Para Trial Central', 'Albra', Georgia, serif", fontSize: 32, fontWeight: 400, color: '#18181b', letterSpacing: '-0.5px', marginBottom: 4 }}>Prompt Suggestions</h1>
+            <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 40 }}>
+              Spec produit
+            </p>
+
+            {/* ================ SCOPE ================ */}
+            <section id="ps-scope" className="mb-12">
+              <h2 style={{ fontFamily: "'RL Para Trial Central', 'Albra', Georgia, serif", fontSize: 22, fontWeight: 500, color: '#292524', letterSpacing: '-0.3px', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>Scope</h2>
+              <p style={specPara}><strong>Problème.</strong> L'agent ne montre pas son reasoning sur les docs déposés et ne propose pas d'actions. L'utilisateur doit deviner quoi demander.</p>
+              <p style={specPara}><strong>Solution court terme.</strong> Des shortcuts qui donnent des portes d'entrée claires vers le chat, sans avoir à formuler le prompt.</p>
+              <p style={specPara}><strong>Hors scope.</strong> La proactivité agent (reasoning visible + propositions contextualisées). Quand elle existera, les triggers canvas resteront utiles ; l'ampoule deviendra secondaire.</p>
+            </section>
+
+            {/* ================ TL;DR ================ */}
+            <section id="ps-tldr" className="mb-12">
+              <h2 style={{ fontFamily: "'RL Para Trial Central', 'Albra', Georgia, serif", fontSize: 22, fontWeight: 500, color: '#292524', letterSpacing: '-0.3px', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>TL;DR</h2>
+              <SpecTable
+                head={['Surface', 'Quand', 'Au clic']}
+                rows={[
+                  [<><strong>Chat empty state</strong> <span style={{ color: '#78716c' }}>(manuel ou after drop)</span></>, 'Chat vide, agent muet', <><strong>3 chips</strong> → <em>envoient</em> un prompt</>],
+                  [<><strong>Triggers canvas</strong></>, 'Empty states locaux : chiffrage, actes, JP, ajout poste', <><em>Envoient</em> un prompt</>],
+                  [<><strong>Ampoule</strong> <Lightbulb className="inline w-3.5 h-3.5 align-middle text-[#78716c]" strokeWidth={1.75} /></>, "Permanent dans l'input", <><em>Pré-remplissent</em> l'input (éditable)</>],
+                ]}
+              />
+            </section>
+
+            {/* ================ A. CHAT EMPTY STATE ================ */}
+            <section id="ps-chat" className="mb-16">
+              <h2 style={{ fontFamily: "'RL Para Trial Central', 'Albra', Georgia, serif", fontSize: 22, fontWeight: 500, color: '#292524', letterSpacing: '-0.3px', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>A. Chat empty state — 3 chips</h2>
+              <p style={specPara}><strong>Affichage.</strong> <em>"Bonjour {codeInline('{user.firstName}')}, je suis Plato. Par où voulez-vous commencer ?"</em> + 3 chips.</p>
+              <Specimen title="Variant — 3 chips" condition="aucun message dans le chat">
+                {variantEmptyState}
+              </Specimen>
+              <SpecTable
+                head={['Chip', 'Prompt envoyé', 'Intention agent']}
+                rows={[
+                  [<code style={chipCode}>Compléter les infos du dossier</code>, '"Complète les informations du dossier"', <span>Rapport déposé → extraction + diff SmartField. Sinon → demander le rapport.</span>],
+                  [<code style={chipCode}>Commencer le chiffrage</code>, '"Commençons le chiffrage de ce dossier"', 'Agent chiffrage global. Propose les postes Dintilhac pertinents.'],
+                  [<code style={chipCode}>Rédiger un acte</code>, '"Rédiger mon premier acte"', "Agent rédaction. Demande le type (provision, conclusions, dire à expert…)."],
+                ]}
+              />
+              <Quote>
+                <strong>Pourquoi 3 chips et pas un seul "Démarrer avec Plato" :</strong> en after drop, l'utilisateur a déjà une intention. 3 portes valent mieux qu'un détour.
+              </Quote>
+            </section>
+
+            {/* ================ B. TRIGGERS CANVAS ================ */}
+            <section className="mb-12">
+              <h2 style={{ fontFamily: "'RL Para Trial Central', 'Albra', Georgia, serif", fontSize: 22, fontWeight: 500, color: '#292524', letterSpacing: '-0.3px', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>B. Triggers canvas</h2>
+              <p style={specPara}>Clic → message envoyé immédiatement comme bulle <code style={chipCode}>user</code>. Flux chat standard ensuite.</p>
+
+              <article id="ps-canvas-chiffrage" className="mb-10">
+                <h3 style={subSectionTitle}>B.1 Chiffrage vide</h3>
+                <p style={specPara}><strong>Label</strong> <code style={chipCode}>Commencer le chiffrage</code> → "Commençons le chiffrage de ce dossier" → agent chiffrage global.</p>
+                <CanvasSpecimen title="Chiffrage empty → user message" condition="aucun poste créé">
+                  <TriggerFlow trigger={triggerChiffrageEmpty} message="Commençons le chiffrage de ce dossier" />
+                </CanvasSpecimen>
+              </article>
+
+              <article id="ps-canvas-add-poste" className="mb-10">
+                <h3 style={subSectionTitle}>B.2 Ajout poste (modale "+ poste")</h3>
+                <p style={specPara}>À la confirmation → <em>"Chiffrons le poste {codeInline('{ACRONYME}')} ensemble"</em> → agent chiffrage du poste (params chips, pré-remplissage depuis contexte).</p>
+                <CanvasSpecimen title="Modale + poste → user message" condition="confirmation après sélection">
+                  <TriggerFlow trigger={triggerAddPosteModal} message="Chiffrons le poste DFP ensemble" />
+                </CanvasSpecimen>
+              </article>
+
+              <article id="ps-canvas-actes" className="mb-10">
+                <h3 style={subSectionTitle}>B.3 Actes vide</h3>
+                <p style={specPara}><strong>Label</strong> <code style={chipCode}>Rédiger un acte</code> → "Rédiger mon premier acte" → agent rédaction (sélection du type).</p>
+                <CanvasSpecimen title="Actes empty → user message" condition="aucun acte rédigé">
+                  <TriggerFlow trigger={triggerActesEmpty} message="Rédiger mon premier acte" />
+                </CanvasSpecimen>
+              </article>
+
+            </section>
+
+            {/* ================ C. AMPOULE ================ */}
+            <section id="ps-lightbulb" className="mb-16">
+              <h2 style={{ fontFamily: "'RL Para Trial Central', 'Albra', Georgia, serif", fontSize: 22, fontWeight: 500, color: '#292524', letterSpacing: '-0.3px', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #e7e5e3', display: 'flex', alignItems: 'center', gap: 8 }}>
+                C. Ampoule <Lightbulb className="w-5 h-5 text-[#78716c]" strokeWidth={1.75} />
+              </h2>
+              <p style={specPara}>
+                Clic → menu au-dessus de l'input. Clic item → <strong>inséré</strong> dans l'input (pas envoyé), focus textarea. Permanent dans l'input, à côté du <Paperclip className="inline w-3.5 h-3.5 align-middle text-[#78716c]" strokeWidth={1.75} />.
+              </p>
+              <LightbulbSpecimen />
+              <SpecTable
+                head={['Icône', 'Prompt']}
+                colWidths={[80, undefined]}
+                rows={[
+                  [<Sparkles className="w-4 h-4 text-[#a8a29e]" strokeWidth={1.5} />,   "Complète les informations du dossier à partir du rapport d'expertise"],
+                  [<Calculator className="w-4 h-4 text-[#a8a29e]" strokeWidth={1.5} />, 'Chiffre les préjudices de ce dossier'],
+                  [<HelpCircle className="w-4 h-4 text-[#a8a29e]" strokeWidth={1.5} />, 'Quels sont les préjudices à chiffrer ?'],
+                  [<Pencil className="w-4 h-4 text-[#a8a29e]" strokeWidth={1.5} />,     'Rédige une demande amiable de provision'],
+                ]}
+              />
+              <Quote>
+                <strong>Pré-remplit (et n'envoie pas)</strong> car c'est une aide "aide-moi à formuler" — l'utilisateur affine avant d'envoyer.
+              </Quote>
+            </section>
+
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ========== REASONING DEMO PAGE ==========
   const REASONING_SCENARIOS = {
     A: {
@@ -19987,6 +20538,9 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
   }
   if (currentPage === 'iv-structures') {
     return (<>{renderIvStructuresPage()}{renderGlobalOverlays()}</>);
+  }
+  if (currentPage === 'prompt-suggestions') {
+    return (<>{renderPromptSuggestionsPage()}{renderGlobalOverlays()}</>);
   }
   if (currentPage === 'list') {
     return (<>{renderDossierListPage()}{renderGlobalOverlays()}</>);
