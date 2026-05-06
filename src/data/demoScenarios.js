@@ -114,16 +114,6 @@ export const DEMO_SCENARIOS = {
       { type: 'AGENT_PLAIN_MESSAGE', text: "Au vu du dossier, je propose de chiffrer les postes suivants en priorité :\n\n• **DSA** — Dépenses de santé actuelles (factures CPAM disponibles)\n• **DFT** — Déficit fonctionnel temporaire (période d'arrêt de 4 mois)\n• **PGPA** — Pertes de gains professionnels actuels\n• **DFP** — Déficit fonctionnel permanent (taux fixé à 12% par l'expert)\n\nPar lequel souhaitez-vous commencer ?" },
     ],
   },
-  // Empty / manual-creation chat shortcut — agent introduces Plato then invites user to drop documents
-  'canvas-commencer-dossier': {
-    label: 'Démarrer avec Plato',
-    description: 'Plato se présente et invite l\'utilisateur à déposer des pièces',
-    actions: [
-      { type: 'USER_MESSAGE', text: 'Démarrer avec Plato' },
-      { type: 'DELAY', ms: 400 },
-      { type: 'AGENT_PLAIN_MESSAGE', text: "Bienvenue. Je suis **Plato**, votre assistant dédié à l'évaluation du préjudice corporel.\n\nÀ partir des pièces du dossier (rapport d'expertise, PV, factures, justificatifs…), j'extrais automatiquement les informations clés — identité de la victime, fait générateur, dates — j'identifie les postes pertinents et je vous accompagne sur le chiffrage et la recherche de jurisprudence.\n\nPour démarrer, **déposez les pièces du dossier** ici ou via l'onglet Pièces. Je m'occupe du reste." },
-    ],
-  },
   'canvas-jp-generic': {
     label: 'Rechercher une JP',
     description: 'Chato cherche une JP contextuelle pour le poste courant',
