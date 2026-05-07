@@ -28,7 +28,7 @@ function FilterSection({ title, children, searchable = false }) {
     <div className="mb-3">
       <button onClick={() => setOpen(!open)} className="flex items-center gap-1 w-full text-left mb-1.5">
         {open ? <ChevronDown className="w-3 h-3 text-[#a8a29e]" /> : <ChevronRight className="w-3 h-3 text-[#a8a29e]" />}
-        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
           {title}
         </span>
       </button>
@@ -40,7 +40,7 @@ function FilterSection({ title, children, searchable = false }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher..."
-              className="w-full px-2 py-1 mb-1.5 rounded-md border border-[#e7e5e3] bg-white text-[11px] text-[#292524] focus:outline-none focus:border-[#b9a07a]"
+              className="w-full px-2 py-1 mb-1.5 rounded-md border border-[#e7e5e3] bg-white text-[12px] text-[#292524] focus:outline-none focus:border-[#b9a07a]"
             />
           )}
           <div className="space-y-1">{filtered}</div>
@@ -87,11 +87,11 @@ function JPSearchResultCard({ decision: d, isPinned, assignedPosteIds = [], isSe
       {/* Header: jurisdiction + save */}
       <div className="px-3.5 pt-3 pb-1 flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
-          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#a8a29e', textTransform: 'uppercase' }}>
+          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#a8a29e', textTransform: 'uppercase' }}>
             {d.numero}
           </span>
           <Landmark className="w-3 h-3 text-[#b9703f] flex-shrink-0" />
-          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#b9703f', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#b9703f', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
             {d.jurisdiction}{d.chambre ? ` · ${d.chambre}` : ''}
           </span>
         </div>
@@ -106,7 +106,7 @@ function JPSearchResultCard({ decision: d, isPinned, assignedPosteIds = [], isSe
                   </span>
                 ))}
                 {assignedPosteIds.length > 3 && (
-                  <span className="text-[11px] text-[#a8a29e]">+{assignedPosteIds.length - 3}</span>
+                  <span className="text-[12px] text-[#a8a29e]">+{assignedPosteIds.length - 3}</span>
                 )}
               </div>
             )}
@@ -332,7 +332,7 @@ export default function JPSearchView({
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-1.5">
                   <SlidersHorizontal className="w-3 h-3 text-[#a8a29e]" />
-                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Filtres
                   </span>
                   {activeFilterCount > 0 && (

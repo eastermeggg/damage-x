@@ -18,7 +18,7 @@ function CheckRow({ checked, onClick, icon: Icon, label, sublabel }) {
   return (
     <button
       onClick={onClick}
-      className="w-full text-left px-3 py-2 rounded-md text-[13px] flex items-center gap-2 transition-colors"
+      className="w-full text-left px-3 py-2 rounded-md text-[14px] flex items-center gap-2 transition-colors"
       style={{
         backgroundColor: checked ? '#fdf8f4' : '#fafaf9',
         border: checked ? '1px solid #b9703f' : '1px solid #e7e5e3',
@@ -212,8 +212,8 @@ export default function JPAddStepper({
                     >
                       <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: active ? '#b9703f' : '#78716c' }} strokeWidth={1.75} />
                       <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-medium leading-4" style={{ color: '#292524' }}>{m.label}</div>
-                        <div className="text-[11px] leading-4 mt-0.5" style={{ color: '#a8a29e' }}>{m.hint}</div>
+                        <div className="text-[14px] font-medium leading-4" style={{ color: '#292524' }}>{m.label}</div>
+                        <div className="text-[12px] leading-4 mt-0.5" style={{ color: '#a8a29e' }}>{m.hint}</div>
                       </div>
                     </button>
                   );
@@ -227,10 +227,10 @@ export default function JPAddStepper({
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); setSearchSelectedId(null); }}
                     placeholder="Juridiction, numéro, poste — ou référence libre…"
-                    className="w-full px-3 py-2 text-[13px] rounded-md border border-[#e7e5e3] bg-white text-[#292524] placeholder-[#a8a29e] focus:outline-none focus:border-[#aabcd5]"
+                    className="w-full px-3 py-2 text-[14px] rounded-md border border-[#e7e5e3] bg-white text-[#292524] placeholder-[#a8a29e] focus:outline-none focus:border-[#aabcd5]"
                   />
                   {searchQuery.trim() && searchResults.length === 0 && (
-                    <p style={{ fontSize: 11, color: '#a8a29e', marginTop: 6 }}>
+                    <p style={{ fontSize: 12, color: '#a8a29e', marginTop: 6 }}>
                       Pas de correspondance dans Plato JP. Cette référence sera ajoutée comme citation libre.
                     </p>
                   )}
@@ -252,15 +252,15 @@ export default function JPAddStepper({
                         >
                           <div className="flex items-center gap-2 flex-wrap">
                             <Landmark className="w-3 h-3 text-[#b9703f]" />
-                            <span className="text-[13px] font-medium" style={{ color: '#292524' }}>
+                            <span className="text-[14px] font-medium" style={{ color: '#292524' }}>
                               {d.jurisdiction}{d.chambre ? ` · ${d.chambre}` : ''}
                             </span>
-                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#c8c5c0' }}>
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#c8c5c0' }}>
                               {formatDateLong(d.date)}
                             </span>
                             {amt && <span className="badge badge-sm badge-secondary">{amt.poste}</span>}
                           </div>
-                          <div className="text-[11px] mt-0.5 truncate" style={{ color: '#a8a29e' }}>
+                          <div className="text-[12px] mt-0.5 truncate" style={{ color: '#a8a29e' }}>
                             {d.numero} · {d.category}
                           </div>
                         </button>
@@ -283,9 +283,9 @@ export default function JPAddStepper({
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     placeholder="https://www.legifrance.gouv.fr/juri/id/..."
-                    className="w-full px-3 py-2 text-[13px] rounded-md border border-[#e7e5e3] bg-white text-[#292524] placeholder-[#a8a29e] focus:outline-none focus:border-[#aabcd5]"
+                    className="w-full px-3 py-2 text-[14px] rounded-md border border-[#e7e5e3] bg-white text-[#292524] placeholder-[#a8a29e] focus:outline-none focus:border-[#aabcd5]"
                   />
-                  <p style={{ fontSize: 11, color: '#a8a29e', marginTop: 6 }}>
+                  <p style={{ fontSize: 12, color: '#a8a29e', marginTop: 6 }}>
                     Les métadonnées seront extraites automatiquement.
                   </p>
                 </div>
@@ -301,7 +301,7 @@ export default function JPAddStepper({
                     style={{ borderColor: pdfFile ? '#b9703f' : '#e7e5e3', backgroundColor: pdfFile ? '#fdf8f4' : '#fafaf9' }}
                   >
                     <FileUp className="w-4 h-4" style={{ color: pdfFile ? '#b9703f' : '#78716c' }} />
-                    <span className="text-[13px]" style={{ color: pdfFile ? '#b9703f' : '#78716c' }}>
+                    <span className="text-[14px]" style={{ color: pdfFile ? '#b9703f' : '#78716c' }}>
                       {pdfFile ? pdfFile.name : 'Sélectionner un PDF'}
                     </span>
                     <input
@@ -319,7 +319,7 @@ export default function JPAddStepper({
           {step === 1 && extracting && (
             <div className="flex flex-col items-center justify-center py-8">
               <Loader2 className="w-5 h-5 text-[#b9703f] animate-spin" />
-              <span className="text-[13px] text-[#78716c] mt-3">Extraction des métadonnées…</span>
+              <span className="text-[14px] text-[#78716c] mt-3">Extraction des métadonnées…</span>
             </div>
           )}
 
@@ -374,7 +374,7 @@ export default function JPAddStepper({
           <button
             onClick={() => step > 1 ? setStep(step - 1) : onClose?.()}
             disabled={extracting}
-            className="text-[13px] text-[#78716c] hover:text-[#292524] transition-colors disabled:opacity-50"
+            className="text-[14px] text-[#78716c] hover:text-[#292524] transition-colors disabled:opacity-50"
           >
             {step > 1 ? '← Retour' : 'Annuler'}
           </button>
@@ -383,7 +383,7 @@ export default function JPAddStepper({
             <button
               onClick={handleStep1Action}
               disabled={!canProceed1 || extracting}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium transition-all"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[14px] font-medium transition-all"
               style={{
                 backgroundColor: canProceed1 && !extracting ? '#292524' : '#eeece6',
                 color: canProceed1 && !extracting ? 'white' : '#a8a29e',
@@ -398,7 +398,7 @@ export default function JPAddStepper({
             <button
               onClick={handleStep2Submit}
               disabled={!canProceed2}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium transition-all"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[14px] font-medium transition-all"
               style={{
                 backgroundColor: canProceed2 ? '#292524' : '#eeece6',
                 color: canProceed2 ? 'white' : '#a8a29e',

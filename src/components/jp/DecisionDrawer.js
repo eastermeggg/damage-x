@@ -16,7 +16,7 @@ function SidebarSectionHeader({ label, icon }) {
     <div className="flex items-center gap-1.5">
       {icon && <span className="text-[#a8a29e]">{icon}</span>}
       <span style={{
-        fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600,
+        fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600,
         color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.05em',
       }}>
         {label}
@@ -320,7 +320,7 @@ export default function DecisionDrawer({
         {/* ═══════════ HEADER ═══════════ */}
         <div className="px-5 pt-4 pb-3 border-b border-[#e7e5e3] flex-shrink-0" style={{ backgroundColor: '#fafaf9' }}>
           <div className="flex items-baseline gap-2 mb-1">
-            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#b9703f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: '#b9703f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {decision.jurisdiction}{decision.chambre ? ` · ${decision.chambre}` : ''}
             </span>
           </div>
@@ -375,7 +375,7 @@ export default function DecisionDrawer({
             />
             {searchQuery && (
               <div className="flex items-center gap-2">
-                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#78716c' }}>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#78716c' }}>
                   {searchMatchCount} résultat{searchMatchCount !== 1 ? 's' : ''}
                 </span>
                 <button onClick={() => setSearchQuery('')} className="p-0.5 hover:bg-[#eeece6] rounded transition-colors">
@@ -552,7 +552,7 @@ export default function DecisionDrawer({
                     </div>
                   ))}
                   <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#fafaf9' }}>
-                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase' }}>Total</span>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#78716c', textTransform: 'uppercase' }}>Total</span>
                     <span style={{ fontSize: 14, fontWeight: 700, color: '#292524' }}>{fmt(tempTotal)} €</span>
                   </div>
                 </div>
@@ -576,7 +576,7 @@ export default function DecisionDrawer({
                     </div>
                   ))}
                   <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#fafaf9' }}>
-                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase' }}>Total</span>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#78716c', textTransform: 'uppercase' }}>Total</span>
                     <span style={{ fontSize: 14, fontWeight: 700, color: '#292524' }}>{fmt(permTotal)} €</span>
                   </div>
                 </div>
@@ -606,7 +606,7 @@ export default function DecisionDrawer({
                         {a.lineItem && (
                           <span className="badge badge-sm badge-secondary">{a.lineItem.toUpperCase()}</span>
                         )}
-                        <span className="flex-1 text-right text-[11px] text-[#a8a29e]">{dateStr}</span>
+                        <span className="flex-1 text-right text-[12px] text-[#a8a29e]">{dateStr}</span>
                         {onRemoveAttachment && (
                           <button
                             onClick={() => onRemoveAttachment(a.id)}

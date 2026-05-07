@@ -78,7 +78,7 @@ export default function SaveDestinationPopover({
       onClick={(e) => e.stopPropagation()}
     >
       <div className="px-3 py-2 border-b border-[#f0efed]">
-        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
           Sauvegarder à un poste
         </span>
       </div>
@@ -93,7 +93,7 @@ export default function SaveDestinationPopover({
               placeholder="Filtrer les postes..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-[11px] text-[#292524] placeholder-[#a8a29e] focus:outline-none"
+              className="flex-1 bg-transparent text-[12px] text-[#292524] placeholder-[#a8a29e] focus:outline-none"
             />
           </div>
         </div>
