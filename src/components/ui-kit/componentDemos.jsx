@@ -8,6 +8,7 @@ import EmptyState from '../EmptyState';
 import PromptSuggestionCard from '../PromptSuggestionCard';
 import SuggestionsMenu from '../SuggestionsMenu';
 import JPPill from '../jp/JPPill';
+import JPListing from '../jp/JPListing';
 import * as P from './previews';
 
 const noop = () => {};
@@ -341,30 +342,45 @@ export const componentDemos = {
   },
 
   Badge: {
-    description: 'Inline status / tag badge. Uses the .badge-* CSS classes from src/index.css.',
+    description: 'Inline status / tag badge. Three modes: label, number (pill), and icon-only (pill). Source: src/components/ui/Badge.js · Figma node 136:1178 (Plato---System).',
     controls: {
-      label:    { type: 'text',    default: 'En cours',                                                          description: 'Badge text.' },
-      variant:  { type: 'select',  default: 'success', options: ['default', 'secondary', 'outline', 'destructive', 'destructive-subtle', 'ai', 'success', 'info', 'warning'], description: 'Color variant.' },
-      size:     { type: 'select',  default: 'md',      options: ['sm', 'md'],                                    description: 'Size.' },
-      hasIcon:  { type: 'boolean', default: false,                                                                description: 'Show leading icon.' },
-      hasDot:   { type: 'boolean', default: false,                                                                description: 'Show leading dot.' },
+      mode:          { type: 'select',  default: 'label',   options: ['label', 'number', 'icon-only'],            description: 'Badge mode. label = text with optional icons. number = pill with count. icon-only = pill with one icon.' },
+      label:         { type: 'text',    default: 'Label',                                                          description: 'Badge text (label mode).' },
+      count:         { type: 'text',    default: '8',                                                              description: 'Count (number mode). > 99 renders as "99+".' },
+      icon:          { type: 'icon',    default: 'Sparkles',                                                       description: 'Icon for label-mode left/right and icon-only mode.' },
+      hasLeftIcon:   { type: 'boolean', default: false,                                                            description: 'Show the leading icon (label mode).' },
+      hasRightIcon:  { type: 'boolean', default: false,                                                            description: 'Show the trailing icon (label mode).' },
+      variant:       { type: 'select',  default: 'default', options: ['default', 'secondary', 'outline', 'destructive', 'ai', 'success', 'info', 'warning'], description: 'Color variant.' },
+      size:          { type: 'select',  default: 'sm',      options: ['sm', 'md'],                                 description: 'Size.' },
     },
-    render: v => (
-      <P.Badge
-        variant={v.variant}
-        size={v.size}
-        icon={v.hasIcon ? Sparkles : undefined}
-        dot={v.hasDot}
-        label={v.label}
-      />
-    ),
+    render: v => {
+      const Icon = ICON_OPTIONS[v.icon];
+      if (v.mode === 'icon-only') {
+        return <P.Badge variant={v.variant} size={v.size} icon={Icon} iconOnly />;
+      }
+      if (v.mode === 'number') {
+        const n = parseInt(v.count, 10);
+        return <P.Badge variant={v.variant} size={v.size} count={Number.isFinite(n) ? n : v.count} />;
+      }
+      return (
+        <P.Badge
+          variant={v.variant}
+          size={v.size}
+          leftIcon={v.hasLeftIcon ? Icon : undefined}
+          rightIcon={v.hasRightIcon ? Icon : undefined}
+          label={v.label}
+        />
+      );
+    },
     presets: [
-      { label: 'Default',     values: { variant: 'default',     label: 'Default' } },
-      { label: 'Success',     values: { variant: 'success',     label: 'Validated' } },
-      { label: 'Warning',     values: { variant: 'warning',     label: 'À revoir' } },
-      { label: 'Destructive', values: { variant: 'destructive', label: 'Erreur' } },
-      { label: 'AI',          values: { variant: 'ai',          label: 'IA',     hasIcon: true } },
-      { label: 'Info',        values: { variant: 'info',        label: 'Info' } },
+      { label: 'Label · default',   values: { mode: 'label',     variant: 'default',     label: 'Label' } },
+      { label: 'Label · success',   values: { mode: 'label',     variant: 'success',     label: 'Validated' } },
+      { label: 'Label · warning',   values: { mode: 'label',     variant: 'warning',     label: 'À revoir' } },
+      { label: 'Label + icon · AI', values: { mode: 'label',     variant: 'ai',          label: 'AI',  hasLeftIcon: true,  icon: 'Sparkles' } },
+      { label: 'Label · outline',   values: { mode: 'label',     variant: 'outline',     label: 'Tag' } },
+      { label: 'Number · default',  values: { mode: 'number',    variant: 'default',     count: '8' } },
+      { label: 'Number · 99+',      values: { mode: 'number',    variant: 'destructive', count: '124' } },
+      { label: 'Icon-only · AI',    values: { mode: 'icon-only', variant: 'ai',          icon: 'Sparkles' } },
     ],
   },
 
@@ -799,12 +815,65 @@ export const componentDemos = {
   },
 
   // ========================================================================
+  // Domain components
+  // ========================================================================
+  JPListing: {
+    description: 'List of decisions pinned to the active dossier. Renders an empty state with a search CTA when no decisions are pinned, and an optional stats footer (median + range) when more than one decision is shown.',
+    controls: {
+      itemCount: { type: 'select', default: '3', options: ['0', '1', '3', '5'], description: 'Number of pinned decisions. 0 shows the empty state.' },
+      showStats: { type: 'boolean', default: true,                                description: 'Show the median + range footer (only useful with multiple items).' },
+      compact:   { type: 'boolean', default: false,                               description: 'Compact layout — strips the cream wrapper and outer padding.' },
+      withScopeBadges: { type: 'boolean', default: false,                         description: 'Show "Mes usuels" / "Cabinet" / "n matières" scope badges per row.' },
+    },
+    render: v => {
+      const samplePinned = [
+        { decisionId: 'jp-atpt-01', posteIds: ['atpt'] },
+        { decisionId: 'jp-dft-01',  posteIds: ['dft', 'dsa'] },
+        { decisionId: 'jp-pgpa-01', posteIds: ['pgpa'] },
+        { decisionId: 'jp-se-01',   posteIds: ['se', 'pe'] },
+        { decisionId: 'jp-dfp-01',  posteIds: ['dfp'] },
+      ];
+      const count = parseInt(v.itemCount, 10);
+      const pinnedJP = samplePinned.slice(0, count);
+
+      const attachmentSummary = v.withScopeBadges
+        ? (id) => {
+            // Sprinkle some variety
+            if (id === 'jp-atpt-01') return { user: true, workspace: false, matterCount: 1 };
+            if (id === 'jp-dft-01')  return { user: false, workspace: true,  matterCount: 2 };
+            if (id === 'jp-pgpa-01') return { user: true, workspace: true,  matterCount: 3 };
+            return { user: false, workspace: false, matterCount: 1 };
+          }
+        : undefined;
+
+      return (
+        <div style={{ width: 640 }}>
+          <JPListing
+            pinnedJP={pinnedJP}
+            showStats={v.showStats}
+            compact={v.compact}
+            getAttachmentSummary={attachmentSummary}
+            onAddClick={noop}
+            onSearchJP={noop}
+            onOpenDrawer={noop}
+          />
+        </div>
+      );
+    },
+    presets: [
+      { label: 'Empty state',     values: { itemCount: '0', showStats: false, compact: false, withScopeBadges: false } },
+      { label: '3 decisions',     values: { itemCount: '3', showStats: true,  compact: false, withScopeBadges: false } },
+      { label: '5 + scope badges',values: { itemCount: '5', showStats: true,  compact: false, withScopeBadges: true  } },
+      { label: 'Compact',         values: { itemCount: '3', showStats: false, compact: true,  withScopeBadges: false } },
+    ],
+  },
+
+  // ========================================================================
   // Domain components — placeholder until we wire mock data
   // ========================================================================
   JPPopoverCard:           { placeholder: 'Live demo TBD — JPPopoverCard positions itself relative to a JPPill anchor and needs a hover trigger. View in app: open a JP pill in any chat thread.', link: '/ui-kit' },
   DecisionDrawer:          { placeholder: 'Live demo TBD — DecisionDrawer is a full-width right drawer that requires decision data and works best in flow.', link: '/dossier' },
   JPAddStepper:            { placeholder: 'Live demo TBD — multi-step modal (search / paste link / upload PDF) wired to scope checkboxes.', link: '/dossier' },
-  JPListing:               { placeholder: 'Live demo TBD — list of pinned decisions with stats and empty state. Needs decisions from the active dossier.', link: '/dossier' },
   JPSearchView:            { placeholder: 'Live demo TBD — search UI with filter sidebar + result cards. Needs search index data.', link: '/dossier' },
   SaveDestinationPopover:  { placeholder: 'Live demo TBD — popover used by DecisionDrawer and JPSearchView to save into matter/postes/usuals.', link: '/dossier' },
   SlashCommandPalette:     { placeholder: 'Live demo TBD — keyboard-navigable command palette triggered from the chat input.', link: '/dossier' },

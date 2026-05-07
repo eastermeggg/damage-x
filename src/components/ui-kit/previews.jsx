@@ -144,16 +144,8 @@ export function Textarea({ value = '', placeholder, disabled, rows = 4, onChange
 }
 
 // ============== BADGE ==============
-// Wraps existing .badge-* CSS classes from src/index.css.
-export function Badge({ variant = 'default', size = 'md', icon: Icon, label, dot }) {
-  return (
-    <span className={`badge badge-${size} badge-${variant}`}>
-      {dot && <span style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: 'currentColor' }} />}
-      {Icon && <Icon style={{ width: 12, height: 12 }} strokeWidth={1.75} />}
-      {label}
-    </span>
-  );
-}
+// Promoted to a real component at src/components/ui/Badge.js.
+export { default as Badge } from '../ui/Badge';
 
 // ============== CHECKBOX ==============
 export function Checkbox({ checked = false, label, disabled, onChange }) {

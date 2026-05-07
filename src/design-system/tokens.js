@@ -147,11 +147,12 @@ export const spacing = {
 
 // Border radius — observed values across src/index.css
 export const radius = {
-  sm:  '4px',  // is-highlighted
-  xs:  '5px',  // is-zone-highlighted
-  md:  '6px',  // badge, banner-minimal button
-  lg:  '8px',  // banner button primary
-  xl:  '12px', // banner
+  sm:   '4px',    // is-highlighted
+  xs:   '5px',    // is-zone-highlighted
+  md:   '6px',    // badge label, banner-minimal button
+  lg:   '8px',    // banner button primary
+  xl:   '12px',   // banner
+  full: '9999px', // badge number / icon-only (pill)
 };
 
 // Shadows — sourced from src/index.css banner button + glow pulse
