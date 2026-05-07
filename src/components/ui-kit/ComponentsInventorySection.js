@@ -291,7 +291,6 @@ export default function ComponentsInventorySection() {
               return (
                 <div key={c.id} onClick={goToDetail} style={{ cursor: 'pointer' }}>
                   <InventoryRow
-                    id={c.id}
                     preview={preview}
                     name={c.id}
                     meta={meta}

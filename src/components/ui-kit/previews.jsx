@@ -12,6 +12,7 @@
 import React, { useState } from 'react';
 import { Check, X as XIcon, Upload, Sparkles, Inbox, FileText, Plus, Calendar, Eye, EyeOff } from 'lucide-react';
 import { colors } from '../../design-system/tokens';
+import BadgeReal from '../ui/Badge';
 
 // ============== BUTTON ==============
 const BUTTON_VARIANTS = {
@@ -145,7 +146,8 @@ export function Textarea({ value = '', placeholder, disabled, rows = 4, onChange
 
 // ============== BADGE ==============
 // Promoted to a real component at src/components/ui/Badge.js.
-export { default as Badge } from '../ui/Badge';
+// Re-exported here so the existing /ui-kit/c/Badge sandbox keeps working.
+export const Badge = BadgeReal;
 
 // ============== CHECKBOX ==============
 export function Checkbox({ checked = false, label, disabled, onChange }) {

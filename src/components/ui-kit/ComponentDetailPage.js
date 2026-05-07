@@ -4,6 +4,7 @@ import inventory from '../../data/designSystemInventory.json';
 import { colors, typography } from '../../design-system/tokens';
 import StatusPill from './StatusPill';
 import ComponentSandbox from './ComponentSandbox';
+import UpdateEntryForm from './UpdateEntryForm';
 import { getComponentDemo } from './componentDemos';
 
 export default function ComponentDetailPage({ componentId, navigate }) {
@@ -96,11 +97,6 @@ export default function ComponentDetailPage({ componentId, navigate }) {
               </a>
             </div>
           )}
-          {component.notes && (
-            <div style={{ fontSize: 12, color: colors.semantic.foregroundSecondary, fontStyle: 'italic' }}>
-              {component.notes}
-            </div>
-          )}
         </div>
       </div>
 
@@ -108,28 +104,7 @@ export default function ComponentDetailPage({ componentId, navigate }) {
       <div style={{ padding: '32px 48px', maxWidth: 1200 }}>
         <ComponentSandbox demo={demo} componentId={componentId} />
 
-        <details style={{ marginTop: 24 }}>
-          <summary style={{ cursor: 'pointer', fontSize: 11, color: colors.semantic.foregroundMuted, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500, fontFamily: typography.fontFamily.mono }}>
-            Tell Claude to update
-          </summary>
-          <code
-            style={{
-              display: 'block',
-              marginTop: 8,
-              padding: '12px 14px',
-              backgroundColor: colors.semantic.backgroundSubtle,
-              borderRadius: 8,
-              fontFamily: typography.fontFamily.mono,
-              fontSize: 12,
-              lineHeight: '18px',
-              color: colors.semantic.foregroundTertiary,
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-all',
-            }}
-          >
-            {`id: ${component.id}\nfigmaRef: <paste Figma URL here>\nnotes: <your notes>\nstatus: validated | needs-revision | pending`}
-          </code>
-        </details>
+        <UpdateEntryForm entry={component} kind="component" />
       </div>
     </div>
   );

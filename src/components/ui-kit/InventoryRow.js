@@ -6,16 +6,15 @@ import { colors } from '../../design-system/tokens';
  * Single inventory row — used by both /ui-kit/tokens and /ui-kit/inventory.
  *
  * Props:
- * - preview: ReactNode — visual preview (color swatch, type sample, ruler, etc.)
- * - name: string — token or component identifier
- * - meta: ReactNode — secondary info (value, file path, etc.)
+ * - preview: ReactNode
+ * - name: string
+ * - meta: ReactNode
  * - status: 'pending' | 'validated' | 'needs-revision' | 'missing'
- * - figmaRef: string — current Figma URL (read-only display)
- * - notes: string — current notes (read-only display)
- * - id: string — entry id, used in the "tell Claude" snippet
- * - actions: ReactNode — extra actions (e.g., "Open in code")
+ * - figmaRef: string (read-only display)
+ * - notes: string (read-only display)
+ * - actions: ReactNode
  */
-export default function InventoryRow({ preview, name, meta, status, figmaRef, notes, id, actions }) {
+export default function InventoryRow({ preview, name, meta, status, figmaRef, notes, actions }) {
   return (
     <div
       style={{
@@ -58,28 +57,6 @@ export default function InventoryRow({ preview, name, meta, status, figmaRef, no
             )}
           </div>
         )}
-        <details style={{ marginTop: 6 }}>
-          <summary style={{ cursor: 'pointer', fontSize: 11, color: colors.semantic.foregroundMuted, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>
-            Tell Claude to update
-          </summary>
-          <code
-            style={{
-              display: 'block',
-              marginTop: 6,
-              padding: '8px 10px',
-              backgroundColor: colors.semantic.backgroundSubtle,
-              borderRadius: 6,
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: 11,
-              lineHeight: '16px',
-              color: colors.semantic.foregroundTertiary,
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-all',
-            }}
-          >
-            {`id: ${id}\nfigmaRef: <paste Figma URL here>\nnotes: <your notes>\nstatus: validated | needs-revision | pending`}
-          </code>
-        </details>
       </div>
 
       {/* Actions cell */}

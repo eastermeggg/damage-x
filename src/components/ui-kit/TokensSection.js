@@ -246,7 +246,6 @@ export default function TokensSection() {
               return (
                 <InventoryRow
                   key={t.id}
-                  id={t.id}
                   preview={preview}
                   name={t.name}
                   meta={
