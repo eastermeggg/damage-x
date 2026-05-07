@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, PencilLine, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, UserRound, Users, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowRight, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, CircleArrowDown, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp, Focus, LogOut, CreditCard, SlidersHorizontal, Wand2, BookOpen, Globe, Crown, AlignLeft, ScanLine } from 'lucide-react';
 import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
 import JSZip from 'jszip';
@@ -944,7 +945,51 @@ function InfoTip({ children, label, placement = 'top' }) {
   );
 }
 
+// ========== URL ROUTING HELPERS ==========
+// Maps app pages and UI-kit subsections to URL paths.
+// Subsections of the components page get their own /ui-kit/<slug> URL.
+const UI_KIT_DEDICATED_PAGES = ['diff-engine', 'iv-structures', 'prompt-suggestions', 'reasoning-demo'];
+const UI_KIT_SUBSECTION_SLUGS = [
+  'buttons',
+  'prompt-suggestion-card',
+  'suggestions-menu',
+  'badges-pills',
+  'diff-rows',
+  'panel-diff-inputs',
+  'field-streaming',
+  'reasoning',
+  'chat-messages',
+  'artifact-cards',
+  'bareme-components',
+];
+
+function pathToPage(pathname) {
+  const clean = (pathname || '/').replace(/\/+$/, '') || '/';
+  if (clean === '/' || clean === '') return { page: 'list', section: null };
+  if (clean === '/settings') return { page: 'settings', section: null };
+  if (clean === '/dossier') return { page: 'dossier', section: null };
+  if (clean === '/ui-kit') return { page: 'components', section: null };
+  if (clean.startsWith('/ui-kit/')) {
+    const slug = clean.slice('/ui-kit/'.length);
+    if (UI_KIT_DEDICATED_PAGES.includes(slug)) return { page: slug, section: null };
+    if (UI_KIT_SUBSECTION_SLUGS.includes(slug)) return { page: 'components', section: slug };
+    return { page: 'components', section: null };
+  }
+  return { page: 'list', section: null };
+}
+
+function pageToPath(page) {
+  if (page === 'list') return '/';
+  if (page === 'settings') return '/settings';
+  if (page === 'dossier') return '/dossier';
+  if (page === 'components') return '/ui-kit';
+  if (UI_KIT_DEDICATED_PAGES.includes(page)) return `/ui-kit/${page}`;
+  return '/';
+}
+
 export default function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // ========== LOCALSTORAGE PERSISTENCE ==========
   const LS_GLOBAL = 'plato_global';
@@ -954,16 +999,10 @@ export default function App() {
   const isInitialLoad = useRef(true);
 
   // ========== STATE ==========
-  const [currentPage, setCurrentPage] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    const page = params.get('page');
-    if (page === 'reasoning-demo') return 'reasoning-demo';
-    if (page === 'components') return 'components';
-    const hash = window.location.hash.split('&')[0].replace('#', '');
-    if (hash === 'reasoning-demo') return 'reasoning-demo';
-    if (hash === 'components') return 'components';
-    return 'list';
-  }); // 'list' | 'dossier' | 'components'
+  // currentPage and componentsSection are derived from the URL.
+  // setCurrentPage(page) calls navigate() so the URL stays the source of truth.
+  const { page: currentPage, section: componentsSection } = pathToPage(location.pathname);
+  const setCurrentPage = (page) => navigate(pageToPath(page));
   const [activeDossierId, setActiveDossierId] = useState(null);
 
   // ========== SETTINGS ==========
@@ -1606,7 +1645,10 @@ export default function App() {
     const savedGlobal = lsLoad(LS_GLOBAL);
     if (savedGlobal) {
       setDossiers((savedGlobal.dossiers || []).map(d => ({ ...d, statut: d.statut ?? 'ouvert' })));
-      setCurrentPage(savedGlobal.currentPage || 'list');
+      // URL is the source of truth — only restore page from storage when user landed at root
+      if (window.location.pathname === '/' && savedGlobal.currentPage && savedGlobal.currentPage !== 'list') {
+        setCurrentPage(savedGlobal.currentPage);
+      }
       setActiveDossierId(savedGlobal.activeDossierId);
       // Migration: rename 'détail' → 'info dossier' in saved navStack
       if (savedGlobal.navStack) setNavStack(savedGlobal.navStack.map(n => ({ ...n, activeTab: n.activeTab === 'détail' || n.activeTab === 'info dossier' ? 'dossier' : n.activeTab })));
@@ -15065,36 +15107,48 @@ export default function App() {
             Composants
           </div>
           <nav className="flex flex-col gap-1 mb-6">
+            <button
+              onClick={() => navigate('/ui-kit')}
+              className={`text-left text-body px-2 py-1.5 rounded transition-colors ${!componentsSection ? 'bg-[#f5f5f4] text-[#292524] font-medium' : 'text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9]'}`}
+            >
+              Tous les composants
+            </button>
             {[
-              'Buttons',
-              'Prompt Suggestion Card',
-              'Suggestions Menu',
-              'Badges & Pills',
-              'Diff Rows',
-              'Panel Diff Inputs',
-              'Field Streaming',
-              'Reasoning',
-              'Chat Messages',
-              'Artifact Cards',
-              'Barème Components',
-            ].map(s => (
-              <a key={s} href={`#section-${s.toLowerCase().replace(/\s+/g, '-')}`} className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">{s}</a>
+              { label: 'Buttons', slug: 'buttons' },
+              { label: 'Prompt Suggestion Card', slug: 'prompt-suggestion-card' },
+              { label: 'Suggestions Menu', slug: 'suggestions-menu' },
+              { label: 'Badges & Pills', slug: 'badges-pills' },
+              { label: 'Diff Rows', slug: 'diff-rows' },
+              { label: 'Panel Diff Inputs', slug: 'panel-diff-inputs' },
+              { label: 'Field Streaming', slug: 'field-streaming' },
+              { label: 'Reasoning', slug: 'reasoning' },
+              { label: 'Chat Messages', slug: 'chat-messages' },
+              { label: 'Artifact Cards', slug: 'artifact-cards' },
+              { label: 'Barème Components', slug: 'bareme-components' },
+            ].map(({ label, slug }) => (
+              <button
+                key={slug}
+                onClick={() => navigate(`/ui-kit/${slug}`)}
+                className={`text-left text-body px-2 py-1.5 rounded transition-colors ${componentsSection === slug ? 'bg-[#f5f5f4] text-[#292524] font-medium' : 'text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9]'}`}
+              >
+                {label}
+              </button>
             ))}
           </nav>
           <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10 }}>
             Pages
           </div>
           <nav className="flex flex-col gap-1">
-            <button onClick={() => setCurrentPage('diff-engine')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
+            <button onClick={() => navigate('/ui-kit/diff-engine')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
               <FileText className="w-3.5 h-3.5" /> Diff Engine
             </button>
-            <button onClick={() => setCurrentPage('iv-structures')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
+            <button onClick={() => navigate('/ui-kit/iv-structures')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
               <Table2 className="w-3.5 h-3.5" /> IV Table Structures
             </button>
-            <button onClick={() => setCurrentPage('prompt-suggestions')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
+            <button onClick={() => navigate('/ui-kit/prompt-suggestions')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
               <Lightbulb className="w-3.5 h-3.5" /> Prompt Suggestions
             </button>
-            <button onClick={() => setCurrentPage('reasoning-demo')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
+            <button onClick={() => navigate('/ui-kit/reasoning-demo')} className="w-full text-left text-body-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors flex items-center gap-2">
               <Brain className="w-3.5 h-3.5" /> Reasoning Demo
             </button>
           </nav>
@@ -15102,7 +15156,12 @@ export default function App() {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto" style={{ padding: '32px 48px' }}>
-          <div>
+          {componentsSection && (
+            <style>{`
+              .ui-kit-content > [id^="section-"]:not(#section-${componentsSection}) { display: none !important; }
+            `}</style>
+          )}
+          <div className="ui-kit-content">
             <h1 style={{ fontSize: 24, fontWeight: 700, color: '#292524', marginBottom: 4 }}>Plato UI Components</h1>
             <p style={{ fontSize: 14, color: '#78716c', marginBottom: 32 }}>Composants visuels du prototype Plato — tester les propriétés et variantes en situation.</p>
 
@@ -15849,7 +15908,7 @@ export default function App() {
             </div>
 
             {/* ====== BADGES & PILLS ====== */}
-            <div id="section-badges-&-pills" className={sectionClass}>
+            <div id="section-badges-pills" className={sectionClass}>
               {sectionTitle('Badges & Pills')}
 
               {subTitle('Diff type badges')}
@@ -16044,7 +16103,7 @@ export default function App() {
             </div>
 
             {/* ====== BARÈME COMPONENTS ====== */}
-            <div id="section-barème-components" className={sectionClass}>
+            <div id="section-bareme-components" className={sectionClass}>
               {sectionTitle('Barème Components')}
               <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>Composants pour la gestion des barèmes et référentiels — bibliothèque, sélecteur, viewer, upload.</p>
 
