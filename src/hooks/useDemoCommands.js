@@ -8,14 +8,18 @@ import { getDecisionById as getMockDecisionById } from '../data/mockDecisions';
 // ──────────
 // • attachments[] — one row per JPAttachment.
 //     { id, decisionId, scope, scopeTargetId, lineItem?, addedAt, addedBy }
-//     scope ∈ 'workspace' | 'user' | 'matter'
+//     scope ∈ 'workspace' | 'matter'
 //     lineItem is the poste tag (e.g. 'dfp', 'atpt'); null/undefined means
 //     transverse (no specific poste).
 //
 // • customJPs[] — JP entities created via manual entry or PDF upload, i.e.
 //     not present in mockDecisions.js.
-//     { id, reference, date?, court?, lineItems[], source: 'manual' | 'upload',
-//       canonicalId?, summary?, amounts[]?, owner: 'user' | 'workspace' }
+//     { id, reference, jurisdiction?, date?, court?, lineItems[],
+//       source: 'manual' | 'upload',
+//       canonicalId?,
+//       impact?,         // agent-facing impact summary (firm fiche)
+//       pdfFileName?,    // uploaded PDF name (firm fiche, local-only)
+//       summary?, amounts[]?, owner: 'user' | 'workspace' }
 //
 // Backwards-compat
 // ────────────────
@@ -25,7 +29,6 @@ import { getDecisionById as getMockDecisionById } from '../data/mockDecisions';
 // 'dossier-1'. New callsites should use the attachment helpers directly.
 
 const DEFAULT_MATTER_ID = 'dossier-1';
-const DEFAULT_USER_ID = 'user-me';
 const DEFAULT_WORKSPACE_ID = 'workspace-cabinet';
 
 const initialState = {
@@ -81,6 +84,15 @@ function jpReducer(state, action) {
         return { ...state, customJPs: next };
       }
       return { ...state, customJPs: [...state.customJPs, jp] };
+    }
+    case 'REMOVE_CUSTOM_JP': {
+      const { id } = action;
+      return {
+        ...state,
+        customJPs: state.customJPs.filter(c => c.id !== id),
+        // also drop any attachments pointing at this JP
+        attachments: state.attachments.filter(a => a.decisionId !== id),
+      };
     }
 
     case 'OPEN_DRAWER': {
@@ -143,18 +155,6 @@ export default function useDemoCommands({ setChatMessages, setNavStack, tabsConf
       a.scope === 'matter' &&
       a.scopeTargetId === (matterId || DEFAULT_MATTER_ID) &&
       a.lineItem === posteId
-    );
-  }, [state.attachments]);
-
-  const getRelevantUserUsualsForMatter = useCallback((userId, posteIds = []) => {
-    const uid = userId || DEFAULT_USER_ID;
-    if (!posteIds || posteIds.length === 0) {
-      return state.attachments.filter(a => a.scope === 'user' && a.scopeTargetId === uid);
-    }
-    return state.attachments.filter(a =>
-      a.scope === 'user' &&
-      a.scopeTargetId === uid &&
-      (a.lineItem == null || posteIds.includes(a.lineItem))
     );
   }, [state.attachments]);
 
@@ -298,6 +298,10 @@ export default function useDemoCommands({ setChatMessages, setNavStack, tabsConf
     dispatch({ type: 'UPSERT_CUSTOM_JP', jp });
   }, []);
 
+  const removeCustomJP = useCallback((id) => {
+    dispatch({ type: 'REMOVE_CUSTOM_JP', id });
+  }, []);
+
   // ── Legacy helpers (shims) ───────────────────────────────────────────
   // These wrap the new attachment model but assume scope='matter' on the
   // default dossier — preserves behavior for the 9 existing callsites.
@@ -396,13 +400,12 @@ export default function useDemoCommands({ setChatMessages, setNavStack, tabsConf
     removeAttachment,
     setAttachmentsForDecision,
     upsertCustomJP,
+    removeCustomJP,
     getJPById,
     getAttachmentsForJP,
     getJPsByScope,
     getJPsForMatterPoste,
-    getRelevantUserUsualsForMatter,
     DEFAULT_MATTER_ID,
-    DEFAULT_USER_ID,
     DEFAULT_WORKSPACE_ID,
 
     // Legacy / drawer / scenario surface

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   X, ChevronRight, ChevronDown, ExternalLink, Download, Bookmark, Search, Tag,
   Landmark, Calendar, Hash, FileText, Heart, Scale, LinkIcon,
-  User,
+  User, Check, FileUp, AlertTriangle, Edit3,
 } from 'lucide-react';
 import { getDecisionById, getPrimaryAmount, formatDateLong } from '../../data/mockDecisions';
 import SaveDestinationPopover from './SaveDestinationPopover';
@@ -39,14 +39,13 @@ export default function DecisionDrawer({
   onAttachToPoste,
   posteOptions = [],
   pinnedPosteIds = [],
-  // Phase 3: scope-aware Save popover.
-  userPinned = false,
-  workspacePinned = false,
-  onToggleUser,
-  onToggleWorkspace,
-  // Phase 6: full attachment list for the Attachements section.
+  // Full attachment list for the Attachements section.
   attachments = [],
   onRemoveAttachment,
+  // Fiche cabinet preview mode — drives a PDF preview + metadata sidebar
+  // when the decision is a non-canonical customJP completed via the modal.
+  customJP = null,
+  onEditFiche,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSection, setActiveSection] = useState(null);
@@ -55,7 +54,8 @@ export default function DecisionDrawer({
   const textPanelRef = useRef(null);
   const sectionRefs = useRef({});
 
-  const decision = getDecisionById(decisionId);
+  const ficheMode = !!customJP && !customJP.canonicalId;
+  const decision = ficheMode ? customJP : getDecisionById(decisionId);
 
   const hasResultSet = resultSet.length > 1;
   const canPrev = resultIndex > 0;
@@ -111,6 +111,150 @@ export default function DecisionDrawer({
   }, [onClose, onPrev, onNext, canPrev, canNext]);
 
   if (!decision) return null;
+
+  // ─── Fiche cabinet preview mode ─────────────────────────────────────
+  if (ficheMode) {
+    const refLabel = customJP.reference || `${customJP.jurisdiction || ''} ${customJP.numero || ''}`.trim();
+    const showPdf = !!customJP.pdfDataURL;
+    const showUrl = !showPdf && !!customJP.url;
+    return (
+      <>
+        <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 29, backgroundColor: 'rgba(41, 37, 36, 0.12)' }} />
+        <div className="fixed right-0 top-0 h-screen bg-white border-l border-[#e7e5e3] shadow-xl z-30 flex flex-col"
+             style={{ width: 820, animation: 'slideInRight 0.2s ease-out' }}>
+
+          {/* Top bar */}
+          <div className="px-4 py-2.5 border-b border-[#e7e5e3] flex items-center justify-between flex-shrink-0 bg-white">
+            <div className="flex items-center gap-1.5">
+              <Landmark className="w-3.5 h-3.5 text-[#b9703f]" />
+              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#b9703f', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                Fiche cabinet
+              </span>
+            </div>
+            <div className="flex items-center gap-0.5">
+              {onEditFiche && (
+                <button
+                  onClick={() => onEditFiche(customJP)}
+                  className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[12px] font-medium text-[#78716c] hover:text-[#292524] hover:bg-[#eeece6] transition-colors"
+                >
+                  <Edit3 className="w-3 h-3" /> Modifier
+                </button>
+              )}
+              <div className="w-px h-4 bg-[#e7e5e3] mx-1" />
+              <button onClick={onClose} className="p-1.5 text-[#a8a29e] hover:text-[#78716c] hover:bg-[#eeece6] rounded-md transition-colors">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Two-column body: PDF preview (left) + metadata sidebar (right) */}
+          <div className="flex flex-1 min-h-0 overflow-hidden">
+            {/* Left: PDF preview */}
+            <div className="flex-1 overflow-hidden border-r border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
+              {showPdf ? (
+                <iframe
+                  title="PDF de la décision"
+                  src={customJP.pdfDataURL}
+                  className="w-full h-full"
+                  style={{ border: 'none' }}
+                />
+              ) : showUrl ? (
+                <div className="flex flex-col items-center justify-center h-full px-6 text-center">
+                  <ExternalLink className="w-8 h-8 text-[#d6d3d1] mb-3" strokeWidth={1.5} />
+                  <p className="text-[13px] text-[#44403c] mb-1">Décision hébergée en ligne</p>
+                  <a href={customJP.url} target="_blank" rel="noopener noreferrer"
+                     className="text-[12px] text-[#1e3a8a] underline break-all max-w-[400px]">
+                    {customJP.url}
+                  </a>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full px-6 text-center">
+                  <FileText className="w-8 h-8 text-[#d6d3d1] mb-3" strokeWidth={1.5} />
+                  <p className="text-[13px] text-[#78716c]">Aucun PDF ou lien fourni</p>
+                  {customJP.pdfFileName && (
+                    <p className="text-[12px] text-[#a8a29e] mt-1">Référence : {customJP.pdfFileName}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Right: metadata sidebar */}
+            <div className="w-[300px] flex-shrink-0 overflow-y-auto bg-white">
+              <div className="px-5 py-4 border-b border-[#f0efed]">
+                <SidebarSectionHeader label="Référence" />
+                <p style={{ fontFamily: "'EB Garamond', Georgia, serif", fontSize: 18, fontWeight: 400, color: '#292524', lineHeight: '24px', marginTop: 8 }}>
+                  {customJP.jurisdiction}{customJP.chambre ? ` · ${customJP.chambre}` : ''}
+                </p>
+                <div className="mt-2 space-y-1">
+                  {customJP.numero && (
+                    <div className="flex items-center gap-1.5">
+                      <Hash className="w-3 h-3 text-[#a8a29e]" />
+                      <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#78716c' }}>{customJP.numero}</span>
+                    </div>
+                  )}
+                  {customJP.date && (
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-3 h-3 text-[#a8a29e]" />
+                      <span style={{ fontSize: 12, color: '#78716c' }}>{customJP.date}</span>
+                    </div>
+                  )}
+                </div>
+                {refLabel && refLabel !== `${customJP.jurisdiction} ${customJP.numero}` && (
+                  <p style={{ fontSize: 11, color: '#a8a29e', marginTop: 8, fontStyle: 'italic' }}>
+                    {refLabel}
+                  </p>
+                )}
+              </div>
+
+              {customJP.impact && (
+                <div className="px-5 py-4 border-b border-[#f0efed]">
+                  <SidebarSectionHeader label="Apport de la décision" />
+                  <p style={{ fontSize: 13, color: '#44403c', lineHeight: '20px', marginTop: 8 }}>
+                    {customJP.impact}
+                  </p>
+                </div>
+              )}
+
+              <div className="px-5 py-4 border-b border-[#f0efed]">
+                <SidebarSectionHeader label="Source" />
+                <div className="mt-2 space-y-1.5">
+                  {customJP.pdfFileName && (
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="w-3 h-3 text-[#a8a29e] flex-shrink-0" />
+                      <span style={{ fontSize: 12, color: '#44403c' }} className="truncate">{customJP.pdfFileName}</span>
+                    </div>
+                  )}
+                  {customJP.url && (
+                    <div className="flex items-center gap-1.5">
+                      <ExternalLink className="w-3 h-3 text-[#a8a29e] flex-shrink-0" />
+                      <a href={customJP.url} target="_blank" rel="noopener noreferrer"
+                         style={{ fontSize: 12, color: '#1e3a8a' }} className="truncate underline">
+                        {customJP.url}
+                      </a>
+                    </div>
+                  )}
+                  {!customJP.pdfFileName && !customJP.url && (
+                    <p style={{ fontSize: 12, color: '#a8a29e' }}>Aucune source attachée</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-5 py-4">
+                <SidebarSectionHeader label="Statut" />
+                <div className="mt-2">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+                    style={{ backgroundColor: '#fdf3ec', color: '#b9703f' }}>
+                    <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                    Fiche cabinet
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   const tempTotal = prejudices?.temporaires?.reduce((s, p) => s + p.montant, 0) || 0;
   const permTotal = prejudices?.permanents?.reduce((s, p) => s + p.montant, 0) || 0;
@@ -211,21 +355,10 @@ export default function DecisionDrawer({
                     posteOptions={posteOptions}
                     onSaveToDossier={() => { if (!isPinned) onPin?.(decision.id); setShowPosteDropdown(false); }}
                     onTogglePoste={(posteId) => onAttachToPoste?.(decision.id, posteId)}
-                    userPinned={userPinned}
-                    workspacePinned={workspacePinned}
-                    onToggleUser={onToggleUser ? () => onToggleUser(decision.id) : undefined}
-                    onToggleWorkspace={onToggleWorkspace ? () => onToggleWorkspace(decision.id) : undefined}
                     onClose={() => setShowPosteDropdown(false)}
                   />
                 )}
               </div>
-              {isPinned && (
-                <button onClick={() => onUnpin?.(decision.id)}
-                  className="p-1.5 rounded-md text-[#d6d3d1] hover:text-[#ef4444] hover:bg-[#fef2f2] transition-colors"
-                  title="Retirer du dossier">
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -456,9 +589,7 @@ export default function DecisionDrawer({
                 <SidebarSectionHeader label="Attachements" />
                 <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
                   {attachments.map((a, i) => {
-                    const scopeLabel = a.scope === 'workspace' ? 'Cabinet'
-                      : a.scope === 'user' ? 'Mes usuels'
-                      : 'Dossier';
+                    const scopeLabel = 'Dossier';
                     const dateStr = (() => {
                       try { return new Date(a.addedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }); }
                       catch { return ''; }

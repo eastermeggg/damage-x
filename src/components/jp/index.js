@@ -6,3 +6,4 @@ export { default as JPAddStepper } from './JPAddStepper';
 export { default as SlashCommandPalette } from './SlashCommandPalette';
 export { default as JPSearchView } from './JPSearchView';
 export { default as SaveDestinationPopover } from './SaveDestinationPopover';
+export { default as FicheCabinetModal } from './FicheCabinetModal';

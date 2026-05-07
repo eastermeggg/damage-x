@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, Search, FileText, Link as LinkIcon, FileUp, Tag, ChevronRight, Check, Loader2, FolderOpen, Landmark } from 'lucide-react';
+import { X, Search, Link as LinkIcon, FileUp, Tag, ChevronRight, Check, Loader2, FolderOpen, Landmark } from 'lucide-react';
 import DECISIONS, { formatDateLong, getPrimaryAmount } from '../../data/mockDecisions';
 
 const MODES = [
@@ -42,13 +42,8 @@ export default function JPAddStepper({
   onClose,
   onSubmit,
   posteOptions = [],
-  // 'user'   → JP saved to user usuals (applies to every matter); skips Portée step
-  // 'matter' → JP saved to current matter (transverse or to specific postes)
-  launchContext = 'matter',
   defaultPosteId = null,
 }) {
-  const isUserContext = launchContext === 'user';
-
   const [step, setStep] = useState(1);
   const [mode, setMode] = useState(null); // 'search' | 'link' | 'upload'
 
@@ -60,7 +55,7 @@ export default function JPAddStepper({
   const [extracting, setExtracting] = useState(false);
   const [matchedCanonical, setMatchedCanonical] = useState(null);
 
-  // Step 2 (matter context only) — Portée
+  // Step 2 — Portée
   const [pinTransverse, setPinTransverse] = useState(true);
   const [pinPosteIds, setPinPosteIds] = useState(defaultPosteId ? [defaultPosteId] : []);
 
@@ -126,39 +121,28 @@ export default function JPAddStepper({
       reference: mode === 'search' && !canonicalId ? searchQuery : null,
       url: mode === 'link' ? url : null,
       pdfFileName: mode === 'upload' && pdfFile ? pdfFile.name : null,
-      attachments: isUserContext
-        ? { matterTransverse: false, posteIds: [], user: true, workspace: false }
-        : { matterTransverse: pinTransverse, posteIds: pinPosteIds, user: false, workspace: false },
+      attachments: { matterTransverse: pinTransverse, posteIds: pinPosteIds },
     });
     onClose?.();
   };
 
-  // Step 1 → Next/Submit
+  // Step 1 → Next
   const handleStep1Action = async () => {
     const { canonicalId } = await resolveCanonical();
-    if (isUserContext) {
-      submitWith(canonicalId);
-    } else {
-      setMatchedCanonical(canonicalId);
-      setStep(2);
-    }
+    setMatchedCanonical(canonicalId);
+    setStep(2);
   };
 
-  // Step 2 (matter only) submit
   const handleStep2Submit = () => {
     submitWith(matchedCanonical);
   };
 
-  const steps = isUserContext
-    ? [{ num: 1, label: 'Source', icon: LinkIcon }]
-    : [
-        { num: 1, label: 'Source', icon: LinkIcon },
-        { num: 2, label: 'Portée', icon: Tag },
-      ];
+  const steps = [
+    { num: 1, label: 'Source', icon: LinkIcon },
+    { num: 2, label: 'Portée', icon: Tag },
+  ];
 
-  const headerSubtitle = isUserContext
-    ? 'Ajouter à mes usuels (s\'applique à tous les dossiers)'
-    : 'Ajouter une décision';
+  const headerSubtitle = 'Ajouter une décision';
 
   return (
     <div className="w-full">
@@ -339,8 +323,8 @@ export default function JPAddStepper({
             </div>
           )}
 
-          {/* ── Step 2 — Portée (matter only) ─────────────────────── */}
-          {step === 2 && !isUserContext && (
+          {/* ── Step 2 — Portée ─────────────────────── */}
+          {step === 2 && (
             <div>
               <label style={{ fontSize: 12, fontWeight: 500, color: '#44403c', display: 'block', marginBottom: 6 }}>
                 Où dans ce dossier ?
@@ -406,17 +390,8 @@ export default function JPAddStepper({
                 cursor: canProceed1 && !extracting ? 'pointer' : 'not-allowed',
               }}
             >
-              {isUserContext ? (
-                <>
-                  <Check className="w-3.5 h-3.5" />
-                  Ajouter
-                </>
-              ) : (
-                <>
-                  Suivant
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </>
-              )}
+              Suivant
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           )}
           {step === 2 && (

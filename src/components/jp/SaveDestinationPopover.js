@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Search, FolderOpen, Bookmark, Building2 } from 'lucide-react';
+import { Search, Building2 } from 'lucide-react';
 
 const Checkmark = () => (
   <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
@@ -7,13 +7,13 @@ const Checkmark = () => (
   </svg>
 );
 
-function CheckRow({ checked, onClick, icon: Icon, label, sublabel, lastInGroup = false }) {
+function CheckRow({ checked, onClick, icon: Icon, label, sublabel }) {
   return (
     <button
       onClick={onClick}
       className="w-full text-left px-3 py-2.5 text-[12px] text-[#292524] hover:bg-[#fafaf9] transition-colors flex items-center gap-2"
       style={{
-        borderBottom: lastInGroup ? 'none' : '1px solid #f0efed',
+        borderBottom: '1px solid #f0efed',
         backgroundColor: checked ? '#fafaf9' : 'transparent',
       }}
     >
@@ -39,9 +39,7 @@ function CheckRow({ checked, onClick, icon: Icon, label, sublabel, lastInGroup =
  *   - onSaveToDossier()        — toggle matter transverse
  *   - onTogglePoste(posteId)   — toggle matter+poste
  *   - posteOptions[]           — { id, acronym, label }
- *   - userPinned               — boolean (Mes usuels)
- *   - workspacePinned          — boolean (Cabinet)
- *   - onToggleUser()           — toggle user-scope attachment
+ *   - workspacePinned          — boolean (Cabinet/org level state)
  *   - onToggleWorkspace()      — toggle workspace-scope attachment
  *   - onClose()                — required: dismiss popover
  *   - className                — extra classes (positioning override)
@@ -52,9 +50,7 @@ export default function SaveDestinationPopover({
   onSaveToDossier,
   onTogglePoste,
   posteOptions = [],
-  userPinned = false,
   workspacePinned = false,
-  onToggleUser,
   onToggleWorkspace,
   onClose,
   className = 'absolute top-full right-0 mt-1.5',
@@ -74,8 +70,6 @@ export default function SaveDestinationPopover({
     return p.acronym.toLowerCase().includes(q) || p.label.toLowerCase().includes(q);
   });
 
-  const showScopeRows = onToggleUser || onToggleWorkspace;
-
   return (
     <div
       ref={ref}
@@ -85,20 +79,9 @@ export default function SaveDestinationPopover({
     >
       <div className="px-3 py-2 border-b border-[#f0efed]">
         <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          Sauvegarder dans...
+          Sauvegarder à un poste
         </span>
       </div>
-
-      {/* Dossier (transverse) */}
-      {onSaveToDossier && (
-        <CheckRow
-          checked={isPinned}
-          onClick={onSaveToDossier}
-          icon={FolderOpen}
-          label="Dossier"
-          sublabel="(transverse)"
-        />
-      )}
 
       {/* Postes search */}
       {posteOptions.length > 6 && (
@@ -145,30 +128,14 @@ export default function SaveDestinationPopover({
         <div className="px-3 py-3 text-[12px] text-[#a8a29e]">Aucun poste trouvé</div>
       )}
 
-      {/* Scope rows (Mes usuels + Cabinet) */}
-      {showScopeRows && (
-        <>
-          <div style={{ borderTop: '1px solid #e7e5e3' }} />
-          {onToggleUser && (
-            <CheckRow
-              checked={userPinned}
-              onClick={onToggleUser}
-              icon={Bookmark}
-              label="Mes usuels"
-              lastInGroup={!onToggleWorkspace}
-            />
-          )}
-          {onToggleWorkspace && (
-            <CheckRow
-              checked={workspacePinned}
-              onClick={onToggleWorkspace}
-              icon={Building2}
-              label="Cabinet"
-              lastInGroup={true}
-            />
-          )}
-        </>
-      )}
+      {/* Footer note — cabinet save is automatic */}
+      <div className="border-t border-[#f0efed] px-3 py-2 flex items-center gap-1.5" style={{ backgroundColor: '#fafaf9' }}>
+        <Building2 className="w-3 h-3 text-[#a8a29e] flex-shrink-0" />
+        <span className="text-[11px] text-[#78716c] leading-tight">
+          Aussi ajoutée aux JP de référence (visible sur tous les dossiers).
+        </span>
+      </div>
+
     </div>
   );
 }

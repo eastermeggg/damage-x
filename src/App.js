@@ -4,9 +4,10 @@ import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, P
 import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { JPPill, JPPopoverCard, DecisionDrawer, JPListing, JPAddStepper, SlashCommandPalette, JPSearchView } from './components/jp';
+import { JPPill, JPPopoverCard, DecisionDrawer, JPListing, JPAddStepper, SlashCommandPalette, JPSearchView, FicheCabinetModal } from './components/jp';
 import useDemoCommands from './hooks/useDemoCommands';
-import { getDecisionById } from './data/mockDecisions';
+import mockDecisionsAll, { getDecisionById, formatDateShort } from './data/mockDecisions';
+import { parseJPReferences, customFirmIdFor } from './utils/parseJPReferences';
 import { getTPScenario, TP_COMMAND_LIST, TP_COMMAND_MAP } from './data/tpScenarios';
 import useRedactionCommands from './hooks/useRedactionCommands';
 import { REDACTION_SCENARIOS, REDACTION_COMMAND_LIST, REDACTION_COMMAND_MAP, REDACTION_ACT_TYPES } from './data/redactionScenarios';
@@ -18,6 +19,39 @@ import ActesList from './components/redaction/ActesList';
 import AlertDialog from './components/AlertDialog';
 import { BASELINE_DSA_LIGNES, BASELINE_DFT_LIGNES, BASELINE_PGPA_DATA, BASELINE_PGPF_DATA, BASELINE_FORM_POSTE_DATA, BASELINE_FDA_LIGNES, BASELINE_DSF_DATA } from './data/baselineData';
 import { NATURE_CREANCE, NATURE_TO_POSTE, NATURE_LABELS } from './data/tpScenarios';
+
+const PREFERENCE_BODY_NO_JP = `— Structure de mes actes
+Plan en trois parties : Faits et procédure / Discussion / Dispositif. Numérotation décimale (I, A, 1°), titres en gras sans soulignement. Citations de jurisprudence en bas de page, jamais dans le corps. Toujours un récapitulatif chiffré en fin de discussion.
+
+— Préférences de quantum
+DFT total ≈ 1 800 €/mois (ajuster selon coût de la vie locale). DFP entre 5 et 25 % selon Mornet 2024 ; au-delà, justifier par expertise. Souffrances endurées : ~8 000 € pour SE 4/7, barème indicatif. Préjudice esthétique : se référer à Mornet plutôt qu'aux barèmes ONIAM.
+
+— Référentiels favoris
+Mornet 2024 pour l'indemnisation corporelle. Nomenclature Dintilhac comme cadre de référence pour le DFP et la ventilation des postes. Gazette du Palais pour les comparatifs de capitalisation. ONIAM uniquement pour l'aléa thérapeutique.
+
+— Style et ton
+Phrases courtes, voix active, ton sobre. Désignation « la concluante » plutôt que « ma cliente ». Préférer « il convient » à « il faut ». Pas de formules ampoulées (« il échet de constater » → « la cour constate »).
+
+— Consignes spécifiques
+Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux (PGPA, PGPF, IP, FLA). Ne pas mélanger faits et discussion. Dispositif concis : une demande = une ligne. Toujours rappeler les fondements textuels (art. 1240 c. civ., loi Badinter, etc.) en début de discussion.
+
+— Pièges à éviter
+Ne jamais oublier les intérêts au taux légal majoré. Bien distinguer les intérêts moratoires des intérêts compensatoires. Ne pas confondre PGPA et PGPF dans les jeunes victimes (capitalisation différente).`;
+
+const PREFERENCE_JP_BLOCK = `— Jurisprudences de référence
+Décisions à consulter et citer systématiquement dès qu'elles sont pertinentes pour le dossier :
+• Cass. 2e civ., 12 mai 2023, n° 22-15.642 — capitalisation viagère, table 2022
+• Cass. 2e civ., 9 février 2023, n° 21-23.985 — frais de logement adapté
+• CA Paris, 4e ch., 22 mars 2024, n° 23/01234 — ATPT 27 €/h, victime senior
+• CA Rennes, 5e ch., 10 janvier 2024, n° 22/10011 — ATPT 28 €/h Île-de-France
+• CA Aix-en-Provence, 1re ch. C, 18 janvier 2024, n° 22/04881 — DFP majoré jeune actif
+• Crim., 14 décembre 2021, n° 20-86.302 — préjudice d'angoisse de mort imminente
+`;
+
+const PROMPT_EMPTY = '';
+const PROMPT_FILLED = PREFERENCE_BODY_NO_JP;
+const PROMPT_FILLED_WITH_JP = `${PREFERENCE_JP_BLOCK}\n${PREFERENCE_BODY_NO_JP}`;
+const DEFAULT_PREFERENCE_PROMPT = PROMPT_FILLED_WITH_JP;
 
 const POSTES_TAXONOMY = [
   {
@@ -1025,7 +1059,7 @@ export default function App() {
   const [inviteRole, setInviteRole] = useState('Membre');
   const [memberMenuOpenId, setMemberMenuOpenId] = useState(null);
   const [preferenceDocs, setPreferenceDocs] = useState([]);
-  const [preferenceMasterPrompt, setPreferenceMasterPrompt] = useState('');
+  const [preferenceMasterPrompt, setPreferenceMasterPrompt] = useState(DEFAULT_PREFERENCE_PROMPT);
   const [savedJurisprudences, setSavedJurisprudences] = useState([]);
   const [preferenceDragOver, setPreferenceDragOver] = useState(false);
   const [preferenceWriteRequested, setPreferenceWriteRequested] = useState(false);
@@ -1034,10 +1068,9 @@ export default function App() {
   const [preferenceEnrichingSection, setPreferenceEnrichingSection] = useState(null); // section id being enriched
   const [preferenceTargetSection, setPreferenceTargetSection] = useState(null); // for routing file input
   const [preferenceLearnFromChats, setPreferenceLearnFromChats] = useState(false);
-  // 'user' (Préférences) | 'matter' (matter JP tab / poste view) — drives the
-  // JPAddStepper's flow shape (single step in user context, two steps with
-  // Portée selection in matter context).
-  const [jpAddLaunchContext, setJpAddLaunchContext] = useState('matter');
+  const [ficheCabinetModalRef, setFicheCabinetModalRef] = useState(null); // { ref, customJP } | null
+  const [cabinetJPSearch, setCabinetJPSearch] = useState('');
+  const [prefLayout, setPrefLayout] = useState('freetext'); // 'freetext' | 'separate'
   const preferenceFileInputRef = useRef(null);
 
   // ========== LISTE DES DOSSIERS ==========
@@ -4342,6 +4375,19 @@ export default function App() {
   const jp = useDemoCommands({ setChatMessages, setNavStack, tabsConfig: { dossier: ['Dossier', 'Chiffrage', 'Pièces', 'Actes', 'JP'], poste: [] } });
   const [jpPopover, setJpPopover] = useState(null); // { decision, anchorRect }
 
+  // Sync firm-fiche customJPs with the preferences textarea: when a line is
+  // removed from the text, the corresponding fiche cabinet record is wiped.
+  useEffect(() => {
+    const parsed = parseJPReferences(preferenceMasterPrompt || '');
+    const liveIds = new Set(parsed.map(p => customFirmIdFor(p.numero)));
+    jp.customJPs.forEach(c => {
+      if (c.id.startsWith('custom-firm-') && !liveIds.has(c.id)) {
+        jp.removeCustomJP(c.id);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preferenceMasterPrompt]);
+
   // ========== USEASK STATE ==========
   // { active, questions: [{text, proposals}], currentIdx, selectedProposal, customText, answers: {idx: string} }
   const [userAskState, setUserAskState] = useState({ active: false, questions: [], currentIdx: 0, selectedProposal: null, customText: '', answers: {} });
@@ -5390,15 +5436,11 @@ export default function App() {
     return taxo ? { id: pid, acronym: taxo.acronym, label: taxo.label } : null;
   }).filter(Boolean);
 
-  // Cross-scope summary used by JPListing's scope badges (Mes usuels / Cabinet / N matières)
+  // Cross-scope summary used by JPListing's scope badges (N matières)
   const getJPAttachmentSummary = (decisionId) => {
     const atts = jp.getAttachmentsForJP(decisionId);
     const matterIds = new Set(atts.filter(a => a.scope === 'matter').map(a => a.scopeTargetId));
-    return {
-      user: atts.some(a => a.scope === 'user'),
-      workspace: atts.some(a => a.scope === 'workspace'),
-      matterCount: matterIds.size,
-    };
+    return { matterCount: matterIds.size };
   };
 
   // ========== CONTENT SUB-HEADER ==========
@@ -9729,108 +9771,49 @@ export default function App() {
 
       // JP tab — search + saved decisions
       if (currentLevel.activeTab === 'jp') {
-        // "Mes JP pertinentes pour ce dossier" — user-scope JPs whose lineItem
-        // matches a poste in this matter, surfaced above the search view.
-        const relevantUserAtts = jp.getRelevantUserUsualsForMatter(jp.DEFAULT_USER_ID, dossierPostes);
-        const relevantByDecision = new Map();
-        relevantUserAtts.forEach(a => {
-          if (!relevantByDecision.has(a.decisionId)) relevantByDecision.set(a.decisionId, []);
-          if (a.lineItem) relevantByDecision.get(a.decisionId).push(a.lineItem);
+        // Cabinet items = workspace-scope attachments (canonical + custom fiche)
+        const cabinetSeen = new Set();
+        const cabinetItems = [];
+        jp.getJPsByScope('workspace', jp.DEFAULT_WORKSPACE_ID).forEach(a => {
+          if (cabinetSeen.has(a.decisionId)) return;
+          cabinetSeen.add(a.decisionId);
+          const d = jp.getJPById(a.decisionId);
+          if (!d) return;
+          const isCustom = !!d.source;
+          cabinetItems.push({
+            ...d,
+            _status: isCustom ? 'ficheCabinet' : 'canonical',
+            category: isCustom ? (d.impact || d.reference) : d.category,
+          });
         });
-        const matterPinnedIds = new Set(jp.jpState.pinnedJP.map(p => p.decisionId));
-        const relevantCards = Array.from(relevantByDecision.entries())
-          .map(([decisionId, lineItems]) => ({ decisionId, lineItems, decision: jp.getJPById(decisionId) }))
-          .filter(c => c.decision)
-          // Hide JPs already pinned to this matter — they show in JPSearchView's saved section
-          .filter(c => !matterPinnedIds.has(c.decisionId));
 
         return (
           <div className="flex-1 flex flex-col overflow-hidden">
-            {relevantCards.length > 0 && (
-              <div className="px-5 pt-4 pb-3 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9' }}>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    Mes JP pertinentes pour ce dossier
-                  </span>
-                  <span className="text-[11px] text-[#c8c5c0]">{relevantCards.length}</span>
-                </div>
-                <div className="space-y-1.5">
-                  {relevantCards.map(({ decisionId, lineItems, decision: d }) => (
-                    <div
-                      key={decisionId}
-                      className="group bg-white rounded flex items-center gap-3 px-3 py-2 cursor-pointer"
-                      style={{ boxShadow: '0 1px 2px rgba(41,37,36,0.05)', transition: 'box-shadow 0.15s ease' }}
-                      onMouseOver={(e) => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(41,37,36,0.07)'; }}
-                      onMouseOut={(e) => { e.currentTarget.style.boxShadow = '0 1px 2px rgba(41,37,36,0.05)'; }}
-                      onClick={() => jp.openDrawer(decisionId, [decisionId])}
-                    >
-                      <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-                        <span style={{ fontSize: 13, color: '#292524', fontWeight: 500 }}>
-                          {d.jurisdiction}{d.chambre ? ` · ${d.chambre}` : ''}
-                        </span>
-                        {d.date && (
-                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#c8c5c0', textTransform: 'uppercase' }}>
-                            {d.date}
-                          </span>
-                        )}
-                        {lineItems.slice(0, 3).map(pid => (
-                          <span key={pid} className="badge badge-sm badge-secondary">{pid.toUpperCase()}</span>
-                        ))}
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Pin to this matter, attached to each matching lineItem
-                          jp.pinDecision(decisionId);
-                          lineItems.forEach(li => {
-                            if (dossierPostes.includes(li)) jp.attachToPoste(decisionId, li);
-                          });
-                          setToastMessage('Épinglée à ce dossier.');
-                          setTimeout(() => setToastMessage(null), 2500);
-                        }}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] transition-colors flex-shrink-0"
-                        title="Épingler à ce dossier"
-                      >
-                        <Plus className="w-3 h-3" strokeWidth={2} />
-                        Épingler
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
             <JPSearchView
               pinnedJP={jp.jpState.pinnedJP}
               selectedDecisionId={jp.jpState.drawerDecisionId}
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
               onSaveToDossier={(id) => jp.pinDecision(id)}
-              onTogglePoste={(id, posteId) => { jp.pinDecision(id); jp.togglePoste(id, posteId); }}
-              onUnpin={(id) => jp.unpinDecision(id)}
-              onAddClick={() => jp.openStepper('jp-add')}
-              posteOptions={jpPosteOptions}
-              isUserPinned={(id) => jp.getJPsByScope('user', jp.DEFAULT_USER_ID).some(a => a.decisionId === id)}
-              isWorkspacePinned={(id) => jp.getJPsByScope('workspace', jp.DEFAULT_WORKSPACE_ID).some(a => a.decisionId === id)}
-              onToggleUser={(id) => {
-                const existing = jp.getAttachmentsForJP(id).filter(a => a.scope === 'user' && a.scopeTargetId === jp.DEFAULT_USER_ID);
-                if (existing.length > 0) {
-                  existing.forEach(a => jp.removeAttachment(a.id));
-                  setToastMessage('Retiré de mes usuels.');
-                } else {
-                  jp.addAttachment(id, 'user', jp.DEFAULT_USER_ID);
-                  setToastMessage('Ajouté à mes usuels.');
-                }
-                setTimeout(() => setToastMessage(null), 2500);
-              }}
-              onToggleWorkspace={(id) => {
-                const existing = jp.getAttachmentsForJP(id).filter(a => a.scope === 'workspace' && a.scopeTargetId === jp.DEFAULT_WORKSPACE_ID);
-                if (existing.length > 0) {
-                  existing.forEach(a => jp.removeAttachment(a.id));
-                  setToastMessage('Retiré du Cabinet.');
-                } else {
+              onTogglePoste={(id, posteId) => {
+                jp.pinDecision(id);
+                jp.togglePoste(id, posteId);
+                // Auto-save to cabinet (org level) when first attaching to a poste
+                const alreadyInCabinet = jp.getJPsByScope('workspace', jp.DEFAULT_WORKSPACE_ID).some(a => a.decisionId === id);
+                if (!alreadyInCabinet) {
                   jp.addAttachment(id, 'workspace', jp.DEFAULT_WORKSPACE_ID);
-                  setToastMessage('Ajouté au Cabinet.');
                 }
-                setTimeout(() => setToastMessage(null), 2500);
+              }}
+              onUnpin={(id) => jp.unpinDecision(id)}
+              onAddClick={() => setFicheCabinetModalRef({
+                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
+                customJP: null,
+                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
+              })}
+              posteOptions={jpPosteOptions}
+              cabinetItems={cabinetItems}
+              onCabinetItemClick={(d) => {
+                if (d._status === 'orphan') return; // orphans must be completed in settings
+                jp.openDrawer(d.id, [d.id]);
               }}
             />
           </div>
@@ -10097,9 +10080,13 @@ export default function App() {
               selectedDecisionId={jp.jpState.drawerDecisionId}
               compact={true}
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => jp.openStepper('jp-add')}
+              onAddClick={() => setFicheCabinetModalRef({
+                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
+                customJP: null,
+                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
+              })}
               posteLabel={currentLevel.title}
-              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
@@ -10399,9 +10386,13 @@ export default function App() {
               selectedDecisionId={jp.jpState.drawerDecisionId}
               compact={true}
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => jp.openStepper('jp-add')}
+              onAddClick={() => setFicheCabinetModalRef({
+                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
+                customJP: null,
+                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
+              })}
               posteLabel={currentLevel.title}
-              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
@@ -10705,9 +10696,13 @@ export default function App() {
               selectedDecisionId={jp.jpState.drawerDecisionId}
               compact={true}
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => jp.openStepper('jp-add')}
+              onAddClick={() => setFicheCabinetModalRef({
+                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
+                customJP: null,
+                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
+              })}
               posteLabel={currentLevel.title}
-              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
@@ -10922,9 +10917,13 @@ export default function App() {
               selectedDecisionId={jp.jpState.drawerDecisionId}
               compact={true}
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => jp.openStepper('jp-add')}
+              onAddClick={() => setFicheCabinetModalRef({
+                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
+                customJP: null,
+                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
+              })}
               posteLabel={currentLevel.title}
-              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
@@ -11054,9 +11053,13 @@ export default function App() {
               selectedDecisionId={jp.jpState.drawerDecisionId}
               compact={true}
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => jp.openStepper('jp-add')}
+              onAddClick={() => setFicheCabinetModalRef({
+                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
+                customJP: null,
+                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
+              })}
               posteLabel={currentLevel.title}
-              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
@@ -11183,9 +11186,13 @@ export default function App() {
               selectedDecisionId={jp.jpState.drawerDecisionId}
               compact={true}
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => jp.openStepper('jp-add')}
+              onAddClick={() => setFicheCabinetModalRef({
+                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
+                customJP: null,
+                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
+              })}
               posteLabel={currentLevel.title}
-              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
@@ -11341,9 +11348,13 @@ export default function App() {
               selectedDecisionId={jp.jpState.drawerDecisionId}
               compact={true}
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => jp.openStepper('jp-add')}
+              onAddClick={() => setFicheCabinetModalRef({
+                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
+                customJP: null,
+                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
+              })}
               posteLabel={currentLevel.title}
-              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
@@ -12535,9 +12546,13 @@ export default function App() {
               selectedDecisionId={jp.jpState.drawerDecisionId}
               compact={true}
               onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => jp.openStepper('jp-add')}
+              onAddClick={() => setFicheCabinetModalRef({
+                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
+                customJP: null,
+                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
+              })}
               posteLabel={currentLevel.title}
-              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste, en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
               getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
@@ -17770,59 +17785,199 @@ export default function App() {
     </>
   );
 
-  const renderSettingsPreferences = () => (
-    <>
-      <div className="flex-1 overflow-y-auto px-8 py-10">
-        <div className="max-w-5xl w-full mx-auto">
-          {renderSettingsHeader(
-            'Mémoire et préférences',
-            "Décrivez votre méthode de travail à Plato — structure d'actes habituelle, préférences de quantum, référentiels favoris, style et ton, consignes. L'agent s'inspire de ce texte à chaque rédaction."
-          )}
+  const renderSettingsPreferences = () => {
+    const text = preferenceMasterPrompt;
+    const parsedRefs = parseJPReferences(text);
 
-          <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
-            <textarea
-              value={preferenceMasterPrompt}
-              onChange={(e) => setPreferenceMasterPrompt(e.target.value)}
-              rows={Math.max(20, preferenceMasterPrompt.split('\n').length + 2)}
-              placeholder={`Ex.
+    const handleCompleteFiche = (ref) => {
+      const id = customFirmIdFor(ref.numero);
+      const existing = jp.customJPs.find(c => c.id === id);
+      setFicheCabinetModalRef({ ref, customJP: existing || null });
+    };
+
+    const demoStateLabel =
+      text === PROMPT_EMPTY ? 'empty'
+      : text === PROMPT_FILLED ? 'filled'
+      : text === PROMPT_FILLED_WITH_JP ? 'filled + JP'
+      : 'custom';
+
+    return (
+      <>
+        <div className="flex-1 overflow-y-auto px-8 py-10">
+          <div className="max-w-5xl w-full mx-auto">
+            {renderSettingsHeader(
+              'Mémoire et préférences',
+              "Décrivez votre méthode de travail à Plato. L'agent s'inspire de ce texte à chaque rédaction.",
+              <button
+                onClick={() => {
+                  setToastMessage('Mémoire enregistrée.');
+                  setTimeout(() => setToastMessage(null), 3000);
+                }}
+                className="flex items-center gap-2 h-9 px-4 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors flex-shrink-0"
+                style={{ boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+              >
+                <Check className="w-4 h-4" strokeWidth={2} />
+                Enregistrer
+              </button>
+            )}
+
+            {/* Demo toolbar — layout + content */}
+            <div className="flex flex-wrap items-center gap-3 mb-3 px-3 py-2 rounded-lg border border-dashed border-[#d6d3d1] bg-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+              <span className="uppercase tracking-wider text-[10px] font-semibold text-[#78716c]">UX</span>
+              {[
+                { id: 'freetext', label: 'free textarea' },
+                { id: 'separate', label: 'JP séparée' },
+              ].map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => {
+                    setPrefLayout(s.id);
+                    if (s.id === 'separate') {
+                      // Strip the JP block from the textarea — JPs are now managed in the structured section.
+                      const stripped = (preferenceMasterPrompt || '').replace(/(^|\n)— Jurisprudences de référence[\s\S]*?(?=\n— |\n*$)/, '').replace(/^\n+/, '');
+                      if (stripped !== preferenceMasterPrompt) setPreferenceMasterPrompt(stripped);
+                    }
+                  }}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors border ${prefLayout === s.id ? 'bg-[#292524] text-white border-[#292524]' : 'bg-white text-[#44403c] border-[#e7e5e3] hover:bg-[#fafaf9] hover:border-[#a8a29e]'}`}
+                >
+                  {s.label}
+                </button>
+              ))}
+              {prefLayout === 'freetext' && (
+                <>
+                  <span className="h-4 w-px bg-[#e7e5e3] mx-1" />
+                  <span className="uppercase tracking-wider text-[10px] font-semibold text-[#78716c]">État</span>
+                  {[
+                    { id: 'empty', label: 'empty', value: PROMPT_EMPTY },
+                    { id: 'filled', label: 'filled', value: PROMPT_FILLED },
+                    { id: 'filled-jp', label: 'filled + JP', value: PROMPT_FILLED_WITH_JP },
+                  ].map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => setPreferenceMasterPrompt(s.value)}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors border ${demoStateLabel === s.label ? 'bg-[#292524] text-white border-[#292524]' : 'bg-white text-[#44403c] border-[#e7e5e3] hover:bg-[#fafaf9] hover:border-[#a8a29e]'}`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                  {demoStateLabel === 'custom' && (
+                    <span className="text-[10px] text-[#a8a29e] italic ml-1">(modifié manuellement)</span>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
+              <textarea
+                value={preferenceMasterPrompt}
+                onChange={(e) => setPreferenceMasterPrompt(e.target.value)}
+                rows={Math.min(12, Math.max(6, (preferenceMasterPrompt || '').split('\n').length + 1))}
+                placeholder={`Ex.
+
+— Jurisprudences de référence
+Cass. 2e civ., 12 mai 2023, n° 22-15.642 — capitalisation viagère
+CA Paris, 4e ch., 22 mars 2024, n° 23/01234 — ATPT victime senior
 
 — Structure de vos actes
-Plan en trois parties : Faits et procédure / Discussion / Dispositif. Numérotation décimale (I, A, 1°), titres en gras sans soulignement. Citations de jurisprudence en bas de page, jamais dans le corps.
+Plan en trois parties : Faits et procédure / Discussion / Dispositif. Numérotation décimale, titres en gras sans soulignement. Citations de jurisprudence en bas de page.
 
 — Préférences de quantum
-DFT total ≈ 1 800 €/mois. DFP entre 5 et 25 % selon Mornet 2024. Souffrances endurées : ~8 000 € pour SE 4/7.
+DFT ≈ 1 800 €/mois. DFP 5–25 % selon Mornet 2024. SE ~8 000 € pour 4/7.
 
 — Référentiels favoris
-Mornet 2024 pour les barèmes d'indemnisation. ONIAM uniquement pour l'aléa thérapeutique. Nomenclature Dintilhac comme cadre de référence pour le DFP.
+Mornet 2024 pour l'indemnisation corporelle. Nomenclature Dintilhac. ONIAM pour l'aléa thérapeutique uniquement.
 
 — Style et ton
-Phrases courtes, voix active, ton sobre. Désignation « la concluante » plutôt que « ma cliente ». Préférer « il convient » à « il faut ».
+Voix active, ton sobre. Désignation « la concluante ». Préférer « il convient » à « il faut ».
 
 — Consignes spécifiques
-Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne pas mélanger faits et discussion. Dispositif concis.`}
-              className="w-full px-5 py-4 text-[13px] text-[#292524] resize-none focus:outline-none leading-relaxed bg-transparent"
-              style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
-            />
-          </div>
+Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
+                className="w-full px-5 py-4 text-[13px] text-[#292524] resize-none focus:outline-none leading-relaxed bg-transparent overflow-y-auto"
+                style={{ fontFamily: "'Inter', system-ui, sans-serif", maxHeight: 280 }}
+              />
+            </div>
 
-          <div className="mt-4 flex items-center justify-end gap-3">
-            <button
-              onClick={() => {
-                setToastMessage('Mémoire enregistrée.');
-                setTimeout(() => setToastMessage(null), 3000);
-              }}
-              className="flex items-center gap-2 h-9 px-4 bg-[#292524] text-white text-[13px] font-medium rounded-lg hover:bg-[#44403c] transition-colors"
-              style={{ boxShadow: '0 1px 2px rgba(26, 26, 26, 0.05)' }}
-            >
-              <Check className="w-3.5 h-3.5" strokeWidth={2} />
-              Enregistrer
-            </button>
-          </div>
+            {/* ─── JP cards detected in preferences (free text mode only) ─── */}
+            {prefLayout === 'freetext' && (
+            <div className="mt-6 -mx-4">
+              <JPListing
+                pinnedJP={[]}
+                sectionTitle="Jurisprudences détectées"
+                emptyMessage="Aucune jurisprudence détectée"
+                onOpenDrawer={(id) => jp.openDrawer(id, [id])}
+                getRowStyle={(d) => d._status === 'orphan' ? { borderLeft: '3px solid #f59e0b' } : null}
+                decisionsOverride={parsedRefs.map(ref => {
+                  const canonical = ref.canonicalId ? getDecisionById(ref.canonicalId) : null;
+                  const customId = customFirmIdFor(ref.numero);
+                  const customJPRecord = jp.customJPs.find(c => c.id === customId);
+                  const ficheCabinetReady = customJPRecord && customJPRecord.impact && customJPRecord.pdfFileName;
+                  if (canonical) {
+                    return { ...canonical, _ref: ref, _status: 'canonical' };
+                  }
+                  return {
+                    id: customId,
+                    jurisdiction: ref.court || ref.raw.replace(/^[\s•·\-—*]+/, '').split(',')[0].trim(),
+                    chambre: ref.chamber,
+                    numero: ref.numero,
+                    date: ref.dateISO || '',
+                    category: ficheCabinetReady
+                      ? customJPRecord.impact
+                      : (ref.description || 'Décision non présente dans la base Plato JP'),
+                    victimProfile: '',
+                    resume: '',
+                    amounts: [],
+                    _ref: ref,
+                    _status: ficheCabinetReady ? 'ficheCabinet' : 'orphan',
+                  };
+                })}
+                renderRowAccessory={(d) => {
+                  if (d._status === 'canonical') {
+                    return (
+                      <ChevronRight className="w-3 h-3 text-[#d6d3d1] group-hover:text-[#a8a29e] flex-shrink-0 transition-colors" />
+                    );
+                  }
+                  if (d._status === 'ficheCabinet') {
+                    return (
+                      <>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0" style={{ backgroundColor: '#fdf3ec', color: '#b9703f' }}>
+                          <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                          Fiche cabinet
+                        </span>
+                        <ChevronRight className="w-3 h-3 text-[#d6d3d1] group-hover:text-[#a8a29e] flex-shrink-0 transition-colors" />
+                      </>
+                    );
+                  }
+                  return (
+                    <>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                        <AlertTriangle className="w-2.5 h-2.5" />
+                        Non référencée
+                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleCompleteFiche(d._ref); }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium bg-[#292524] text-white hover:bg-[#44403c] transition-colors flex-shrink-0"
+                      >
+                        Ajouter le PDF de la décision
+                      </button>
+                    </>
+                  );
+                }}
+              />
+            </div>
+            )}
 
+            {/* ─── Separate JP section (UX = JP séparée) ─── */}
+            {prefLayout === 'separate' && (
+              <div className="mt-8">
+                {renderCabinetJPInline()}
+              </div>
+            )}
+
+          </div>
         </div>
-      </div>
-    </>
-  );
+      </>
+    );
+  };
 
   const renderSettingsBilling = () => {
     const TIERS = [
@@ -18516,6 +18671,217 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
           </div>
         </div>
       </>
+    );
+  };
+
+  const renderCabinetJPInline = () => {
+    const q = cabinetJPSearch.trim();
+    // Live search against mockDecisions by numero or jurisdiction.
+    const matches = q ? (() => {
+      const lower = q.toLowerCase();
+      return mockDecisionsAll.filter(d => {
+        const num = (d.numero || '').toLowerCase();
+        const jur = (d.jurisdiction || '').toLowerCase();
+        return num.includes(lower) || jur.includes(lower);
+      }).slice(0, 5);
+    })() : [];
+
+    // Saved cabinet JPs = workspace-scope attachments (deduped by decisionId)
+    const workspaceAtts = jp.getJPsByScope('workspace', jp.DEFAULT_WORKSPACE_ID);
+    const seen = new Set();
+    const savedCabinet = [];
+    workspaceAtts.forEach(a => {
+      if (seen.has(a.decisionId)) return;
+      seen.add(a.decisionId);
+      const d = jp.getJPById(a.decisionId);
+      if (!d) return;
+      const isCustom = !!d.source;
+      savedCabinet.push({
+        ...d,
+        _status: isCustom ? 'ficheCabinet' : 'canonical',
+        _customJP: isCustom ? d : null,
+      });
+    });
+    const isAlreadySaved = (id) => seen.has(id);
+
+    const addCanonical = (decisionId) => {
+      jp.addAttachment(decisionId, 'workspace', jp.DEFAULT_WORKSPACE_ID);
+      setCabinetJPSearch('');
+      setToastMessage('JP ajoutée aux références.');
+      setTimeout(() => setToastMessage(null), 2500);
+    };
+
+    const openManualAdd = () => {
+      // Use the typed query as a seed reference, if any
+      setFicheCabinetModalRef({
+        ref: { numero: q || `manual-${Date.now()}`, raw: q || '', dateISO: '', court: '', chamber: '' },
+        customJP: null,
+      });
+    };
+
+    return (
+      <div>
+        <div className="flex items-baseline gap-3 mb-6">
+          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#292524', letterSpacing: '0.1em' }}>
+            JP DE RÉFÉRENCE
+          </span>
+          <span className="flex-1 h-px bg-[#292524]/20" />
+        </div>
+
+        {/* Search */}
+        <div className="bg-white rounded-lg border border-[#e7e5e3]/60 mb-6">
+              <div className="flex items-center gap-2 px-3 py-2.5">
+                <Search className="w-3.5 h-3.5 text-[#a8a29e] flex-shrink-0" />
+                <input
+                  type="text"
+                  value={cabinetJPSearch}
+                  onChange={(e) => setCabinetJPSearch(e.target.value)}
+                  placeholder="Rechercher par numéro de pourvoi (ex. 22/10011, 22-15.642)…"
+                  className="flex-1 bg-transparent text-[14px] text-[#292524] placeholder-[#a8a29e] focus:outline-none"
+                />
+                {cabinetJPSearch && (
+                  <button onClick={() => setCabinetJPSearch('')} className="p-1 rounded hover:bg-[#fafaf9] transition-colors">
+                    <X className="w-3.5 h-3.5 text-[#a8a29e]" />
+                  </button>
+                )}
+              </div>
+
+              {q && (
+                <div className="border-t border-[#f0efed]">
+                  {matches.length > 0 ? (
+                    matches.map((d) => {
+                      const already = isAlreadySaved(d.id);
+                      return (
+                        <div key={d.id} className="flex items-center gap-3 px-3 py-2.5 border-b border-[#f0efed] last:border-b-0">
+                          <Landmark className="w-3 h-3 text-[#b9703f] flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span style={{ fontSize: 14, color: '#292524', fontWeight: 500 }}>
+                                {d.jurisdiction}{d.chambre ? ` · ${d.chambre}` : ''}
+                              </span>
+                              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#c8c5c0', textTransform: 'uppercase' }}>
+                                {d.numero}
+                              </span>
+                              {d.date && /^\d{4}-\d{2}-\d{2}/.test(d.date) && (
+                                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#c8c5c0' }}>
+                                  {formatDateShort(d.date)}
+                                </span>
+                              )}
+                            </div>
+                            <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', marginTop: 1 }}>
+                              {d.category}{d.victimProfile ? ` · ${d.victimProfile}` : ''}
+                            </div>
+                          </div>
+                          {already ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium" style={{ backgroundColor: '#f5f5f4', color: '#78716c' }}>
+                              Déjà en référence
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => addCanonical(d.id)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium bg-[#292524] text-white hover:bg-[#44403c] transition-colors"
+                            >
+                              <Plus className="w-3 h-3" /> Ajouter
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="px-3 py-4 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[13px] text-[#44403c]">Aucune correspondance dans Plato JP</p>
+                        <p className="text-[11px] text-[#a8a29e] mt-0.5">Vous pouvez l'ajouter manuellement avec un PDF + un apport.</p>
+                      </div>
+                      <button
+                        onClick={openManualAdd}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium bg-[#292524] text-white hover:bg-[#44403c] transition-colors flex-shrink-0"
+                      >
+                        Ajouter manuellement
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Saved list */}
+            <div className="flex items-center gap-1.5 mb-2">
+              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                JP de référence
+              </span>
+              <span className="text-[11px] text-[#c8c5c0]">{savedCabinet.length}</span>
+            </div>
+
+            {savedCabinet.length === 0 ? (
+              <div className="bg-white rounded-lg border border-dashed border-[#e7e5e3] py-10 px-6 text-center">
+                <Landmark className="w-6 h-6 text-[#d6d3d1] mx-auto mb-2" />
+                <p className="text-[13px] text-[#78716c] mb-1">Aucune jurisprudence enregistrée</p>
+                <p className="text-[12px] text-[#a8a29e] max-w-md mx-auto">
+                  Recherchez une décision par numéro ci-dessus, ou ajoutez-en une manuellement.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {savedCabinet.map((d) => {
+                  const isCustom = d._status === 'ficheCabinet';
+                  return (
+                    <div
+                      key={d.id}
+                      onClick={() => jp.openDrawer(d.id, [d.id])}
+                      className="group bg-white rounded cursor-pointer flex items-center gap-3 px-3 py-2.5"
+                      style={{ boxShadow: '0 1px 2px rgba(41,37,36,0.05)', transition: 'box-shadow 0.15s ease' }}
+                      onMouseOver={(e) => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(41,37,36,0.07)'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.boxShadow = '0 1px 2px rgba(41,37,36,0.05)'; }}
+                    >
+                      <Landmark className="w-3 h-3 text-[#b9703f] flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span style={{ fontSize: 14, color: '#292524', fontWeight: 500 }}>
+                            {d.jurisdiction}{d.chambre ? ` · ${d.chambre}` : ''}
+                          </span>
+                          {d.numero && (
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#c8c5c0', textTransform: 'uppercase' }}>
+                              {d.numero}
+                            </span>
+                          )}
+                          {d.date && /^\d{4}-\d{2}-\d{2}/.test(d.date) && (
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#c8c5c0' }}>
+                              {formatDateShort(d.date)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', marginTop: 1 }}>
+                          {isCustom ? (d.impact || d.reference) : `${d.category || ''}${d.victimProfile ? ` · ${d.victimProfile}` : ''}`}
+                        </div>
+                      </div>
+                      {isCustom && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0" style={{ backgroundColor: '#fdf3ec', color: '#b9703f' }}>
+                          <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                          Fiche cabinet
+                        </span>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          jp.getAttachmentsForJP(d.id)
+                            .filter(a => a.scope === 'workspace' && a.scopeTargetId === jp.DEFAULT_WORKSPACE_ID)
+                            .forEach(a => jp.removeAttachment(a.id));
+                          if (isCustom) jp.removeCustomJP(d.id);
+                          setToastMessage('JP retirée des références.');
+                          setTimeout(() => setToastMessage(null), 2500);
+                        }}
+                        className="p-1.5 rounded text-[#d6d3d1] hover:text-[#dc2626] hover:bg-[#fef2f2] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                        title="Retirer des références"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+      </div>
     );
   };
 
@@ -20450,52 +20816,37 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
   const renderGlobalOverlays = () => (
     <>
       {/* JP Decision Drawer */}
-      {jp.jpState.drawerDecisionId && (
-        <DecisionDrawer
-          decisionId={jp.jpState.drawerDecisionId}
-          resultSet={jp.jpState.drawerResultSet}
-          resultIndex={jp.jpState.drawerIndex}
-          isPinned={jp.isDecisionPinned(jp.jpState.drawerDecisionId)}
-          pinnedPosteIds={(jp.jpState.pinnedJP.find(p => p.decisionId === jp.jpState.drawerDecisionId)?.posteIds) || []}
-          onClose={jp.closeDrawer}
-          onPrev={jp.drawerPrev}
-          onNext={jp.drawerNext}
-          onPin={(id) => jp.pinDecision(id)}
-          onUnpin={(id) => jp.unpinDecision(id)}
-          onAttachToPoste={(id, posteId) => { jp.pinDecision(id); jp.togglePoste(id, posteId); }}
-          posteOptions={jpPosteOptions}
-          userPinned={jp.getJPsByScope('user', jp.DEFAULT_USER_ID).some(a => a.decisionId === jp.jpState.drawerDecisionId)}
-          workspacePinned={jp.getJPsByScope('workspace', jp.DEFAULT_WORKSPACE_ID).some(a => a.decisionId === jp.jpState.drawerDecisionId)}
-          onToggleUser={(id) => {
-            const existing = jp.getAttachmentsForJP(id).filter(a => a.scope === 'user' && a.scopeTargetId === jp.DEFAULT_USER_ID);
-            if (existing.length > 0) {
-              existing.forEach(a => jp.removeAttachment(a.id));
-              setToastMessage('Retiré de mes usuels.');
-            } else {
-              jp.addAttachment(id, 'user', jp.DEFAULT_USER_ID);
-              setToastMessage('Ajouté à mes usuels.');
-            }
-            setTimeout(() => setToastMessage(null), 2500);
-          }}
-          onToggleWorkspace={(id) => {
-            const existing = jp.getAttachmentsForJP(id).filter(a => a.scope === 'workspace' && a.scopeTargetId === jp.DEFAULT_WORKSPACE_ID);
-            if (existing.length > 0) {
-              existing.forEach(a => jp.removeAttachment(a.id));
-              setToastMessage('Retiré du Cabinet.');
-            } else {
-              jp.addAttachment(id, 'workspace', jp.DEFAULT_WORKSPACE_ID);
-              setToastMessage('Ajouté au Cabinet.');
-            }
-            setTimeout(() => setToastMessage(null), 2500);
-          }}
-          attachments={jp.getAttachmentsForJP(jp.jpState.drawerDecisionId)}
-          onRemoveAttachment={(attachmentId) => {
-            jp.removeAttachment(attachmentId);
-            setToastMessage('Attachement retiré.');
-            setTimeout(() => setToastMessage(null), 2500);
-          }}
-        />
-      )}
+      {jp.jpState.drawerDecisionId && (() => {
+        const drawerCustomJP = jp.customJPs.find(c => c.id === jp.jpState.drawerDecisionId) || null;
+        return (
+          <DecisionDrawer
+            decisionId={jp.jpState.drawerDecisionId}
+            resultSet={jp.jpState.drawerResultSet}
+            resultIndex={jp.jpState.drawerIndex}
+            isPinned={jp.isDecisionPinned(jp.jpState.drawerDecisionId)}
+            pinnedPosteIds={(jp.jpState.pinnedJP.find(p => p.decisionId === jp.jpState.drawerDecisionId)?.posteIds) || []}
+            onClose={jp.closeDrawer}
+            onPrev={jp.drawerPrev}
+            onNext={jp.drawerNext}
+            onPin={(id) => jp.pinDecision(id)}
+            onUnpin={(id) => jp.unpinDecision(id)}
+            onAttachToPoste={(id, posteId) => { jp.pinDecision(id); jp.togglePoste(id, posteId); }}
+            posteOptions={jpPosteOptions}
+            attachments={jp.getAttachmentsForJP(jp.jpState.drawerDecisionId)}
+            onRemoveAttachment={(attachmentId) => {
+              jp.removeAttachment(attachmentId);
+              setToastMessage('Attachement retiré.');
+              setTimeout(() => setToastMessage(null), 2500);
+            }}
+            customJP={drawerCustomJP}
+            onEditFiche={(c) => {
+              const ref = parseJPReferences(preferenceMasterPrompt || '').find(r => customFirmIdFor(r.numero) === c.id);
+              setFicheCabinetModalRef({ ref: ref || { numero: c.numero, raw: c.reference || '', dateISO: c.date, court: c.jurisdiction, chamber: c.chambre }, customJP: c });
+              jp.closeDrawer();
+            }}
+          />
+        );
+      })()}
 
       {/* JP Popover Card */}
       {jpPopover && (
@@ -20512,13 +20863,12 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
       {jp.jpState.activeStepper === 'jp-add' && (
         <div
           className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-          onClick={() => { jp.closeStepper(); setJpAddLaunchContext('matter'); }}
+          onClick={() => jp.closeStepper()}
         >
           <div className="w-[460px]" onClick={(e) => e.stopPropagation()}>
             <JPAddStepper
-              onClose={() => { jp.closeStepper(); setJpAddLaunchContext('matter'); }}
+              onClose={() => jp.closeStepper()}
               posteOptions={jpPosteOptions}
-              launchContext={jpAddLaunchContext}
               onSubmit={({ mode, canonicalId, reference, url, pdfFileName, attachments }) => {
                 let decisionId = canonicalId;
                 // Search mode without a canonical match: persist as an orphan
@@ -20546,26 +20896,10 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
                 attachments.posteIds.forEach(pid => {
                   jp.addAttachment(decisionId, 'matter', jp.DEFAULT_MATTER_ID, pid);
                 });
-                if (attachments.user) {
-                  if (attachments.posteIds.length > 0) {
-                    attachments.posteIds.forEach(pid => jp.addAttachment(decisionId, 'user', jp.DEFAULT_USER_ID, pid));
-                  } else {
-                    jp.addAttachment(decisionId, 'user', jp.DEFAULT_USER_ID);
-                  }
-                }
-                if (attachments.workspace) {
-                  if (attachments.posteIds.length > 0) {
-                    attachments.posteIds.forEach(pid => jp.addAttachment(decisionId, 'workspace', jp.DEFAULT_WORKSPACE_ID, pid));
-                  } else {
-                    jp.addAttachment(decisionId, 'workspace', jp.DEFAULT_WORKSPACE_ID);
-                  }
-                }
 
                 const dest = [
                   attachments.matterTransverse && 'au dossier',
                   attachments.posteIds.length > 0 && `aux postes ${attachments.posteIds.map(p => p.toUpperCase()).join(', ')}`,
-                  attachments.user && 'à mes usuels',
-                  attachments.workspace && 'au Cabinet',
                 ].filter(Boolean).join(', ');
                 setToastMessage(dest ? `Décision ajoutée ${dest}.` : 'Décision ajoutée.');
                 setTimeout(() => setToastMessage(null), 3000);
@@ -20573,6 +20907,49 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
             />
           </div>
         </div>
+      )}
+
+      {/* Fiche cabinet modal */}
+      {ficheCabinetModalRef && (
+        <FicheCabinetModal
+          reference={ficheCabinetModalRef.ref?.raw?.replace(/^[\s•·\-—*]+/, '').trim() || ''}
+          existing={ficheCabinetModalRef.customJP}
+          onClose={() => setFicheCabinetModalRef(null)}
+          onSave={({ pdfFileName, pdfDataURL, url, impact }) => {
+            const r = ficheCabinetModalRef.ref;
+            const id = customFirmIdFor(r.numero);
+            jp.upsertCustomJP({
+              ...(ficheCabinetModalRef.customJP || {}),
+              id,
+              reference: (r.raw || '').replace(/^[\s•·\-—*]+/, '').trim(),
+              jurisdiction: r.court || (r.raw || '').replace(/^[\s•·\-—*]+/, '').split(',')[0].trim(),
+              chambre: r.chamber,
+              date: r.dateISO || '',
+              numero: r.numero,
+              source: 'manual',
+              canonicalId: null,
+              impact,
+              pdfFileName,
+              pdfDataURL,
+              url,
+              owner: 'workspace',
+            });
+            // Always add to JP de référence (workspace) so it appears in the cabinet list
+            const alreadyInWorkspace = jp.getJPsByScope('workspace', jp.DEFAULT_WORKSPACE_ID).some(a => a.decisionId === id);
+            if (!alreadyInWorkspace) {
+              jp.addAttachment(id, 'workspace', jp.DEFAULT_WORKSPACE_ID);
+            }
+            // If opened from a poste context, also pin to matter+poste
+            const posteId = ficheCabinetModalRef.posteId;
+            if (posteId) {
+              jp.pinDecision(id);
+              jp.attachToPoste(id, posteId);
+            }
+            setFicheCabinetModalRef(null);
+            setToastMessage(posteId ? 'JP enregistrée et ajoutée au poste.' : 'JP enregistrée aux références.');
+            setTimeout(() => setToastMessage(null), 2500);
+          }}
+        />
       )}
 
       {/* Toast notification */}
