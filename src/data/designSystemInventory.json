@@ -1,0 +1,192 @@
+{
+  "version": 1,
+  "_doc": "Validation inventory for the Norma design system. Read by /ui-kit/tokens and /ui-kit/inventory. To update an entry, ask Claude to set figmaRef, notes, and/or status — Claude edits this file directly. Status values: pending | validated | needs-revision | missing.",
+  "tokens": {
+    "colors": [
+      { "id": "color.semantic.foreground",          "name": "foreground",           "value": "#292524",     "category": "semantic", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.semantic.foregroundSecondary", "name": "foreground-secondary", "value": "#78716c",     "category": "semantic", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.semantic.foregroundMuted",     "name": "foreground-muted",     "value": "#a8a29e",     "category": "semantic", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.semantic.foregroundTertiary",  "name": "foreground-tertiary",  "value": "#44403c",     "category": "semantic", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.semantic.foregroundQuaternary","name": "foreground-quaternary","value": "#57534e",     "category": "semantic", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.semantic.border",              "name": "border",               "value": "#e7e5e3",     "category": "semantic", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.semantic.borderAlt",           "name": "border-alt",           "value": "#e7e5e4",     "category": "semantic", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.semantic.background",          "name": "background",           "value": "#fafaf9",     "category": "semantic", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.semantic.backgroundCanvas",    "name": "background-canvas",    "value": "#F8F7F5",     "category": "semantic", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.semantic.backgroundHover",     "name": "background-hover",     "value": "#f8f7f5",     "category": "semantic", "figmaRef": "", "notes": "Possible duplicate of background-canvas with different casing", "status": "needs-revision" },
+      { "id": "color.semantic.backgroundSubtle",    "name": "background-subtle",    "value": "#f5f5f4",     "category": "semantic", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.semantic.cream",               "name": "cream",                "value": "#eeece6",     "category": "semantic", "figmaRef": "", "notes": "Plato signature cream", "status": "pending" },
+
+      { "id": "color.badge.default",           "name": "badge.default",            "value": "#292524 / #ffffff",            "category": "badge", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.badge.secondary",         "name": "badge.secondary",          "value": "#eeece6 / #44403c",            "category": "badge", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.badge.outline",           "name": "badge.outline",            "value": "transparent + #e7e5e3 border", "category": "badge", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.badge.destructive",       "name": "badge.destructive",        "value": "#991b1b / #ffffff",            "category": "badge", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.badge.destructiveSubtle", "name": "badge.destructive-subtle", "value": "#fef2f2 / #991b1b",            "category": "badge", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.badge.ai",                "name": "badge.ai",                 "value": "#f3e8ff / #581c87",            "category": "badge", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.badge.success",           "name": "badge.success",            "value": "#cce6d9 / #064e3b",            "category": "badge", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.badge.info",              "name": "badge.info",               "value": "#dfe8f5 / #1e3a8a",            "category": "badge", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.badge.warning",           "name": "badge.warning",            "value": "#f9ecd6 / #855b31",            "category": "badge", "figmaRef": "", "notes": "", "status": "pending" },
+
+      { "id": "color.banner.ai",      "name": "banner.ai",      "value": "#9333ea on #faf5ff", "category": "banner", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.banner.info",    "name": "banner.info",    "value": "#2563eb on #eff6ff", "category": "banner", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.banner.success", "name": "banner.success", "value": "#059669 on #ecfdf5", "category": "banner", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.banner.warning", "name": "banner.warning", "value": "#d97706 on #fffbeb", "category": "banner", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.banner.error",   "name": "banner.error",   "value": "#dc2626 on #fef2f2", "category": "banner", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.banner.neutral", "name": "banner.neutral", "value": "#57534e on #fafaf9", "category": "banner", "figmaRef": "", "notes": "", "status": "pending" },
+
+      { "id": "color.step.default", "name": "step.default", "value": "#a8a29e / transparent / #78716c", "category": "step", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.step.green",   "name": "step.green",   "value": "#059669 / #cce6d9 / #064e3b",     "category": "step", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.step.orange",  "name": "step.orange",  "value": "#bd6c1a / #f9ecd6 / #855b31",     "category": "step", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.step.red",     "name": "step.red",     "value": "#991b1b / #fef2f2 / #7f1d1d",     "category": "step", "figmaRef": "", "notes": "", "status": "pending" },
+
+      { "id": "color.piece.expertise",      "name": "piece.expertise",      "value": "#dfe8f5 / #1e3a8a", "category": "piece", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.piece.decision",       "name": "piece.decision",       "value": "#ede9fe / #5b21b6", "category": "piece", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.piece.revenus",        "name": "piece.revenus",        "value": "#dcfce7 / #166534", "category": "piece", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.piece.factures",       "name": "piece.factures",       "value": "#f9ecd6 / #855b31", "category": "piece", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.piece.medical",        "name": "piece.medical",        "value": "#dbeafe / #1e40af", "category": "piece", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.piece.correspondance", "name": "piece.correspondance", "value": "#eeece6 / #44403c", "category": "piece", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.piece.administratif",  "name": "piece.administratif",  "value": "#f1f5f9 / #475569", "category": "piece", "figmaRef": "", "notes": "", "status": "pending" },
+
+      { "id": "color.avatar.green",  "name": "avatar.green",  "value": "#cce6d9 / #064E3B", "category": "avatar", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.avatar.blue",   "name": "avatar.blue",   "value": "#dbeafe / #1e3a8a", "category": "avatar", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.avatar.plum",   "name": "avatar.plum",   "value": "#ece0eb / #581c87", "category": "avatar", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.avatar.orange", "name": "avatar.orange", "value": "#efdec4 / #78350f", "category": "avatar", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.avatar.rose",   "name": "avatar.rose",   "value": "#ffe4e6 / #881337", "category": "avatar", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.avatar.cream",  "name": "avatar.cream",  "value": "#eeece6 / #44403c", "category": "avatar", "figmaRef": "", "notes": "", "status": "pending" },
+
+      { "id": "color.icon.default",     "name": "icon.default",     "value": "#44403c", "category": "icon", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.icon.destructive", "name": "icon.destructive", "value": "#7f1d1d", "category": "icon", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.icon.warning",     "name": "icon.warning",     "value": "#855b31", "category": "icon", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.icon.success",     "name": "icon.success",     "value": "#065f46", "category": "icon", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.icon.info",        "name": "icon.info",        "value": "#1e3a8a", "category": "icon", "figmaRef": "", "notes": "", "status": "pending" },
+
+      { "id": "color.diff.add",    "name": "diff.add",    "value": "#059669", "category": "diff", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.diff.edit",   "name": "diff.edit",   "value": "#bd6c1a", "category": "diff", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "color.diff.delete", "name": "diff.delete", "value": "#991b1b", "category": "diff", "figmaRef": "", "notes": "", "status": "pending" }
+    ],
+
+    "typography": [
+      { "id": "type.font.sans",  "name": "font.sans",  "value": "Inter, system fallbacks",  "category": "fontFamily", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.font.serif", "name": "font.serif", "value": "RL Para Trial Central, Albra, Georgia", "category": "fontFamily", "figmaRef": "", "notes": "Serif used in EmptyState; not declared globally — confirm intent", "status": "needs-revision" },
+      { "id": "type.font.mono",  "name": "font.mono",  "value": "IBM Plex Mono",            "category": "fontFamily", "figmaRef": "", "notes": "", "status": "pending" },
+
+      { "id": "type.scale.display-lg",        "name": "display-lg",        "value": "30px / 28 / -0.6 / 400", "category": "display", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.scale.display-sm",        "name": "display-sm",        "value": "24px / 28 / -0.6 / 500", "category": "display", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.scale.display-xs",        "name": "display-xs",        "value": "18px / 20 / -0.5 / 500", "category": "display", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.scale.heading-xl",        "name": "heading-xl",        "value": "24px / 28 / -0.6 / 600", "category": "heading", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.scale.heading-xl-medium", "name": "heading-xl-medium", "value": "24px / 32 / -0.6 / 500", "category": "heading", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.scale.heading-lg",        "name": "heading-lg",        "value": "20px / 28 / -0.6 / 600", "category": "heading", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.scale.heading-lg-medium", "name": "heading-lg-medium", "value": "20px / 28 / -0.6 / 500", "category": "heading", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.scale.heading-md",        "name": "heading-md",        "value": "18px / 28 / 0 / 600",    "category": "heading", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.scale.heading-md-medium", "name": "heading-md-medium", "value": "18px / 28 / 0 / 500",    "category": "heading", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.scale.heading-sm",        "name": "heading-sm",        "value": "16px / 24 / 0 / 600",    "category": "heading", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.scale.heading-sm-medium", "name": "heading-sm-medium", "value": "16px / 24 / 0 / 500",    "category": "heading", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.scale.body",              "name": "body",              "value": "14px / 20 / 0 / 400",    "category": "body",    "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.scale.body-medium",       "name": "body-medium",       "value": "14px / 20 / 0 / 500",    "category": "body",    "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.scale.caption",           "name": "caption",           "value": "12px / 16 / 0.12 / 400", "category": "detail",  "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.scale.caption-medium",    "name": "caption-medium",    "value": "12px / 16 / 0 / 500",    "category": "detail",  "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "type.scale.counter",           "name": "counter",           "value": "10px / normal / 0 / 500","category": "detail",  "figmaRef": "", "notes": "", "status": "pending" }
+    ],
+
+    "spacing": [
+      { "id": "space.0.5",  "name": "0.5", "value": "2px",  "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "space.1",    "name": "1",   "value": "4px",  "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "space.1.25", "name": "1.25","value": "5px",  "figmaRef": "", "notes": "Off-scale — only used in is-zone-highlighted radius", "status": "needs-revision" },
+      { "id": "space.1.5",  "name": "1.5", "value": "6px",  "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "space.1.75", "name": "1.75","value": "7px",  "figmaRef": "", "notes": "Off-scale — banner button vertical padding", "status": "needs-revision" },
+      { "id": "space.2",    "name": "2",   "value": "8px",  "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "space.2.5",  "name": "2.5", "value": "10px", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "space.3",    "name": "3",   "value": "12px", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "space.3.5",  "name": "3.5", "value": "14px", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "space.4",    "name": "4",   "value": "16px", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "space.5",    "name": "5",   "value": "20px", "figmaRef": "", "notes": "", "status": "pending" }
+    ],
+
+    "radius": [
+      { "id": "radius.sm", "name": "sm", "value": "4px",  "usage": "is-highlighted",          "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "radius.xs", "name": "xs", "value": "5px",  "usage": "is-zone-highlighted",     "figmaRef": "", "notes": "Off-scale 5px — consolidate into sm/md?", "status": "needs-revision" },
+      { "id": "radius.md", "name": "md", "value": "6px",  "usage": "badge, banner-minimal button", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "radius.lg", "name": "lg", "value": "8px",  "usage": "banner button primary",   "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "radius.xl", "name": "xl", "value": "12px", "usage": "banner",                  "figmaRef": "", "notes": "", "status": "pending" }
+    ],
+
+    "shadows": [
+      { "id": "shadow.bannerButton",      "name": "bannerButton",      "value": "0 1px 2px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.05), inset 0 -1px 2px rgba(0,0,0,.04)", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "shadow.bannerButtonHover", "name": "bannerButtonHover", "value": "0 2px 6px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06), inset 0 -1px 2px rgba(0,0,0,.04)",  "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "shadow.glowPulseStart",    "name": "glowPulseStart",    "value": "0 0 8px rgba(99,102,241,0.3)",                                                            "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "shadow.glowPulseEnd",      "name": "glowPulseEnd",      "value": "0 0 20px rgba(99,102,241,0.5)",                                                           "figmaRef": "", "notes": "", "status": "pending" }
+    ],
+
+    "motion": [
+      { "id": "motion.duration.instant",  "name": "duration.instant",  "value": "100ms", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "motion.duration.fast",     "name": "duration.fast",     "value": "150ms", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "motion.duration.base",     "name": "duration.base",     "value": "250ms", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "motion.duration.slow",     "name": "duration.slow",     "value": "350ms", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "motion.duration.slower",   "name": "duration.slower",   "value": "600ms", "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "motion.easing.standard",   "name": "easing.standard",   "value": "ease",                                  "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "motion.easing.out",        "name": "easing.out",        "value": "ease-out",                              "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "motion.easing.inOut",      "name": "easing.inOut",      "value": "ease-in-out",                           "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "motion.easing.bounce",     "name": "easing.bounce",     "value": "cubic-bezier(0.175,0.885,0.32,1.275)",  "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "motion.anim.shimmer",      "name": "anim.shimmer",      "value": "1.5s ease-in-out infinite",             "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "motion.anim.bounceIn",     "name": "anim.bounceIn",     "value": "0.4s bounce forwards",                  "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "motion.anim.fadeSlideUp",  "name": "anim.fadeSlideUp",  "value": "0.35s ease-out forwards",               "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "motion.anim.glowPulse",    "name": "anim.glowPulse",    "value": "2s ease-in-out infinite",               "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "motion.anim.slideInRight", "name": "anim.slideInRight", "value": "0.25s ease-out forwards",               "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "motion.anim.diffAccepted", "name": "anim.diffAccepted", "value": "0.6s ease-out forwards",                "figmaRef": "", "notes": "", "status": "pending" },
+      { "id": "motion.anim.diffRejected", "name": "anim.diffRejected", "value": "0.6s ease-out forwards",                "figmaRef": "", "notes": "", "status": "pending" }
+    ]
+  },
+
+  "components": [
+    { "id": "AlertDialog",            "category": "primitive", "filePath": "src/components/AlertDialog.js",                  "exists": true,  "figmaRef": "", "notes": "Variants: primary, destructive. Icon variants: default, destructive, warning, success, info.", "status": "pending" },
+    { "id": "EmptyState",             "category": "primitive", "filePath": "src/components/EmptyState.js",                   "exists": true,  "figmaRef": "", "notes": "Centered icon circle + title + description + optional primary/secondary actions.", "status": "pending" },
+    { "id": "PromptSuggestionCard",   "category": "primitive", "filePath": "src/components/PromptSuggestionCard.js",         "exists": true,  "figmaRef": "", "notes": "Cold-start prompt card with hover-arrow animation.", "status": "pending" },
+    { "id": "SuggestionsMenu",        "category": "composite", "filePath": "src/components/SuggestionsMenu.js",              "exists": true,  "figmaRef": "", "notes": "Mono-uppercase header + icon+label rows. Used in chat sidebar and lightbulb dropdown.", "status": "pending" },
+    { "id": "ReasoningStepper",       "category": "composite", "filePath": "src/components/ReasoningStepper.js",             "exists": true,  "figmaRef": "", "notes": "Step-by-step reasoning visualization. ~900 lines. Maps backend tool names to user-facing step types. Color-coded (read/extract/calculate/CRUD).", "status": "pending" },
+
+    { "id": "JPPill",                 "category": "domain",    "filePath": "src/components/jp/JPPill.js",                    "exists": true,  "figmaRef": "", "notes": "Inline badge for a single legal decision. Selected/hover states.", "status": "pending" },
+    { "id": "JPPopoverCard",          "category": "domain",    "filePath": "src/components/jp/JPPopoverCard.js",             "exists": true,  "figmaRef": "", "notes": "Floating popover card with smart positioning above/below anchor.", "status": "pending" },
+    { "id": "DecisionDrawer",         "category": "domain",    "filePath": "src/components/jp/DecisionDrawer.js",            "exists": true,  "figmaRef": "", "notes": "Full-width right drawer. Candidate for decomposition (DecisionMetadata, DecisionSidebar, DecisionAttachments).", "status": "pending" },
+    { "id": "JPAddStepper",           "category": "domain",    "filePath": "src/components/jp/JPAddStepper.js",              "exists": true,  "figmaRef": "", "notes": "Multi-step modal: search / paste link / upload PDF.", "status": "pending" },
+    { "id": "JPListing",              "category": "domain",    "filePath": "src/components/jp/JPListing.js",                 "exists": true,  "figmaRef": "", "notes": "List of pinned decisions with stats and empty state.", "status": "pending" },
+    { "id": "JPSearchView",           "category": "domain",    "filePath": "src/components/jp/JPSearchView.js",              "exists": true,  "figmaRef": "", "notes": "Search UI with filter sidebar + result cards. Candidate for decomposition (FilterSidebar, ResultCard, ResultsList).", "status": "pending" },
+    { "id": "SaveDestinationPopover", "category": "domain",    "filePath": "src/components/jp/SaveDestinationPopover.js",    "exists": true,  "figmaRef": "", "notes": "Reused by DecisionDrawer and JPSearchView.", "status": "pending" },
+    { "id": "SlashCommandPalette",    "category": "domain",    "filePath": "src/components/jp/SlashCommandPalette.js",       "exists": true,  "figmaRef": "", "notes": "Keyboard-navigable command palette.", "status": "pending" },
+
+    { "id": "ActesList",              "category": "domain",    "filePath": "src/components/redaction/ActesList.js",          "exists": true,  "figmaRef": "", "notes": "Table-like list of drafted actes with empty state.", "status": "pending" },
+    { "id": "RedactionStepper",       "category": "domain",    "filePath": "src/components/redaction/RedactionStepper.js",   "exists": true,  "figmaRef": "", "notes": "2x2 grid for selecting document type to draft.", "status": "pending" },
+    { "id": "ActCanvas",              "category": "domain",    "filePath": "src/components/redaction/ActCanvas.js",          "exists": true,  "figmaRef": "", "notes": "Markdown-aware inline rendering with custom 'pièce' badges.", "status": "pending" },
+
+    { "id": "Button",          "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user. Currently inline-styled across App.js (banner-btn-primary, banner-btn-ghost in CSS, plus many ad-hoc). Variants observed: primary, ghost, secondary, destructive, icon-only.", "status": "missing" },
+    { "id": "Input",           "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user. Inputs scattered with inline styling.", "status": "missing" },
+    { "id": "Textarea",        "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user. Used in chat composer + various forms.", "status": "missing" },
+    { "id": "Select",          "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user.", "status": "missing" },
+    { "id": "Combobox",        "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user (dropdown select menu).", "status": "missing" },
+    { "id": "Dropdown",        "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user. SuggestionsMenu is one specialization but no generic Dropdown primitive.", "status": "missing" },
+    { "id": "Badge",           "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user. Currently CSS classes (.badge, .badge-default, etc.) but no React component wrapping them.", "status": "missing" },
+    { "id": "Checkbox",        "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Custom Checkmark SVG and CheckRow duplicated across SaveDestinationPopover and JPAddStepper. Extract.", "status": "missing" },
+    { "id": "Switch",          "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user.", "status": "missing" },
+    { "id": "RadioGroup",      "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "", "status": "missing" },
+    { "id": "Tooltip",         "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user.", "status": "missing" },
+    { "id": "Popover",         "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "JPPopoverCard and SaveDestinationPopover are specializations but no generic Popover primitive.", "status": "missing" },
+    { "id": "Modal",           "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user.", "status": "missing" },
+    { "id": "Tabs",            "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user.", "status": "missing" },
+    { "id": "Avatar",          "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "VI_AVATAR_PALETTE exists in App.js as data; no Avatar component.", "status": "missing" },
+    { "id": "Skeleton",        "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "animate-shimmer class exists; no Skeleton component.", "status": "missing" },
+    { "id": "Separator",       "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user.", "status": "missing" },
+    { "id": "ScrollArea",      "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user.", "status": "missing" },
+
+    { "id": "Drawer",          "category": "layout",    "filePath": null, "exists": false, "figmaRef": "", "notes": "DecisionDrawer is a specialization; no generic Drawer primitive.", "status": "missing" },
+    { "id": "Sheet",           "category": "layout",    "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user (panel drawers).", "status": "missing" },
+    { "id": "Sidebar",         "category": "layout",    "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user. Sidebars are inlined inside renderComponentsPage and other page renderers.", "status": "missing" },
+
+    { "id": "Table",           "category": "composite", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user. ActesList manually constructs table markup.", "status": "missing" },
+    { "id": "TableHeader",     "category": "composite", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user.", "status": "missing" },
+    { "id": "TableRow",        "category": "composite", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user. Variants by table type expected (default, diff, expandable).", "status": "missing" },
+    { "id": "TableCell",       "category": "composite", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user.", "status": "missing" },
+    { "id": "DropZone",        "category": "composite", "filePath": null, "exists": false, "figmaRef": "", "notes": "Drop zone CSS classes exist (.dropzone-container, .dropzone-inline) but no React component wraps them.", "status": "missing" },
+    { "id": "PlanCard",        "category": "composite", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user (pricing/plan cards).", "status": "missing" },
+    { "id": "ChatBubble",      "category": "composite", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user.", "status": "missing" },
+    { "id": "ChatMessageList", "category": "composite", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user.", "status": "missing" },
+    { "id": "ChatComposer",    "category": "composite", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user.", "status": "missing" }
+  ]
+}
