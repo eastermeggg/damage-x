@@ -65,7 +65,7 @@ export default function SlashCommandPalette({ query, onSelect, onDismiss, scenar
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-[#f0efed]" style={{ backgroundColor: '#fafaf9' }}>
         <SearchIcon className="w-3 h-3 text-[#a8a29e]" />
-        <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, color: '#78716c' }}>
+        <span style={{ fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, color: '#78716c' }}>
           COMMANDES
         </span>
       </div>
@@ -86,7 +86,7 @@ export default function SlashCommandPalette({ query, onSelect, onDismiss, scenar
             <Play className="w-3 h-3 flex-shrink-0" style={{ color: '#b9703f' }} />
             <div className="flex-1 min-w-0">
               <span style={{ fontSize: 12, fontWeight: 500, color: '#292524', display: 'block' }}>{s.label}</span>
-              <span style={{ fontSize: 11, color: '#a8a29e', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.description}</span>
+              <span style={{ fontSize: 12, color: '#a8a29e', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.description}</span>
             </div>
           </div>
         ))}

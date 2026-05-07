@@ -16,6 +16,9 @@ import PromptSuggestionCard from './components/PromptSuggestionCard';
 import SuggestionsMenu from './components/SuggestionsMenu';
 import ActesList from './components/redaction/ActesList';
 import AlertDialog from './components/AlertDialog';
+import TokensSection from './components/ui-kit/TokensSection';
+import ComponentsInventorySection from './components/ui-kit/ComponentsInventorySection';
+import ComponentDetailPage from './components/ui-kit/ComponentDetailPage';
 import { BASELINE_DSA_LIGNES, BASELINE_DFT_LIGNES, BASELINE_PGPA_DATA, BASELINE_PGPF_DATA, BASELINE_FORM_POSTE_DATA, BASELINE_FDA_LIGNES, BASELINE_DSF_DATA } from './data/baselineData';
 import { NATURE_CREANCE, NATURE_TO_POSTE, NATURE_LABELS } from './data/tpScenarios';
 
@@ -950,6 +953,8 @@ function InfoTip({ children, label, placement = 'top' }) {
 // Subsections of the components page get their own /ui-kit/<slug> URL.
 const UI_KIT_DEDICATED_PAGES = ['diff-engine', 'iv-structures', 'prompt-suggestions', 'reasoning-demo'];
 const UI_KIT_SUBSECTION_SLUGS = [
+  'tokens',
+  'inventory',
   'buttons',
   'prompt-suggestion-card',
   'suggestions-menu',
@@ -969,6 +974,10 @@ function pathToPage(pathname) {
   if (clean === '/settings') return { page: 'settings', section: null };
   if (clean === '/dossier') return { page: 'dossier', section: null };
   if (clean === '/ui-kit') return { page: 'components', section: null };
+  if (clean.startsWith('/ui-kit/c/')) {
+    const componentId = clean.slice('/ui-kit/c/'.length);
+    return { page: 'component-detail', section: null, componentId };
+  }
   if (clean.startsWith('/ui-kit/')) {
     const slug = clean.slice('/ui-kit/'.length);
     if (UI_KIT_DEDICATED_PAGES.includes(slug)) return { page: slug, section: null };
@@ -1001,7 +1010,7 @@ export default function App() {
   // ========== STATE ==========
   // currentPage and componentsSection are derived from the URL.
   // setCurrentPage(page) calls navigate() so the URL stays the source of truth.
-  const { page: currentPage, section: componentsSection } = pathToPage(location.pathname);
+  const { page: currentPage, section: componentsSection, componentId: detailComponentId } = pathToPage(location.pathname);
   const setCurrentPage = (page) => navigate(pageToPath(page));
   const [activeDossierId, setActiveDossierId] = useState(null);
 
@@ -15114,6 +15123,8 @@ export default function App() {
               Tous les composants
             </button>
             {[
+              { label: 'Design Tokens', slug: 'tokens' },
+              { label: 'Components Inventory', slug: 'inventory' },
               { label: 'Buttons', slug: 'buttons' },
               { label: 'Prompt Suggestion Card', slug: 'prompt-suggestion-card' },
               { label: 'Suggestions Menu', slug: 'suggestions-menu' },
@@ -15164,6 +15175,24 @@ export default function App() {
           <div className="ui-kit-content">
             <h1 style={{ fontSize: 24, fontWeight: 700, color: '#292524', marginBottom: 4 }}>Plato UI Components</h1>
             <p style={{ fontSize: 14, color: '#78716c', marginBottom: 32 }}>Composants visuels du prototype Plato — tester les propriétés et variantes en situation.</p>
+
+            {/* ====== DESIGN TOKENS ====== */}
+            <div id="section-tokens" className={sectionClass}>
+              {sectionTitle('Design Tokens')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>
+                Catalog of every token currently used across the app — colors, typography, spacing, radius, shadows, and motion. Source: <code style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>src/design-system/tokens.js</code> + <code style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>src/data/designSystemInventory.json</code>. Validation status is updated by Claude in follow-up turns: tell Claude the token id, the Figma ref, notes, and the new status.
+              </p>
+              <TokensSection />
+            </div>
+
+            {/* ====== COMPONENTS INVENTORY ====== */}
+            <div id="section-inventory" className={sectionClass}>
+              {sectionTitle('Components Inventory')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 16 }}>
+                Every reusable component currently in the codebase, plus the primitives we still need to build (status <em>missing</em>). Filter by status or category to focus a review pass. Tell Claude which components are validated and where their Figma source lives.
+              </p>
+              <ComponentsInventorySection />
+            </div>
 
             {/* ====== DIFF ROWS ====== */}
             <div id="section-diff-rows" className={sectionClass}>
@@ -20598,6 +20627,9 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
   }
   if (currentPage === 'components') {
     return (<>{renderComponentsPage()}{renderGlobalOverlays()}</>);
+  }
+  if (currentPage === 'component-detail') {
+    return (<><ComponentDetailPage componentId={detailComponentId} navigate={navigate} />{renderGlobalOverlays()}</>);
   }
   if (currentPage === 'iv-structures') {
     return (<>{renderIvStructuresPage()}{renderGlobalOverlays()}</>);

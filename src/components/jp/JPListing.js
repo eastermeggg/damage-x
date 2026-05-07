@@ -29,7 +29,7 @@ export default function JPListing({
   if (decisions.length === 0) {
     return (
       <div className={compact ? '' : 'p-4'} style={compact ? {} : { backgroundColor: '#F8F7F5' }}>
-        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10 }}>
+        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10 }}>
           {sectionTitle}
         </div>
         <div className="flex flex-col items-center" style={{ padding: '16px 0' }}>
@@ -71,16 +71,16 @@ export default function JPListing({
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
-          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' }}>
+          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' }}>
             {sectionTitle}
           </span>
-          <span className="text-[11px] text-[#c8c5c0]">{decisions.length}</span>
+          <span className="text-[12px] text-[#c8c5c0]">{decisions.length}</span>
         </div>
         <div className="flex items-center gap-2">
           {onSearchJP && (
             <button
               onClick={onSearchJP}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-[#a8a29e] hover:text-[#78716c] transition-colors"
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-[#a8a29e] hover:text-[#78716c] transition-colors"
             >
               <Search className="w-3 h-3" />
               Rechercher
@@ -89,7 +89,7 @@ export default function JPListing({
           {onAddClick && (
             <button
               onClick={onAddClick}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-[#a8a29e] hover:text-[#78716c] transition-colors"
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-[#a8a29e] hover:text-[#78716c] transition-colors"
             >
               <Plus className="w-3 h-3" />
               Ajouter
@@ -124,7 +124,7 @@ export default function JPListing({
                   <span style={{ fontSize: 14, color: '#292524', fontWeight: 500 }}>
                     {d.jurisdiction}{d.chambre ? ` · ${d.chambre}` : ''}
                   </span>
-                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#c8c5c0', textTransform: 'uppercase' }}>
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#c8c5c0', textTransform: 'uppercase' }}>
                     {formatDateShort(d.date)}
                   </span>
                   {pIds.length > 0 && pIds.slice(0, 3).map(pid => (
@@ -133,7 +133,7 @@ export default function JPListing({
                     </span>
                   ))}
                   {pIds.length > 3 && (
-                    <span style={{ fontSize: 11, color: '#a8a29e' }}>+{pIds.length - 3}</span>
+                    <span style={{ fontSize: 12, color: '#a8a29e' }}>+{pIds.length - 3}</span>
                   )}
                   {getAttachmentSummary && (() => {
                     const summary = getAttachmentSummary(d.id) || {};
@@ -187,7 +187,7 @@ export default function JPListing({
 
       {/* Footer stats */}
       {stats && (
-        <div className="mt-2.5 flex items-center gap-3 text-[11px] text-[#a8a29e]">
+        <div className="mt-2.5 flex items-center gap-3 text-[12px] text-[#a8a29e]">
           <span>Mediane <strong style={{ color: '#292524' }}>{stats.mediane}</strong></span>
           <span style={{ color: '#d6d3d1' }}>|</span>
           <span>Fourchette <strong style={{ color: '#292524' }}>{stats.fourchette}</strong></span>
