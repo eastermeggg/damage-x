@@ -6,7 +6,7 @@ Inline status / tag / count badge. Source of truth: Figma node `136:1178`
 - **File:** `src/components/ui/Badge.js`
 - **Inventory id:** `Badge`
 - **Figma:** https://www.figma.com/design/0eKtlRkT1Hbjh8Nqd47Woy/Plato---System?node-id=136-1178
-- **Status:** missing → built (last validated 2026-05-07)
+- **Status:** validated (last validated 2026-05-07)
 
 ---
 
