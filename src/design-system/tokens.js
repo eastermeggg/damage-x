@@ -155,8 +155,10 @@ export const radius = {
   full: '9999px', // badge number / icon-only (pill)
 };
 
-// Shadows — sourced from src/index.css banner button + glow pulse
+// Shadows — sourced from src/index.css banner button + glow pulse, plus
+// `xs` matched to the Figma "shadows/xs" effect used by inputs.
 export const shadows = {
+  xs:                '0 1px 2px rgba(26,26,26,0.05)',
   bannerButton:      '0 1px 2px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05), inset 0 -1px 2px rgba(0,0,0,0.04)',
   bannerButtonHover: '0 2px 6px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06), inset 0 -1px 2px rgba(0,0,0,0.04)',
   glowPulseStart:    '0 0 8px rgba(99, 102, 241, 0.3)',

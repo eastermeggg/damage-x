@@ -157,7 +157,7 @@
     { "id": "ActCanvas",              "category": "domain",    "filePath": "src/components/redaction/ActCanvas.js",          "exists": true,  "figmaRef": "", "notes": "Markdown-aware inline rendering with custom 'pièce' badges.", "status": "pending" },
 
     { "id": "Button",          "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user. Currently inline-styled across App.js (banner-btn-primary, banner-btn-ghost in CSS, plus many ad-hoc). Variants observed: primary, ghost, secondary, destructive, icon-only.", "status": "missing" },
-    { "id": "Input",           "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user. Inputs scattered with inline styling.", "status": "missing" },
+    { "id": "Input",           "category": "primitive", "filePath": "src/components/ui/Input.js", "exists": true, "figmaRef": "https://www.figma.com/design/0eKtlRkT1Hbjh8Nqd47Woy/Plato---System?node-id=33541-69574&t=IMMqoCsjnmjaZvEp-11", "notes": "This figma is actually the field component, but it has a slot that can nest diffeent input types (input, select, combobox..)", "usageRules": "", "status": "missing" },
     { "id": "Textarea",        "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user. Used in chat composer + various forms.", "status": "missing" },
     { "id": "Select",          "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user.", "status": "missing" },
     { "id": "Combobox",        "category": "primitive", "filePath": null, "exists": false, "figmaRef": "", "notes": "Mentioned by user (dropdown select menu).", "status": "missing" },

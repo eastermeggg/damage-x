@@ -13,6 +13,7 @@ import React, { useState } from 'react';
 import { Check, X as XIcon, Upload, Sparkles, Inbox, FileText, Plus, Calendar, Eye, EyeOff } from 'lucide-react';
 import { colors } from '../../design-system/tokens';
 import BadgeReal from '../ui/Badge';
+import InputReal from '../ui/Input';
 
 // ============== BUTTON ==============
 const BUTTON_VARIANTS = {
@@ -60,59 +61,8 @@ export function Button({ variant = 'primary', size = 'md', icon: Icon, iconPosit
 }
 
 // ============== INPUT ==============
-export function Input({ value = '', placeholder, type = 'text', size = 'md', error, disabled, leadingIcon: LeadingIcon, trailingAction, onChange, label, helperText }) {
-  const sizing = size === 'sm'
-    ? { padY: 5, padX: 10, font: 12, radius: 6 }
-    : { padY: 7, padX: 12, font: 14, radius: 8 };
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', maxWidth: 360 }}>
-      {label && (
-        <label style={{ fontSize: 12, fontWeight: 500, color: colors.semantic.foregroundTertiary }}>
-          {label}
-        </label>
-      )}
-      <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          background: disabled ? colors.semantic.backgroundSubtle : '#ffffff',
-          border: `1px solid ${error ? '#991b1b' : colors.semantic.border}`,
-          borderRadius: sizing.radius,
-          opacity: disabled ? 0.6 : 1,
-        }}
-      >
-        {LeadingIcon && (
-          <LeadingIcon
-            style={{ width: 14, height: 14, color: colors.semantic.foregroundMuted, marginLeft: sizing.padX, flexShrink: 0 }}
-            strokeWidth={1.75}
-          />
-        )}
-        <input
-          type={type}
-          value={value}
-          placeholder={placeholder}
-          disabled={disabled}
-          onChange={onChange}
-          style={{
-            flex: 1, minWidth: 0,
-            border: 'none', outline: 'none', background: 'transparent',
-            padding: `${sizing.padY}px ${sizing.padX}px`,
-            paddingLeft: LeadingIcon ? 6 : sizing.padX,
-            paddingRight: trailingAction ? 6 : sizing.padX,
-            fontSize: sizing.font, lineHeight: '20px',
-            color: colors.semantic.foreground,
-            fontFamily: 'inherit',
-          }}
-        />
-        {trailingAction}
-      </div>
-      {helperText && (
-        <span style={{ fontSize: 11, color: error ? '#991b1b' : colors.semantic.foregroundSecondary }}>{helperText}</span>
-      )}
-    </div>
-  );
-}
+// Promoted to a real component at src/components/ui/Input.js.
+export const Input = InputReal;
 
 // ============== TEXTAREA ==============
 export function Textarea({ value = '', placeholder, disabled, rows = 4, onChange, label, helperText, error }) {

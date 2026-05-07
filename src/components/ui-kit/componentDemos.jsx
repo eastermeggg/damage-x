@@ -292,30 +292,44 @@ export const componentDemos = {
   },
 
   Input: {
-    description: 'Text input with optional label, leading icon, error state, and helper text.',
+    description: 'Field component — label + helper + slot. The slot defaults to a text input but can hold any input shape (Select, Combobox, Textarea, custom). Source: src/components/ui/Input.js · Figma node 33541:69574.',
     controls: {
-      label:       { type: 'text',    default: 'Email',                description: 'Field label above the input.' },
-      placeholder: { type: 'text',    default: 'name@hexa.com',        description: 'Placeholder text.' },
-      value:       { type: 'text',    default: '',                     description: 'Current value.' },
-      size:        { type: 'select',  default: 'md', options: ['sm', 'md'], description: 'Input size.' },
-      hasIcon:     { type: 'boolean', default: false,                  description: 'Show leading mail icon.' },
-      error:       { type: 'boolean', default: false,                  description: 'Error styling.' },
-      disabled:    { type: 'boolean', default: false,                  description: 'Disabled state.' },
-      helperText:  { type: 'text',    default: '',                     description: 'Helper text below.' },
+      label:          { type: 'text',    default: 'Label',                                                                       description: 'Field label.' },
+      helperText:     { type: 'text',    default: 'Info. manquante pour calculer',                                              description: 'Helper / description text.' },
+      layout:         { type: 'select',  default: 'vertical',  options: ['vertical', 'horizontal'],                              description: 'Field layout.' },
+      helperPosition: { type: 'select',  default: 'below',     options: ['below', 'between'],                                    description: 'Helper position (vertical only). below = under the input. between = between label and input.' },
+      placeholder:    { type: 'text',    default: 'Placeholder text',                                                            description: 'Placeholder for the default text input.' },
+      value:          { type: 'text',    default: '',                                                                            description: 'Current value (default text input only).' },
+      error:          { type: 'boolean', default: false,                                                                         description: 'Error state — colors the label.' },
+      warning:        { type: 'boolean', default: false,                                                                         description: 'Warning state — colors the label and helper.' },
+      aiGenerated:    { type: 'boolean', default: false,                                                                         description: 'Show the AI sparkle icon next to the label.' },
+      disabled:       { type: 'boolean', default: false,                                                                         description: 'Disable the default text input.' },
     },
     render: v => (
-      <P.Input
-        label={v.label || undefined}
-        placeholder={v.placeholder}
-        value={v.value}
-        onChange={() => {}}
-        size={v.size}
-        leadingIcon={v.hasIcon ? Mail : undefined}
-        error={v.error}
-        disabled={v.disabled}
-        helperText={v.helperText || undefined}
-      />
+      <div style={{ width: 320 }}>
+        <P.Input
+          label={v.label || undefined}
+          helperText={v.helperText || undefined}
+          layout={v.layout}
+          helperPosition={v.helperPosition}
+          error={v.error}
+          warning={v.warning}
+          aiGenerated={v.aiGenerated}
+          placeholder={v.placeholder}
+          value={v.value}
+          onChange={() => {}}
+          disabled={v.disabled}
+        />
+      </div>
     ),
+    presets: [
+      { label: 'Default · helper below',   values: { layout: 'vertical', helperPosition: 'below',   error: false, warning: false, label: 'Label', helperText: 'Info. manquante pour calculer' } },
+      { label: 'Helper between',           values: { layout: 'vertical', helperPosition: 'between', error: false, warning: false, label: 'Label', helperText: 'Info. manquante pour calculer' } },
+      { label: 'Horizontal',               values: { layout: 'horizontal', error: false, warning: false, label: 'Label', helperText: 'Info. manquante pour…' } },
+      { label: 'Error',                    values: { layout: 'vertical', helperPosition: 'below',   error: true,  warning: false, label: 'Label', helperText: 'Info. manquante pour calculer' } },
+      { label: 'Warning',                  values: { layout: 'vertical', helperPosition: 'below',   error: false, warning: true,  label: 'Label', helperText: 'Info. manquante pour calculer' } },
+      { label: 'AI generated',             values: { layout: 'vertical', helperPosition: 'below',   error: false, warning: false, aiGenerated: true, label: 'Montant suggéré', helperText: 'Inféré depuis l\'expertise' } },
+    ],
   },
 
   Textarea: {
