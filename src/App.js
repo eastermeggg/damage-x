@@ -19400,7 +19400,7 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
       </div>
     );
 
-    // Chat empty state — 3 chips (cold start, manual or after drop)
+    // Chat empty state - 3 chips (cold start, manual or after drop)
     const EMPTY_ACTIONS_SPEC = [
       { icon: Sparkles,   label: 'Compléter les infos du dossier' },
       { icon: Calculator, label: 'Commencer le chiffrage' },
@@ -19444,7 +19444,7 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
         >
           <div className="px-5 h-12 border-b flex items-center gap-3 flex-shrink-0" style={{ borderColor: '#e7e5e3', backgroundColor: '#fafaf9' }}>
             <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: 11, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {title.replace(/^Canvas — /, '')}
+              {title.replace(/^Canvas - /, '')}
             </span>
           </div>
           <div className="flex-1 flex items-center justify-center px-8 py-12">
@@ -19454,7 +19454,7 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
       </div>
     );
 
-    // Lightbulb menu — 4 suggestions per spec
+    // Lightbulb menu - 4 suggestions per spec
     const LIGHTBULB_SPEC_ITEMS = [
       { icon: Sparkles,   label: "Complète les informations du dossier à partir du rapport d'expertise" },
       { icon: Calculator, label: 'Chiffre les préjudices de ce dossier' },
@@ -19462,7 +19462,7 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
       { icon: Pencil,     label: 'Rédige une demande amiable de provision' },
     ];
 
-    // Lightbulb specimen — exact reproduction of the production chat input box
+    // Lightbulb specimen - exact reproduction of the production chat input box
     // (white rounded-2 box with stone outer ring, optional 2px white inner border,
     //  textarea placeholder, bottom action bar with Paperclip + Lightbulb on the
     //  left and Send on the right). The Suggestions popover is anchored above
@@ -19471,14 +19471,14 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
     const LightbulbSpecimen = () => (
       <div className="mb-12">
         <div className="flex items-center justify-between mb-3">
-          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#292524' }}>Variant — Suggestions menu (anchored au-dessus de l'input)</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#292524' }}>Variant - Suggestions menu (anchored au-dessus de l'input)</h3>
           <span style={{ fontSize: 12, color: '#78716c' }}>Condition&nbsp;: {codeInline('suggestionsOpen === true')}</span>
         </div>
         <div
           className="rounded-lg flex flex-col justify-end relative overflow-visible"
           style={{ width: 380, height: 460, backgroundColor: '#F8F7F5', padding: 16, border: '1px solid #e7e5e3' }}
         >
-          {/* Production chat input box — exact replica */}
+          {/* Production chat input box - exact replica */}
           <div
             style={{
               backgroundColor: '#ffffff',
@@ -19505,7 +19505,7 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
                   <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-stone-100 transition-colors">
                     <Lightbulb className="w-4 h-4 text-[#78716c]" />
                   </button>
-                  {/* Suggestions popover — same SuggestionsMenu DS component */}
+                  {/* Suggestions popover - same SuggestionsMenu DS component */}
                   <div className="absolute bottom-10 left-0 z-50">
                     <SuggestionsMenu header="Suggestions" items={LIGHTBULB_SPEC_ITEMS} className="w-[320px]" />
                   </div>
@@ -19539,7 +19539,7 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
       </div>
     );
 
-    // B.1 — Chiffrage empty state, scaled to fit the flow specimen
+    // B.1 - Chiffrage empty state, scaled to fit the flow specimen
     const triggerChiffrageEmpty = (
       <div style={{ width: 280 }}>
         <EmptyState
@@ -19555,7 +19555,7 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
       </div>
     );
 
-    // B.3 — Actes empty state, scaled to fit the flow specimen
+    // B.3 - Actes empty state, scaled to fit the flow specimen
     const triggerActesEmpty = (
       <div style={{ width: 280 }}>
         <EmptyState
@@ -19570,7 +19570,7 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
       </div>
     );
 
-    // B.2 — Add poste modal mock (the trigger surface)
+    // B.2 - Add poste modal mock (the trigger surface)
     const triggerAddPosteModal = (
       <div className="bg-white rounded-[8px] border border-[#e7e5e3] overflow-hidden" style={{ width: 260, boxShadow: '0px 4px 12px -4px rgba(26,26,26,0.12)' }}>
         <div className="px-4 py-3 border-b border-[#e7e5e3]">
@@ -19619,9 +19619,9 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
           </nav>
           <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8 }}>B. Triggers canvas</div>
           <nav className="flex flex-col gap-1 mb-4">
-            <a href="#ps-canvas-chiffrage" className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">B.1 — Chiffrage vide</a>
-            <a href="#ps-canvas-add-poste" className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">B.2 — Ajout poste</a>
-            <a href="#ps-canvas-actes" className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">B.3 — Actes vide</a>
+            <a href="#ps-canvas-chiffrage" className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">B.1 - Chiffrage vide</a>
+            <a href="#ps-canvas-add-poste" className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">B.2 - Ajout poste</a>
+            <a href="#ps-canvas-actes" className="text-body text-[#78716c] hover:text-[#292524] hover:bg-[#fafaf9] px-2 py-1.5 rounded transition-colors">B.3 - Actes vide</a>
           </nav>
           <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8 }}>C. Ampoule</div>
           <nav className="flex flex-col gap-1">
@@ -19640,9 +19640,13 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
             {/* ================ SCOPE ================ */}
             <section id="ps-scope" className="mb-12">
               <h2 style={{ fontFamily: "'RL Para Trial Central', 'Albra', Georgia, serif", fontSize: 22, fontWeight: 500, color: '#292524', letterSpacing: '-0.3px', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>Scope</h2>
-              <p style={specPara}><strong>Problème.</strong> L'agent ne montre pas son reasoning sur les docs déposés et ne propose pas d'actions. L'utilisateur doit deviner quoi demander.</p>
+              <p style={specPara}><strong>Problèmes.</strong></p>
+              <ul style={{ ...specPara, paddingLeft: 20, listStyle: 'disc' }}>
+                <li><strong>Au drop first (création dossier).</strong> L'agent ne montre pas son reasoning sur les docs déposés et ne propose pas d'actions. L'utilisateur doit deviner quoi demander.</li>
+                <li><strong>Actions manuelles canvas (ajout poste, premier acte, etc.).</strong> Aujourd'hui ça ouvre une page et il ne se passe rien - on ne tire pas parti du chat directement, donc perte de valeur.</li>
+              </ul>
               <p style={specPara}><strong>Solution court terme.</strong> Des shortcuts qui donnent des portes d'entrée claires vers le chat, sans avoir à formuler le prompt.</p>
-              <p style={specPara}><strong>Hors scope.</strong> La proactivité agent (reasoning visible + propositions contextualisées). Quand elle existera, les triggers canvas resteront utiles ; l'ampoule deviendra secondaire.</p>
+              <p style={specPara}><strong>Solution idéale (à terme - ou plus tôt si envisageable).</strong> Que l'agent montre son reasoning pendant le traitement des documents, puis engage directement avec une question à l'utilisateur une fois l'extraction terminée. En création manuelle (sans docs), l'empty state à 3 chips reste pertinent - c'est juste qu'avec docs, l'agent prendrait le relais de lui-même.</p>
             </section>
 
             {/* ================ TL;DR ================ */}
@@ -19660,9 +19664,9 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
 
             {/* ================ A. CHAT EMPTY STATE ================ */}
             <section id="ps-chat" className="mb-16">
-              <h2 style={{ fontFamily: "'RL Para Trial Central', 'Albra', Georgia, serif", fontSize: 22, fontWeight: 500, color: '#292524', letterSpacing: '-0.3px', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>A. Chat empty state — 3 chips</h2>
+              <h2 style={{ fontFamily: "'RL Para Trial Central', 'Albra', Georgia, serif", fontSize: 22, fontWeight: 500, color: '#292524', letterSpacing: '-0.3px', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #e7e5e3' }}>A. Chat empty state - 3 chips</h2>
               <p style={specPara}><strong>Affichage.</strong> <em>"Bonjour {codeInline('{user.firstName}')}, je suis Plato. Par où voulez-vous commencer ?"</em> + 3 chips.</p>
-              <Specimen title="Variant — 3 chips" condition="aucun message dans le chat">
+              <Specimen title="Variant - 3 chips" condition="aucun message dans le chat">
                 {variantEmptyState}
               </Specimen>
               <SpecTable
@@ -19729,7 +19733,7 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
                 ]}
               />
               <Quote>
-                <strong>Pré-remplit (et n'envoie pas)</strong> car c'est une aide "aide-moi à formuler" — l'utilisateur affine avant d'envoyer.
+                <strong>Pré-remplit (et n'envoie pas)</strong> car c'est une aide "aide-moi à formuler" - l'utilisateur affine avant d'envoyer.
               </Quote>
             </section>
 
@@ -19768,11 +19772,11 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
       title: 'Partial error',
       summary: 'Extraction des factures DSA',
       counters: { add: 2, error: 1 },
-      response: "J'ai extrait 2 factures sur 3 et créé les lignes DSA. Le fichier facture_scan.pdf n'a pas pu être lu — vérifiez qu'il s'agit d'un PDF texte.",
+      response: "J'ai extrait 2 factures sur 3 et créé les lignes DSA. Le fichier facture_scan.pdf n'a pas pu être lu - vérifiez qu'il s'agit d'un PDF texte.",
       steps: [
         { type: 'read_documents', label: 'Analyse de 3 documents', status: 'done' },
-        { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 € — CPAM 3 200 €'] },
-        { type: 'error', label: 'Extraction impossible — facture_scan.pdf illisible', status: 'error' },
+        { type: 'extract_data', label: 'Extraction facture CHU', status: 'done', children: ['4 500 € - CPAM 3 200 €'] },
+        { type: 'error', label: 'Extraction impossible - facture_scan.pdf illisible', status: 'error' },
         { type: 'add_row', label: '2 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire'] },
       ],
     },
@@ -19793,9 +19797,9 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux. Ne
       steps: [
         { type: 'read_rapport', label: "Lecture du rapport d'expertise", status: 'done' },
         { type: 'add_row', label: '3 lignes DSA', status: 'done', poste: 'DSA', children: ['Consultation spécialiste', 'IRM lombaire', 'Kinésithérapie'] },
-        { type: 'add_row', label: '2 périodes DFT', status: 'done', poste: 'DFT', children: ['01/01 → 15/03/2024 — 25% — 74j', '16/03 → 30/06/2024 — 10% — 107j'] },
+        { type: 'add_row', label: '2 périodes DFT', status: 'done', poste: 'DFT', children: ['01/01 → 15/03/2024 - 25% - 74j', '16/03 → 30/06/2024 - 10% - 107j'] },
         { type: 'update_row', label: 'Taux DFP', status: 'done', poste: 'DFP', children: ['15% → 20%'] },
-        { type: 'delete_row', label: '1 ligne DFT doublon', status: 'done', poste: 'DFT', children: ['Période 3 — doublon avec période 2'] },
+        { type: 'delete_row', label: '1 ligne DFT doublon', status: 'done', poste: 'DFT', children: ['Période 3 - doublon avec période 2'] },
       ],
     },
     F: {
