@@ -33,7 +33,7 @@ function FilterSection({ title, children, searchable = false }) {
         </span>
       </button>
       {open && (
-        <div className="ml-4">
+        <div>
           {searchable && (
             <input
               type="text"
@@ -69,7 +69,7 @@ function FilterCheckbox({ label, checked, onChange, title }) {
   );
 }
 
-function JPSearchResultCard({ decision: d, isPinned, assignedPosteIds = [], isSelected, onOpen, onSaveToDossier, onTogglePoste, onUnpin, userPinned, workspacePinned, onToggleUser, onToggleWorkspace, posteOptions }) {
+function JPSearchResultCard({ decision: d, isPinned, assignedPosteIds = [], isSelected, onOpen, onTogglePoste, posteOptions }) {
   const [showSavePopover, setShowSavePopover] = useState(false);
   return (
     <div
@@ -113,7 +113,7 @@ function JPSearchResultCard({ decision: d, isPinned, assignedPosteIds = [], isSe
             <button
               onClick={(e) => { e.stopPropagation(); setShowSavePopover(!showSavePopover); }}
               className="p-1.5 -mr-1 rounded-md transition-colors hover:bg-[#eeece6] flex-shrink-0"
-              title={isPinned ? 'Modifier les postes' : 'Sauvegarder'}
+              title={isPinned ? 'Modifier les postes' : 'Sauvegarder à un poste'}
             >
               {isPinned
                 ? <BookmarkCheck className="w-3.5 h-3.5" style={{ color: '#b9703f', fill: '#b9703f' }} />
@@ -123,15 +123,9 @@ function JPSearchResultCard({ decision: d, isPinned, assignedPosteIds = [], isSe
           </div>
           {showSavePopover && (
             <SaveDestinationPopover
-              isPinned={isPinned}
               assignedPosteIds={assignedPosteIds}
               posteOptions={posteOptions}
-              onSaveToDossier={() => { if (!isPinned) onSaveToDossier?.(); }}
               onTogglePoste={(posteId) => onTogglePoste?.(posteId)}
-              userPinned={userPinned}
-              workspacePinned={workspacePinned}
-              onToggleUser={onToggleUser}
-              onToggleWorkspace={onToggleWorkspace}
               onClose={() => setShowSavePopover(false)}
             />
           )}
@@ -188,16 +182,20 @@ export default function JPSearchView({
   onUnpin,
   onAddClick,
   posteOptions = [],
-  // Phase 3: scope-aware Save popover. Caller passes per-decision lookups so
-  // each card can reflect "Mes usuels" / "Cabinet" state and toggle them.
-  isUserPinned,         // (decisionId) => boolean
+  // Per-decision workspace state — when supplied, the save popover gains a
+  // "Aussi au cabinet" toggle that adds/removes a workspace-scope attachment.
   isWorkspacePinned,    // (decisionId) => boolean
-  onToggleUser,         // (decisionId) => void
   onToggleWorkspace,    // (decisionId) => void
+  // Cabinet (org-level) JPs surfaced as a tab. Caller passes pre-resolved
+  // decision-like objects (same shape as JPListing's decisionsOverride),
+  // typically derived from the org-level preferences textarea.
+  cabinetItems = null,
+  onCabinetItemClick,
 }) {
   const [query, setQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [savedCollapsed, setSavedCollapsed] = useState(false);
+  const [viewMode, setViewMode] = useState('search'); // 'search' | 'cabinet'
   const [filters, setFilters] = useState({
     jurisdictions: [],
     postes: [],
@@ -288,115 +286,47 @@ export default function JPSearchView({
         </div>
       </div>
 
-      {/* FIXED SAVED JP SECTION */}
-      <div className="flex-shrink-0 border-b border-[#e7e5e3]" style={{ backgroundColor: '#fafaf9', maxHeight: savedCollapsed ? 'none' : 280, overflow: savedCollapsed ? 'visible' : 'auto' }}>
-        <div className="px-6 py-2.5">
-          {/* Header row */}
-          <button onClick={() => setSavedCollapsed(!savedCollapsed)} className="flex items-center gap-2">
-            {savedCollapsed ? <ChevronRight className="w-3.5 h-3.5 text-[#a8a29e]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#a8a29e]" />}
-            <Bookmark className="w-3.5 h-3.5" style={{ color: '#b9703f', fill: '#b9703f' }} />
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#292524' }}>
-              Sauvegardées
-            </span>
-            {savedDecisions.length > 0 && (
-              <span className="inline-flex items-center justify-center rounded-full"
-                style={{ fontSize: 12, fontWeight: 600, color: 'white', backgroundColor: '#292524', minWidth: 20, height: 20, padding: '0 6px' }}>
-                {savedDecisions.length}
-              </span>
-            )}
-          </button>
-
-          {/* Saved list */}
-          {!savedCollapsed && (
-            <div className="mt-1.5">
-              {savedDecisions.length === 0 ? (
-                <div className="py-4 text-center">
-                  <span className="text-[12px] text-[#c8c5c0]">Aucune jurisprudence sauvegardee</span>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  {savedDecisions.map((d) => {
-                    const isSelected = d.id === selectedDecisionId;
-                    const pin = pinnedMap[d.id];
-                    const posteIds = pin?.posteIds || [];
-                    const amt = getPrimaryAmount(d);
-                    return (
-                      <div
-                        key={d.id}
-                        onClick={() => onOpenDrawer?.(d.id, savedDecisions.map(s => s.id))}
-                        className="group/row bg-white rounded cursor-pointer flex items-center gap-3 px-3 py-2.5"
-                        style={{
-                          boxShadow: isSelected
-                            ? '0 0 0 1px #b9703f, 0 1px 4px rgba(185,112,63,0.08)'
-                            : '0 1px 2px rgba(41,37,36,0.05)',
-                          transition: 'box-shadow 0.15s ease',
-                        }}
-                        onMouseOver={(e) => { if (!isSelected) e.currentTarget.style.boxShadow = '0 2px 6px rgba(41,37,36,0.07)'; }}
-                        onMouseOut={(e) => { if (!isSelected) e.currentTarget.style.boxShadow = '0 1px 2px rgba(41,37,36,0.05)'; }}
-                      >
-                        <Landmark className="w-3 h-3 text-[#b9703f] flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span style={{ fontSize: 14, color: '#292524', fontWeight: 500 }}>
-                              {d.jurisdiction}{d.chambre ? ` · ${d.chambre}` : ''}
-                            </span>
-                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#c8c5c0', textTransform: 'uppercase' }}>
-                              {formatDateShort(d.date)}
-                            </span>
-                            {posteIds.length > 0 && (
-                              <span className="flex items-center gap-1">
-                                {posteIds.slice(0, 3).map(pid => (
-                                  <span key={pid} title={POSTE_LABEL_MAP[pid] || pid}
-                                    className="badge badge-sm badge-secondary">
-                                    {pid.toUpperCase()}
-                                  </span>
-                                ))}
-                                {posteIds.length > 3 && (
-                                  <span className="text-[12px] text-[#a8a29e]">+{posteIds.length - 3}</span>
-                                )}
-                              </span>
-                            )}
-                          </div>
-                          <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', marginTop: 1 }}>
-                            {d.category}{d.victimProfile ? ` · ${d.victimProfile}` : ''}
-                          </div>
-                        </div>
-                        {amt && (
-                          <span className="badge badge-sm badge-secondary flex-shrink-0" title={POSTE_LABEL_MAP[amt.poste] || amt.poste}>
-                            {amt.poste} : <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: '#b9703f' }}>{amt.displayValue}</span>
-                          </span>
-                        )}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onUnpin?.(d.id); }}
-                          className="p-0.5 rounded text-transparent group-hover/row:text-[#d6d3d1] hover:!text-[#ef4444] transition-colors flex-shrink-0"
-                          title="Retirer"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {onAddClick && (
-                <button
-                  onClick={onAddClick}
-                  className="inline-flex items-center gap-1 mt-1 px-1 py-1 rounded text-[12px] text-[#c8c5c0] hover:text-[#78716c] transition-colors"
-                >
-                  <Plus className="w-3 h-3" />
-                  Ajouter
-                </button>
-              )}
-            </div>
-          )}
+      {/* TABS: Recherche / Cabinet — under the search bar */}
+      <div className="flex-shrink-0 border-b border-[#e7e5e3] px-6" style={{ backgroundColor: '#F8F7F5' }}>
+        <div className="flex items-center gap-1">
+          {[
+            { id: 'search', label: 'Recherche', count: null },
+            { id: 'cabinet', label: 'JP de référence', count: (cabinetItems || []).length },
+          ].map(t => {
+            const active = viewMode === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setViewMode(t.id)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 transition-colors"
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: active ? '#292524' : '#78716c',
+                  borderBottom: active ? '2px solid #292524' : '2px solid transparent',
+                  marginBottom: -1,
+                }}
+              >
+                {t.label}
+                {t.count != null && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold"
+                    style={active
+                      ? { backgroundColor: '#fdf3ec', color: '#b9703f' }
+                      : { backgroundColor: '#eeece6', color: '#78716c' }}>
+                    {t.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* MAIN AREA: fixed sidebar + scrollable results */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
 
-        {/* Fixed filter sidebar */}
-        <div className="flex-shrink-0 overflow-y-auto border-r border-[#e7e5e3]" style={{ width: filtersOpen ? 220 : 0, transition: 'width 0.15s ease', backgroundColor: '#fafaf9' }}>
+        {/* Fixed filter sidebar — hidden in cabinet tab */}
+        <div className="flex-shrink-0 overflow-y-auto border-r border-[#e7e5e3]" style={{ width: viewMode === 'cabinet' ? 0 : (filtersOpen ? 220 : 0), transition: 'width 0.15s ease', backgroundColor: '#fafaf9' }}>
           {filtersOpen && (
             <div className="px-4 py-3">
               <div className="flex items-center justify-between mb-3">
@@ -457,62 +387,122 @@ export default function JPSearchView({
         {/* Scrollable results area */}
         <div className="flex-1 overflow-y-auto min-w-0">
           {/* Toolbar */}
-          <div className="sticky top-0 z-10 px-5 py-2.5 border-b border-[#e7e5e3] flex items-center justify-between" style={{ backgroundColor: '#F8F7F5' }}>
+          <div className="sticky top-0 z-10 px-5 py-2 border-b border-[#e7e5e3] flex items-center justify-between" style={{ backgroundColor: '#F8F7F5' }}>
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => setFiltersOpen(!filtersOpen)}
-                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-[#78716c] hover:bg-[#eeece6] transition-colors"
-              >
-                <SlidersHorizontal className="w-3 h-3" />
-                Filtres
-                {activeFilterCount > 0 && (
-                  <span className="ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: '#b9703f' }}>
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
+              {viewMode !== 'cabinet' && (
+                <button
+                  onClick={() => setFiltersOpen(!filtersOpen)}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-[#78716c] hover:bg-[#eeece6] transition-colors"
+                >
+                  <SlidersHorizontal className="w-3 h-3" />
+                  Filtres
+                  {activeFilterCount > 0 && (
+                    <span className="ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: '#b9703f' }}>
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
+              )}
               <span className="text-[12px] text-[#a8a29e]">
-                {results.length} resultat{results.length !== 1 ? 's' : ''}
+                {viewMode === 'cabinet'
+                  ? `${(cabinetItems || []).length} JP de référence${(cabinetItems || []).length !== 1 ? 's' : ''}`
+                  : `${results.length} resultat${results.length !== 1 ? 's' : ''}`}
               </span>
             </div>
-            </div>
+          </div>
 
           {/* Cards grid */}
-          <div className="px-5 py-3">
-            {results.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <Search className="w-8 h-8 text-stone-300 mb-3" strokeWidth={1.5} />
-                <p className="text-[14px] text-[#a8a29e]">Aucun resultat trouve</p>
-                <p className="text-[12px] text-[#d6d3d1] mt-1">Essayez d'elargir vos criteres de recherche</p>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 480px), 1fr))', gap: 10, maxWidth: 1100 }}>
-                {results.map(d => {
-                  const isPinned = pinnedIds.has(d.id);
-                  const pin = pinnedMap[d.id];
-                  const isSelected = d.id === selectedDecisionId;
-                  return (
-                    <JPSearchResultCard
-                      key={d.id}
-                      decision={d}
-                      isPinned={isPinned}
-                      assignedPosteIds={pin?.posteIds || []}
-                      isSelected={isSelected}
-                      onOpen={() => onOpenDrawer?.(d.id, results.map(r => r.id))}
-                      onSaveToDossier={() => onSaveToDossier?.(d.id)}
-                      onTogglePoste={(posteId) => onTogglePoste?.(d.id, posteId)}
-                      onUnpin={() => onUnpin?.(d.id)}
-                      userPinned={isUserPinned ? isUserPinned(d.id) : false}
-                      workspacePinned={isWorkspacePinned ? isWorkspacePinned(d.id) : false}
-                      onToggleUser={onToggleUser ? () => onToggleUser(d.id) : undefined}
-                      onToggleWorkspace={onToggleWorkspace ? () => onToggleWorkspace(d.id) : undefined}
-                      posteOptions={posteOptions}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          {viewMode === 'cabinet' ? (
+            <div className="px-5 py-3" style={{ maxWidth: 1100 }}>
+              {(cabinetItems || []).length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <Landmark className="w-8 h-8 text-stone-300 mb-3" strokeWidth={1.5} />
+                  <p className="text-[14px] text-[#a8a29e]">Aucune jurisprudence de référence</p>
+                  <p className="text-[12px] text-[#d6d3d1] mt-1 max-w-md text-center">
+                    Ajoutez vos décisions de référence dans Mémoire et préférences.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {cabinetItems.map((d) => {
+                    const isOrphan = d._status === 'orphan';
+                    const isFiche = d._status === 'ficheCabinet';
+                    return (
+                      <div
+                        key={d.id}
+                        onClick={() => onCabinetItemClick?.(d)}
+                        className="group bg-white rounded cursor-pointer flex items-center gap-3 px-3 py-2.5"
+                        style={{
+                          boxShadow: '0 1px 2px rgba(41,37,36,0.05)',
+                          transition: 'box-shadow 0.15s ease',
+                          borderLeft: isOrphan ? '3px solid #f59e0b' : 'none',
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(41,37,36,0.07)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.boxShadow = '0 1px 2px rgba(41,37,36,0.05)'; }}
+                      >
+                        <Landmark className="w-3 h-3 text-[#b9703f] flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span style={{ fontSize: 14, color: '#292524', fontWeight: 500 }}>
+                              {d.jurisdiction}{d.chambre ? ` · ${d.chambre}` : ''}
+                            </span>
+                            {d.numero && (
+                              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#c8c5c0', textTransform: 'uppercase' }}>
+                                {d.numero}
+                              </span>
+                            )}
+                          </div>
+                          <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', marginTop: 1 }}>
+                            {d.category || d.resume || ''}
+                          </div>
+                        </div>
+                        {isFiche && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0" style={{ backgroundColor: '#fdf3ec', color: '#b9703f' }}>
+                            Fiche cabinet
+                          </span>
+                        )}
+                        {isOrphan && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                            Non référencée
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="px-5 py-3">
+              {results.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <Search className="w-8 h-8 text-stone-300 mb-3" strokeWidth={1.5} />
+                  <p className="text-[14px] text-[#a8a29e]">Aucun resultat trouve</p>
+                  <p className="text-[12px] text-[#d6d3d1] mt-1">Essayez d'elargir vos criteres de recherche</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 480px), 1fr))', gap: 10, maxWidth: 1100 }}>
+                  {results.map(d => {
+                    const isPinned = pinnedIds.has(d.id);
+                    const pin = pinnedMap[d.id];
+                    const isSelected = d.id === selectedDecisionId;
+                    return (
+                      <JPSearchResultCard
+                        key={d.id}
+                        decision={d}
+                        isPinned={isPinned}
+                        assignedPosteIds={pin?.posteIds || []}
+                        isSelected={isSelected}
+                        onOpen={() => onOpenDrawer?.(d.id, results.map(r => r.id))}
+                        onTogglePoste={(posteId) => onTogglePoste?.(d.id, posteId)}
+                        posteOptions={posteOptions}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

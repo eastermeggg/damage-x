@@ -14,17 +14,28 @@ export default function JPListing({
   onSearchJP,
   posteLabel = '',
   compact = false,
-  // Phase 6: optional summary of cross-scope attachments for a JP. Caller may
-  // pass `(decisionId) => { workspace, user, matterCount }`. When omitted, no
-  // scope badges are rendered.
+  // Optional summary of cross-scope attachments for a JP. Caller may
+  // pass `(decisionId) => { matterCount }`. When omitted, no scope
+  // badges are rendered.
   getAttachmentSummary,
+  // Pre-resolved decisions (skips mockDecisions lookup). Use this for
+  // synthesized decision-like objects from non-canonical JP refs.
+  decisionsOverride,
+  // Replaces the default right-side amount badge + chevron when provided.
+  // Signature: (decision) => ReactNode
+  renderRowAccessory,
+  // Custom section title and empty state for the listing.
+  sectionTitle: sectionTitleProp,
+  emptyMessage,
+  // Per-row style override (callback). Useful for warning borders, etc.
+  getRowStyle,
 }) {
   const decisionIds = pinnedJP.map(p => p.decisionId);
-  const decisions = getDecisionsByIds(decisionIds);
+  const decisions = decisionsOverride || getDecisionsByIds(decisionIds);
   const posteIdsByDecision = Object.fromEntries(pinnedJP.map(p => [p.decisionId, p.posteIds || []]));
   const stats = showStats && decisions.length > 0 ? getStats(decisions) : null;
 
-  const sectionTitle = 'Jurisprudences retenues';
+  const sectionTitle = sectionTitleProp || 'Jurisprudences retenues';
 
   if (decisions.length === 0) {
     return (
@@ -35,31 +46,36 @@ export default function JPListing({
         <div className="flex flex-col items-center" style={{ padding: '16px 0' }}>
           <Landmark style={{ width: 18, height: 18, color: '#d6d3d1' }} strokeWidth={1.5} />
           <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#a8a29e', marginTop: 8 }}>
-            Aucune jurisprudence retenue
+            {emptyMessage || 'Aucune jurisprudence retenue'}
           </span>
           {onSearchJP && (
-            <button
-              onClick={onSearchJP}
-              className="inline-flex items-center justify-center transition-colors hover:opacity-90"
-              style={{
-                backgroundColor: '#292524',
-                color: 'white',
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 12,
-                fontWeight: 500,
-                height: 30,
-                paddingLeft: 12,
-                paddingRight: 12,
-                borderRadius: 6,
-                gap: 6,
-                border: 'none',
-                cursor: 'pointer',
-                marginTop: 12,
-              }}
-            >
-              <Search style={{ width: 13, height: 13 }} />
-              Rechercher une JP
-            </button>
+            <>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#a8a29e', marginTop: 6, textAlign: 'center', maxWidth: 320, lineHeight: '16px' }}>
+                L'agent privilégie vos <strong style={{ color: '#78716c', fontWeight: 500 }}>JP de référence</strong> puis cherche dans Plato JP en fonction du contexte du dossier.
+              </p>
+              <button
+                onClick={onSearchJP}
+                className="inline-flex items-center justify-center transition-colors hover:opacity-90"
+                style={{
+                  backgroundColor: '#292524',
+                  color: 'white',
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  height: 30,
+                  paddingLeft: 12,
+                  paddingRight: 12,
+                  borderRadius: 6,
+                  gap: 6,
+                  border: 'none',
+                  cursor: 'pointer',
+                  marginTop: 10,
+                }}
+              >
+                <Search style={{ width: 13, height: 13 }} />
+                Rechercher une JP
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -104,6 +120,7 @@ export default function JPListing({
           const isSelected = d.id === selectedDecisionId;
           const amt = getPrimaryAmount(d);
           const pIds = posteIdsByDecision[d.id] || [];
+          const extraStyle = getRowStyle ? (getRowStyle(d) || {}) : {};
           return (
             <div
               key={d.id}
@@ -114,6 +131,7 @@ export default function JPListing({
                   ? '0 0 0 1px #b9703f, 0 1px 4px rgba(185,112,63,0.08)'
                   : '0 1px 2px rgba(41,37,36,0.05)',
                 transition: 'box-shadow 0.15s ease',
+                ...extraStyle,
               }}
               onMouseOver={(e) => { if (!isSelected) e.currentTarget.style.boxShadow = '0 2px 6px rgba(41,37,36,0.07)'; }}
               onMouseOut={(e) => { if (!isSelected) e.currentTarget.style.boxShadow = '0 1px 2px rgba(41,37,36,0.05)'; }}
@@ -124,9 +142,11 @@ export default function JPListing({
                   <span style={{ fontSize: 14, color: '#292524', fontWeight: 500 }}>
                     {d.jurisdiction}{d.chambre ? ` · ${d.chambre}` : ''}
                   </span>
-                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#c8c5c0', textTransform: 'uppercase' }}>
-                    {formatDateShort(d.date)}
-                  </span>
+                  {d.date && /^\d{4}-\d{2}-\d{2}/.test(d.date) && (
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#c8c5c0', textTransform: 'uppercase' }}>
+                      {formatDateShort(d.date)}
+                    </span>
+                  )}
                   {pIds.length > 0 && pIds.slice(0, 3).map(pid => (
                     <span key={pid} className="badge badge-sm badge-secondary" title={POSTE_LABEL_MAP[pid] || pid}>
                       {pid.toUpperCase()}
@@ -137,49 +157,33 @@ export default function JPListing({
                   )}
                   {getAttachmentSummary && (() => {
                     const summary = getAttachmentSummary(d.id) || {};
-                    return (
-                      <>
-                        {summary.user && (
-                          <span
-                            className="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium"
-                            style={{ backgroundColor: '#fdf3ec', color: '#b9703f' }}
-                            title="Présent dans mes usuels"
-                          >
-                            Mes usuels
-                          </span>
-                        )}
-                        {summary.workspace && (
-                          <span
-                            className="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium"
-                            style={{ backgroundColor: '#f3eefb', color: '#7c3aed' }}
-                            title="Présent dans le Cabinet"
-                          >
-                            Cabinet
-                          </span>
-                        )}
-                        {summary.matterCount > 1 && (
-                          <span
-                            className="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium"
-                            style={{ backgroundColor: '#f5f5f4', color: '#57534e' }}
-                            title={`${summary.matterCount} matières`}
-                          >
-                            {summary.matterCount} matières
-                          </span>
-                        )}
-                      </>
-                    );
+                    return summary.matterCount > 1 ? (
+                      <span
+                        className="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium"
+                        style={{ backgroundColor: '#f5f5f4', color: '#57534e' }}
+                        title={`${summary.matterCount} matières`}
+                      >
+                        {summary.matterCount} matières
+                      </span>
+                    ) : null;
                   })()}
                 </div>
                 <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', marginTop: 1 }}>
                   {d.category}{d.victimProfile ? ` · ${d.victimProfile}` : ''}
                 </div>
               </div>
-              {amt && (
-                <span className="badge badge-sm badge-secondary flex-shrink-0" title={POSTE_LABEL_MAP[amt.poste] || amt.poste}>
-                  {amt.poste} : <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: '#b9703f' }}>{amt.displayValue}</span>
-                </span>
+              {renderRowAccessory ? (
+                renderRowAccessory(d)
+              ) : (
+                <>
+                  {amt && (
+                    <span className="badge badge-sm badge-secondary flex-shrink-0" title={POSTE_LABEL_MAP[amt.poste] || amt.poste}>
+                      {amt.poste} : <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: '#b9703f' }}>{amt.displayValue}</span>
+                    </span>
+                  )}
+                  <ChevronRight className="w-3 h-3 text-[#d6d3d1] group-hover:text-[#a8a29e] flex-shrink-0 transition-colors" />
+                </>
               )}
-              <ChevronRight className="w-3 h-3 text-[#d6d3d1] group-hover:text-[#a8a29e] flex-shrink-0 transition-colors" />
             </div>
           );
         })}
