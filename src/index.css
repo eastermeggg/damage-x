@@ -101,6 +101,12 @@ body {
 }
 .animate-slide-in-right { animation: slideInRight 0.25s ease-out forwards; }
 
+/* Inline canvas page — subtle slide from right */
+@keyframes slideInRightSubtle {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 /* Drop First — teal flash on row completion */
 @keyframes tealFlash {
   0% { background-color: rgba(20, 184, 166, 0.15); }

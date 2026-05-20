@@ -1,7 +1,8 @@
 export { default as JPPill } from './JPPill';
-export { default as JPPopoverCard } from './JPPopoverCard';
 export { default as DecisionDrawer } from './DecisionDrawer';
-export { default as JPListing } from './JPListing';
+export { default as JPRow } from './JPRow';
+export { default as JPListingChat } from './JPListingChat';
+export { default as JPListingPosteDetail } from './JPListingPosteDetail';
 export { default as JPAddStepper } from './JPAddStepper';
 export { default as SlashCommandPalette } from './SlashCommandPalette';
 export { default as JPSearchView } from './JPSearchView';

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, PencilLine, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, UserRound, Users, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowRight, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, CircleArrowDown, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp, Focus, LogOut, CreditCard, SlidersHorizontal, Wand2, BookOpen, Globe, Crown, AlignLeft, ScanLine } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, PencilLine, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, UserRound, Users, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowRight, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, CircleArrowDown, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp, Focus, LogOut, CreditCard, SlidersHorizontal, Wand2, BookOpen, Globe, Crown, AlignLeft, ScanLine, Star, Bookmark, Home } from 'lucide-react';
 import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { JPPill, JPPopoverCard, DecisionDrawer, JPListing, JPAddStepper, SlashCommandPalette, JPSearchView, FicheCabinetModal } from './components/jp';
+import { JPPill, DecisionDrawer, JPRow, JPListingChat, JPListingPosteDetail, JPAddStepper, SlashCommandPalette, JPSearchView, FicheCabinetModal } from './components/jp';
 import useDemoCommands from './hooks/useDemoCommands';
 import mockDecisionsAll, { getDecisionById, formatDateShort } from './data/mockDecisions';
 import { parseJPReferences, customFirmIdFor } from './utils/parseJPReferences';
@@ -41,20 +41,9 @@ Toujours inclure un calcul détaillé en annexe pour les postes patrimoniaux (PG
 — Pièges à éviter
 Ne jamais oublier les intérêts au taux légal majoré. Bien distinguer les intérêts moratoires des intérêts compensatoires. Ne pas confondre PGPA et PGPF dans les jeunes victimes (capitalisation différente).`;
 
-const PREFERENCE_JP_BLOCK = `— Jurisprudences de référence
-Décisions à consulter et citer systématiquement dès qu'elles sont pertinentes pour le dossier :
-• Cass. 2e civ., 12 mai 2023, n° 22-15.642 — capitalisation viagère, table 2022
-• Cass. 2e civ., 9 février 2023, n° 21-23.985 — frais de logement adapté
-• CA Paris, 4e ch., 22 mars 2024, n° 23/01234 — ATPT 27 €/h, victime senior
-• CA Rennes, 5e ch., 10 janvier 2024, n° 22/10011 — ATPT 28 €/h Île-de-France
-• CA Aix-en-Provence, 1re ch. C, 18 janvier 2024, n° 22/04881 — DFP majoré jeune actif
-• Crim., 14 décembre 2021, n° 20-86.302 — préjudice d'angoisse de mort imminente
-`;
-
-const PROMPT_EMPTY = '';
-const PROMPT_FILLED = PREFERENCE_BODY_NO_JP;
-const PROMPT_FILLED_WITH_JP = `${PREFERENCE_JP_BLOCK}\n${PREFERENCE_BODY_NO_JP}`;
-const DEFAULT_PREFERENCE_PROMPT = PROMPT_FILLED_WITH_JP;
+// JP séparée scenario: textarea holds the methodology only (no JP block).
+// JPs are managed in the structured "JP de référence" section.
+const DEFAULT_PREFERENCE_PROMPT = PREFERENCE_BODY_NO_JP;
 
 const POSTES_TAXONOMY = [
   {
@@ -1000,6 +989,7 @@ const UI_KIT_SUBSECTION_SLUGS = [
   'chat-messages',
   'artifact-cards',
   'bareme-components',
+  'jp',
 ];
 
 function pathToPage(pathname) {
@@ -1079,7 +1069,6 @@ export default function App() {
   const [preferenceLearnFromChats, setPreferenceLearnFromChats] = useState(false);
   const [ficheCabinetModalRef, setFicheCabinetModalRef] = useState(null); // { ref, customJP } | null
   const [cabinetJPSearch, setCabinetJPSearch] = useState('');
-  const [prefLayout, setPrefLayout] = useState('freetext'); // 'freetext' | 'separate'
   const preferenceFileInputRef = useRef(null);
 
   // ========== LISTE DES DOSSIERS ==========
@@ -2615,7 +2604,10 @@ export default function App() {
     );
   };
 
-  const tabsConfig = { dossier: ['Dossier', 'Chiffrage', 'Pièces', 'Actes', 'JP'], poste: [] };
+  const tabsConfig = { dossier: ['Dossier', 'Chiffrage', 'Pièces', 'Actes', 'Jurisprudence'], poste: [] };
+  // Display label → internal tab key. "Jurisprudence" keeps its short 'jp' key so
+  // existing currentLevel.activeTab === 'jp' checks throughout the file stay valid.
+  const tabLabelToKey = (label) => (label === 'Jurisprudence' ? 'jp' : label.toLowerCase());
   const currentTabs = currentLevel ? (tabsConfig[currentLevel.type] || []) : [];
   const _getSiblings = () => currentLevel?.type === 'poste' ? allPostes.filter(p => p.id !== currentLevel.id && !p.disabled) : []; // eslint-disable-line no-unused-vars
 
@@ -2631,7 +2623,7 @@ export default function App() {
     setNavStack(prev => {
       if (prev.length === 0) return prev;
       const base = prev.length > 1 ? [prev[0]] : [...prev];
-      base[base.length - 1] = { ...base[base.length - 1], activeTab: tab.toLowerCase() };
+      base[base.length - 1] = { ...base[base.length - 1], activeTab: tabLabelToKey(tab) };
       return base;
     });
   };
@@ -3585,9 +3577,57 @@ export default function App() {
     }
   };
 
+  // ========== JP RATIONALE — chat-flow capture ==========
+  // When a JP is saved (workspace / matter / poste), push:
+  //   1. user bubble — "Sauvegarde cette JP pour {scope}"
+  //   2. agent prompt — "Pourquoi avoir sauvegardé {dec} pour {scope} ?"
+  // Then set `pendingRationale` so the next user-typed chat message is captured
+  // as the rationale (saved on matching attachments), instead of being sent.
+  const initiateRationaleCapture = ({ decisionId, targets, scopeLabel, userText }) => {
+    const promptId = `rp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setChatMessages(prev => [
+      ...prev,
+      { type: 'user', text: userText },
+      { type: 'ai-rationale-prompt', promptId, decisionId, targets, scopeLabel },
+    ]);
+    setPendingRationale({ promptId, decisionId, targets, scopeLabel });
+  };
+
   // ========== CHAT SEND — handles user messages + intent detection ==========
   const handleChatSend = () => {
     const text = chatInputValue.trim();
+
+    // Rationale capture: if there's a pending rationale prompt and the user typed
+    // plain text (not a slash command), persist it on the matching attachment(s),
+    // show user bubble + agent confirmation, and clear the pending state.
+    if (pendingRationale && text && !text.startsWith('/')) {
+      const { decisionId, targets, promptId } = pendingRationale;
+      const atts = jp.getAttachmentsForJP(decisionId);
+      const matching = atts.filter(a =>
+        (targets || []).some(t =>
+          a.scope === t.scope &&
+          a.scopeTargetId === t.scopeTargetId &&
+          (a.lineItem || null) === (t.lineItem || null)
+        )
+      );
+      matching.forEach(a => jp.setRationale(a.id, text));
+      setChatInputValue('');
+      setChatMessages(prev => {
+        // Stamp the originating prompt as answered so the renderer shows the saved note inline.
+        const stamped = prev.map(m =>
+          m.type === 'ai-rationale-prompt' && m.promptId === promptId
+            ? { ...m, answered: true, answer: text }
+            : m
+        );
+        return [
+          ...stamped,
+          { type: 'user', text },
+          { type: 'ai', text: 'Note enregistrée. Tu la retrouveras sur la fiche de la décision et sur sa carte dans le poste.' },
+        ];
+      });
+      setPendingRationale(null);
+      return;
+    }
     if (!text && stagedDocs.length === 0) return;
 
     // Slash command detection — TP commands first, then demo scenarios
@@ -4151,8 +4191,12 @@ export default function App() {
       <div className="w-full h-14 bg-white border-b border-stone-200/60 flex items-center justify-between px-4 flex-shrink-0 relative">
         {/* Left: Home + victim name + status */}
         <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
-          <button onClick={backToList} title="Retour à la liste des dossiers" className="w-8 h-8 flex items-center justify-center bg-[#eeece6] rounded-[6px] hover:bg-[#e7e5e3] transition-colors flex-shrink-0">
-            <ChevronLeft className="w-4 h-4 text-[#44403c]" strokeWidth={1.75} />
+          <button
+            onClick={() => { if (jp.jpState.drawerDecisionId) jp.closeDrawer(); backToList(); }}
+            title="Retour à la liste des dossiers"
+            className="w-8 h-8 flex items-center justify-center bg-[#eeece6] rounded-[6px] hover:bg-[#e7e5e3] transition-colors flex-shrink-0"
+          >
+            <Home className="w-4 h-4 text-[#44403c]" strokeWidth={1.75} />
           </button>
           <span className="truncate" style={{ fontFamily: "'RL Para Trial Central', Georgia, serif", fontSize: '16px', fontWeight: 500, color: '#292524', letterSpacing: '-0.3px' }}>
             {victimeData.prenom} {victimeData.nom}
@@ -4162,12 +4206,14 @@ export default function App() {
           </span>
         </div>
 
-        {/* Center: Tabs — absolutely centered so they never shift */}
-        <div className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 flex items-center pointer-events-none">
-          <div className="pointer-events-auto flex gap-1">
-          <div className="flex gap-1">
+        {/* Center: Tabs — absolutely centered so they never shift.
+            items-stretch + h-full on the tab buttons puts the active underline
+            flush with the bar's bottom border (no gap below the tabs). */}
+        <div className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 flex items-stretch pointer-events-none">
+          <div className="pointer-events-auto flex gap-1 h-full">
+          <div className="flex gap-1 h-full">
             {dossierTabs.map(tab => {
-              const tabKey = tab.toLowerCase();
+              const tabKey = tabLabelToKey(tab);
               const isActive = currentLevel?.type === 'dossier'
                 ? currentLevel.activeTab === tabKey
                 : navStack[0]?.activeTab === tabKey;
@@ -4192,6 +4238,9 @@ export default function App() {
                 <button
                   key={tab}
                   onClick={() => {
+                    // Tab nav while the JP page is open → close the drawer first
+                    // so the click lands on the new tab, not on the inline JP view.
+                    if (jp.jpState.drawerDecisionId) jp.closeDrawer();
                     if (currentLevel?.type === 'poste') {
                       navigateToStackLevel(0);
                       setTimeout(() => setActiveTab(tab), 0);
@@ -4199,7 +4248,7 @@ export default function App() {
                       setActiveTab(tab);
                     }
                   }}
-                  className={`px-4 py-3 text-body-medium relative transition-colors ${isActive ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}`}
+                  className={`px-4 h-full flex items-center text-body-medium relative transition-colors ${isActive ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}`}
                 >
                   <span className="flex items-center gap-1.5">
                     {showDiffDiamond && (
@@ -4258,34 +4307,27 @@ export default function App() {
               </div>
             )}
           </div>
-          {!isClosed && (
+          {/* Re-open Plato button — only shown when chat is collapsed.
+              The collapse-chat affordance lives inside the chat sidebar header,
+              next to PLATO MASTER (see renderChatSidebar). */}
+          {!isClosed && !chatSidebarOpen && (
             <>
               <div className="w-px h-5 bg-[#e7e5e3]" />
-              {chatSidebarOpen ? (
-                <button
-                  onClick={() => setChatSidebarOpen(false)}
-                  className="p-1.5 hover:bg-stone-100 rounded-lg transition-colors"
-                  title="Masquer le chat"
-                >
-                  <PanelRightClose className="w-5 h-5 text-stone-500" strokeWidth={1.5} />
-                </button>
-              ) : (
-                <button
-                  onClick={() => setChatSidebarOpen(true)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all hover:shadow-md"
-                  title="Ouvrir Plato Assistant"
-                  style={{
-                    border: '1px solid #aabcd5',
-                    boxShadow: '0px 1px 2px 0px rgba(0,0,0,0.05)',
-                    backgroundImage: `url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 36' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'><rect x='0' y='0' height='100%25' width='100%25' fill='url(%23grad)' opacity='0.2'/><defs><radialGradient id='grad' gradientUnits='userSpaceOnUse' cx='0' cy='0' r='10' gradientTransform='matrix(0 -3.29 7.6 -0.48 100 18)'><stop stop-color='rgba(185,112,63,1)' offset='0'/><stop stop-color='rgba(203,148,111,0.75)' offset='0.25'/><stop stop-color='rgba(220,183,159,0.5)' offset='0.5'/><stop stop-color='rgba(255,255,255,0)' offset='1'/></radialGradient></defs></svg>"), linear-gradient(90deg, #f8f7f5 0%, #f8f7f5 100%)`,
-                  }}
-                >
-                  <PlatoIcon size={16} />
-                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '12px', color: '#50443e', whiteSpace: 'nowrap' }}>
-                    PLATO ASSISTANT
-                  </span>
-                </button>
-              )}
+              <button
+                onClick={() => setChatSidebarOpen(true)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all hover:shadow-md"
+                title="Ouvrir Plato Assistant"
+                style={{
+                  border: '1px solid #aabcd5',
+                  boxShadow: '0px 1px 2px 0px rgba(0,0,0,0.05)',
+                  backgroundImage: `url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 36' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'><rect x='0' y='0' height='100%25' width='100%25' fill='url(%23grad)' opacity='0.2'/><defs><radialGradient id='grad' gradientUnits='userSpaceOnUse' cx='0' cy='0' r='10' gradientTransform='matrix(0 -3.29 7.6 -0.48 100 18)'><stop stop-color='rgba(185,112,63,1)' offset='0'/><stop stop-color='rgba(203,148,111,0.75)' offset='0.25'/><stop stop-color='rgba(220,183,159,0.5)' offset='0.5'/><stop stop-color='rgba(255,255,255,0)' offset='1'/></radialGradient></defs></svg>"), linear-gradient(90deg, #f8f7f5 0%, #f8f7f5 100%)`,
+                }}
+              >
+                <PlatoIcon size={16} />
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '12px', color: '#50443e', whiteSpace: 'nowrap' }}>
+                  PLATO ASSISTANT
+                </span>
+              </button>
             </>
           )}
         </div>
@@ -4329,6 +4371,11 @@ export default function App() {
   const [chatInputValue, setChatInputValue] = useState('');
   const [chatInputFocused, setChatInputFocused] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
+  // Pending JP-rationale capture: when set, the next user-typed text message is
+  // saved as the rationale on the matching attachment(s) instead of being sent
+  // as a normal chat message. Cleared after capture or dismiss.
+  // Shape: { decisionId, targets: [{ scope, scopeTargetId, lineItem }], scopeLabel }
+  const [pendingRationale, setPendingRationale] = useState(null);
   const [expandedArtifacts, setExpandedArtifacts] = useState({});
   const [stagedDocs, setStagedDocs] = useState([]);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
@@ -4381,8 +4428,7 @@ export default function App() {
   }, [dossierMenuOpen]);
 
   // ========== JP STATE ==========
-  const jp = useDemoCommands({ setChatMessages, setNavStack, tabsConfig: { dossier: ['Dossier', 'Chiffrage', 'Pièces', 'Actes', 'JP'], poste: [] } });
-  const [jpPopover, setJpPopover] = useState(null); // { decision, anchorRect }
+  const jp = useDemoCommands({ setChatMessages, setNavStack, tabsConfig: { dossier: ['Dossier', 'Chiffrage', 'Pièces', 'Actes', 'Jurisprudence'], poste: [] } });
 
   // Sync firm-fiche customJPs with the preferences textarea: when a line is
   // removed from the text, the corresponding fiche cabinet record is wiped.
@@ -4420,8 +4466,6 @@ export default function App() {
   }
   const [newActeForm, setNewActeForm] = useState({ templateId: '', instructions: '', templateSearch: '' });
 
-  const jpPopoverTimeout = useRef(null);
-
   // Auto-scroll chat only when new messages are added
   useEffect(() => {
     if (chatMessages.length > prevChatCountRef.current && chatScrollRef.current) {
@@ -4446,8 +4490,15 @@ export default function App() {
           <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-stone-300/30 transition-colors" />
         </div>
         <div className="flex-shrink-0 flex flex-col h-full" style={{ width: chatWidth, backgroundColor: '#F8F7F5' }}>
-          {/* Header — Badge */}
-          <div className="px-4 h-12 border-b flex items-center gap-2.5 flex-shrink-0" style={{ borderColor: '#e7e5e3' }}>
+          {/* Header — collapse · Plato logo · PLATO MASTER */}
+          <div className="px-3 h-12 border-b flex items-center gap-2 flex-shrink-0" style={{ borderColor: '#e7e5e3' }}>
+            <button
+              onClick={() => setChatSidebarOpen(false)}
+              className="p-1.5 hover:bg-stone-100 rounded-md transition-colors flex-shrink-0"
+              title="Masquer le chat"
+            >
+              <PanelRightClose className="w-4 h-4 text-stone-500" strokeWidth={1.75} />
+            </button>
             <PlatoIcon />
             <span className="flex-1" style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '12px', color: '#78716c', lineHeight: '32px' }}>
               PLATO MASTER
@@ -4608,44 +4659,89 @@ export default function App() {
               }
 
 
-              // AI JP message — text with inline pill tokens
-              if (msg.type === 'ai-jp') {
-                const parts = msg.text.split(/(\{pill:[^}]+\})/g);
-                return (
-                  <div key={i} className="flex flex-col gap-3 items-start pb-4" style={{ paddingRight: 20 }}>
-                    <div style={{ fontSize: 14, lineHeight: '24px', color: '#292524', margin: 0 }}>
-                      {parts.map((part, pi) => {
-                        const match = part.match(/^\{pill:(.+)\}$/);
-                        if (match) {
-                          const dec = getDecisionById(match[1]);
-                          if (!dec) return null;
-                          return (
-                            <JPPill
-                              key={pi}
-                              decision={dec}
-                              saved={jp.isDecisionPinned(dec.id)}
-                              isSelected={jp.jpState.drawerDecisionId === dec.id}
-                              onClick={(d) => {
-                                const rect = document.querySelector(`[data-pill-id="${d.id}"]`)?.getBoundingClientRect();
-                                if (rect) setJpPopover({ decision: d, anchorRect: rect, resultSet: msg.pills || [] });
-                              }}
-                              onMouseEnter={(e, d) => {
-                                const rect = e.currentTarget.getBoundingClientRect();
-                                clearTimeout(jpPopoverTimeout.current);
-                                jpPopoverTimeout.current = setTimeout(() => {
-                                  setJpPopover({ decision: d, anchorRect: rect, resultSet: msg.pills || [] });
-                                }, 300);
-                              }}
-                              onMouseLeave={() => {
-                                clearTimeout(jpPopoverTimeout.current);
-                                jpPopoverTimeout.current = setTimeout(() => setJpPopover(null), 400);
-                              }}
-                            />
-                          );
-                        }
-                        return <span key={pi}>{part}</span>;
+              // AI JP cards message — line-aware renderer supporting:
+              //   • {{jp:id}}   → inline JPPill
+              //   • **bold**    → emphasis
+              //   • blank line  → paragraph spacer
+              // If no {{jp:id}} tokens, fallback: render text + a wrap of pills below.
+              if (msg.type === 'ai-jp-cards') {
+                const ids = msg.decisionIds || [];
+                const text = msg.text || '';
+                const hasTokens = /\{\{jp:[^}]+\}\}/.test(text);
+                // Token syntax: {{jp:id}} (default sm) or {{jp:id:variant}}.
+                // Allowed variants: ref · xs · sm · quantum.
+                const pillProps = (dec, variant = 'sm') => ({
+                  decision: dec,
+                  variant,
+                  saved: jp.isDecisionPinned(dec.id) || jp.getAttachmentsForJP(dec.id).some(a => a.scope === 'workspace'),
+                  isSelected: dec.id === jp.jpState.drawerDecisionId,
+                  onClick: (d) => jp.openDrawer(d.id, ids, { highlightPosteIds: msg.highlightPosteIds }),
+                });
+                let inlineContent = null;
+                if (hasTokens) {
+                  const lines = text.split('\n');
+                  // Track which numbered citation we're rendering so we can place
+                  // a divider above 2., 3., … but not above 1. or the intro.
+                  let citationCount = 0;
+                  inlineContent = (
+                    <div style={{ fontSize: 14, lineHeight: '22px', color: '#292524' }}>
+                      {lines.map((line, li) => {
+                        const trimmed = line.trim();
+                        if (!trimmed) return <div key={`br-${li}`} style={{ height: 8 }} />;
+                        // Numbered citation header: `**N.** ... {{jp:id:ref}} — title`
+                        const isCitationHeader = /^\*\*\d+\.\*\*/.test(trimmed) && /\{\{jp:/.test(trimmed);
+                        if (isCitationHeader) citationCount += 1;
+                        const showDividerAbove = isCitationHeader && citationCount > 1;
+                        const parts = line.split(/(\*\*[^*]+\*\*|\{\{jp:[^}]+\}\})/g);
+                        return (
+                          <React.Fragment key={`ln-${li}`}>
+                            {showDividerAbove && (
+                              <div style={{ height: 1, backgroundColor: '#e7e5e3', margin: '12px 0' }} />
+                            )}
+                            <div style={{
+                              marginTop: li > 0 && !showDividerAbove ? 2 : 0,
+                              // Citation header → medium weight so the whole title line
+                              // reads as a unit (jurisdiction · date · n° · case title).
+                              fontWeight: isCitationHeader ? 500 : undefined,
+                              color: isCitationHeader ? '#292524' : undefined,
+                            }}>
+                              {parts.map((part, pi) => {
+                                const jpMatch = part.match(/^\{\{jp:([^}:]+)(?::([a-z]+))?\}\}$/);
+                                if (jpMatch) {
+                                  const dec = getDecisionById(jpMatch[1]);
+                                  if (!dec) return null;
+                                  const tokenVariant = jpMatch[2] || 'sm';
+                                  return <JPPill key={`p-${li}-${pi}`} {...pillProps(dec, tokenVariant)} />;
+                                }
+                                if (part.startsWith('**') && part.endsWith('**')) {
+                                  return <strong key={`b-${li}-${pi}`} style={{ fontWeight: 600, color: '#292524' }}>{part.slice(2, -2)}</strong>;
+                                }
+                                return <React.Fragment key={`t-${li}-${pi}`}>{part}</React.Fragment>;
+                              })}
+                            </div>
+                          </React.Fragment>
+                        );
                       })}
                     </div>
+                  );
+                } else {
+                  const decisionsForPills = ids.map((id) => getDecisionById(id)).filter(Boolean);
+                  inlineContent = (
+                    <>
+                      {text && (
+                        <div style={{ fontSize: 14, lineHeight: '24px', color: '#292524', margin: 0 }}>{text}</div>
+                      )}
+                      <div className="flex flex-wrap gap-1.5" style={{ width: '100%', maxWidth: 560 }}>
+                        {decisionsForPills.map((dec) => (
+                          <JPPill key={dec.id} {...pillProps(dec)} />
+                        ))}
+                      </div>
+                    </>
+                  );
+                }
+                return (
+                  <div key={i} className="flex flex-col gap-3 items-start pb-4" style={{ paddingRight: 20, width: '100%' }}>
+                    {inlineContent}
                     {/* Action icons */}
                     <div className="flex items-center gap-2.5">
                       <button className="p-0 bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100 transition-opacity">
@@ -4661,6 +4757,40 @@ export default function App() {
                         <RotateCcw className="w-3.5 h-3.5 text-[#78716c]" />
                       </button>
                     </div>
+                  </div>
+                );
+              }
+
+              // Post-save rationale prompt — text-only. User answers in the main
+              // chat input bar; handleChatSend intercepts the next text message and
+              // saves it as rationale on the matching attachment(s). "Pas maintenant"
+              // clears the pending capture without saving.
+              if (msg.type === 'ai-rationale-prompt') {
+                const answered = !!msg.answered;
+                const dismissed = !!msg.dismissed;
+                const dec = getDecisionById(msg.decisionId);
+                // Active = this prompt is still the pending capture target.
+                const isActive = !answered && !dismissed && pendingRationale && pendingRationale.promptId === msg.promptId;
+                return (
+                  <div key={i} className="flex flex-col gap-2 items-start pb-4" style={{ paddingRight: 20, width: '100%' }}>
+                    <div style={{ fontSize: 14, lineHeight: '22px', color: '#292524' }}>
+                      J'ai bien pris en compte ta sauvegarde. Pourquoi avoir sauvegardé{dec ? <> <strong style={{ fontWeight: 500 }}>{dec.jurisdiction}{dec.numero ? ` · ${dec.numero}` : ''}</strong></> : ' cette décision'} {msg.scopeLabel ? <>pour <strong style={{ fontWeight: 500 }}>{msg.scopeLabel}</strong></> : ''} ?
+                      <span style={{ color: '#78716c', marginLeft: 6, fontSize: 13 }}>Cette note t'aidera lors de la rédaction.</span>
+                    </div>
+                    {answered ? (
+                      <div className="w-full" style={{ maxWidth: 560, borderLeft: '2px solid #ac9e8b', paddingLeft: 12, paddingTop: 4, paddingBottom: 4 }}>
+                        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
+                          NOTE DE PERTINENCE
+                        </div>
+                        <p style={{ fontSize: 12, lineHeight: '18px', color: '#44403c', margin: 0 }}>{msg.answer}</p>
+                      </div>
+                    ) : dismissed ? (
+                      <div style={{ fontSize: 12, color: '#a8a29e' }}>Tu pourras l'ajouter plus tard depuis la fiche de la décision.</div>
+                    ) : isActive ? (
+                      <span style={{ fontSize: 12, color: '#78716c', fontStyle: 'italic' }}>
+                        Réponds ci-dessous dans le chat pour enregistrer la note.
+                      </span>
+                    ) : null}
                   </div>
                 );
               }
@@ -9778,53 +9908,104 @@ export default function App() {
         );
       }
 
-      // JP tab — search + saved decisions
+      // JP tab — flat list of all JPs saved on this matter.
+      // Cards drop the quantum and show poste-acronym chips when the JP is
+      // attached to one or more postes (Figma 36758:48508).
       if (currentLevel.activeTab === 'jp') {
-        // Cabinet items = workspace-scope attachments (canonical + custom fiche)
-        const cabinetSeen = new Set();
-        const cabinetItems = [];
-        jp.getJPsByScope('workspace', jp.DEFAULT_WORKSPACE_ID).forEach(a => {
-          if (cabinetSeen.has(a.decisionId)) return;
-          cabinetSeen.add(a.decisionId);
-          const d = jp.getJPById(a.decisionId);
-          if (!d) return;
-          const isCustom = !!d.source;
-          cabinetItems.push({
-            ...d,
-            _status: isCustom ? 'ficheCabinet' : 'canonical',
-            category: isCustom ? (d.impact || d.reference) : d.category,
-          });
+        const matterAtts = jp.getJPsByScope('matter', jp.DEFAULT_MATTER_ID);
+        const seen = new Set();
+        const decisionIds = [];
+        matterAtts.forEach(a => {
+          if (!seen.has(a.decisionId)) {
+            seen.add(a.decisionId);
+            decisionIds.push(a.decisionId);
+          }
         });
-
+        const decisions = decisionIds.map(id => jp.getJPById(id)).filter(Boolean);
+        const isFavorited = (id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'workspace');
+        // Acronyms of all postes this JP is attached to on this matter (may be empty).
+        const posteChipsFor = (id) => {
+          const acros = jp.getAttachmentsForJP(id)
+            .filter(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem)
+            .map(a => jpPosteOptions.find(p => p.id === a.lineItem)?.acronym || a.lineItem.toUpperCase());
+          return acros.length > 0 ? Array.from(new Set(acros)) : null;
+        };
+        // Rationale: prefer the matter-transverse attachment's note; fall back to
+        // any per-poste note if no transverse one exists.
+        const rationaleFor = (id) => {
+          const atts = jp.getAttachmentsForJP(id).filter(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID);
+          return atts.find(a => !a.lineItem)?.rationale || atts.find(a => a.rationale)?.rationale || null;
+        };
+        const launchJPSearch = () => fireCanvasPrompt(
+          "Je veux chercher une jurisprudence pour ce dossier — privilégie mes JP de référence du cabinet si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier.",
+          { scenarioKey: 'canvas-jp-generic' }
+        );
+        // When empty, skip the header entirely — let the EmptyState own the screen.
+        if (decisions.length === 0) {
+          return (
+            <div className="flex-1 overflow-y-auto" style={{ backgroundColor: '#F8F7F5' }}>
+              <div className="flex items-center justify-center" style={{ minHeight: '100%', padding: '64px 16px' }}>
+                <EmptyState
+                  icon={Landmark}
+                  title="Aucune jurisprudence sur ce dossier"
+                  description="Lancez une recherche, ou demandez à l'agent dans le chat. Les JP sauvegardées s'ajouteront ici."
+                  primaryAction={{ label: 'Rechercher une JP', icon: Search, onClick: launchJPSearch }}
+                />
+              </div>
+            </div>
+          );
+        }
         return (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <JPSearchView
-              pinnedJP={jp.jpState.pinnedJP}
-              selectedDecisionId={jp.jpState.drawerDecisionId}
-              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onSaveToDossier={(id) => jp.pinDecision(id)}
-              onTogglePoste={(id, posteId) => {
-                jp.pinDecision(id);
-                jp.togglePoste(id, posteId);
-                // Auto-save to cabinet (org level) when first attaching to a poste
-                const alreadyInCabinet = jp.getJPsByScope('workspace', jp.DEFAULT_WORKSPACE_ID).some(a => a.decisionId === id);
-                if (!alreadyInCabinet) {
-                  jp.addAttachment(id, 'workspace', jp.DEFAULT_WORKSPACE_ID);
-                }
-              }}
-              onUnpin={(id) => jp.unpinDecision(id)}
-              onAddClick={() => setFicheCabinetModalRef({
-                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
-                customJP: null,
-                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
-              })}
-              posteOptions={jpPosteOptions}
-              cabinetItems={cabinetItems}
-              onCabinetItemClick={(d) => {
-                if (d._status === 'orphan') return; // orphans must be completed in settings
-                jp.openDrawer(d.id, [d.id]);
-              }}
-            />
+          <div className="flex-1 overflow-y-auto" style={{ backgroundColor: '#F8F7F5' }}>
+            {/* Header band (Figma 36770:53805) — flush, side-to-side, on the cream canvas */}
+            <div
+              className="border-b border-[#e7e5e3] flex items-center gap-3"
+              style={{ padding: '13px 16px' }}
+            >
+              <h2 className="flex-1 min-w-0" style={{
+                fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
+                fontSize: 18, fontWeight: 500, color: '#292524',
+                letterSpacing: '-0.5px', lineHeight: '20px', margin: 0,
+              }}>
+                Jurisprudence retenues
+              </h2>
+              <button
+                onClick={launchJPSearch}
+                className="inline-flex items-center justify-center transition-all hover:opacity-90 flex-shrink-0"
+                style={{
+                  height: 32, padding: '0 12px', borderRadius: 6,
+                  backgroundColor: '#292524', color: 'white',
+                  border: 'none',
+                  boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)',
+                  fontFamily: "'Inter', system-ui, sans-serif",
+                  fontSize: 14, fontWeight: 500, lineHeight: '20px',
+                }}
+              >
+                Rechercher
+              </button>
+            </div>
+            {/* List body — keeps its readable max width */}
+            <div className="px-8 pt-6 pb-8">
+              <div className="max-w-3xl mx-auto space-y-2">
+                {decisions.map((d) => {
+                  const chips = posteChipsFor(d.id);
+                  return (
+                    <JPRow
+                      key={d.id}
+                      asCard
+                      decision={d}
+                      isSelected={d.id === jp.jpState.drawerDecisionId}
+                      favorited={isFavorited(d.id)}
+                      bookmarked={!!chips}
+                      posteChips={chips}
+                      showAmount={false}
+                      rationale={rationaleFor(d.id)}
+                      onClick={() => jp.openDrawer(d.id, decisionIds, { autoOpenSavePopover: true })}
+                    />
+                  );
+                })}
+              </div>
+            </div>
           </div>
         );
       }
@@ -10084,24 +10265,29 @@ export default function App() {
 
           {/* JURISPRUDENCES Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
-            <JPListing
+            <JPListingPosteDetail
               pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
               selectedDecisionId={jp.jpState.drawerDecisionId}
-              compact={true}
-              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => setFicheCabinetModalRef({
-                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
-                customJP: null,
-                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
-              })}
-              posteLabel={currentLevel.title}
+              currentPosteId={currentLevel.id}
+              getFavorited={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'workspace')}
+              getBookmarked={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)}
+              getRationale={(id) => jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)?.rationale || null}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet, { highlightPosteIds: [currentLevel.id] })}
+              onRemove={(id) => {
+                const att = jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id);
+                if (att) {
+                  jp.removeAttachment(att.id);
+                  setToastMessage('Retirée du poste.');
+                  setTimeout(() => setToastMessage(null), 2500);
+                }
+              }}
+              removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
-              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
           {/* NOTES / ARGUMENTAIRE Section */}
-          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5', display: 'none' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
             <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
               <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
@@ -10390,24 +10576,29 @@ export default function App() {
 
           {/* JURISPRUDENCES Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
-            <JPListing
+            <JPListingPosteDetail
               pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
               selectedDecisionId={jp.jpState.drawerDecisionId}
-              compact={true}
-              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => setFicheCabinetModalRef({
-                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
-                customJP: null,
-                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
-              })}
-              posteLabel={currentLevel.title}
+              currentPosteId={currentLevel.id}
+              getFavorited={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'workspace')}
+              getBookmarked={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)}
+              getRationale={(id) => jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)?.rationale || null}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet, { highlightPosteIds: [currentLevel.id] })}
+              onRemove={(id) => {
+                const att = jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id);
+                if (att) {
+                  jp.removeAttachment(att.id);
+                  setToastMessage('Retirée du poste.');
+                  setTimeout(() => setToastMessage(null), 2500);
+                }
+              }}
+              removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
-              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
           {/* NOTES / ARGUMENTAIRE Section */}
-          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5', display: 'none' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
             <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
               <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
@@ -10700,24 +10891,29 @@ export default function App() {
 
           {/* JURISPRUDENCES Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
-            <JPListing
+            <JPListingPosteDetail
               pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
               selectedDecisionId={jp.jpState.drawerDecisionId}
-              compact={true}
-              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => setFicheCabinetModalRef({
-                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
-                customJP: null,
-                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
-              })}
-              posteLabel={currentLevel.title}
+              currentPosteId={currentLevel.id}
+              getFavorited={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'workspace')}
+              getBookmarked={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)}
+              getRationale={(id) => jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)?.rationale || null}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet, { highlightPosteIds: [currentLevel.id] })}
+              onRemove={(id) => {
+                const att = jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id);
+                if (att) {
+                  jp.removeAttachment(att.id);
+                  setToastMessage('Retirée du poste.');
+                  setTimeout(() => setToastMessage(null), 2500);
+                }
+              }}
+              removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
-              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
           {/* NOTES / ARGUMENTAIRE Section */}
-          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5', display: 'none' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
             <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
               <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
@@ -10921,24 +11117,29 @@ export default function App() {
 
           {/* JURISPRUDENCES Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
-            <JPListing
+            <JPListingPosteDetail
               pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
               selectedDecisionId={jp.jpState.drawerDecisionId}
-              compact={true}
-              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => setFicheCabinetModalRef({
-                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
-                customJP: null,
-                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
-              })}
-              posteLabel={currentLevel.title}
+              currentPosteId={currentLevel.id}
+              getFavorited={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'workspace')}
+              getBookmarked={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)}
+              getRationale={(id) => jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)?.rationale || null}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet, { highlightPosteIds: [currentLevel.id] })}
+              onRemove={(id) => {
+                const att = jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id);
+                if (att) {
+                  jp.removeAttachment(att.id);
+                  setToastMessage('Retirée du poste.');
+                  setTimeout(() => setToastMessage(null), 2500);
+                }
+              }}
+              removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
-              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
           {/* NOTES / ARGUMENTAIRE Section */}
-          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5', display: 'none' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
             <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
               <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
@@ -11057,24 +11258,29 @@ export default function App() {
 
           {/* JURISPRUDENCES Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
-            <JPListing
+            <JPListingPosteDetail
               pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
               selectedDecisionId={jp.jpState.drawerDecisionId}
-              compact={true}
-              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => setFicheCabinetModalRef({
-                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
-                customJP: null,
-                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
-              })}
-              posteLabel={currentLevel.title}
+              currentPosteId={currentLevel.id}
+              getFavorited={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'workspace')}
+              getBookmarked={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)}
+              getRationale={(id) => jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)?.rationale || null}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet, { highlightPosteIds: [currentLevel.id] })}
+              onRemove={(id) => {
+                const att = jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id);
+                if (att) {
+                  jp.removeAttachment(att.id);
+                  setToastMessage('Retirée du poste.');
+                  setTimeout(() => setToastMessage(null), 2500);
+                }
+              }}
+              removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
-              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
           {/* NOTES / ARGUMENTAIRE Section */}
-          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5', display: 'none' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
             <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
               <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
@@ -11190,24 +11396,29 @@ export default function App() {
 
           {/* JURISPRUDENCES Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
-            <JPListing
+            <JPListingPosteDetail
               pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
               selectedDecisionId={jp.jpState.drawerDecisionId}
-              compact={true}
-              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => setFicheCabinetModalRef({
-                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
-                customJP: null,
-                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
-              })}
-              posteLabel={currentLevel.title}
+              currentPosteId={currentLevel.id}
+              getFavorited={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'workspace')}
+              getBookmarked={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)}
+              getRationale={(id) => jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)?.rationale || null}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet, { highlightPosteIds: [currentLevel.id] })}
+              onRemove={(id) => {
+                const att = jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id);
+                if (att) {
+                  jp.removeAttachment(att.id);
+                  setToastMessage('Retirée du poste.');
+                  setTimeout(() => setToastMessage(null), 2500);
+                }
+              }}
+              removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
-              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
           {/* NOTES / ARGUMENTAIRE Section */}
-          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5', display: 'none' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
             <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
               <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
@@ -11352,24 +11563,29 @@ export default function App() {
 
           {/* JURISPRUDENCES Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
-            <JPListing
+            <JPListingPosteDetail
               pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
               selectedDecisionId={jp.jpState.drawerDecisionId}
-              compact={true}
-              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => setFicheCabinetModalRef({
-                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
-                customJP: null,
-                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
-              })}
-              posteLabel={currentLevel.title}
+              currentPosteId={currentLevel.id}
+              getFavorited={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'workspace')}
+              getBookmarked={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)}
+              getRationale={(id) => jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)?.rationale || null}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet, { highlightPosteIds: [currentLevel.id] })}
+              onRemove={(id) => {
+                const att = jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id);
+                if (att) {
+                  jp.removeAttachment(att.id);
+                  setToastMessage('Retirée du poste.');
+                  setTimeout(() => setToastMessage(null), 2500);
+                }
+              }}
+              removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
-              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
           {/* NOTES / ARGUMENTAIRE Section */}
-          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5', display: 'none' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
             <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
               <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
@@ -12456,7 +12672,7 @@ export default function App() {
           </div>
 
           {/* NOTES / ARGUMENTAIRE */}
-          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5', display: 'none' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
             <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
               <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
@@ -12550,24 +12766,29 @@ export default function App() {
 
           {/* JURISPRUDENCES Section */}
           <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
-            <JPListing
+            <JPListingPosteDetail
               pinnedJP={jp.getPinnedForPoste(currentLevel.id)}
               selectedDecisionId={jp.jpState.drawerDecisionId}
-              compact={true}
-              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet)}
-              onAddClick={() => setFicheCabinetModalRef({
-                ref: { numero: `manual-${Date.now()}`, raw: '', dateISO: '', court: '', chamber: '' },
-                customJP: null,
-                posteId: currentLevel?.type === 'poste' ? currentLevel.id : undefined,
-              })}
-              posteLabel={currentLevel.title}
+              currentPosteId={currentLevel.id}
+              getFavorited={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'workspace')}
+              getBookmarked={(id) => jp.getAttachmentsForJP(id).some(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)}
+              getRationale={(id) => jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id)?.rationale || null}
+              onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet, { highlightPosteIds: [currentLevel.id] })}
+              onRemove={(id) => {
+                const att = jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === currentLevel.id);
+                if (att) {
+                  jp.removeAttachment(att.id);
+                  setToastMessage('Retirée du poste.');
+                  setTimeout(() => setToastMessage(null), 2500);
+                }
+              }}
+              removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
-              getAttachmentSummary={getJPAttachmentSummary}
             />
           </div>
 
           {/* NOTES / ARGUMENTAIRE Section */}
-          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5' }}>
+          <div className="p-4 border-b border-[#e7e5e3]" style={{ backgroundColor: '#F8F7F5', display: 'none' }}>
             <div style={sectionHeaderStyle} className="mb-[17px]">NOTES / ARGUMENTAIRE</div>
             <div className="bg-white border border-[#e7e5e3] rounded-[4px] overflow-hidden">
               <div className="flex items-center gap-1 px-3 py-2 border-b border-[#e7e5e3]">
@@ -15151,6 +15372,7 @@ export default function App() {
               { label: 'Chat Messages', slug: 'chat-messages' },
               { label: 'Artifact Cards', slug: 'artifact-cards' },
               { label: 'Barème Components', slug: 'bareme-components' },
+              { label: 'JP — Jurisprudence', slug: 'jp' },
             ].map(({ label, slug }) => (
               <button
                 key={slug}
@@ -15770,6 +15992,152 @@ export default function App() {
                 <div style={{ padding: '12px', opacity: 0.5 }}>
                   <span className="text-[14px]" style={{ color: '#78716c' }}>Plato analyse vos documents...</span>
                 </div>
+              </div>
+            </div>
+
+            {/* ====== JP — JURISPRUDENCE ====== */}
+            <div id="section-jp" className={sectionClass}>
+              {sectionTitle('JP — Jurisprudence')}
+              <p style={{ fontSize: 14, color: '#78716c', marginBottom: 24, maxWidth: 720 }}>
+                Three surfaces only: <code style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>JPPill xs</code> (inline citation, <em>actes/documents only</em> for now), <code style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>JPCard</code> (mini-table in chat, separated cards in PosteDetailView, list in Mémoire et préférences) and <code style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>DecisionDrawer</code>.
+              </p>
+
+              {/* ── 1. JPPill — variant xs (actes / documents only) ─────────── */}
+              {subTitle('1. JPPill — variant xs (actes only)')}
+              <p style={{ fontSize: 13, color: '#78716c', marginBottom: 12, maxWidth: 720 }}>
+                Minimal density (jurisdiction · n° pourvoi). Reserved for inline citation inside generated actes/documents. <strong>Not used in chat anymore</strong> — chat surfaces a list of <code style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>JPCard</code>s instead.
+              </p>
+              <div style={{ maxWidth: 720, padding: 16, backgroundColor: 'white', border: '1px solid #e7e5e3', borderRadius: 8 }}>
+                <div style={{ fontSize: 14, lineHeight: '24px', color: '#292524' }}>
+                  Pour un étudiant à Paris intra-muros, le taux de 28&nbsp;€/h retenu par la{' '}
+                  {(() => {
+                    const d = getDecisionById('jp-atpt-01');
+                    return d ? (
+                      <JPPill
+                        variant="xs"
+                        decision={d}
+                        saved={jp.isDecisionPinned(d.id)}
+                        onClick={(dec) => jp.openDrawer(dec.id, ['jp-atpt-01', 'jp-atpt-02', 'jp-dfp-01'])}
+                      />
+                    ) : null;
+                  })()}{' '}
+                  s'aligne sur les pratiques franciliennes. À titre de comparaison, la{' '}
+                  {(() => {
+                    const d = getDecisionById('jp-atpt-02');
+                    return d ? (
+                      <JPPill
+                        variant="xs"
+                        decision={d}
+                        saved={jp.isDecisionPinned(d.id)}
+                        onClick={(dec) => jp.openDrawer(dec.id, ['jp-atpt-01', 'jp-atpt-02', 'jp-dfp-01'])}
+                      />
+                    ) : null;
+                  })()}{' '}
+                  retient 26&nbsp;€/h en grande couronne, et la{' '}
+                  {(() => {
+                    const d = getDecisionById('jp-dfp-01');
+                    return d ? (
+                      <JPPill
+                        variant="xs"
+                        decision={d}
+                        saved={jp.isDecisionPinned(d.id)}
+                        onClick={(dec) => jp.openDrawer(dec.id, ['jp-atpt-01', 'jp-atpt-02', 'jp-dfp-01'])}
+                      />
+                    ) : null;
+                  })()}{' '}
+                  pose le principe de la valorisation du point de DFP.
+                </div>
+              </div>
+
+              {/* ── 2. JPCard — chat result list (mini-table) ──────────────── */}
+              {subTitle('2. JPCard — chat result list (mini-table)')}
+              <p style={{ fontSize: 13, color: '#78716c', marginBottom: 12, maxWidth: 720, display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span>Single row shape used in chat results. </span>
+                <Star className="inline-block" style={{ width: 12, height: 12, color: '#b9703f', fill: '#b9703f' }} />
+                <span>Star = JP de référence du cabinet (org level).</span>
+                <Bookmark className="inline-block" style={{ width: 12, height: 12, color: '#b9703f', fill: '#b9703f' }} />
+                <span>Bookmark = attachée à ce poste sur ce dossier (matter level). Both can apply.</span>
+              </p>
+              {(() => {
+                const ids = ['jp-atpt-01', 'jp-se-03', 'jp-atpt-06', 'jp-atpt-02'];
+                // 4 demo states — same decision, different save flags
+                const stateRows = [
+                  { id: 'jp-atpt-01', favorited: false, bookmarked: false, label: 'Default — aucune sauvegarde' },
+                  { id: 'jp-se-03',   favorited: true,  bookmarked: false, label: 'Préférée (org level) — étoile' },
+                  { id: 'jp-atpt-06', favorited: false, bookmarked: true,  label: 'Sauvegardée (matter level) — marque-page' },
+                  { id: 'jp-atpt-02', favorited: true,  bookmarked: true,  label: 'Préférée + sauvegardée' },
+                ];
+                return (
+                  <div style={{ maxWidth: 560, marginBottom: 24 }}>
+                    <JPListingChat>
+                      {stateRows.map(({ id, favorited, bookmarked }) => {
+                        const d = getDecisionById(id);
+                        if (!d) return null;
+                        return (
+                          <JPRow
+                            key={id}
+                            decision={d}
+                            favorited={favorited}
+                            bookmarked={bookmarked}
+                            onClick={(dec) => jp.openDrawer(dec.id, ids)}
+                          />
+                        );
+                      })}
+                    </JPListingChat>
+                    <div className="mt-2" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 8, rowGap: 4, maxWidth: 560 }}>
+                      {stateRows.map(({ label, favorited, bookmarked }, idx) => (
+                        <React.Fragment key={idx}>
+                          <span className="inline-flex items-center gap-0.5" style={{ minWidth: 28 }}>
+                            {favorited && <Star style={{ width: 11, height: 11, color: '#b9703f', fill: '#b9703f' }} />}
+                            {bookmarked && <Bookmark style={{ width: 11, height: 11, color: '#b9703f', fill: '#b9703f' }} />}
+                          </span>
+                          <span style={{ fontSize: 12, color: '#78716c' }}>{label}</span>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+
+              {/* ── 3. JPCard — PosteDetailView (separated cards) ───────────── */}
+              {subTitle('3. JPCard — PosteDetailView (separated cards)')}
+              <p style={{ fontSize: 13, color: '#78716c', marginBottom: 12, maxWidth: 720 }}>
+                <code style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>JPListingPosteDetail</code> wraps a stack of floating <code style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>JPRow</code> cards with a section header (count + search CTA). <code style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>currentPosteId</code> picks the matching amount per card.
+              </p>
+              <div style={{ maxWidth: 720 }}>
+                <JPListingPosteDetail
+                  pinnedJP={[
+                    { decisionId: 'jp-atpt-01', posteIds: ['atpt'] },
+                    { decisionId: 'jp-atpt-03', posteIds: ['atpt'] },
+                    { decisionId: 'jp-atpt-06', posteIds: ['atpt'] },
+                  ]}
+                  currentPosteId="atpt"
+                  onOpenDrawer={(id, resultSet) => jp.openDrawer(id, resultSet, { highlightPosteIds: ['atpt'] })}
+                />
+              </div>
+
+              {/* ── 4. DecisionDrawer — canvas detail ───────────────────────── */}
+              {subTitle('4. DecisionDrawer — canvas detail')}
+              <p style={{ fontSize: 13, color: '#78716c', marginBottom: 12, maxWidth: 720 }}>
+                Right-side drawer with the full decision: identity, montants (mini-table), profil victime, données médicales, préjudices (acronymes), sections de texte avec recherche, lien Legifrance. Triggered from any pill or card above.
+              </p>
+              <div className="flex items-center gap-2 flex-wrap" style={{ maxWidth: 720 }}>
+                {['jp-atpt-01', 'jp-dfp-01', 'jp-se-03'].map((id) => {
+                  const d = getDecisionById(id);
+                  if (!d) return null;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => jp.openDrawer(id, ['jp-atpt-01', 'jp-dfp-01', 'jp-se-03'])}
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-[#e7e5e3] bg-white hover:bg-[#fafaf9] transition-colors"
+                      style={{ fontSize: 13, color: '#44403c' }}
+                    >
+                      <Landmark className="w-3.5 h-3.5" style={{ color: '#b9703f' }} />
+                      Ouvrir {d.jurisdiction}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -17815,21 +18183,6 @@ export default function App() {
   );
 
   const renderSettingsPreferences = () => {
-    const text = preferenceMasterPrompt;
-    const parsedRefs = parseJPReferences(text);
-
-    const handleCompleteFiche = (ref) => {
-      const id = customFirmIdFor(ref.numero);
-      const existing = jp.customJPs.find(c => c.id === id);
-      setFicheCabinetModalRef({ ref, customJP: existing || null });
-    };
-
-    const demoStateLabel =
-      text === PROMPT_EMPTY ? 'empty'
-      : text === PROMPT_FILLED ? 'filled'
-      : text === PROMPT_FILLED_WITH_JP ? 'filled + JP'
-      : 'custom';
-
     return (
       <>
         <div className="flex-1 overflow-y-auto px-8 py-10">
@@ -17849,52 +18202,6 @@ export default function App() {
                 Enregistrer
               </button>
             )}
-
-            {/* Demo toolbar — layout + content */}
-            <div className="flex flex-wrap items-center gap-3 mb-3 px-3 py-2 rounded-lg border border-dashed border-[#d6d3d1] bg-white" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
-              <span className="uppercase tracking-wider text-[10px] font-semibold text-[#78716c]">UX</span>
-              {[
-                { id: 'freetext', label: 'free textarea' },
-                { id: 'separate', label: 'JP séparée' },
-              ].map(s => (
-                <button
-                  key={s.id}
-                  onClick={() => {
-                    setPrefLayout(s.id);
-                    if (s.id === 'separate') {
-                      // Strip the JP block from the textarea — JPs are now managed in the structured section.
-                      const stripped = (preferenceMasterPrompt || '').replace(/(^|\n)— Jurisprudences de référence[\s\S]*?(?=\n— |\n*$)/, '').replace(/^\n+/, '');
-                      if (stripped !== preferenceMasterPrompt) setPreferenceMasterPrompt(stripped);
-                    }
-                  }}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors border ${prefLayout === s.id ? 'bg-[#292524] text-white border-[#292524]' : 'bg-white text-[#44403c] border-[#e7e5e3] hover:bg-[#fafaf9] hover:border-[#a8a29e]'}`}
-                >
-                  {s.label}
-                </button>
-              ))}
-              {prefLayout === 'freetext' && (
-                <>
-                  <span className="h-4 w-px bg-[#e7e5e3] mx-1" />
-                  <span className="uppercase tracking-wider text-[10px] font-semibold text-[#78716c]">État</span>
-                  {[
-                    { id: 'empty', label: 'empty', value: PROMPT_EMPTY },
-                    { id: 'filled', label: 'filled', value: PROMPT_FILLED },
-                    { id: 'filled-jp', label: 'filled + JP', value: PROMPT_FILLED_WITH_JP },
-                  ].map(s => (
-                    <button
-                      key={s.id}
-                      onClick={() => setPreferenceMasterPrompt(s.value)}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors border ${demoStateLabel === s.label ? 'bg-[#292524] text-white border-[#292524]' : 'bg-white text-[#44403c] border-[#e7e5e3] hover:bg-[#fafaf9] hover:border-[#a8a29e]'}`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                  {demoStateLabel === 'custom' && (
-                    <span className="text-[10px] text-[#a8a29e] italic ml-1">(modifié manuellement)</span>
-                  )}
-                </>
-              )}
-            </div>
 
             <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
               <textarea
@@ -17926,81 +18233,10 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
               />
             </div>
 
-            {/* ─── JP cards detected in preferences (free text mode only) ─── */}
-            {prefLayout === 'freetext' && (
-            <div className="mt-6 -mx-4">
-              <JPListing
-                pinnedJP={[]}
-                sectionTitle="Jurisprudences détectées"
-                emptyMessage="Aucune jurisprudence détectée"
-                onOpenDrawer={(id) => jp.openDrawer(id, [id])}
-                getRowStyle={(d) => d._status === 'orphan' ? { borderLeft: '3px solid #f59e0b' } : null}
-                decisionsOverride={parsedRefs.map(ref => {
-                  const canonical = ref.canonicalId ? getDecisionById(ref.canonicalId) : null;
-                  const customId = customFirmIdFor(ref.numero);
-                  const customJPRecord = jp.customJPs.find(c => c.id === customId);
-                  const ficheCabinetReady = customJPRecord && customJPRecord.impact && customJPRecord.pdfFileName;
-                  if (canonical) {
-                    return { ...canonical, _ref: ref, _status: 'canonical' };
-                  }
-                  return {
-                    id: customId,
-                    jurisdiction: ref.court || ref.raw.replace(/^[\s•·\-—*]+/, '').split(',')[0].trim(),
-                    chambre: ref.chamber,
-                    numero: ref.numero,
-                    date: ref.dateISO || '',
-                    category: ficheCabinetReady
-                      ? customJPRecord.impact
-                      : (ref.description || 'Décision non présente dans la base Plato JP'),
-                    victimProfile: '',
-                    resume: '',
-                    amounts: [],
-                    _ref: ref,
-                    _status: ficheCabinetReady ? 'ficheCabinet' : 'orphan',
-                  };
-                })}
-                renderRowAccessory={(d) => {
-                  if (d._status === 'canonical') {
-                    return (
-                      <ChevronRight className="w-3 h-3 text-[#d6d3d1] group-hover:text-[#a8a29e] flex-shrink-0 transition-colors" />
-                    );
-                  }
-                  if (d._status === 'ficheCabinet') {
-                    return (
-                      <>
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0" style={{ backgroundColor: '#fdf3ec', color: '#b9703f' }}>
-                          <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
-                          Fiche cabinet
-                        </span>
-                        <ChevronRight className="w-3 h-3 text-[#d6d3d1] group-hover:text-[#a8a29e] flex-shrink-0 transition-colors" />
-                      </>
-                    );
-                  }
-                  return (
-                    <>
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                        <AlertTriangle className="w-2.5 h-2.5" />
-                        Non référencée
-                      </span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleCompleteFiche(d._ref); }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium bg-[#292524] text-white hover:bg-[#44403c] transition-colors flex-shrink-0"
-                      >
-                        Ajouter le PDF de la décision
-                      </button>
-                    </>
-                  );
-                }}
-              />
+            {/* ─── Separate JP section ─── */}
+            <div className="mt-8">
+              {renderCabinetJPInline()}
             </div>
-            )}
-
-            {/* ─── Separate JP section (UX = JP séparée) ─── */}
-            {prefLayout === 'separate' && (
-              <div className="mt-8">
-                {renderCabinetJPInline()}
-              </div>
-            )}
 
           </div>
         </div>
@@ -18776,44 +19012,51 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
               </div>
 
               {q && (
-                <div className="border-t border-[#f0efed]">
+                <div className="border-t border-[#f0efed] p-3 flex flex-col gap-2">
                   {matches.length > 0 ? (
                     matches.map((d) => {
                       const already = isAlreadySaved(d.id);
                       return (
-                        <div key={d.id} className="flex items-center gap-3 px-3 py-2.5 border-b border-[#f0efed] last:border-b-0">
-                          <Landmark className="w-3 h-3 text-[#b9703f] flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span style={{ fontSize: 14, color: '#292524', fontWeight: 500 }}>
-                                {d.jurisdiction}{d.chambre ? ` · ${d.chambre}` : ''}
-                              </span>
-                              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#c8c5c0', textTransform: 'uppercase' }}>
-                                {d.numero}
-                              </span>
-                              {d.date && /^\d{4}-\d{2}-\d{2}/.test(d.date) && (
-                                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#c8c5c0' }}>
-                                  {formatDateShort(d.date)}
+                        <JPRow
+                          key={d.id}
+                          asCard
+                          decision={d}
+                          renderAccessory={() => (
+                            <div className="flex-shrink-0 flex items-center pr-3" style={{ alignSelf: 'center' }}>
+                              {already ? (
+                                <span
+                                  className="inline-flex items-center gap-1"
+                                  style={{
+                                    height: 32, padding: '0 12px', borderRadius: 8,
+                                    border: '1px solid #d6d3d1',
+                                    fontFamily: "'Inter', system-ui, sans-serif",
+                                    fontSize: 13, fontWeight: 500, color: '#78716c',
+                                    backgroundColor: 'transparent',
+                                  }}
+                                >
+                                  <Check className="w-3.5 h-3.5" strokeWidth={2} />
+                                  Déjà en référence
                                 </span>
+                              ) : (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); addCanonical(d.id); }}
+                                  className="inline-flex items-center gap-1.5 transition-all"
+                                  style={{
+                                    height: 32, padding: '0 12px', borderRadius: 8,
+                                    backgroundColor: '#292524', color: 'white',
+                                    border: '1px solid #292524',
+                                    fontFamily: "'Inter', system-ui, sans-serif",
+                                    fontSize: 13, fontWeight: 500,
+                                  }}
+                                  onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1c1917'; e.currentTarget.style.borderColor = '#1c1917'; }}
+                                  onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#292524'; e.currentTarget.style.borderColor = '#292524'; }}
+                                >
+                                  <Plus className="w-4 h-4" strokeWidth={2} /> Ajouter
+                                </button>
                               )}
                             </div>
-                            <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', marginTop: 1 }}>
-                              {d.category}{d.victimProfile ? ` · ${d.victimProfile}` : ''}
-                            </div>
-                          </div>
-                          {already ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium" style={{ backgroundColor: '#f5f5f4', color: '#78716c' }}>
-                              Déjà en référence
-                            </span>
-                          ) : (
-                            <button
-                              onClick={() => addCanonical(d.id)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium bg-[#292524] text-white hover:bg-[#44403c] transition-colors"
-                            >
-                              <Plus className="w-3 h-3" /> Ajouter
-                            </button>
                           )}
-                        </div>
+                        />
                       );
                     })
                   ) : (
@@ -18851,64 +19094,45 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
                 </p>
               </div>
             ) : (
-              <div className="space-y-1.5">
+              <JPListingChat showHeader={false}>
                 {savedCabinet.map((d) => {
                   const isCustom = d._status === 'ficheCabinet';
+                  const handleRemove = (e) => {
+                    e.stopPropagation();
+                    jp.getAttachmentsForJP(d.id)
+                      .filter(a => a.scope === 'workspace' && a.scopeTargetId === jp.DEFAULT_WORKSPACE_ID)
+                      .forEach(a => jp.removeAttachment(a.id));
+                    if (isCustom) jp.removeCustomJP(d.id);
+                    setToastMessage('JP retirée des références.');
+                    setTimeout(() => setToastMessage(null), 2500);
+                  };
                   return (
-                    <div
+                    <JPRow
                       key={d.id}
+                      decision={d}
                       onClick={() => jp.openDrawer(d.id, [d.id])}
-                      className="group bg-white rounded cursor-pointer flex items-center gap-3 px-3 py-2.5"
-                      style={{ boxShadow: '0 1px 2px rgba(41,37,36,0.05)', transition: 'box-shadow 0.15s ease' }}
-                      onMouseOver={(e) => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(41,37,36,0.07)'; }}
-                      onMouseOut={(e) => { e.currentTarget.style.boxShadow = '0 1px 2px rgba(41,37,36,0.05)'; }}
-                    >
-                      <Landmark className="w-3 h-3 text-[#b9703f] flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span style={{ fontSize: 14, color: '#292524', fontWeight: 500 }}>
-                            {d.jurisdiction}{d.chambre ? ` · ${d.chambre}` : ''}
-                          </span>
-                          {d.numero && (
-                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#c8c5c0', textTransform: 'uppercase' }}>
-                              {d.numero}
+                      subline={isCustom ? (d.impact || d.reference) : null}
+                      renderAccessory={() => (
+                        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-2.5">
+                          {isCustom && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ backgroundColor: '#fdf3ec', color: '#b9703f' }}>
+                              <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                              Fiche cabinet
                             </span>
                           )}
-                          {d.date && /^\d{4}-\d{2}-\d{2}/.test(d.date) && (
-                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#c8c5c0' }}>
-                              {formatDateShort(d.date)}
-                            </span>
-                          )}
+                          <button
+                            onClick={handleRemove}
+                            className="p-1.5 rounded text-[#d6d3d1] hover:text-[#dc2626] hover:bg-[#fef2f2] opacity-0 group-hover:opacity-100 transition-all"
+                            title="Retirer des références"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
                         </div>
-                        <div className="truncate" style={{ fontSize: 12, color: '#a8a29e', marginTop: 1 }}>
-                          {isCustom ? (d.impact || d.reference) : `${d.category || ''}${d.victimProfile ? ` · ${d.victimProfile}` : ''}`}
-                        </div>
-                      </div>
-                      {isCustom && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0" style={{ backgroundColor: '#fdf3ec', color: '#b9703f' }}>
-                          <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
-                          Fiche cabinet
-                        </span>
                       )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          jp.getAttachmentsForJP(d.id)
-                            .filter(a => a.scope === 'workspace' && a.scopeTargetId === jp.DEFAULT_WORKSPACE_ID)
-                            .forEach(a => jp.removeAttachment(a.id));
-                          if (isCustom) jp.removeCustomJP(d.id);
-                          setToastMessage('JP retirée des références.');
-                          setTimeout(() => setToastMessage(null), 2500);
-                        }}
-                        className="p-1.5 rounded text-[#d6d3d1] hover:text-[#dc2626] hover:bg-[#fef2f2] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                        title="Retirer des références"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    />
                   );
                 })}
-              </div>
+              </JPListingChat>
             )}
       </div>
     );
@@ -20845,48 +21069,10 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
   const renderGlobalOverlays = () => (
     <>
       {/* JP Decision Drawer */}
-      {jp.jpState.drawerDecisionId && (() => {
-        const drawerCustomJP = jp.customJPs.find(c => c.id === jp.jpState.drawerDecisionId) || null;
-        return (
-          <DecisionDrawer
-            decisionId={jp.jpState.drawerDecisionId}
-            resultSet={jp.jpState.drawerResultSet}
-            resultIndex={jp.jpState.drawerIndex}
-            isPinned={jp.isDecisionPinned(jp.jpState.drawerDecisionId)}
-            pinnedPosteIds={(jp.jpState.pinnedJP.find(p => p.decisionId === jp.jpState.drawerDecisionId)?.posteIds) || []}
-            onClose={jp.closeDrawer}
-            onPrev={jp.drawerPrev}
-            onNext={jp.drawerNext}
-            onPin={(id) => jp.pinDecision(id)}
-            onUnpin={(id) => jp.unpinDecision(id)}
-            onAttachToPoste={(id, posteId) => { jp.pinDecision(id); jp.togglePoste(id, posteId); }}
-            posteOptions={jpPosteOptions}
-            attachments={jp.getAttachmentsForJP(jp.jpState.drawerDecisionId)}
-            onRemoveAttachment={(attachmentId) => {
-              jp.removeAttachment(attachmentId);
-              setToastMessage('Attachement retiré.');
-              setTimeout(() => setToastMessage(null), 2500);
-            }}
-            customJP={drawerCustomJP}
-            onEditFiche={(c) => {
-              const ref = parseJPReferences(preferenceMasterPrompt || '').find(r => customFirmIdFor(r.numero) === c.id);
-              setFicheCabinetModalRef({ ref: ref || { numero: c.numero, raw: c.reference || '', dateISO: c.date, court: c.jurisdiction, chamber: c.chambre }, customJP: c });
-              jp.closeDrawer();
-            }}
-          />
-        );
-      })()}
-
-      {/* JP Popover Card */}
-      {jpPopover && (
-        <JPPopoverCard
-          decision={jpPopover.decision}
-          anchorRect={jpPopover.anchorRect}
-          onOpenDrawer={(id) => { const rs = jpPopover.resultSet; setJpPopover(null); jp.openDrawer(id, rs); }}
-          onMouseEnter={() => clearTimeout(jpPopoverTimeout.current)}
-          onMouseLeave={() => { jpPopoverTimeout.current = setTimeout(() => setJpPopover(null), 300); }}
-        />
-      )}
+      {/* JP detail used to render here as a fixed-position overlay drawer.
+          It now renders inline inside the canvas (see the left content
+          column above). The X close on DecisionDrawer pops back to the
+          previous canvas view. */}
 
       {/* JP Add Stepper Modal */}
       {jp.jpState.activeStepper === 'jp-add' && (
@@ -21059,13 +21245,139 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Top Bar + Content */}
         <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
-          {renderTopBar()}
-          {renderContentSubHeader()}
-          <div className={`flex-1 ${currentLevel.activeTab === 'jp' || currentLevel.type === 'acte' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-            <div
-              className={`${currentLevel.activeTab === 'jp' || currentLevel.type === 'acte' ? 'h-full' : 'min-h-full'} flex flex-col ${currentLevel.type === 'dossier' && currentLevel.activeTab !== 'jp' ? 'px-8 pt-6 pb-8' : ''}`}
-            >{renderContent()}</div>
-          </div>
+          {jp.jpState.drawerDecisionId ? (
+            /* JP detail page — entered "into the canvas" when a JP is clicked.
+               Keep BOTH the dossier top bar AND the tab sub-header visible so
+               the user always knows where they are; clicking a tab will close
+               the drawer (see the tab-click handler in renderTopBar). */
+            <>
+              {renderTopBar()}
+              {renderContentSubHeader()}
+              <DecisionDrawer
+                inline
+                decisionId={jp.jpState.drawerDecisionId}
+              resultSet={jp.jpState.drawerResultSet}
+              resultIndex={jp.jpState.drawerIndex}
+              highlightPosteIds={jp.jpState.drawerHighlightPosteIds}
+              autoOpenSavePopover={!!jp.jpState.drawerAutoOpenSave}
+              autoOpenSaveKey={jp.jpState.drawerOpenNonce || 0}
+              isPinned={jp.isDecisionPinned(jp.jpState.drawerDecisionId)}
+              pinnedPosteIds={(jp.jpState.pinnedJP.find(p => p.decisionId === jp.jpState.drawerDecisionId)?.posteIds) || []}
+              onClose={jp.closeDrawer}
+              onPrev={jp.drawerPrev}
+              onNext={jp.drawerNext}
+              onPin={(id) => jp.pinDecision(id)}
+              onUnpin={(id) => jp.unpinDecision(id)}
+              onAttachToPoste={(id, posteId) => {
+                const wasAdding = !jp.getAttachmentsForJP(id).find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === posteId);
+                jp.togglePoste(id, posteId);
+                if (wasAdding) {
+                  const dec = jp.getJPById(id);
+                  const posteAcronym = jpPosteOptions.find(p => p.id === posteId)?.acronym || posteId.toUpperCase();
+                  const decLabel = dec ? `${dec.jurisdiction}${dec.numero ? ` · ${dec.numero}` : ''}` : 'cette décision';
+                  initiateRationaleCapture({
+                    decisionId: id,
+                    targets: [{ scope: 'matter', scopeTargetId: jp.DEFAULT_MATTER_ID, lineItem: posteId }],
+                    scopeLabel: `le poste ${posteAcronym}`,
+                    userText: `Sauvegarde ${decLabel} pour le poste ${posteAcronym}.`,
+                  });
+                }
+              }}
+              workspacePinned={jp.getAttachmentsForJP(jp.jpState.drawerDecisionId).some(a => a.scope === 'workspace')}
+              onToggleWorkspace={(id) => {
+                const existing = jp.getAttachmentsForJP(id).filter(a => a.scope === 'workspace');
+                if (existing.length > 0) {
+                  existing.forEach(a => jp.removeAttachment(a.id));
+                  setToastMessage('Retirée de la JP de référence du cabinet.');
+                } else {
+                  jp.addAttachment(id, 'workspace', jp.DEFAULT_WORKSPACE_ID);
+                  setToastMessage('Ajoutée à la JP de référence du cabinet.');
+                  const dec = jp.getJPById(id);
+                  const decLabel = dec ? `${dec.jurisdiction}${dec.numero ? ` · ${dec.numero}` : ''}` : 'cette décision';
+                  initiateRationaleCapture({
+                    decisionId: id,
+                    targets: [{ scope: 'workspace', scopeTargetId: jp.DEFAULT_WORKSPACE_ID, lineItem: null }],
+                    scopeLabel: 'la JP de référence du cabinet',
+                    userText: `Ajoute ${decLabel} à la JP de référence du cabinet.`,
+                  });
+                }
+                setTimeout(() => setToastMessage(null), 2500);
+              }}
+              matterPinned={jp.getAttachmentsForJP(jp.jpState.drawerDecisionId).some(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && !a.lineItem)}
+              onToggleMatter={(id) => {
+                const existing = jp.getAttachmentsForJP(id).filter(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && !a.lineItem);
+                if (existing.length > 0) {
+                  existing.forEach(a => jp.removeAttachment(a.id));
+                  setToastMessage('Retirée du dossier.');
+                } else {
+                  jp.addAttachment(id, 'matter', jp.DEFAULT_MATTER_ID, null);
+                  setToastMessage('Ajoutée au dossier.');
+                  const dec = jp.getJPById(id);
+                  const decLabel = dec ? `${dec.jurisdiction}${dec.numero ? ` · ${dec.numero}` : ''}` : 'cette décision';
+                  initiateRationaleCapture({
+                    decisionId: id,
+                    targets: [{ scope: 'matter', scopeTargetId: jp.DEFAULT_MATTER_ID, lineItem: null }],
+                    scopeLabel: 'ce dossier (transverse)',
+                    userText: `Sauvegarde ${decLabel} sur ce dossier (transverse).`,
+                  });
+                }
+                setTimeout(() => setToastMessage(null), 2500);
+              }}
+              posteOptions={jpPosteOptions}
+              attachments={jp.getAttachmentsForJP(jp.jpState.drawerDecisionId)}
+              onRemoveAttachment={(attachmentId) => {
+                jp.removeAttachment(attachmentId);
+                setToastMessage('Attachement retiré.');
+                setTimeout(() => setToastMessage(null), 2500);
+              }}
+              rationale={(() => {
+                const atts = jp.getAttachmentsForJP(jp.jpState.drawerDecisionId);
+                const highlight = (jp.jpState.drawerHighlightPosteIds || [])[0];
+                const scoped = highlight
+                  ? atts.find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === highlight)
+                  : atts.find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && !a.lineItem);
+                return scoped?.rationale || null;
+              })()}
+              onSaveRationale={(text) => {
+                const atts = jp.getAttachmentsForJP(jp.jpState.drawerDecisionId);
+                const highlight = (jp.jpState.drawerHighlightPosteIds || [])[0];
+                let target = highlight
+                  ? atts.find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === highlight)
+                  : atts.find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && !a.lineItem);
+                if (!target) {
+                  // No matching attachment yet — create matter-transverse so the note has somewhere to live.
+                  jp.addAttachment(jp.jpState.drawerDecisionId, 'matter', jp.DEFAULT_MATTER_ID, highlight || null);
+                  // Apply rationale on next tick once the attachment exists.
+                  setTimeout(() => {
+                    const refreshed = jp.getAttachmentsForJP(jp.jpState.drawerDecisionId);
+                    const created = highlight
+                      ? refreshed.find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && a.lineItem === highlight)
+                      : refreshed.find(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID && !a.lineItem);
+                    if (created) jp.setRationale(created.id, text);
+                  }, 0);
+                  return;
+                }
+                jp.setRationale(target.id, text);
+              }}
+              customJP={jp.customJPs.find(c => c.id === jp.jpState.drawerDecisionId) || null}
+              onEditFiche={(c) => {
+                const ref = parseJPReferences(preferenceMasterPrompt || '').find(r => customFirmIdFor(r.numero) === c.id);
+                setFicheCabinetModalRef({ ref: ref || { numero: c.numero, raw: c.reference || '', dateISO: c.date, court: c.jurisdiction, chamber: c.chambre }, customJP: c });
+                jp.closeDrawer();
+              }}
+            />
+            </>
+          ) : (
+            <>
+              {renderTopBar()}
+              {renderContentSubHeader()}
+              <div className={`flex-1 ${currentLevel.activeTab === 'jp' || currentLevel.type === 'acte' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+                <div
+                  className={`${currentLevel.activeTab === 'jp' || currentLevel.type === 'acte' ? 'h-full' : 'min-h-full'} flex flex-col ${currentLevel.type === 'dossier' && currentLevel.activeTab !== 'jp' ? 'px-8 pt-6 pb-8' : ''}`}
+                >{renderContent()}</div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Right: Edit Panel or Chat Sidebar (full viewport height) */}

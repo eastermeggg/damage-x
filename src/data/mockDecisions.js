@@ -58,6 +58,7 @@ const DECISIONS = [
     date: '2023-09-05',
     victimProfile: 'Homme, 28 ans',
     category: 'Accident de la circulation',
+    status: 'Survivant',
     amounts: [
       { poste: 'ATPT', label: 'Assistance tierce personne temporaire', value: 26, unit: '€/h', displayValue: '26 €/h' },
     ],
@@ -74,6 +75,7 @@ const DECISIONS = [
     date: '2024-03-22',
     victimProfile: 'Homme, 68 ans',
     category: 'Accident de la circulation',
+    status: 'Survivant',
     amounts: [
       { poste: 'ATPT', label: 'Assistance tierce personne temporaire', value: 27, unit: '€/h', displayValue: '27 €/h' },
     ],
@@ -90,6 +92,7 @@ const DECISIONS = [
     date: '2023-11-14',
     victimProfile: 'Femme, 35 ans',
     category: 'Accident de la circulation',
+    status: 'Survivante',
     amounts: [
       { poste: 'ATPT', label: 'Assistance tierce personne temporaire', value: 24, unit: '€/h', displayValue: '24 €/h' },
     ],
@@ -106,6 +109,7 @@ const DECISIONS = [
     date: '2023-06-20',
     victimProfile: 'Homme, 42 ans',
     category: 'Accident du travail',
+    status: 'Survivant',
     amounts: [
       { poste: 'ATPT', label: 'Assistance tierce personne temporaire', value: 22, unit: '€/h', displayValue: '22 €/h' },
     ],
@@ -122,6 +126,7 @@ const DECISIONS = [
     date: '2024-02-08',
     victimProfile: 'Homme, 45 ans',
     category: 'Accident de la circulation',
+    status: 'Survivant',
     amounts: [
       { poste: 'ATPT', label: 'Assistance tierce personne temporaire', value: 25, unit: '€/h', displayValue: '25 €/h' },
     ],
@@ -140,6 +145,7 @@ const DECISIONS = [
     date: '2023-12-12',
     victimProfile: 'Homme, 31 ans',
     category: 'Accident de la route',
+    status: 'Survivant',
     amounts: [
       { poste: 'DFT', label: 'Déficit fonctionnel temporaire', value: 30, unit: '€/jour', displayValue: '30 €/jour' },
     ],
@@ -156,6 +162,7 @@ const DECISIONS = [
     date: '2024-04-03',
     victimProfile: 'Femme, 55 ans',
     category: 'Chute domestique',
+    status: 'Survivante',
     amounts: [
       { poste: 'DFT', label: 'Déficit fonctionnel temporaire', value: 15, unit: '€/jour', displayValue: '15 €/jour' },
     ],
@@ -174,6 +181,7 @@ const DECISIONS = [
     date: '2023-07-06',
     victimProfile: 'Homme, 32 ans',
     category: 'Accident de la circulation / Polytraumatisme',
+    status: 'Survivant',
     amounts: [
       { poste: 'DFP', label: 'Déficit fonctionnel permanent', value: 2350, unit: '€/pt', displayValue: '2 350 €/pt' },
     ],
@@ -190,6 +198,7 @@ const DECISIONS = [
     date: '2024-01-25',
     victimProfile: 'Homme, 58 ans',
     category: 'Accident de la circulation',
+    status: 'Survivant',
     amounts: [
       { poste: 'DFP', label: 'Déficit fonctionnel permanent', value: 1850, unit: '€/pt', displayValue: '1 850 €/pt' },
     ],
@@ -208,6 +217,7 @@ const DECISIONS = [
     date: '2023-10-18',
     victimProfile: 'Homme, 40 ans',
     category: 'Accident de la circulation',
+    status: 'Survivant',
     amounts: [
       { poste: 'PGPA', label: 'Pertes de gains professionnels actuels', value: 42350, unit: '€', displayValue: '42 350 €' },
     ],
@@ -224,6 +234,7 @@ const DECISIONS = [
     date: '2024-02-14',
     victimProfile: 'Homme, 47 ans',
     category: 'Accident du travail',
+    status: 'Survivant',
     amounts: [
       { poste: 'PGPA', label: 'Pertes de gains professionnels actuels', value: 28900, unit: '€', displayValue: '28 900 €' },
     ],
@@ -242,6 +253,7 @@ const DECISIONS = [
     date: '2023-05-11',
     victimProfile: 'Femme, 29 ans',
     category: 'Accident de la circulation / Polytraumatisme',
+    status: 'Survivante',
     amounts: [
       { poste: 'SE', label: 'Souffrances endurées', value: 38000, unit: '€', displayValue: '38 000 €' },
     ],
@@ -258,6 +270,7 @@ const DECISIONS = [
     date: '2023-09-28',
     victimProfile: 'Homme, 51 ans',
     category: 'Chute sur la voie publique',
+    status: 'Survivant',
     amounts: [
       { poste: 'SE', label: 'Souffrances endurées', value: 22500, unit: '€', displayValue: '22 500 €' },
     ],
@@ -274,7 +287,7 @@ const DECISIONS = [
     date: '2024-03-07',
     victimProfile: 'Homme, 19 ans',
     category: 'Accident médical / Traumatisme crânien',
-    status: 'Décédée',
+    status: 'Décédé',
     amounts: [
       { poste: 'SE', label: 'Souffrances endurées', value: 55000, unit: '€', displayValue: '55 000 €' },
     ],
@@ -283,6 +296,13 @@ const DECISIONS = [
     legifranceUrl: 'https://www.legifrance.gouv.fr/juri/id/JURITEXT000049278901',
   },
 ];
+
+// Splits "28 €/h", "2 350 €/pt", "42 350 €" → { num, unit }.
+export const splitValue = (display) => {
+  if (!display) return { num: '—', unit: '' };
+  const m = String(display).match(/^([\d\s ,.]+?)\s+([^0-9]+)$/);
+  return m ? { num: m[1].trim(), unit: m[2].trim() } : { num: display, unit: '' };
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────
 
