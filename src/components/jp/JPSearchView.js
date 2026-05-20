@@ -147,10 +147,13 @@ function JPSearchResultCard({ decision: d, isPinned, assignedPosteIds = [], isSe
         {d.category && (
           <span className="badge badge-sm badge-outline">{d.category}</span>
         )}
-        {d.status && (
-          <span className={`badge badge-sm ${d.status === 'Décédée' ? 'badge-destructive-subtle' : ''}`}
-            style={d.status !== 'Décédée' ? { backgroundColor: '#f5f5f4', color: '#57534e' } : undefined}>{d.status}</span>
-        )}
+        {d.status && (() => {
+          const isDeceased = d.status === 'Décédée' || d.status === 'Décédé';
+          return (
+            <span className={`badge badge-sm ${isDeceased ? 'badge-destructive-subtle' : ''}`}
+              style={!isDeceased ? { backgroundColor: '#f5f5f4', color: '#57534e' } : undefined}>{d.status}</span>
+          );
+        })()}
         {d.contentieuxType && (
           <span className="badge badge-sm badge-outline">{d.contentieuxType}</span>
         )}

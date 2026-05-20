@@ -8,7 +8,10 @@ import EmptyState from '../EmptyState';
 import PromptSuggestionCard from '../PromptSuggestionCard';
 import SuggestionsMenu from '../SuggestionsMenu';
 import JPPill from '../jp/JPPill';
-import JPListing from '../jp/JPListing';
+import JPRow from '../jp/JPRow';
+import JPListingChat from '../jp/JPListingChat';
+import JPListingPosteDetail from '../jp/JPListingPosteDetail';
+import { getDecisionById as getMockDecisionById } from '../../data/mockDecisions';
 import * as P from './previews';
 
 const noop = () => {};
@@ -21,9 +24,14 @@ export const ICON_OPTIONS = {
 
 const sampleDecision = {
   id: 'demo-decision-1',
+  numero: '22/01234',
   jurisdiction: 'CA Paris',
   chambre: '2e ch. civile',
   date: '2024-09-12',
+  category: 'Accident de la circulation',
+  victimProfile: 'Homme, 31 ans',
+  status: 'Survivant',
+  resume: "La cour retient une valorisation du point de DFP à 2 350 € pour une victime jeune avec un déficit de 15%.",
   amounts: [{ poste: 'PGPF', displayValue: '12 450 €' }],
 };
 
@@ -227,26 +235,89 @@ export const componentDemos = {
   },
 
   JPPill: {
-    description: 'Inline badge for a single legal decision.',
+    description: 'Inline JP citation. Four variants share the same height + baseline so they flow inside running prose. **`ref`** = `[saved?] n° ↗` (bare reference identifier — pair with textual citation in prose: "Cass. 2e civ., 12 décembre 2019, n° [pill]"). **`xs`** = `[saved?] jurisdiction · n°` (standalone inline citation). **`sm`** = `[saved?] jurisdiction · date · n° · poste · quantum` (dense result lists). **`quantum`** = `[saved?] n° · poste · quantum` (focus on the saved JP value). Chamber is always hidden — it lives on the JPRow card. Bookmark icon (in `#b9703f`) appears when the JP is `saved`. Hover = orange ring (`#b9703f`). Selected = orange tint + ring (drawer-open).',
     controls: {
-      jurisdiction: { type: 'text',    default: 'CA Paris',          description: 'Court / jurisdiction.' },
-      chambre:      { type: 'text',    default: '2e ch. civile',     description: 'Chamber.' },
-      poste:        { type: 'text',    default: 'PGPF',              description: 'Poste label for the leading amount.' },
-      amount:       { type: 'text',    default: '12 450 €',          description: 'Leading amount value.' },
-      saved:        { type: 'boolean', default: false,               description: 'Show bookmark icon.' },
-      isSelected:   { type: 'boolean', default: false,               description: 'Selected state.' },
+      variant:      { type: 'select',  default: 'sm',          options: ['ref', 'xs', 'sm', 'quantum'], description: 'Density / rhetorical role. `ref` for citation suffixes, `xs` for inline prose, `sm` for dense lists, `quantum` for value-first lists.' },
+      jurisdiction: { type: 'text',    default: 'CA Paris',    description: 'Court / jurisdiction (e.g. "CA Paris", "Cass. 2e civ.", "TJ Versailles"). Hidden in `ref` and `quantum`.' },
+      date:         { type: 'text',    default: '2024-09-12',  description: 'ISO date — rendered short (dd/mm/yy) in `sm` only.' },
+      numero:       { type: 'text',    default: '22/01234',    description: 'N° pourvoi / RG — the citable identifier (always shown).' },
+      poste:        { type: 'text',    default: 'PGPF',        description: 'Poste tag shown in `sm` and `quantum`.' },
+      amount:       { type: 'text',    default: '12 450 €',    description: 'Quantum value shown in `sm` and `quantum` (accent color `#b9703f`).' },
+      saved:        { type: 'boolean', default: false,         description: 'Prepend the bookmark icon — signals the JP is saved at poste or org scope.' },
+      isSelected:   { type: 'boolean', default: false,         description: 'Selected state — orange tint + ring (drawer-open).' },
     },
     render: v => (
       <JPPill
-        decision={{ ...sampleDecision, jurisdiction: v.jurisdiction, chambre: v.chambre, amounts: [{ poste: v.poste, displayValue: v.amount }] }}
+        variant={v.variant}
+        decision={{
+          ...sampleDecision,
+          jurisdiction: v.jurisdiction,
+          date: v.date,
+          numero: v.numero,
+          amounts: [{ poste: v.poste, displayValue: v.amount }],
+        }}
         saved={v.saved}
         isSelected={v.isSelected}
       />
     ),
     presets: [
-      { label: 'Default',  values: { saved: false, isSelected: false } },
-      { label: 'Saved',    values: { saved: true,  isSelected: false } },
-      { label: 'Selected', values: { saved: false, isSelected: true  } },
+      // ── ref — bare reference (paired with textual citation in prose) ─────
+      { label: 'ref — default',              values: { variant: 'ref', jurisdiction: 'Cass. 2e civ.', date: '2019-12-12', numero: '18-22.727', poste: 'PGPF', amount: '12 450 €', saved: false, isSelected: false } },
+      { label: 'ref — saved (bookmark)',     values: { variant: 'ref', jurisdiction: 'Cass. 2e civ.', date: '2019-12-12', numero: '18-22.727', poste: 'PGPF', amount: '12 450 €', saved: true,  isSelected: false } },
+      { label: 'ref — selected',             values: { variant: 'ref', jurisdiction: 'Cass. 2e civ.', date: '2019-12-12', numero: '18-22.727', poste: 'PGPF', amount: '12 450 €', saved: false, isSelected: true } },
+      // ── xs — standalone inline citation (jurisdiction + n°) ──────────────
+      { label: 'xs — default',               values: { variant: 'xs',  jurisdiction: 'CA Paris',      date: '2024-09-12', numero: '22/01234', poste: 'PGPF', amount: '12 450 €', saved: false, isSelected: false } },
+      { label: 'xs — saved (bookmark)',      values: { variant: 'xs',  jurisdiction: 'CA Paris',      date: '2024-09-12', numero: '22/01234', poste: 'PGPF', amount: '12 450 €', saved: true,  isSelected: false } },
+      { label: 'xs — selected',              values: { variant: 'xs',  jurisdiction: 'CA Paris',      date: '2024-09-12', numero: '22/01234', poste: 'PGPF', amount: '12 450 €', saved: false, isSelected: true } },
+      // ── sm — dense list (full metadata) ──────────────────────────────────
+      { label: 'sm — default',               values: { variant: 'sm',  jurisdiction: 'CA Paris',      date: '2024-09-12', numero: '22/01234', poste: 'PGPF', amount: '12 450 €', saved: false, isSelected: false } },
+      { label: 'sm — saved (bookmark)',      values: { variant: 'sm',  jurisdiction: 'CA Paris',      date: '2024-09-12', numero: '22/01234', poste: 'PGPF', amount: '12 450 €', saved: true,  isSelected: false } },
+      { label: 'sm — selected',              values: { variant: 'sm',  jurisdiction: 'CA Paris',      date: '2024-09-12', numero: '22/01234', poste: 'PGPF', amount: '12 450 €', saved: false, isSelected: true } },
+      { label: 'sm — Cass. (€/pt unit)',     values: { variant: 'sm',  jurisdiction: 'Cass. 2e civ.', date: '2023-07-06', numero: '22-15.432', poste: 'DFP',  amount: '2 350 €/pt', saved: true,  isSelected: false } },
+      // ── quantum — value-first (saved JPs by value) ───────────────────────
+      { label: 'quantum — default',          values: { variant: 'quantum', jurisdiction: 'CA Rennes', date: '2024-01-10', numero: '22/12458', poste: 'ATPT', amount: '28 €/h',     saved: false, isSelected: false } },
+      { label: 'quantum — saved',            values: { variant: 'quantum', jurisdiction: 'CA Rennes', date: '2024-01-10', numero: '22/12458', poste: 'ATPT', amount: '28 €/h',     saved: true,  isSelected: false } },
+      { label: 'quantum — selected',         values: { variant: 'quantum', jurisdiction: 'CA Rennes', date: '2024-01-10', numero: '22/12458', poste: 'ATPT', amount: '28 €/h',     saved: false, isSelected: true } },
+    ],
+  },
+
+  JPRow: {
+    description: 'Unit row primitive. Wrap inside JPListingChat (mini-table) or use directly with `asCard` inside JPListingPosteDetail (floating cards). Two save states: ⭐ favorited (firm canon) + 🔖 bookmarked (this poste).',
+    controls: {
+      jurisdiction: { type: 'text',    default: 'CA Paris',          description: 'Court / jurisdiction.' },
+      chambre:      { type: 'text',    default: '2e ch. civile',     description: 'Chamber.' },
+      numero:       { type: 'text',    default: '22/01234',          description: 'N° pourvoi / RG.' },
+      poste:        { type: 'text',    default: 'PGPF',              description: 'Poste tag.' },
+      amount:       { type: 'text',    default: '12 450 €',          description: 'Quantum value.' },
+      showAmount:   { type: 'boolean', default: true,                description: 'Show the date + amount right columns.' },
+      favorited:    { type: 'boolean', default: false,               description: '⭐ In firm JP de référence (workspace scope).' },
+      bookmarked:   { type: 'boolean', default: false,               description: '🔖 Attached to this poste on this matter.' },
+      isSelected:   { type: 'boolean', default: false,               description: 'Selected (drawer-open) state.' },
+      asCard:       { type: 'boolean', default: false,               description: 'Standalone card chrome (border + radius + shadow).' },
+    },
+    render: v => (
+      <JPRow
+        decision={{
+          ...sampleDecision,
+          jurisdiction: v.jurisdiction,
+          chambre: v.chambre,
+          numero: v.numero,
+          amounts: [{ poste: v.poste, displayValue: v.amount }],
+        }}
+        showAmount={v.showAmount}
+        favorited={v.favorited}
+        bookmarked={v.bookmarked}
+        isSelected={v.isSelected}
+        asCard={v.asCard}
+      />
+    ),
+    presets: [
+      { label: 'Default',         values: { favorited: false, bookmarked: false } },
+      { label: 'Favorited',       values: { favorited: true,  bookmarked: false } },
+      { label: 'Bookmarked',      values: { favorited: false, bookmarked: true  } },
+      { label: 'Both',            values: { favorited: true,  bookmarked: true  } },
+      { label: 'No amount',       values: { showAmount: false } },
+      { label: 'As card',         values: { asCard: true } },
     ],
   },
 
@@ -831,54 +902,62 @@ export const componentDemos = {
   // ========================================================================
   // Domain components
   // ========================================================================
-  JPListing: {
-    description: 'List of decisions pinned to the active dossier. Renders an empty state with a search CTA when no decisions are pinned, and an optional stats footer (median + range) when more than one decision is shown.',
+  JPListingChat: {
+    description: 'Mini-table for chat results: card chrome + JURIDICTION · DATE · TAUX header + JPRow children. Use in chat ai-jp-cards rendering.',
     controls: {
-      itemCount: { type: 'select', default: '3', options: ['0', '1', '3', '5'], description: 'Number of pinned decisions. 0 shows the empty state.' },
-      showStats: { type: 'boolean', default: true,                                description: 'Show the median + range footer (only useful with multiple items).' },
-      compact:   { type: 'boolean', default: false,                               description: 'Compact layout — strips the cream wrapper and outer padding.' },
-      withScopeBadges: { type: 'boolean', default: false,                         description: 'Show "Mes usuels" / "Cabinet" / "n matières" scope badges per row.' },
+      itemCount:  { type: 'select',  default: '4', options: ['1', '2', '4', '5'], description: 'Number of rows.' },
+      showHeader: { type: 'boolean', default: true,                                description: 'Show the column header row.' },
     },
     render: v => {
-      const samplePinned = [
-        { decisionId: 'jp-atpt-01', posteIds: ['atpt'] },
-        { decisionId: 'jp-dft-01',  posteIds: ['dft', 'dsa'] },
-        { decisionId: 'jp-pgpa-01', posteIds: ['pgpa'] },
-        { decisionId: 'jp-se-01',   posteIds: ['se', 'pe'] },
-        { decisionId: 'jp-dfp-01',  posteIds: ['dfp'] },
-      ];
+      const samplePinned = ['jp-atpt-01', 'jp-atpt-03', 'jp-atpt-06', 'jp-atpt-02', 'jp-atpt-04'];
       const count = parseInt(v.itemCount, 10);
-      const pinnedJP = samplePinned.slice(0, count);
-
-      const attachmentSummary = v.withScopeBadges
-        ? (id) => {
-            // Sprinkle some variety
-            if (id === 'jp-atpt-01') return { user: true, workspace: false, matterCount: 1 };
-            if (id === 'jp-dft-01')  return { user: false, workspace: true,  matterCount: 2 };
-            if (id === 'jp-pgpa-01') return { user: true, workspace: true,  matterCount: 3 };
-            return { user: false, workspace: false, matterCount: 1 };
-          }
-        : undefined;
-
       return (
-        <div style={{ width: 640 }}>
-          <JPListing
-            pinnedJP={pinnedJP}
-            showStats={v.showStats}
-            compact={v.compact}
-            getAttachmentSummary={attachmentSummary}
-            onAddClick={noop}
-            onSearchJP={noop}
-            onOpenDrawer={noop}
+        <div style={{ width: 560 }}>
+          <JPListingChat
+            decisions={samplePinned.slice(0, count).map(getMockDecisionById).filter(Boolean)}
+            showHeader={v.showHeader}
+            getRowProps={() => ({ onClick: noop })}
           />
         </div>
       );
     },
     presets: [
-      { label: 'Empty state',     values: { itemCount: '0', showStats: false, compact: false, withScopeBadges: false } },
-      { label: '3 decisions',     values: { itemCount: '3', showStats: true,  compact: false, withScopeBadges: false } },
-      { label: '5 + scope badges',values: { itemCount: '5', showStats: true,  compact: false, withScopeBadges: true  } },
-      { label: 'Compact',         values: { itemCount: '3', showStats: false, compact: true,  withScopeBadges: false } },
+      { label: '4 rows + header',  values: { itemCount: '4', showHeader: true } },
+      { label: 'No header',        values: { itemCount: '4', showHeader: false } },
+      { label: '1 row',            values: { itemCount: '1', showHeader: true } },
+    ],
+  },
+
+  JPListingPosteDetail: {
+    description: 'Section wrapper for PosteDetailView. Renders the "Jurisprudences retenues" section header + a stack of floating JPRow cards (each with its own border + shadow). No add button, no stats.',
+    controls: {
+      itemCount:     { type: 'select', default: '3', options: ['0', '1', '3', '5'], description: 'Number of pinned decisions. 0 shows the empty state.' },
+      currentPosteId:{ type: 'text',   default: 'atpt',                              description: 'Poste used to pick the matching amount on each row.' },
+    },
+    render: v => {
+      const samplePinned = [
+        { decisionId: 'jp-atpt-01', posteIds: ['atpt'] },
+        { decisionId: 'jp-atpt-03', posteIds: ['atpt'] },
+        { decisionId: 'jp-atpt-06', posteIds: ['atpt'] },
+        { decisionId: 'jp-atpt-02', posteIds: ['atpt'] },
+        { decisionId: 'jp-atpt-04', posteIds: ['atpt'] },
+      ];
+      const count = parseInt(v.itemCount, 10);
+      return (
+        <div style={{ width: 560 }}>
+          <JPListingPosteDetail
+            pinnedJP={samplePinned.slice(0, count)}
+            currentPosteId={v.currentPosteId}
+            onOpenDrawer={noop}
+            onSearchJP={noop}
+          />
+        </div>
+      );
+    },
+    presets: [
+      { label: 'Empty state',  values: { itemCount: '0', currentPosteId: 'atpt' } },
+      { label: '3 cards',      values: { itemCount: '3', currentPosteId: 'atpt' } },
+      { label: '5 cards',      values: { itemCount: '5', currentPosteId: 'atpt' } },
     ],
   },
 

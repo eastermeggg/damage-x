@@ -9,15 +9,22 @@ import SaveDestinationPopover from './SaveDestinationPopover';
 
 const fmt = (v) => v.toLocaleString('fr-FR');
 
+// Splits "28 €/h", "2 350 €/pt", "42 350 €" → { num, unit }.
+const splitValue = (display) => {
+  if (!display) return { num: '—', unit: '' };
+  const m = display.match(/^([\d\s ,.]+?)\s+([^0-9]+)$/);
+  return m ? { num: m[1].trim(), unit: m[2].trim() } : { num: display, unit: '' };
+};
+
 // ─── Subcomponents ────────────────────────────────────────────────────
 
 function SidebarSectionHeader({ label, icon }) {
   return (
     <div className="flex items-center gap-1.5">
-      {icon && <span className="text-[#a8a29e]">{icon}</span>}
+      {icon && <span className="text-[#78716c]">{icon}</span>}
       <span style={{
-        fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600,
-        color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.05em',
+        fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500,
+        color: '#78716c', textTransform: 'uppercase', lineHeight: 'normal',
       }}>
         {label}
       </span>
@@ -37,22 +44,58 @@ export default function DecisionDrawer({
   onPin,
   onUnpin,
   onAttachToPoste,
+  // Org-level (workspace / JP de référence du cabinet) save state + toggle
+  workspacePinned = false,
+  onToggleWorkspace,
+  // Matter-transverse save state + toggle (attached to the dossier without a
+  // specific poste). Independent from per-poste attachments.
+  matterPinned = false,
+  onToggleMatter,
   posteOptions = [],
   pinnedPosteIds = [],
+  // When true, render as a canvas page (full-area, no fixed positioning, no
+  // backdrop, no slide-in). When false (default), render as a right-side overlay.
+  inline = false,
   // Full attachment list for the Attachements section.
   attachments = [],
   onRemoveAttachment,
+  // Postes the user asked about (from chat prompt context or current poste view).
+  // When set, the "Montants retenus" sidebar section filters to only these
+  // postes — answers the user's question first. Empty/undefined = show all.
+  highlightPosteIds = null,
   // Fiche cabinet preview mode — drives a PDF preview + metadata sidebar
   // when the decision is a non-canonical customJP completed via the modal.
   customJP = null,
   onEditFiche,
+  // Rationale ("POURQUOI ?") for the most-relevant attachment scope.
+  // App wires this from the matter+highlightedPoste attachment when available,
+  // else matter-transverse. Empty = no rationale yet (shows "add" affordance).
+  rationale = null,
+  onSaveRationale,
+  // When true (with autoOpenSaveKey changing), mount the Sauver popover open.
+  // Used by JP Tab cards to route "remove" intent through the popover.
+  autoOpenSavePopover = false,
+  autoOpenSaveKey = 0,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSection, setActiveSection] = useState(null);
   const [showPosteDropdown, setShowPosteDropdown] = useState(false);
+
+  // Honor autoOpenSavePopover whenever the open-nonce changes — covers the case
+  // where the user clicks two different JP-Tab cards in a row.
+  useEffect(() => {
+    if (autoOpenSavePopover) setShowPosteDropdown(true);
+  }, [autoOpenSavePopover, autoOpenSaveKey]);
   const [searchMatchCount, setSearchMatchCount] = useState(0);
+  const [rationaleEditing, setRationaleEditing] = useState(false);
+  const [rationaleDraft, setRationaleDraft] = useState(rationale || '');
+  // Per-section collapse state — start with all open
+  const [collapsedSections, setCollapsedSections] = useState({});
   const textPanelRef = useRef(null);
   const sectionRefs = useRef({});
+
+  // Keep draft in sync if parent rationale changes (different scope / save from chat)
+  useEffect(() => { setRationaleDraft(rationale || ''); }, [rationale]);
 
   const ficheMode = !!customJP && !customJP.canonicalId;
   const decision = ficheMode ? customJP : getDecisionById(decisionId);
@@ -60,6 +103,7 @@ export default function DecisionDrawer({
   const hasResultSet = resultSet.length > 1;
   const canPrev = resultIndex > 0;
   const canNext = resultIndex < resultSet.length - 1;
+  const hasDate = !!decision?.date && /^\d{4}-\d{2}-\d{2}/.test(decision.date);
 
   const sections = decision?.textSections || [];
   const themes = decision?.themes || [];
@@ -261,23 +305,39 @@ export default function DecisionDrawer({
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{ position: 'fixed', inset: 0, zIndex: 29, backgroundColor: 'rgba(41, 37, 36, 0.12)' }}
-      />
+      {/* Backdrop — overlay mode only */}
+      {!inline && (
+        <div
+          onClick={onClose}
+          style={{ position: 'fixed', inset: 0, zIndex: 29, backgroundColor: 'rgba(41, 37, 36, 0.12)' }}
+        />
+      )}
 
-      {/* Drawer */}
+      {/* Drawer — fixed overlay (default) OR inline canvas page.
+          Inline uses `flex-1 min-h-0` (not `h-full`) so it sits BELOW the matter
+          top bar + tab strip in the parent flex column instead of overlapping
+          them — otherwise the tabs become unclickable. */}
       <div
-        className="fixed right-0 top-0 h-screen bg-white border-l border-[#e7e5e3] shadow-xl z-30 flex flex-col"
-        style={{ width: 820, animation: 'slideInRight 0.2s ease-out' }}
+        className={inline
+          ? 'w-full flex-1 min-h-0 bg-white flex flex-col'
+          : 'fixed right-0 top-0 h-screen bg-white border-l border-[#e7e5e3] shadow-xl z-30 flex flex-col'
+        }
+        style={inline
+          ? { animation: 'slideInRightSubtle 0.22s ease-out' }
+          : { width: 820, animation: 'slideInRight 0.2s ease-out' }}
       >
-        {/* ═══════════ TOP BAR ═══════════ */}
-        <div className="px-4 py-2.5 border-b border-[#e7e5e3] flex items-center justify-between flex-shrink-0 bg-white">
-          {/* Left: nav */}
-          <div className="flex items-center gap-3">
-            {hasResultSet && (
-              <div className="flex items-center gap-1">
+        {/* ═══════════ TOP BAR ═══════════
+            Row 1: prev/next (left) ······································· close (right)
+            Row 2: Title (serif)
+            Row 3: Subline (date · n° · Légifrance) ················· Sauvegarder button */}
+        <div
+          className="px-5 pt-3 pb-4 border-b border-[#e7e5e3] flex flex-col gap-2 flex-shrink-0"
+          style={{ backgroundColor: '#f8f7f5' }}
+        >
+          {/* Row 1 — prev/next (left) · close (right) */}
+          <div className="flex items-center justify-between">
+            {hasResultSet ? (
+              <div className="flex items-center gap-1 -ml-1">
                 <button onClick={onPrev} disabled={!canPrev}
                   className={`p-1 rounded-md transition-colors ${canPrev ? 'text-[#78716c] hover:text-[#292524] hover:bg-[#eeece6]' : 'text-[#d6d3d1] cursor-not-allowed'}`}>
                   <ChevronRight className="w-3.5 h-3.5 rotate-180" />
@@ -290,70 +350,119 @@ export default function DecisionDrawer({
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
-            )}
-            <div className="flex items-center gap-1.5">
-              <Landmark className="w-3.5 h-3.5 text-[#b9703f]" />
-              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#b9703f', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                {decision.jurisdiction}{decision.chambre ? ` · ${decision.chambre}` : ''}
-              </span>
-            </div>
-          </div>
-
-          {/* Right: actions */}
-          <div className="flex items-center gap-0.5">
-            {decision.legifranceUrl && (
-              <a href={decision.legifranceUrl} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[12px] font-medium text-[#78716c] hover:text-[#292524] hover:bg-[#eeece6] transition-colors">
-                <ExternalLink className="w-3 h-3" /> Légifrance
-              </a>
-            )}
-            <button className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[12px] font-medium text-[#78716c] hover:text-[#292524] hover:bg-[#eeece6] transition-colors">
-              <Download className="w-3 h-3" /> PDF
-            </button>
-            <div className="w-px h-4 bg-[#e7e5e3] mx-1" />
-            <button onClick={onClose} className="p-1.5 text-[#a8a29e] hover:text-[#78716c] hover:bg-[#eeece6] rounded-md transition-colors">
-              <X className="w-3.5 h-3.5" />
+            ) : <span />}
+            <button
+              onClick={onClose}
+              title="Fermer"
+              aria-label="Fermer"
+              className="p-1.5 -mr-1 rounded-md text-[#78716c] hover:text-[#292524] hover:bg-[#eeece6] transition-colors"
+            >
+              <X className="w-4 h-4" />
             </button>
           </div>
-        </div>
 
-        {/* ═══════════ HEADER ═══════════ */}
-        <div className="px-5 pt-4 pb-3 border-b border-[#e7e5e3] flex-shrink-0" style={{ backgroundColor: '#fafaf9' }}>
-          <div className="flex items-baseline gap-2 mb-1">
-            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: '#b9703f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {decision.jurisdiction}{decision.chambre ? ` · ${decision.chambre}` : ''}
-            </span>
-          </div>
-          <h2 style={{ fontFamily: "'EB Garamond', 'Georgia', serif", fontSize: 18, fontWeight: 400, color: '#292524', lineHeight: '24px', margin: 0 }}>
-            Arrêt du {formatDateLong(decision.date)}
-          </h2>
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <Hash className="w-3 h-3 text-[#a8a29e]" />
-                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#78716c' }}>{decision.numero}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-3 h-3 text-[#a8a29e]" />
-                <span style={{ fontSize: 12, color: '#78716c' }}>{formatDateLong(decision.date)}</span>
-              </div>
+          {/* Row 2 — Title (serif) */}
+          <h1
+            className="truncate"
+            style={{
+              fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
+              fontSize: 18, fontWeight: 500, color: '#292524',
+              letterSpacing: '-0.5px', lineHeight: '20px', margin: 0,
+            }}
+          >
+            {decision.jurisdiction}
+            {decision.chambre ? ` - ${decision.chambre}` : ''}
+            {hasDate ? ` - ${formatDateLong(decision.date)}` : ''}
+          </h1>
+
+          {/* Row 3 — Subline (left) · Sauvegarder (right) */}
+          <div className="flex items-end justify-between gap-3">
+            <div className="flex items-center flex-wrap min-w-0" style={{ gap: 16, minHeight: 18 }}>
+              {hasDate && (
+                <div className="flex items-center" style={{ gap: 6 }}>
+                  <Calendar className="w-3 h-3 flex-shrink-0" style={{ color: '#78716c' }} />
+                  <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 12, lineHeight: '18px', color: '#292524', whiteSpace: 'nowrap' }}>
+                    {formatDateLong(decision.date)}
+                  </span>
+                </div>
+              )}
+              {decision.numero && (
+                <div className="flex items-center" style={{ gap: 6 }}>
+                  <Hash className="w-3 h-3 flex-shrink-0" style={{ color: '#78716c' }} />
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, lineHeight: '18px', color: '#78716c', whiteSpace: 'nowrap' }}>
+                    {decision.numero}
+                  </span>
+                </div>
+              )}
             </div>
-
-            {/* Actions — unified save */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* PDF — outlined pill action */}
+              {decision.legifranceUrl && (
+                <a
+                  href={decision.legifranceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Télécharger le PDF"
+                  aria-label="Télécharger le PDF"
+                  className="inline-flex items-center gap-1.5 transition-all"
+                  style={{
+                    height: 32, padding: '0 10px', borderRadius: 8,
+                    backgroundColor: 'transparent', color: '#44403c',
+                    border: '1px solid #d6d3d1', fontSize: 13, fontWeight: 500,
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#eeece6'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  <Download className="w-4 h-4" strokeWidth={1.75} />
+                  PDF
+                </a>
+              )}
+              {/* Sauver — outlined pill (default) / filled dark (saved) */}
               <div className="relative">
-                <button onClick={() => setShowPosteDropdown(!showPosteDropdown)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-all hover:opacity-90"
-                  style={isPinned ? { backgroundColor: '#fdf8f4', color: '#b9703f' } : { backgroundColor: '#292524', color: 'white' }}>
-                  <Bookmark className="w-3 h-3" style={isPinned ? { fill: 'currentColor' } : {}} />
-                  {isPinned ? 'Sauvegardee' : 'Sauvegarder'}
+                <button
+                  onClick={() => setShowPosteDropdown(!showPosteDropdown)}
+                  title={(isPinned || workspacePinned) ? 'Sauvegardée — modifier' : 'Sauver'}
+                  aria-label={(isPinned || workspacePinned) ? 'Sauvegardée — modifier' : 'Sauver'}
+                  className="inline-flex items-center gap-1.5 transition-all"
+                  style={(isPinned || workspacePinned)
+                    ? {
+                        height: 32, padding: '0 10px', borderRadius: 8,
+                        backgroundColor: '#292524', color: 'white',
+                        border: '1px solid #292524', fontSize: 13, fontWeight: 500,
+                      }
+                    : {
+                        height: 32, padding: '0 10px', borderRadius: 8,
+                        backgroundColor: 'transparent', color: '#44403c',
+                        border: '1px solid #d6d3d1', fontSize: 13, fontWeight: 500,
+                      }}
+                  onMouseOver={(e) => {
+                    if (isPinned || workspacePinned) {
+                      e.currentTarget.style.backgroundColor = '#1c1917';
+                      e.currentTarget.style.borderColor = '#1c1917';
+                    } else {
+                      e.currentTarget.style.backgroundColor = '#eeece6';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (isPinned || workspacePinned) {
+                      e.currentTarget.style.backgroundColor = '#292524';
+                      e.currentTarget.style.borderColor = '#292524';
+                    } else {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  <Bookmark className="w-4 h-4" strokeWidth={1.75} style={(isPinned || workspacePinned) ? { fill: 'currentColor' } : {}} />
+                  {(isPinned || workspacePinned) ? 'Sauvegardée' : 'Sauver'}
                 </button>
                 {showPosteDropdown && (
                   <SaveDestinationPopover
-                    isPinned={isPinned}
+                    workspacePinned={workspacePinned}
+                    onToggleWorkspace={onToggleWorkspace ? () => onToggleWorkspace(decision.id) : undefined}
+                    matterPinned={matterPinned}
+                    onToggleMatter={onToggleMatter ? () => onToggleMatter(decision.id) : undefined}
                     assignedPosteIds={pinnedPosteIds}
                     posteOptions={posteOptions}
-                    onSaveToDossier={() => { if (!isPinned) onPin?.(decision.id); setShowPosteDropdown(false); }}
                     onTogglePoste={(posteId) => onAttachToPoste?.(decision.id, posteId)}
                     onClose={() => setShowPosteDropdown(false)}
                   />
@@ -363,56 +472,69 @@ export default function DecisionDrawer({
           </div>
         </div>
 
-        {/* ═══════════ SEARCH BAR ═══════════ */}
-        <div className="px-5 py-2.5 border-b border-[#e7e5e3] flex-shrink-0">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#fafaf9] border border-[#e7e5e3] transition-colors"
-            style={searchQuery ? { borderColor: '#aabcd5', backgroundColor: '#f8fafd' } : {}}>
-            <Search className="w-3.5 h-3.5 text-[#a8a29e] flex-shrink-0" />
-            <input
-              type="text" placeholder="Rechercher dans la décision…"
-              value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-transparent text-[14px] text-[#292524] placeholder-[#a8a29e] focus:outline-none"
-            />
-            {searchQuery && (
-              <div className="flex items-center gap-2">
-                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#78716c' }}>
-                  {searchMatchCount} résultat{searchMatchCount !== 1 ? 's' : ''}
-                </span>
-                <button onClick={() => setSearchQuery('')} className="p-0.5 hover:bg-[#eeece6] rounded transition-colors">
-                  <X className="w-3 h-3 text-[#a8a29e]" />
-                </button>
-              </div>
-            )}
-          </div>
+        {/* ═══════════ SEARCH BAR — flat row (Figma 36765:49265) ═══════════ */}
+        <div className="flex items-center gap-2 px-5 py-3 border-b border-[#e7e5e3] flex-shrink-0">
+          <Search className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} style={{ color: '#78716c', opacity: 0.6 }} />
+          <input
+            type="text" placeholder="Rechercher dans la décision…"
+            value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 bg-transparent focus:outline-none"
+            style={{
+              fontFamily: "'Inter', system-ui, sans-serif",
+              fontSize: 14, fontWeight: 400, lineHeight: '20px', color: '#292524',
+            }}
+          />
+          {searchQuery && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#78716c' }}>
+                {searchMatchCount} résultat{searchMatchCount !== 1 ? 's' : ''}
+              </span>
+              <button onClick={() => setSearchQuery('')} className="p-0.5 hover:bg-[#eeece6] rounded transition-colors">
+                <X className="w-3 h-3 text-[#a8a29e]" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ═══════════ TWO-COLUMN BODY ═══════════ */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
 
-          {/* ── LEFT: Résumé + themes + full text ─────────── */}
-          <div ref={textPanelRef} className="flex-1 overflow-y-auto border-r border-[#f0efed]" style={{ minWidth: 0 }}>
+          {/* ── LEFT: Résumé + themes + texte intégral (Figma 36765:49265) ─────────── */}
+          <div ref={textPanelRef} className="flex-1 overflow-y-auto border-r border-[#e7e5e3]" style={{ minWidth: 0 }}>
 
             {/* Résumé */}
-            <div className="px-5 pt-4 pb-3 border-b border-[#f0efed]">
-              <SidebarSectionHeader label="Résumé" />
-              <p style={{ fontSize: 14, lineHeight: '22px', color: '#44403c', margin: 0, marginTop: 8 }}>
+            <div className="border-b border-[#e7e5e3]" style={{ padding: '20px 24px' }}>
+              <div style={{ marginBottom: 10 }}>
+                <SidebarSectionHeader label="Résumé" />
+              </div>
+              <p style={{
+                fontFamily: "'Inter', system-ui, sans-serif",
+                fontSize: 14, fontWeight: 400, lineHeight: '24px',
+                color: '#292524', margin: 0,
+              }}>
                 {highlightText(decision.resume)}
               </p>
             </div>
 
             {/* Themes */}
             {themes.length > 0 && (
-              <div className="px-5 py-3 border-b border-[#f0efed]">
-                <SidebarSectionHeader label="Thèmes" />
-                <div className="flex flex-wrap gap-1.5 mt-2">
+              <div className="border-b border-[#e7e5e3]" style={{ padding: '20px 24px' }}>
+                <div style={{ marginBottom: 10 }}>
+                  <SidebarSectionHeader label="Thèmes" />
+                </div>
+                <div className="flex flex-wrap" style={{ gap: 8 }}>
                   {themes.map((t, i) => (
-                    <span key={i} className="inline-flex items-center px-2 py-1 rounded-md text-[10.5px] font-medium"
+                    <span
+                      key={i}
+                      className="inline-flex items-center justify-center"
                       style={{
-                        backgroundColor: t.color === 'blue' ? '#eef3fa' : t.color === 'purple' ? '#f3eefa' : t.color === 'green' ? '#ecfdf5' : '#f5f5f4',
-                        color: t.color === 'blue' ? '#1e3a8a' : t.color === 'purple' ? '#6b21a8' : t.color === 'green' ? '#065f46' : '#44403c',
-                        border: `1px solid ${t.color === 'blue' ? '#c4d4eb' : t.color === 'purple' ? '#d4bfea' : t.color === 'green' ? '#a7f3d0' : '#e7e5e3'}`,
-                        lineHeight: '14px',
-                      }}>
+                        backgroundColor: '#dfe8f5',
+                        color: '#1e3a8a',
+                        fontFamily: "'Inter', system-ui, sans-serif",
+                        fontSize: 12, fontWeight: 500, lineHeight: '16px',
+                        padding: '2px 8px', borderRadius: 6,
+                      }}
+                    >
                       {t.label}
                     </span>
                   ))}
@@ -420,47 +542,107 @@ export default function DecisionDrawer({
               </div>
             )}
 
-            {/* Section nav tabs */}
+            {/* TEXTE INTÉGRAL — tabs */}
             {sections.length > 0 && (
-              <div className="sticky top-0 z-10 px-5 py-2 border-b border-[#f0efed] bg-white flex items-center gap-1 flex-wrap">
-                {sections.map((s, i) => (
-                  <button key={s.id} onClick={() => scrollToSection(s.id)}
-                    className="px-2.5 py-1 rounded-md text-[12px] font-medium transition-colors"
-                    style={{
-                      backgroundColor: activeSection === s.id ? '#292524' : 'transparent',
-                      color: activeSection === s.id ? 'white' : '#78716c',
-                    }}
-                    onMouseOver={(e) => { if (activeSection !== s.id) e.currentTarget.style.backgroundColor = '#eeece6'; }}
-                    onMouseOut={(e) => { if (activeSection !== s.id) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                  >
-                    {s.title}
-                  </button>
-                ))}
+              <div className="sticky top-0 z-10 border-b border-[#e7e5e3] bg-white" style={{ padding: '20px 24px 0 24px' }}>
+                <div style={{ marginBottom: 10 }}>
+                  <SidebarSectionHeader label="Texte intégral" />
+                </div>
+                <div className="flex items-start" style={{ gap: 16 }}>
+                  {sections.map((s) => {
+                    const isActive = activeSection === s.id;
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => {
+                          scrollToSection(s.id);
+                          setCollapsedSections(prev => ({ ...prev, [s.id]: false }));
+                        }}
+                        className="flex flex-col items-center"
+                        style={{ gap: 10 }}
+                      >
+                        <div className="flex items-center" style={{ gap: 6, paddingTop: 10 }}>
+                          <span style={{
+                            fontFamily: "'Inter', system-ui, sans-serif",
+                            fontSize: 14, fontWeight: 500, lineHeight: '20px',
+                            color: isActive ? '#292524' : '#78716c',
+                            transition: 'color 0.15s',
+                          }}>
+                            {s.title}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            height: 2, width: '100%',
+                            backgroundColor: isActive ? '#292524' : '#d6d3d1',
+                            opacity: isActive ? 1 : 0,
+                            borderTopLeftRadius: 30, borderTopRightRadius: 30,
+                            transition: 'opacity 0.15s, background-color 0.15s',
+                          }}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
-            {/* Sections */}
+            {/* Sections — each with accent bar + chevron + Inter title */}
             {sections.length > 0 ? (
-              <div className="px-5 py-4">
-                {sections.map((section, i) => (
-                  <div key={section.id} ref={(el) => sectionRefs.current[section.id] = el} className="mb-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-1 h-4 rounded-full" style={{ backgroundColor: '#b9703f', opacity: 0.6 }} />
-                      <h3 style={{ fontFamily: "'EB Garamond', 'Georgia', serif", fontSize: 16, fontWeight: 500, color: '#292524', margin: 0 }}>
-                        {section.title}
-                      </h3>
+              <div>
+                {sections.map((section) => {
+                  const isCollapsed = !!collapsedSections[section.id];
+                  return (
+                    <div
+                      key={section.id}
+                      ref={(el) => sectionRefs.current[section.id] = el}
+                      className="border-b border-[#f0efed] flex flex-col items-start w-full"
+                      style={{ padding: 24, gap: 24 }}
+                    >
+                      <button
+                        onClick={() => setCollapsedSections(prev => ({ ...prev, [section.id]: !prev[section.id] }))}
+                        className="flex items-center w-full text-left"
+                        style={{ gap: 8 }}
+                      >
+                        <div style={{ width: 2, alignSelf: 'stretch', backgroundColor: '#b9703f', opacity: 0.6 }} />
+                        <ChevronDown
+                          className="flex-shrink-0"
+                          style={{
+                            width: 16, height: 16, color: '#78716c',
+                            transform: isCollapsed ? 'rotate(-90deg)' : 'none',
+                            transition: 'transform 0.15s',
+                          }}
+                          strokeWidth={1.75}
+                        />
+                        <span style={{
+                          fontFamily: "'Inter', system-ui, sans-serif",
+                          fontSize: 14, fontWeight: 500, lineHeight: '20px',
+                          color: '#292524',
+                        }}>
+                          {section.title}
+                        </span>
+                      </button>
+                      {!isCollapsed && (
+                        <p style={{
+                          fontFamily: "'Inter', system-ui, sans-serif",
+                          fontSize: 14, fontWeight: 400, lineHeight: '24px',
+                          color: '#44403c', whiteSpace: 'pre-wrap', margin: 0,
+                        }}>
+                          {highlightText(section.content)}
+                        </p>
+                      )}
                     </div>
-                    <p style={{ fontSize: 14, lineHeight: '23px', color: '#44403c', whiteSpace: 'pre-wrap', margin: 0 }}>
-                      {highlightText(section.content)}
-                    </p>
-                    {i < sections.length - 1 && <div className="mt-6 border-b border-[#f0efed]" />}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               /* Fallback: raw fullText */
-              <div className="px-5 py-4">
-                <p style={{ fontSize: 14, lineHeight: '23px', color: '#44403c', whiteSpace: 'pre-wrap', margin: 0 }}>
+              <div style={{ padding: 24 }}>
+                <p style={{
+                  fontFamily: "'Inter', system-ui, sans-serif",
+                  fontSize: 14, fontWeight: 400, lineHeight: '24px',
+                  color: '#44403c', whiteSpace: 'pre-wrap', margin: 0,
+                }}>
                   {highlightText(decision.fullText || 'Texte intégral non disponible.')}
                 </p>
               </div>
@@ -470,20 +652,116 @@ export default function DecisionDrawer({
           {/* ── RIGHT: sidebar ────────────── */}
           <div className="overflow-y-auto flex-shrink-0" style={{ width: 300, backgroundColor: '#fafaf9' }}>
 
-            {/* Montants — hero section */}
-            <div className="px-4 pt-4 pb-3 border-b border-[#f0efed]">
-              <SidebarSectionHeader label="Montants" />
-              <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
-                {decision.amounts.map((amt, i) => (
-                  <div key={i} className="flex items-center justify-between px-3 py-2.5"
-                    style={{ borderBottom: i < decision.amounts.length - 1 ? '1px solid #f0efed' : 'none' }}>
-                    <span className="badge badge-sm badge-secondary" title={amt.label}>
-                      {amt.poste} : <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: '#b9703f' }}>{amt.displayValue}</span>
-                    </span>
+            {/* POURQUOI ? — editable rationale for the current scope.
+                Only shown when the JP has been saved at least once — without a save
+                there's no attachment to attach the rationale to. */}
+            {onSaveRationale && attachments.length > 0 && (
+              <div className="px-4 pt-4 pb-3 border-b border-[#f0efed]">
+                <div className="flex items-center justify-between mb-2">
+                  <SidebarSectionHeader label="Note de pertinence" />
+                  {!rationaleEditing && rationale && (
+                    <button
+                      onClick={() => setRationaleEditing(true)}
+                      className="p-1 rounded text-[#a8a29e] hover:text-[#78716c] hover:bg-[#eeece6] transition-colors"
+                      title="Modifier"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+                {rationaleEditing ? (
+                  <div className="bg-white border border-[#e7e5e3] rounded-md p-2">
+                    <textarea
+                      autoFocus
+                      value={rationaleDraft}
+                      onChange={(e) => setRationaleDraft(e.target.value)}
+                      placeholder="En quoi cette décision est-elle pertinente pour ce poste ?"
+                      rows={4}
+                      style={{
+                        width: '100%',
+                        border: 'none',
+                        outline: 'none',
+                        resize: 'vertical',
+                        fontFamily: "'Inter', system-ui, sans-serif",
+                        fontSize: 12, lineHeight: '18px', color: '#44403c',
+                        backgroundColor: 'transparent',
+                      }}
+                    />
+                    <div className="flex items-center justify-end gap-1.5 mt-1.5 pt-1.5 border-t border-[#f0efed]">
+                      <button
+                        onClick={() => { setRationaleDraft(rationale || ''); setRationaleEditing(false); }}
+                        className="px-2 py-1 text-[12px] text-[#78716c] hover:text-[#292524] rounded transition-colors"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        onClick={() => { onSaveRationale(rationaleDraft.trim() || null); setRationaleEditing(false); }}
+                        className="px-2.5 py-1 text-[12px] font-medium text-white bg-[#292524] hover:opacity-90 rounded transition-opacity"
+                      >
+                        Enregistrer
+                      </button>
+                    </div>
                   </div>
-                ))}
+                ) : rationale ? (
+                  <div style={{ borderLeft: '2px solid #ac9e8b', paddingLeft: 12, paddingTop: 4, paddingBottom: 4 }}>
+                    <p style={{
+                      fontFamily: "'Inter', system-ui, sans-serif",
+                      fontSize: 12, lineHeight: '18px', color: '#44403c', margin: 0,
+                    }}>
+                      {rationale}
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setRationaleEditing(true)}
+                    className="w-full text-left px-3 py-2 bg-white border border-dashed border-[#d6d3d1] hover:border-[#b9703f] hover:bg-[#fdf8f4] rounded-md transition-colors"
+                    style={{
+                      fontFamily: "'Inter', system-ui, sans-serif",
+                      fontSize: 12, color: '#a8a29e',
+                    }}
+                  >
+                    + Ajouter une note sur la pertinence
+                  </button>
+                )}
               </div>
-            </div>
+            )}
+
+            {/* Montants retenus — dynamic: filters to the postes the user asked about */}
+            {(() => {
+              const allAmounts = decision.amounts || [];
+              const norm = (s) => String(s || '').toLowerCase();
+              const filtered = highlightPosteIds && highlightPosteIds.length > 0
+                ? allAmounts.filter(a => highlightPosteIds.some(p => norm(p) === norm(a.poste)))
+                : allAmounts;
+              const visible = filtered.length > 0 ? filtered : allAmounts;
+              const isFiltered = filtered.length > 0 && filtered.length < allAmounts.length;
+              return (
+                <div className="px-4 pt-4 pb-3 border-b border-[#f0efed]">
+                  <SidebarSectionHeader label="Montants retenus" />
+                  {isFiltered && (
+                    <p style={{ fontSize: 11, color: '#a8a29e', marginTop: 4, marginBottom: 6 }}>
+                      Filtré sur le{filtered.length > 1 ? 's' : ''} poste{filtered.length > 1 ? 's' : ''} demandé{filtered.length > 1 ? 's' : ''}
+                    </p>
+                  )}
+                  <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
+                    {visible.map((amt, i) => {
+                      const { num, unit } = splitValue(amt.displayValue);
+                      return (
+                        <div key={i} className="flex items-center justify-between px-3 py-2"
+                          style={{ borderBottom: i < visible.length - 1 ? '1px solid #f0efed' : 'none' }}>
+                          <span title={amt.label} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: '#44403c' }}>
+                            {amt.poste}
+                          </span>
+                          <span className="flex-shrink-0" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, fontWeight: 600, color: '#292524' }}>
+                            {num}{unit && <span style={{ color: '#b9703f', marginLeft: 4, fontWeight: 500 }}>{unit}</span>}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Profil victime */}
             <div className="px-4 py-3 border-b border-[#f0efed]">
@@ -538,13 +816,13 @@ export default function DecisionDrawer({
             {/* Préjudices temporaires */}
             {prejudices?.temporaires?.length > 0 && (
               <div className="px-4 py-3 border-b border-[#f0efed]">
-                <SidebarSectionHeader label="Préjudices temporaires" />
+                <SidebarSectionHeader label="Extra-patrimoniaux temporaires" />
                 <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
                   {prejudices.temporaires.map((p, i) => (
                     <div key={i} className="flex items-center justify-between px-3 py-2"
                       style={{ borderBottom: '1px solid #f0efed' }}>
-                      <span style={{ fontSize: 12, color: '#44403c', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>
-                        {p.label}
+                      <span title={p.label} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: '#44403c' }}>
+                        {p.label.split(' — ')[0]}
                       </span>
                       <span className="flex-shrink-0" style={{ fontSize: 14, fontWeight: 600, color: p.highlighted ? '#b9703f' : '#292524' }}>
                         {fmt(p.montant)} €
@@ -562,13 +840,13 @@ export default function DecisionDrawer({
             {/* Préjudices permanents */}
             {prejudices?.permanents?.length > 0 && (
               <div className="px-4 py-3 border-b border-[#f0efed]">
-                <SidebarSectionHeader label="Préjudices permanents" />
+                <SidebarSectionHeader label="Extra-patrimoniaux permanents" />
                 <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
                   {prejudices.permanents.map((p, i) => (
                     <div key={i} className="flex items-center justify-between px-3 py-2"
                       style={{ borderBottom: '1px solid #f0efed' }}>
-                      <span style={{ fontSize: 12, color: '#44403c', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>
-                        {p.label}
+                      <span title={p.label} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: '#44403c' }}>
+                        {p.label.split(' — ')[0]}
                       </span>
                       <span className="flex-shrink-0" style={{ fontSize: 14, fontWeight: 600, color: p.highlighted ? '#b9703f' : '#292524' }}>
                         {fmt(p.montant)} €
@@ -579,46 +857,6 @@ export default function DecisionDrawer({
                     <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#78716c', textTransform: 'uppercase' }}>Total</span>
                     <span style={{ fontSize: 14, fontWeight: 700, color: '#292524' }}>{fmt(permTotal)} €</span>
                   </div>
-                </div>
-              </div>
-            )}
-
-            {/* Attachements — every scope this JP is pinned to */}
-            {attachments.length > 0 && (
-              <div className="px-4 py-3 border-b border-[#f0efed]">
-                <SidebarSectionHeader label="Attachements" />
-                <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
-                  {attachments.map((a, i) => {
-                    const scopeLabel = 'Dossier';
-                    const dateStr = (() => {
-                      try { return new Date(a.addedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }); }
-                      catch { return ''; }
-                    })();
-                    return (
-                      <div
-                        key={a.id}
-                        className="group flex items-center gap-2 px-3 py-2"
-                        style={{ borderBottom: i < attachments.length - 1 ? '1px solid #f0efed' : 'none' }}
-                      >
-                        <span style={{ fontSize: 12, color: '#44403c', fontWeight: 500 }}>
-                          {scopeLabel}
-                        </span>
-                        {a.lineItem && (
-                          <span className="badge badge-sm badge-secondary">{a.lineItem.toUpperCase()}</span>
-                        )}
-                        <span className="flex-1 text-right text-[12px] text-[#a8a29e]">{dateStr}</span>
-                        {onRemoveAttachment && (
-                          <button
-                            onClick={() => onRemoveAttachment(a.id)}
-                            className="p-1 -mr-1 rounded text-[#d6d3d1] hover:text-[#ef4444] hover:bg-[#fef2f2] opacity-0 group-hover:opacity-100 transition-all"
-                            title="Retirer cet attachement"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
                 </div>
               </div>
             )}

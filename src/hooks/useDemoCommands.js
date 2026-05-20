@@ -37,6 +37,7 @@ const initialState = {
   drawerDecisionId: null,
   drawerResultSet: [],
   drawerIndex: 0,
+  drawerHighlightPosteIds: null,
   activeStepper: null, // 'jp-add' | 'jp-save' | null
 };
 
@@ -75,6 +76,17 @@ function jpReducer(state, action) {
         ...state,
         attachments: state.attachments.filter(a => !action.predicate(a)),
       };
+    case 'SET_RATIONALE': {
+      // Update rationale on one attachment, or on all matching a predicate (multi-poste save).
+      const { attachmentId, predicate, rationale } = action;
+      return {
+        ...state,
+        attachments: state.attachments.map(a => {
+          const match = attachmentId ? a.id === attachmentId : predicate?.(a);
+          return match ? { ...a, rationale: rationale || null } : a;
+        }),
+      };
+    }
     case 'UPSERT_CUSTOM_JP': {
       const { jp } = action;
       const idx = state.customJPs.findIndex(c => c.id === jp.id);
@@ -103,10 +115,17 @@ function jpReducer(state, action) {
         drawerDecisionId: action.decisionId,
         drawerResultSet: resultSet,
         drawerIndex: index >= 0 ? index : 0,
+        drawerHighlightPosteIds: action.highlightPosteIds || null,
+        // When true, DecisionDrawer mounts with the Sauver popover already open.
+        // Used by JP Tab cards to route the "remove" intent through the popover.
+        drawerAutoOpenSave: !!action.autoOpenSavePopover,
+        // Bumped on every OPEN_DRAWER so DecisionDrawer can re-apply autoOpen
+        // even if the same decisionId is requested twice in a row.
+        drawerOpenNonce: (state.drawerOpenNonce || 0) + 1,
       };
     }
     case 'CLOSE_DRAWER':
-      return { ...state, drawerDecisionId: null, drawerResultSet: [], drawerIndex: 0 };
+      return { ...state, drawerDecisionId: null, drawerResultSet: [], drawerIndex: 0, drawerHighlightPosteIds: null, drawerAutoOpenSave: false };
     case 'DRAWER_PREV': {
       if (state.drawerIndex <= 0) return state;
       const newIdx = state.drawerIndex - 1;
@@ -191,8 +210,9 @@ export default function useDemoCommands({ setChatMessages, setNavStack, tabsConf
     drawerDecisionId: state.drawerDecisionId,
     drawerResultSet: state.drawerResultSet,
     drawerIndex: state.drawerIndex,
+    drawerHighlightPosteIds: state.drawerHighlightPosteIds,
     activeStepper: state.activeStepper,
-  }), [pinnedJP, state.drawerDecisionId, state.drawerResultSet, state.drawerIndex, state.activeStepper]);
+  }), [pinnedJP, state.drawerDecisionId, state.drawerResultSet, state.drawerIndex, state.drawerHighlightPosteIds, state.activeStepper]);
 
   // ── Demo scenarios ───────────────────────────────────────────────────
   const clearTimeouts = useCallback(() => {
@@ -221,11 +241,12 @@ export default function useDemoCommands({ setChatMessages, setNavStack, tabsConf
               steps: [{ label: action.detail, status: 'done' }],
             }]);
             break;
-          case 'AGENT_MESSAGE':
+          case 'AGENT_CARDS_MESSAGE':
             setChatMessages?.(prev => [...prev, {
-              type: 'ai-jp',
-              text: action.text,
-              pills: action.pills || [],
+              type: 'ai-jp-cards',
+              text: action.text || '',
+              decisionIds: action.decisionIds || [],
+              highlightPosteIds: action.highlightPosteIds || null,
             }]);
             break;
           case 'AGENT_PLAIN_MESSAGE':
@@ -235,7 +256,12 @@ export default function useDemoCommands({ setChatMessages, setNavStack, tabsConf
             }]);
             break;
           case 'OPEN_DRAWER':
-            dispatch({ type: 'OPEN_DRAWER', decisionId: action.decisionId, resultSet: action.resultSet });
+            dispatch({
+              type: 'OPEN_DRAWER',
+              decisionId: action.decisionId,
+              resultSet: action.resultSet,
+              highlightPosteIds: action.highlightPosteIds || null,
+            });
             break;
           case 'TRIGGER_STEPPER':
             dispatch({ type: 'SET_STEPPER', stepperType: action.stepperType });
@@ -260,8 +286,19 @@ export default function useDemoCommands({ setChatMessages, setNavStack, tabsConf
   }, [setChatMessages, setNavStack, clearTimeouts]);
 
   // ── Drawer ───────────────────────────────────────────────────────────
-  const openDrawer = useCallback((decisionId, resultSet) => {
-    dispatch({ type: 'OPEN_DRAWER', decisionId, resultSet });
+  // options:
+  //   - highlightPosteIds?: string[] — filters the "Montants retenus" sidebar
+  //   - autoOpenSavePopover?: bool   — mount the Sauver popover open (used for
+  //     the JP Tab "remove" intent: click card → drawer + popover open so the
+  //     user can uncheck the scopes they want to remove)
+  const openDrawer = useCallback((decisionId, resultSet, options = {}) => {
+    dispatch({
+      type: 'OPEN_DRAWER',
+      decisionId,
+      resultSet,
+      highlightPosteIds: options.highlightPosteIds || null,
+      autoOpenSavePopover: !!options.autoOpenSavePopover,
+    });
   }, []);
   const closeDrawer = useCallback(() => dispatch({ type: 'CLOSE_DRAWER' }), []);
   const drawerPrev = useCallback(() => dispatch({ type: 'DRAWER_PREV' }), []);
@@ -274,6 +311,15 @@ export default function useDemoCommands({ setChatMessages, setNavStack, tabsConf
 
   const removeAttachment = useCallback((attachmentId) => {
     dispatch({ type: 'REMOVE_ATTACHMENT', attachmentId });
+  }, []);
+
+  // Set the rationale on a specific attachment, or on all attachments matching a predicate.
+  // Pass `rationale: null` (or empty) to clear.
+  const setRationale = useCallback((attachmentId, rationale) => {
+    dispatch({ type: 'SET_RATIONALE', attachmentId, rationale });
+  }, []);
+  const setRationaleMatching = useCallback((predicate, rationale) => {
+    dispatch({ type: 'SET_RATIONALE', predicate, rationale });
   }, []);
 
   // Set the full set of (lineItem) attachments for a (decisionId, scope, scopeTargetId)
@@ -398,6 +444,8 @@ export default function useDemoCommands({ setChatMessages, setNavStack, tabsConf
     customJPs: state.customJPs,
     addAttachment,
     removeAttachment,
+    setRationale,
+    setRationaleMatching,
     setAttachmentsForDecision,
     upsertCustomJP,
     removeCustomJP,
