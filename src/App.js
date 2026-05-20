@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, PencilLine, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, UserRound, Users, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowRight, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, CircleArrowDown, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp, Focus, LogOut, CreditCard, SlidersHorizontal, Wand2, BookOpen, Globe, Crown, AlignLeft, ScanLine, Star, Bookmark, Home } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, Plus, X, Edit3, Pencil, PencilLine, Check, AlertTriangle, RefreshCw, Calendar, Landmark, Upload, Sparkles, Loader2, Search, HelpCircle, Eye, Trash2, FileQuestion, Download, Settings, AlertCircle, Receipt, ClipboardList, FileSpreadsheet, Activity, FileSearch, ListChecks, MoreHorizontal, MoreVertical, User, UserRound, Users, Copy, Plug2, GripVertical, CheckCircle2, Clipboard, Filter, ListFilter, ArrowDown, ArrowRight, ArrowDownCircle, Scissors, Paperclip, ThumbsUp, ThumbsDown, RotateCcw, Lightbulb, ArrowUp, Square, FileMinus, Radical, PanelRightClose, CircleArrowUp, CircleArrowDown, LayoutGrid, HeartPulse, Wallet, Scale, Brain, ShieldCheck, Table2, ExternalLink, FileUp, CirclePlus, Hand, Clock, TrendingUp, Focus, LogOut, CreditCard, SlidersHorizontal, Wand2, BookOpen, Globe, Crown, AlignLeft, ScanLine, Star, Bookmark, Home, Stamp } from 'lucide-react';
 import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -1039,7 +1039,12 @@ export default function App() {
   const [activeDossierId, setActiveDossierId] = useState(null);
 
   // ========== SETTINGS ==========
-  const [settingsSection, setSettingsSection] = useState('general'); // 'general' | 'users' | 'preferences' | 'billing' | 'baremes' | 'templates'
+  const [settingsSection, setSettingsSection] = useState('general'); // 'general' | 'tampon' | 'users' | 'preferences' | 'billing' | 'baremes' | 'templates'
+  // Votre tampon — defaults derived from {{family_Name}} ("Régior") and the lawyer's standard role.
+  const [tamponLine1, setTamponLine1] = useState('Maître Régior');
+  const [tamponLine2, setTamponLine2] = useState('Avocat à la cour');
+  const [tamponFirstPageOnly, setTamponFirstPageOnly] = useState(false);
+  const [tamponPosition, setTamponPosition] = useState('bas-droite'); // 'haut-gauche' | 'haut-droite' | 'bas-gauche' | 'bas-droite'
   const [billingState, setBillingState] = useState('paid'); // 'free' | 'trial' | 'trial-end' | 'paid' | 'credits' | 'over'
   const [billingTierIndex, setBillingTierIndex] = useState(1); // selected tier in upgrade slider
   const [billingUpgradeModalOpen, setBillingUpgradeModalOpen] = useState(false);
@@ -2386,13 +2391,42 @@ export default function App() {
             </button>
             {/* Divider */}
             <div className="w-px h-5 bg-[#d9d9d9]" />
-            <button
-              onClick={downloadAllAsZip}
-              className="flex items-center justify-center w-8 h-8 bg-white border border-[#e7e5e3] text-[#78716c] hover:text-[#44403c] hover:bg-[#fafaf9] rounded-md shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)] transition-colors"
-              title="Télécharger tout"
-            >
-              <Download className="w-4 h-4" strokeWidth={1.5} />
-            </button>
+            <div className="relative" ref={downloadMenuRef}>
+              <button
+                onClick={() => setDownloadMenuOpen(o => !o)}
+                className={`flex items-center gap-2 h-8 px-3 rounded-[6px] transition-colors ${downloadMenuOpen ? 'bg-[#e7e5e3] text-[#44403c]' : 'bg-[#eeece6] text-[#44403c] hover:bg-[#e7e5e3]'}`}
+              >
+                <Download className="w-4 h-4" strokeWidth={1.5} />
+                <span className="text-sm font-medium">Télécharger</span>
+              </button>
+
+              {downloadMenuOpen && (
+                <div
+                  className="absolute right-0 top-10 z-50 bg-white rounded-[8px] border border-[#e7e5e3] overflow-hidden"
+                  style={{ width: 260, boxShadow: '0px 2px 4px -2px rgba(26,26,26,0.05), 0px 4px 6px -1px rgba(26,26,26,0.05)' }}
+                >
+                  <div className="px-3 pt-2.5 pb-1.5">
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Télécharger le bordereau...
+                    </span>
+                  </div>
+                  <div className="p-1">
+                    <button
+                      className="w-full flex items-center justify-between px-2 py-1.5 text-left rounded-[6px] hover:bg-[#fafaf9] transition-colors"
+                      onClick={() => { setDownloadMenuOpen(false); downloadAllAsZip(); }}
+                    >
+                      <span className="text-[14px] text-[#292524]">Avec tamponnage</span>
+                    </button>
+                    <button
+                      className="w-full flex items-center justify-between px-2 py-1.5 text-left rounded-[6px] hover:bg-[#fafaf9] transition-colors"
+                      onClick={() => { setDownloadMenuOpen(false); downloadAllAsZip(); }}
+                    >
+                      <span className="text-[14px] text-[#292524]">Sans tamponnage</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             {dossierStatut !== 'fermé' && (
               <button
                 onClick={copyBordereau}
@@ -4383,6 +4417,8 @@ export default function App() {
   const [attachMenuOpen, setAttachMenuOpen] = useState(false); // false | 'main' | 'pieces' | 'templates'
   const [attachSearch, setAttachSearch] = useState('');
   const attachMenuRef = useRef(null);
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
+  const downloadMenuRef = useRef(null);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const suggestionsRef = useRef(null);
   // @-mention state
@@ -4406,6 +4442,16 @@ export default function App() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [attachMenuOpen]);
+
+  // Close download menu on click outside
+  useEffect(() => {
+    if (!downloadMenuOpen) return;
+    const handleClick = (e) => {
+      if (downloadMenuRef.current && !downloadMenuRef.current.contains(e.target)) setDownloadMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [downloadMenuOpen]);
 
   // Close suggestions menu on click outside
   useEffect(() => {
@@ -13561,12 +13607,42 @@ export default function App() {
                   )}
                 </button>
                 <div className="w-px h-5 bg-[#d9d9d9]" />
-                <button
-                  onClick={downloadDropFirstAsZip}
-                  className="flex items-center justify-center w-8 h-8 bg-[#eeece6] rounded-[6px] hover:bg-[#e7e5e3] transition-colors"
-                >
-                  <Download className="w-4 h-4 text-[#44403c]" strokeWidth={1.5} />
-                </button>
+                <div className="relative" ref={downloadMenuRef}>
+                  <button
+                    onClick={() => setDownloadMenuOpen(o => !o)}
+                    className={`flex items-center gap-2 h-8 px-3 rounded-[6px] transition-colors ${downloadMenuOpen ? 'bg-[#e7e5e3] text-[#44403c]' : 'bg-[#eeece6] text-[#44403c] hover:bg-[#e7e5e3]'}`}
+                  >
+                    <Download className="w-4 h-4" strokeWidth={1.5} />
+                    <span className="text-sm font-medium">Télécharger</span>
+                  </button>
+
+                  {downloadMenuOpen && (
+                    <div
+                      className="absolute right-0 top-10 z-50 bg-white rounded-[8px] border border-[#e7e5e3] overflow-hidden"
+                      style={{ width: 260, boxShadow: '0px 2px 4px -2px rgba(26,26,26,0.05), 0px 4px 6px -1px rgba(26,26,26,0.05)' }}
+                    >
+                      <div className="px-3 pt-2.5 pb-1.5">
+                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Télécharger le bordereau...
+                        </span>
+                      </div>
+                      <div className="p-1">
+                        <button
+                          className="w-full flex items-center justify-between px-2 py-1.5 text-left rounded-[6px] hover:bg-[#fafaf9] transition-colors"
+                          onClick={() => { setDownloadMenuOpen(false); downloadDropFirstAsZip(); }}
+                        >
+                          <span className="text-[14px] text-[#292524]">Avec tamponnage</span>
+                        </button>
+                        <button
+                          className="w-full flex items-center justify-between px-2 py-1.5 text-left rounded-[6px] hover:bg-[#fafaf9] transition-colors"
+                          onClick={() => { setDownloadMenuOpen(false); downloadDropFirstAsZip(); }}
+                        >
+                          <span className="text-[14px] text-[#292524]">Sans tamponnage</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 {dossierStatut !== 'fermé' && (
                   <button
                     onClick={handleCopyBordereau}
@@ -19271,12 +19347,303 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
     </>
   );
 
+  // Visual stamp preview — circular tampon with curved text top/bottom, "PIÈCE N°" inner ring,
+  // diamond markers on the equator. Mirrors the Figma reference (node 1939:23283).
+  const renderTamponStamp = ({ size = 160, line1 = tamponLine1, line2 = tamponLine2, sample = 60 } = {}) => {
+    const s = size;
+    const cx = s / 2;
+    const cy = s / 2;
+    // Figma reference (node 1939:23283): outer 120 / inner 80 on a 160 canvas → ratio 1.5
+    const rOuter = s * 0.375;
+    const rInner = s * 0.25;
+    const diamondSize = s * 0.035;
+    const stroke = 1.33;
+    const fontTop = s * 0.07;
+    const fontBottom = s * 0.07;
+    // Figma: PIÈCE N° at 10px, "60" at 37.94px on 80px inner → 10/160, 38/160 of canvas
+    const fontLabel = s * 0.0625;
+    const fontNumber = s * 0.2375;
+    const charSpacing = s * 0.0035;
+
+    // Vertically center the label + number stack inside the inner circle, using approximate
+    // cap heights so the visual block (not the line boxes) is balanced — same effect as
+    // Figma's [text-box-trim:trim-both] with a 6px gap.
+    const labelCap = fontLabel * 0.7;      // IBM Plex Mono cap height ≈ 0.7em
+    const numberCap = fontNumber * 0.715;  // Arial digit height ≈ 0.715em
+    const innerGap = s * 0.0375;           // 6px on a 160 canvas
+    const stackHeight = labelCap + innerGap + numberCap;
+    const labelBaselineY = cy - stackHeight / 2 + labelCap;
+    const numberBaselineY = labelBaselineY + innerGap + numberCap;
+
+    // Curved text rides on the midline of the annulus, so it sits centered
+    // between the inner stamp circle and the outer (dotted) ring.
+    const rArc = (rOuter + rInner) / 2;
+
+    return (
+      <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} role="img" aria-label="Aperçu du tampon">
+        <defs>
+          <path
+            id={`tampon-curve-top-${s}`}
+            d={`M ${cx - rArc},${cy} A ${rArc},${rArc} 0 0 1 ${cx + rArc},${cy}`}
+            fill="none"
+          />
+          <path
+            id={`tampon-curve-bottom-${s}`}
+            d={`M ${cx - rArc},${cy} A ${rArc},${rArc} 0 0 0 ${cx + rArc},${cy}`}
+            fill="none"
+          />
+        </defs>
+
+        {/* Outer ring */}
+        <circle cx={cx} cy={cy} r={rOuter} fill="none" stroke="#292524" strokeWidth={stroke} />
+
+        {/* Inner stamp circle */}
+        <circle cx={cx} cy={cy} r={rInner} fill="none" stroke="#292524" strokeWidth={stroke} />
+
+        {/* PIÈCE N° label */}
+        <text
+          x={cx}
+          y={labelBaselineY}
+          textAnchor="middle"
+          fontFamily="'IBM Plex Mono', monospace"
+          fontWeight={700}
+          fontSize={fontLabel}
+          letterSpacing={-fontLabel * 0.04}
+          fill="#292524"
+        >
+          PIÈCE N°
+        </text>
+
+        {/* Sample number */}
+        <text
+          x={cx}
+          y={numberBaselineY}
+          textAnchor="middle"
+          fontFamily="Arial, sans-serif"
+          fontSize={fontNumber}
+          fill="#292524"
+        >
+          {sample}
+        </text>
+
+        {/* Top + bottom curved text — `central` baseline centers each glyph's em-box
+            on the arc path, so the text is visually centered in the annulus regardless
+            of which side of the path the renderer lays glyphs out on. */}
+        {line1 ? (
+          <text fontFamily="'RL Para Trial Central', Georgia, 'Times New Roman', serif" fontSize={fontTop} fill="#292524" letterSpacing={charSpacing} dominantBaseline="central">
+            <textPath href={`#tampon-curve-top-${s}`} startOffset="50%" textAnchor="middle">
+              {line1}
+            </textPath>
+          </text>
+        ) : null}
+
+        {line2 ? (
+          <text fontFamily="'RL Para Trial Central', Georgia, 'Times New Roman', serif" fontSize={fontBottom} fill="#292524" letterSpacing={charSpacing} dominantBaseline="central">
+            <textPath href={`#tampon-curve-bottom-${s}`} startOffset="50%" textAnchor="middle">
+              {line2}
+            </textPath>
+          </text>
+        ) : null}
+
+        {/* Equator diamonds — white stroke creates a halo that masks the outer ring
+            passing through the diamond, matching the Figma reference. */}
+        <rect
+          x={cx - rOuter - diamondSize / 2}
+          y={cy - diamondSize / 2}
+          width={diamondSize}
+          height={diamondSize}
+          transform={`rotate(45 ${cx - rOuter} ${cy})`}
+          fill="#292524"
+          stroke="#ffffff"
+          strokeWidth={diamondSize * 0.5}
+          paintOrder="stroke"
+        />
+        <rect
+          x={cx + rOuter - diamondSize / 2}
+          y={cy - diamondSize / 2}
+          width={diamondSize}
+          height={diamondSize}
+          transform={`rotate(45 ${cx + rOuter} ${cy})`}
+          fill="#292524"
+          stroke="#ffffff"
+          strokeWidth={diamondSize * 0.5}
+          paintOrder="stroke"
+        />
+      </svg>
+    );
+  };
+
+  const renderSettingsTampon = () => {
+    const POSITIONS = [
+      { id: 'haut-gauche', label: 'Haut gauche' },
+      { id: 'haut-droite', label: 'Haut droite' },
+      { id: 'bas-gauche',  label: 'Bas gauche'  },
+      { id: 'bas-droite',  label: 'Bas droite'  },
+    ];
+
+    // Figma reference: SETTINGS > STAMPING / TAMPONNAGE (node 2183:17160).
+    // Each row: label + "Optionnel" helper on the left, control on the right, single line.
+    const fieldRowClass = "flex items-center gap-3 px-5 py-4";
+    const fieldLabelGroupClass = "flex flex-1 items-center gap-2 min-w-0";
+    const fieldLabelClass = "text-body-medium text-[#292524] whitespace-nowrap";
+    const fieldHelperClass = "text-[12px] text-[#78716c] tracking-[0.01em]";
+    const fieldControlClass = "flex-1 min-w-0";
+
+    return (
+      <>
+        <div className="flex-1 overflow-y-auto px-8 py-10">
+          <div className="max-w-5xl w-full mx-auto">
+            {renderSettingsHeader(
+              'Tamponnage',
+              "Personnalisez le tampon apposé automatiquement sur les pièces de vos dossiers.",
+              <button
+                onClick={() => {
+                  setToastMessage('Tampon enregistré.');
+                  setTimeout(() => setToastMessage(null), 3000);
+                }}
+                className="flex items-center gap-2 h-9 px-4 bg-[#292524] text-white text-body-medium rounded-lg hover:bg-[#44403c] transition-colors flex-shrink-0"
+                style={{ boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+              >
+                <Plus className="w-4 h-4" strokeWidth={2} />
+                Ajouter un modèle
+              </button>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_326px] gap-6 items-start">
+              {/* ─── Form card ─── */}
+              <div className="bg-white rounded-md border border-[#e7e5e3] overflow-hidden divide-y divide-[#e7e5e3] shadow-sm">
+                {/* Ligne 1 */}
+                <div className={fieldRowClass}>
+                  <div className={fieldLabelGroupClass}>
+                    <label htmlFor="tampon-line-1" className={fieldLabelClass}>Ligne 1</label>
+                    <span className={fieldHelperClass}>Optionnel</span>
+                  </div>
+                  <div className={fieldControlClass}>
+                    <input
+                      id="tampon-line-1"
+                      type="text"
+                      value={tamponLine1}
+                      onChange={(e) => setTamponLine1(e.target.value)}
+                      placeholder="Maître Chessika"
+                      className="w-full h-9 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                      style={{ boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Ligne 2 */}
+                <div className={fieldRowClass}>
+                  <div className={fieldLabelGroupClass}>
+                    <label htmlFor="tampon-line-2" className={fieldLabelClass}>Ligne 2</label>
+                    <span className={fieldHelperClass}>Optionnel</span>
+                  </div>
+                  <div className={fieldControlClass}>
+                    <input
+                      id="tampon-line-2"
+                      type="text"
+                      value={tamponLine2}
+                      onChange={(e) => setTamponLine2(e.target.value)}
+                      placeholder="Avocat à la cour"
+                      className="w-full h-9 px-3 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524]"
+                      style={{ boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                    />
+                  </div>
+                </div>
+
+                {/* First page only */}
+                <div className={fieldRowClass}>
+                  <div className={fieldLabelGroupClass}>
+                    <span className={fieldLabelClass}>Tampon sur la 1ère page uniquement</span>
+                  </div>
+                  <div className={fieldControlClass}>
+                    <div
+                      className="inline-flex rounded-lg overflow-hidden border border-[#e7e5e3]"
+                      role="radiogroup"
+                      aria-label="Tampon sur la 1ère page uniquement"
+                      style={{ boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                    >
+                      {[
+                        { val: true,  label: 'Oui' },
+                        { val: false, label: 'Non' },
+                      ].map((opt, i) => {
+                        const active = tamponFirstPageOnly === opt.val;
+                        return (
+                          <button
+                            key={String(opt.val)}
+                            role="radio"
+                            aria-checked={active}
+                            onClick={() => setTamponFirstPageOnly(opt.val)}
+                            className={`px-3 h-9 text-[13px] transition-colors ${i > 0 ? 'border-l border-[#e7e5e3]' : ''} ${active ? 'bg-[#292524] text-white font-medium' : 'bg-[#f8f7f5] text-[#78716c] hover:text-[#292524]'}`}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Position */}
+                <div className={fieldRowClass}>
+                  <div className={fieldLabelGroupClass}>
+                    <label htmlFor="tampon-position" className={fieldLabelClass}>Position sur le document</label>
+                  </div>
+                  <div className={fieldControlClass}>
+                    <div className="relative w-full">
+                      <select
+                        id="tampon-position"
+                        value={tamponPosition}
+                        onChange={(e) => setTamponPosition(e.target.value)}
+                        className="appearance-none w-full h-9 pl-3 pr-9 text-[14px] text-[#292524] bg-white border border-[#e7e5e3] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#292524] cursor-pointer"
+                        style={{ boxShadow: '0 1px 2px rgba(26,26,26,0.05)' }}
+                      >
+                        {POSITIONS.map(opt => (
+                          <option key={opt.id} value={opt.id}>{opt.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#78716c] pointer-events-none"
+                        strokeWidth={2}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ─── Preview card ─── */}
+              <div
+                className="bg-white rounded-md border border-[#e7e5e3] overflow-hidden lg:sticky lg:top-10"
+                style={{ boxShadow: '0 4px 6px -4px rgba(26,26,26,0.05), 0 10px 15px -3px rgba(26,26,26,0.05)' }}
+              >
+                <div className="px-4 py-3 border-b border-[#e7e5e3] flex items-center gap-3">
+                  <Eye className="w-4 h-4 text-[#78716c]" strokeWidth={2} />
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Aperçu
+                  </span>
+                </div>
+                <div className="px-6 py-10 flex flex-col items-center justify-center bg-white">
+                  {renderTamponStamp({ size: 200, sample: 60 })}
+                </div>
+                <div className="px-4 py-4 border-t border-[#e7e5e3] flex items-center justify-center">
+                  <p className="text-[12px] text-[#78716c] text-center leading-snug max-w-[286px]">
+                    La pièce n° s'incrémente automatiquement à chaque document tamponné.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  };
+
   const renderSettingsPage = () => {
     const SECTION_GROUPS = [
       {
         label: 'Votre compte',
         items: [
           { id: 'general', label: 'Général', icon: User },
+          { id: 'tampon', label: 'Tamponnage', icon: Stamp },
         ],
       },
       {
@@ -19343,6 +19710,7 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
         <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
           {settingsSection === 'users' && renderSettingsUsers()}
           {settingsSection === 'general' && renderSettingsGeneral()}
+          {settingsSection === 'tampon' && renderSettingsTampon()}
           {settingsSection === 'preferences' && renderSettingsPreferences()}
           {settingsSection === 'billing' && renderSettingsBilling()}
           {settingsSection === 'baremes' && renderSettingsBaremes()}
