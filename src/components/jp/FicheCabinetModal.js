@@ -49,7 +49,7 @@ export default function FicheCabinetModal({ reference, existing, onClose, onSave
         {/* Card Header */}
         <div className="flex flex-col gap-1 px-6 pt-6 pb-0">
           <h2 style={{ fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif", fontSize: 24, fontWeight: 500, color: '#292524', letterSpacing: '-0.6px', lineHeight: '28px', margin: 0 }}>
-            Compléter la fiche cabinet
+            Dites-nous pourquoi cette jurisprudence est pertinente&nbsp;?
           </h2>
           {reference && (
             <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 13, color: '#78716c', lineHeight: '20px', marginTop: 4 }}>
@@ -59,7 +59,7 @@ export default function FicheCabinetModal({ reference, existing, onClose, onSave
         </div>
 
         {/* Content */}
-        <div className="flex flex-col gap-7 px-6 pt-8 pb-8">
+        <div className="flex flex-col gap-6 px-6 pt-6 pb-8">
           {/* PDF drop zone */}
           <div className="flex flex-col gap-2">
             <label style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>
@@ -102,7 +102,7 @@ export default function FicheCabinetModal({ reference, existing, onClose, onSave
                     <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, lineHeight: '20px', color: '#78716c' }}>
                       Déposez ou{' '}
                       <span style={{ color: '#1e3a8a', fontWeight: 500 }}>cliquez</span>
-                      {' '}pour ajouter le PDF de la décision
+                      {' '}pour ajouter un justificatif
                     </p>
                   </>
                 )}
@@ -111,10 +111,19 @@ export default function FicheCabinetModal({ reference, existing, onClose, onSave
             </label>
           </div>
 
-          {/* OR — URL */}
+          {/* OU divider */}
+          <div className="flex items-center gap-3" style={{ marginTop: -4, marginBottom: -4 }}>
+            <span className="flex-1 h-px bg-[#e7e5e3]" />
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#a8a29e', letterSpacing: '0.1em' }}>
+              OU
+            </span>
+            <span className="flex-1 h-px bg-[#e7e5e3]" />
+          </div>
+
+          {/* Lien de la décision */}
           <div className="flex flex-col gap-2">
             <label style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>
-              Ou collez un lien vers la décision
+              Lien de la décision
             </label>
             <div
               className="flex items-center gap-1 px-3 py-2 bg-white"
@@ -129,11 +138,14 @@ export default function FicheCabinetModal({ reference, existing, onClose, onSave
                 type="text"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="URL Légifrance, Doctrine…"
+                placeholder="https://"
                 className="flex-1 bg-transparent text-[14px] text-[#292524] placeholder-[#a8a29e] focus:outline-none"
                 style={{ fontFamily: "'Inter', system-ui, sans-serif", lineHeight: '20px' }}
               />
             </div>
+            <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 12, color: '#a8a29e', lineHeight: '18px' }}>
+              Lien doctrine, lexis, lexbase, légifrance, etc.
+            </p>
           </div>
 
           {/* Apport */}
@@ -144,7 +156,7 @@ export default function FicheCabinetModal({ reference, existing, onClose, onSave
             <textarea
               value={impact}
               onChange={(e) => setImpact(e.target.value)}
-              rows={4}
+              rows={6}
               placeholder="Ex. Taux horaire ATPT de 28 €/h pour une étudiante résidant à Paris intra-muros."
               className="w-full px-3 py-2 text-[14px] text-[#292524] bg-white placeholder-[#a8a29e] focus:outline-none focus:border-[#a8a29e] resize-y"
               style={{
@@ -155,9 +167,6 @@ export default function FicheCabinetModal({ reference, existing, onClose, onSave
                 boxShadow: '0 1px 2px rgba(26,26,26,0.05)',
               }}
             />
-            <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 12, color: '#a8a29e', lineHeight: '18px' }}>
-              Phrase claire que l'agent utilisera pour citer la décision.
-            </p>
           </div>
         </div>
 
@@ -197,7 +206,7 @@ export default function FicheCabinetModal({ reference, existing, onClose, onSave
               filter: canSave ? 'drop-shadow(0 1px 1px rgba(26,26,26,0.05))' : 'none',
             }}
           >
-            Enregistrer la fiche
+            Enregistrer
           </button>
         </div>
       </div>

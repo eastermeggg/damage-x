@@ -2,24 +2,28 @@ import React from 'react';
 import { Bookmark, ExternalLink } from 'lucide-react';
 import { formatDateShort, splitValue } from '../../data/mockDecisions';
 
-// Inline JP reference. Four densities for different rhetorical roles:
+// Inline JP reference. Two real contexts — chat and acte — expressed as
+// five variants:
 //
+//   ── Chat context (agent prose) ────────────────────────────────────────
 //   - ref : [saved?] n° pourvoi [↗]
-//           → bare reference identifier, used INSIDE textual citations the
-//             agent writes (e.g. "Cass. 2e civ., 12 décembre 2019, n° [pill]").
-//             The prose carries jurisdiction + date; the pill carries the id
-//             and an external-link affordance.
+//           → bare reference used INSIDE textual citations the agent writes
+//             (e.g. "Cass. 2e civ., 12 décembre 2019, n° [pill]"). The prose
+//             carries jurisdiction + date; the pill carries the id + an
+//             external-link affordance.
 //
+//   - quantum : [saved?] n° · poste·quantum [↗]
+//           → ref + the headline figure (value + unit). For chat moments
+//             where the agent says "and the court fixed it at [pill]".
+//
+//   ── Acte context (generated legal documents) ──────────────────────────
+//   - acte : [saved?] jurisdiction · date · n°
+//           → full prose citation inside a generated acte. No external-link
+//             icon — actes are static documents, not interactive surfaces.
+//
+//   ── Legacy / dense lists (kept for backwards-compat) ──────────────────
 //   - xs  : [saved?] jurisdiction · n° pourvoi
-//           → standalone inline citation when the prose doesn't already name
-//             the court ("comme dans CA Paris · 22/01234, ...").
-//
 //   - sm  : [saved?] jurisdiction · date · n° · poste · quantum
-//           → dense result lists in chat (search results).
-//
-//   - quantum : [saved?] n° · poste·quantum
-//           → "what was the value here?" — focus on the saved JP's headline
-//             figure (used in tables/charts of saved JPs by value).
 //
 // All variants share the same height (22–24 px) and baseline so they flow
 // inside running text without breaking the line.
@@ -52,6 +56,8 @@ export default function JPPill({
   const isRef = variant === 'ref';
   const isXs = variant === 'xs';
   const isQuantum = variant === 'quantum';
+  const isActe = variant === 'acte';
+  const isSm = variant === 'sm';
   const amt = decision.amounts?.[0];
   const { num, unit } = splitValue(amt?.displayValue);
 
@@ -59,14 +65,15 @@ export default function JPPill({
 
   // Slot composition by variant:
   //  - ref     → numero + external-link icon
+  //  - quantum → numero + poste + quantum + external-link icon
+  //  - acte    → jurisdiction + date + numero (no icon — static doc context)
   //  - xs      → jurisdiction + numero
-  //  - quantum → numero + poste + quantum
   //  - sm      → jurisdiction + date + numero + poste + quantum (default)
-  const showJurisdiction = isXs || (!isRef && !isQuantum); // xs, sm
-  const showDate = !isRef && !isXs && !isQuantum;          // sm only
-  const showNumero = !!decision.numero;                    // all
-  const showPoste = (isQuantum || (!isRef && !isXs)) && amt; // quantum, sm
-  const showExternalIcon = isRef;                          // ref only
+  const showJurisdiction = isXs || isActe || isSm;
+  const showDate = isActe || isSm;
+  const showNumero = !!decision.numero;
+  const showPoste = (isQuantum || isSm) && amt;
+  const showExternalIcon = isRef || isQuantum;
 
   return (
     <span
@@ -114,8 +121,8 @@ export default function JPPill({
       )}
       {showNumero && (
         <>
-          {showJurisdiction && sep}
-          <span style={isRef ? PILL_TEXT : PILL_FAINT}>{decision.numero}</span>
+          {(showJurisdiction || showDate) && sep}
+          <span style={(isRef || isQuantum) ? PILL_TEXT : PILL_FAINT}>{decision.numero}</span>
         </>
       )}
       {showPoste && (

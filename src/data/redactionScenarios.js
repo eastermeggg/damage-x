@@ -365,21 +365,21 @@ B. Perte de gains professionnels actuels (PGPA)
 
 Monsieur DUPONT justifie de revenus annuels de 48 000 € [pièce:3:Bulletins de salaire année 2022:10/01/2023] [pièce:11:Attestation de salaire employeur:20/03/2023].
 
-La perte de gains sur la période d'arrêt de travail (14 mois) s'établit à 56 000 €, sous déduction des indemnités journalières CPAM et des indemnités complémentaires AG2R [pièce:13:Décompte indemnités prévoyance AG2R:15/08/2023].
+La perte de gains sur la période d'arrêt de travail (14 mois) s'établit à 56 000 €, calculée selon la méthode du différentiel salaire net / indemnités journalières retenue par la jurisprudence [jp:jp-pgpa-01], sous déduction des indemnités journalières CPAM et des indemnités complémentaires AG2R [pièce:13:Décompte indemnités prévoyance AG2R:15/08/2023].
 
 Reste à charge : 18 340 €.
 
 C. Déficit fonctionnel temporaire (DFT)
 
-Sur la base de 33 € par jour de DFT total, conformément à la jurisprudence de la Cour d'appel de Paris, le DFT s'établit comme suit :
+Sur la base de 33 € par jour de DFT total, conformément à la jurisprudence récente des cours d'appel [jp:jp-dft-01], le DFT s'établit comme suit :
 - DFT total (15/03/2023 au 15/09/2023) : 184 jours × 33 € = 6 072 €
-- DFT partiel 50% (16/09/2023 au 12/09/2024) : 362 jours × 16,50 € = 5 973 €
+- DFT partiel 50% (16/09/2023 au 12/09/2024) : 362 jours × 16,50 € = 5 973 € — prorata du taux total constamment admis [jp:jp-dft-02]
 
 Total DFT : 12 045 €.
 
 D. Souffrances endurées (SE)
 
-Cotées à 4/7 par l'expert, les souffrances endurées justifient une indemnisation de 28 000 €, conformément au référentiel de la Cour d'appel de Paris (2024).
+Cotées à 4/7 par l'expert, les souffrances endurées justifient une indemnisation de 28 000 €. Cette évaluation s'inscrit dans la fourchette des décisions récentes pour une cotation équivalente [jp:jp-se-02], étant relevé qu'une cotation de 5/7 ouvre droit à des montants supérieurs [jp:jp-se-01].
 
 IV. DISPOSITIF
 
@@ -497,7 +497,7 @@ En effet, Monsieur DUPONT conserve :
 - Une boiterie permanente à la marche prolongée
 - Des douleurs chroniques nécessitant un traitement antalgique quotidien [pièce:6:Ordonnance médicaments juillet:18/07/2023]
 
-La littérature médicale (Barème indicatif des déficits fonctionnels séquellaires en droit commun, Concours Médical) retient pour une raideur du genou avec limitation significative un taux de 12 à 15%.
+La littérature médicale (Barème indicatif des déficits fonctionnels séquellaires en droit commun, Concours Médical) retient pour une raideur du genou avec limitation significative un taux de 12 à 15%. La jurisprudence valorise par ailleurs le point de DFP à 2 350 € pour une victime jeune dans une situation comparable [jp:jp-dfp-01], ce qui rend l'écart entre 8% et 12% particulièrement significatif sur le montant final.
 
 Nous sollicitons la réévaluation du taux de DFP à 12%.
 
@@ -639,10 +639,10 @@ Article 3 — Indemnisation
 L'Assureur versera à la Victime la somme globale et forfaitaire de CENT QUATRE-VINGT-CINQ MILLE EUROS (185 000 €), ventilée comme suit :
 
 - Dépenses de santé actuelles (reste à charge) : 3 421,80 € [pièce:1:Facture hospitalisation CHU Bordeaux:15/03/2023]
-- Perte de gains professionnels actuels : 18 340 € [pièce:3:Bulletins de salaire année 2022:10/01/2023]
-- Déficit fonctionnel temporaire : 12 045 €
-- Souffrances endurées : 28 000 €
-- Déficit fonctionnel permanent : 42 000 €
+- Perte de gains professionnels actuels : 18 340 € [pièce:3:Bulletins de salaire année 2022:10/01/2023] [jp:jp-pgpa-01]
+- Déficit fonctionnel temporaire : 12 045 € [jp:jp-dft-01]
+- Souffrances endurées : 28 000 € (cotation 4/7) [jp:jp-se-02]
+- Déficit fonctionnel permanent : 42 000 € (10% × 2 350 €/pt × coefficient âge) [jp:jp-dfp-01]
 - Préjudice esthétique permanent : 5 000 €
 - Incidence professionnelle : 65 000 €
 - Préjudice d'agrément : 8 000 €

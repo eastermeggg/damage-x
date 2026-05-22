@@ -328,11 +328,11 @@ export default function DecisionDrawer({
       >
         {/* ═══════════ TOP BAR ═══════════
             Row 1: prev/next (left) ······································· close (right)
-            Row 2: Title (serif)
-            Row 3: Subline (date · n° · Légifrance) ················· Sauvegarder button */}
+            Row 2: Title (serif 24px) + meta + actions
+            Aligned on Figma node 2219:19616 — 24px py, 20px px, gap 12 */}
         <div
-          className="px-5 pt-3 pb-4 border-b border-[#e7e5e3] flex flex-col gap-2 flex-shrink-0"
-          style={{ backgroundColor: '#f8f7f5' }}
+          className="border-b border-[#e7e5e3] flex flex-col flex-shrink-0"
+          style={{ backgroundColor: '#f8f7f5', padding: '24px 20px', gap: 12 }}
         >
           {/* Row 1 — prev/next (left) · close (right) */}
           <div className="flex items-center justify-between">
@@ -342,7 +342,7 @@ export default function DecisionDrawer({
                   className={`p-1 rounded-md transition-colors ${canPrev ? 'text-[#78716c] hover:text-[#292524] hover:bg-[#eeece6]' : 'text-[#d6d3d1] cursor-not-allowed'}`}>
                   <ChevronRight className="w-3.5 h-3.5 rotate-180" />
                 </button>
-                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: '#a8a29e', minWidth: 36, textAlign: 'center' }}>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#78716c', opacity: 0.7, minWidth: 36, textAlign: 'center', textTransform: 'uppercase' }}>
                   {resultIndex + 1}/{resultSet.length}
                 </span>
                 <button onClick={onNext} disabled={!canNext}
@@ -361,42 +361,41 @@ export default function DecisionDrawer({
             </button>
           </div>
 
-          {/* Row 2 — Title (serif) */}
-          <h1
-            className="truncate"
-            style={{
-              fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
-              fontSize: 18, fontWeight: 500, color: '#292524',
-              letterSpacing: '-0.5px', lineHeight: '20px', margin: 0,
-            }}
-          >
-            {decision.jurisdiction}
-            {decision.chambre ? ` - ${decision.chambre}` : ''}
-            {hasDate ? ` - ${formatDateLong(decision.date)}` : ''}
-          </h1>
-
-          {/* Row 3 — Subline (left) · Sauvegarder (right) */}
-          <div className="flex items-end justify-between gap-3">
-            <div className="flex items-center flex-wrap min-w-0" style={{ gap: 16, minHeight: 18 }}>
-              {hasDate && (
-                <div className="flex items-center" style={{ gap: 6 }}>
-                  <Calendar className="w-3 h-3 flex-shrink-0" style={{ color: '#78716c' }} />
-                  <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 12, lineHeight: '18px', color: '#292524', whiteSpace: 'nowrap' }}>
-                    {formatDateLong(decision.date)}
-                  </span>
-                </div>
-              )}
-              {decision.numero && (
-                <div className="flex items-center" style={{ gap: 6 }}>
-                  <Hash className="w-3 h-3 flex-shrink-0" style={{ color: '#78716c' }} />
-                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, lineHeight: '18px', color: '#78716c', whiteSpace: 'nowrap' }}>
-                    {decision.numero}
-                  </span>
-                </div>
-              )}
+          {/* Row 2 — title + meta (left) ················ actions (right) */}
+          <div className="flex items-end justify-between gap-4">
+            <div className="flex flex-col min-w-0" style={{ gap: 10 }}>
+              <h1
+                style={{
+                  fontFamily: "'RL Para Trial Central', Georgia, 'Times New Roman', serif",
+                  fontSize: 24, fontWeight: 500, color: '#292524',
+                  letterSpacing: '-0.6px', lineHeight: '28px', margin: 0,
+                }}
+              >
+                {decision.jurisdiction}
+                {decision.chambre ? ` - ${decision.chambre}` : ''}
+                {hasDate ? ` - ${formatDateLong(decision.date)}` : ''}
+              </h1>
+              <div className="flex items-center flex-wrap min-w-0" style={{ gap: 16, minHeight: 18 }}>
+                {hasDate && (
+                  <div className="flex items-center" style={{ gap: 6 }}>
+                    <Calendar className="w-3 h-3 flex-shrink-0" style={{ color: '#78716c' }} />
+                    <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 12, lineHeight: '18px', color: '#292524', whiteSpace: 'nowrap' }}>
+                      {formatDateLong(decision.date)}
+                    </span>
+                  </div>
+                )}
+                {decision.numero && (
+                  <div className="flex items-center" style={{ gap: 6 }}>
+                    <Hash className="w-3 h-3 flex-shrink-0" style={{ color: '#78716c' }} />
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, lineHeight: '18px', color: '#78716c', whiteSpace: 'nowrap' }}>
+                      {decision.numero}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {/* PDF — outlined pill action */}
+              {/* PDF — secondary button */}
               {decision.legifranceUrl && (
                 <a
                   href={decision.legifranceUrl}
@@ -404,14 +403,14 @@ export default function DecisionDrawer({
                   rel="noopener noreferrer"
                   title="Télécharger le PDF"
                   aria-label="Télécharger le PDF"
-                  className="inline-flex items-center gap-1.5 transition-all"
+                  className="inline-flex items-center gap-1.5 transition-colors"
                   style={{
                     height: 32, padding: '0 10px', borderRadius: 8,
-                    backgroundColor: 'transparent', color: '#44403c',
-                    border: '1px solid #d6d3d1', fontSize: 13, fontWeight: 500,
+                    backgroundColor: '#eeece6', color: '#44403c',
+                    border: 'none', fontSize: 13, fontWeight: 500,
                   }}
-                  onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#eeece6'; }}
-                  onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#e7e5e3'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#eeece6'; }}
                 >
                   <Download className="w-4 h-4" strokeWidth={1.75} />
                   PDF
@@ -496,11 +495,14 @@ export default function DecisionDrawer({
           )}
         </div>
 
-        {/* ═══════════ TWO-COLUMN BODY ═══════════ */}
-        <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* ═══════════ TWO-COLUMN BODY ═══════════
+            Grid: reading column (elastic, edge-to-edge) + fixed 320px utility
+            sidebar. Fixed because content has stable size needs (poste/value
+            pairs, profil rows) — percent breaks on both ends of the spectrum. */}
+        <div className="flex-1 min-h-0 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 332px' }}>
 
           {/* ── LEFT: Résumé + themes + texte intégral (Figma 36765:49265) ─────────── */}
-          <div ref={textPanelRef} className="flex-1 overflow-y-auto border-r border-[#e7e5e3]" style={{ minWidth: 0 }}>
+          <div ref={textPanelRef} className="overflow-y-auto border-r border-[#e7e5e3]" style={{ minWidth: 0 }}>
 
             {/* Résumé */}
             <div className="border-b border-[#e7e5e3]" style={{ padding: '20px 24px' }}>
@@ -604,7 +606,7 @@ export default function DecisionDrawer({
                         className="flex items-center w-full text-left"
                         style={{ gap: 8 }}
                       >
-                        <div style={{ width: 2, alignSelf: 'stretch', backgroundColor: '#b9703f', opacity: 0.6 }} />
+                        <div style={{ width: 2, alignSelf: 'stretch', backgroundColor: '#5593ea', opacity: 0.6 }} />
                         <ChevronDown
                           className="flex-shrink-0"
                           style={{
@@ -626,7 +628,7 @@ export default function DecisionDrawer({
                         <p style={{
                           fontFamily: "'Inter', system-ui, sans-serif",
                           fontSize: 14, fontWeight: 400, lineHeight: '24px',
-                          color: '#44403c', whiteSpace: 'pre-wrap', margin: 0,
+                          color: '#78716c', whiteSpace: 'pre-wrap', margin: 0,
                         }}>
                           {highlightText(section.content)}
                         </p>
@@ -641,7 +643,7 @@ export default function DecisionDrawer({
                 <p style={{
                   fontFamily: "'Inter', system-ui, sans-serif",
                   fontSize: 14, fontWeight: 400, lineHeight: '24px',
-                  color: '#44403c', whiteSpace: 'pre-wrap', margin: 0,
+                  color: '#78716c', whiteSpace: 'pre-wrap', margin: 0,
                 }}>
                   {highlightText(decision.fullText || 'Texte intégral non disponible.')}
                 </p>
@@ -649,23 +651,25 @@ export default function DecisionDrawer({
             )}
           </div>
 
-          {/* ── RIGHT: sidebar ────────────── */}
-          <div className="overflow-y-auto flex-shrink-0" style={{ width: 300, backgroundColor: '#fafaf9' }}>
+          {/* ── RIGHT: sidebar — fluid utility column.
+              Background #f8f7f5 (Figma 2219:19616), sections px-4 py-[21px], gap 12 ── */}
+          <div className="overflow-y-auto" style={{ backgroundColor: '#f8f7f5', overflowX: 'hidden', minWidth: 0 }}>
 
-            {/* POURQUOI ? — editable rationale for the current scope.
+            {/* APPORT DE LA DÉCISION — editable rationale for the current scope.
                 Only shown when the JP has been saved at least once — without a save
                 there's no attachment to attach the rationale to. */}
             {onSaveRationale && attachments.length > 0 && (
-              <div className="px-4 pt-4 pb-3 border-b border-[#f0efed]">
-                <div className="flex items-center justify-between mb-2">
-                  <SidebarSectionHeader label="Note de pertinence" />
+              <div className="border-b border-[#e7e5e3]" style={{ padding: '21px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div className="flex items-center justify-between">
+                  <SidebarSectionHeader label="Apport de la décision" />
                   {!rationaleEditing && rationale && (
                     <button
                       onClick={() => setRationaleEditing(true)}
-                      className="p-1 rounded text-[#a8a29e] hover:text-[#78716c] hover:bg-[#eeece6] transition-colors"
+                      className="p-0 rounded text-[#a8a29e] hover:text-[#78716c] transition-colors"
                       title="Modifier"
+                      style={{ width: 16, height: 16 }}
                     >
-                      <Edit3 className="w-3 h-3" />
+                      <Edit3 className="w-4 h-4" strokeWidth={1.5} />
                     </button>
                   )}
                 </div>
@@ -676,14 +680,14 @@ export default function DecisionDrawer({
                       value={rationaleDraft}
                       onChange={(e) => setRationaleDraft(e.target.value)}
                       placeholder="En quoi cette décision est-elle pertinente pour ce poste ?"
-                      rows={4}
+                      rows={5}
                       style={{
                         width: '100%',
                         border: 'none',
                         outline: 'none',
                         resize: 'vertical',
                         fontFamily: "'Inter', system-ui, sans-serif",
-                        fontSize: 12, lineHeight: '18px', color: '#44403c',
+                        fontSize: 14, lineHeight: '24px', color: '#292524',
                         backgroundColor: 'transparent',
                       }}
                     />
@@ -703,21 +707,21 @@ export default function DecisionDrawer({
                     </div>
                   </div>
                 ) : rationale ? (
-                  <div style={{ borderLeft: '2px solid #ac9e8b', paddingLeft: 12, paddingTop: 4, paddingBottom: 4 }}>
-                    <p style={{
-                      fontFamily: "'Inter', system-ui, sans-serif",
-                      fontSize: 12, lineHeight: '18px', color: '#44403c', margin: 0,
-                    }}>
-                      {rationale}
-                    </p>
-                  </div>
+                  <p style={{
+                    fontFamily: "'Inter', system-ui, sans-serif",
+                    fontSize: 14, fontWeight: 400, lineHeight: '24px', color: '#292524', margin: 0,
+                    overflowWrap: 'anywhere', wordBreak: 'break-word',
+                    maxHeight: 220, overflowY: 'auto',
+                  }}>
+                    {rationale}
+                  </p>
                 ) : (
                   <button
                     onClick={() => setRationaleEditing(true)}
                     className="w-full text-left px-3 py-2 bg-white border border-dashed border-[#d6d3d1] hover:border-[#b9703f] hover:bg-[#fdf8f4] rounded-md transition-colors"
                     style={{
                       fontFamily: "'Inter', system-ui, sans-serif",
-                      fontSize: 12, color: '#a8a29e',
+                      fontSize: 13, color: '#a8a29e',
                     }}
                   >
                     + Ajouter une note sur la pertinence
@@ -736,24 +740,24 @@ export default function DecisionDrawer({
               const visible = filtered.length > 0 ? filtered : allAmounts;
               const isFiltered = filtered.length > 0 && filtered.length < allAmounts.length;
               return (
-                <div className="px-4 pt-4 pb-3 border-b border-[#f0efed]">
+                <div className="border-b border-[#e7e5e3]" style={{ padding: '21px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <SidebarSectionHeader label="Montants retenus" />
                   {isFiltered && (
-                    <p style={{ fontSize: 11, color: '#a8a29e', marginTop: 4, marginBottom: 6 }}>
+                    <p style={{ fontSize: 11, color: '#a8a29e', marginTop: -8 }}>
                       Filtré sur le{filtered.length > 1 ? 's' : ''} poste{filtered.length > 1 ? 's' : ''} demandé{filtered.length > 1 ? 's' : ''}
                     </p>
                   )}
-                  <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
+                  <div className="bg-white rounded-md overflow-hidden" style={{ border: '1px solid #e7e5e3', boxShadow: '0 1px 1px rgba(26,26,26,0.05)' }}>
                     {visible.map((amt, i) => {
                       const { num, unit } = splitValue(amt.displayValue);
                       return (
-                        <div key={i} className="flex items-center justify-between px-3 py-2"
-                          style={{ borderBottom: i < visible.length - 1 ? '1px solid #f0efed' : 'none' }}>
-                          <span title={amt.label} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: '#44403c' }}>
+                        <div key={i} className="flex items-center justify-between"
+                          style={{ padding: '8px 12px', borderBottom: i < visible.length - 1 ? '1px solid #e7e5e3' : 'none' }}>
+                          <span title={amt.label} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase' }}>
                             {amt.poste}
                           </span>
-                          <span className="flex-shrink-0" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, fontWeight: 600, color: '#292524' }}>
-                            {num}{unit && <span style={{ color: '#b9703f', marginLeft: 4, fontWeight: 500 }}>{unit}</span>}
+                          <span className="flex-shrink-0" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, fontWeight: 500, color: '#1e3a8a', lineHeight: '20px' }}>
+                            {num}{unit ? unit : ''}
                           </span>
                         </div>
                       );
@@ -764,49 +768,49 @@ export default function DecisionDrawer({
             })()}
 
             {/* Profil victime */}
-            <div className="px-4 py-3 border-b border-[#f0efed]">
+            <div className="border-b border-[#e7e5e3]" style={{ padding: '21px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <SidebarSectionHeader label="Profil victime" />
               {victime ? (
-                <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '1px solid #f0efed' }}>
-                    <span style={{ fontSize: 12, color: '#78716c' }}>Victime</span>
-                    <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{victime}</span>
+                <div className="bg-white rounded-md overflow-hidden" style={{ border: '1px solid #e7e5e3', boxShadow: '0 1px 1px rgba(26,26,26,0.05)' }}>
+                  <div className="flex items-center justify-between" style={{ padding: '8px 12px 9px 12px', borderBottom: '1px solid #e7e5e3' }}>
+                    <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 12, fontWeight: 400, color: '#78716c', lineHeight: '16px', letterSpacing: '0.12px' }}>Victime</span>
+                    <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{victime}</span>
                   </div>
                   {decision.category && (
-                    <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: decision.status ? '1px solid #f0efed' : 'none' }}>
-                      <span style={{ fontSize: 12, color: '#78716c' }}>Catégorie</span>
-                      <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{decision.category}</span>
+                    <div className="flex items-center justify-between" style={{ padding: '8px 12px 9px 12px', borderBottom: decision.status ? '1px solid #e7e5e3' : 'none' }}>
+                      <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 12, fontWeight: 400, color: '#78716c', lineHeight: '16px', letterSpacing: '0.12px' }}>Catégorie</span>
+                      <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{decision.category}</span>
                     </div>
                   )}
                   {decision.status && (
-                    <div className="flex items-center justify-between px-3 py-2">
-                      <span style={{ fontSize: 12, color: '#78716c' }}>Statut</span>
-                      <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{decision.status}</span>
+                    <div className="flex items-center justify-between" style={{ padding: '8px 12px' }}>
+                      <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 12, fontWeight: 400, color: '#78716c', lineHeight: '16px', letterSpacing: '0.12px' }}>Statut</span>
+                      <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, fontWeight: 400, color: /décéd/i.test(String(decision.status)) ? '#7f1d1d' : '#292524', lineHeight: '20px' }}>{decision.status}</span>
                     </div>
                   )}
                 </div>
               ) : (
-                <p style={{ fontSize: 12, color: '#a8a29e', marginTop: 8 }}>Données non disponibles.</p>
+                <p style={{ fontSize: 12, color: '#a8a29e' }}>Données non disponibles.</p>
               )}
             </div>
 
             {/* Consolidation + données médicales */}
             {(med?.consolidation || med?.items?.length > 0) && (
-              <div className="px-4 py-3 border-b border-[#f0efed]">
+              <div className="border-b border-[#e7e5e3]" style={{ padding: '21px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <SidebarSectionHeader label="Données médicales" />
-                <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
+                <div className="bg-white rounded-md overflow-hidden" style={{ border: '1px solid #e7e5e3', boxShadow: '0 1px 1px rgba(26,26,26,0.05)' }}>
                   {med?.consolidation && (
-                    <div className="flex items-center justify-between px-3 py-2"
-                      style={{ borderBottom: med?.items?.length > 0 ? '1px solid #f0efed' : 'none' }}>
-                      <span style={{ fontSize: 12, color: '#78716c' }}>Consolidation</span>
-                      <span style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{med.consolidation}</span>
+                    <div className="flex items-center justify-between"
+                      style={{ padding: '8px 12px 9px 12px', borderBottom: med?.items?.length > 0 ? '1px solid #e7e5e3' : 'none' }}>
+                      <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 12, fontWeight: 400, color: '#78716c', lineHeight: '16px', letterSpacing: '0.12px' }}>Consolidation</span>
+                      <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{med.consolidation}</span>
                     </div>
                   )}
                   {med?.items?.map((item, i) => (
-                    <div key={i} className="px-3 py-2"
-                      style={{ borderBottom: i < med.items.length - 1 ? '1px solid #f0efed' : 'none' }}>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: '#292524' }}>{item.label}</div>
-                      <div style={{ fontSize: 12, color: '#78716c', marginTop: 1 }}>{item.detail}</div>
+                    <div key={i}
+                      style={{ padding: '8px 12px 9px 12px', borderBottom: i < med.items.length - 1 ? '1px solid #e7e5e3' : 'none' }}>
+                      <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, fontWeight: 400, color: '#292524', lineHeight: '20px' }}>{item.label}</div>
+                      <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 12, fontWeight: 400, color: '#78716c', lineHeight: '16px', marginTop: 2 }}>{item.detail}</div>
                     </div>
                   ))}
                 </div>
@@ -815,23 +819,23 @@ export default function DecisionDrawer({
 
             {/* Préjudices temporaires */}
             {prejudices?.temporaires?.length > 0 && (
-              <div className="px-4 py-3 border-b border-[#f0efed]">
-                <SidebarSectionHeader label="Extra-patrimoniaux temporaires" />
-                <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
+              <div className="border-b border-[#e7e5e3]" style={{ padding: '21px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <SidebarSectionHeader label="Extra-patrim. temporaires" />
+                <div className="bg-white rounded-md overflow-hidden" style={{ border: '1px solid #e7e5e3', boxShadow: '0 1px 1px rgba(26,26,26,0.05)' }}>
                   {prejudices.temporaires.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between px-3 py-2"
-                      style={{ borderBottom: '1px solid #f0efed' }}>
-                      <span title={p.label} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: '#44403c' }}>
+                    <div key={i} className="flex items-center justify-between"
+                      style={{ padding: '8px 12px 9px 12px', borderBottom: '1px solid #e7e5e3' }}>
+                      <span title={p.label} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase' }}>
                         {p.label.split(' — ')[0]}
                       </span>
-                      <span className="flex-shrink-0" style={{ fontSize: 14, fontWeight: 600, color: p.highlighted ? '#b9703f' : '#292524' }}>
+                      <span className="flex-shrink-0" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, fontWeight: 400, color: p.highlighted ? '#b9703f' : '#292524', lineHeight: '20px' }}>
                         {fmt(p.montant)} €
                       </span>
                     </div>
                   ))}
-                  <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#fafaf9' }}>
-                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#78716c', textTransform: 'uppercase' }}>Total</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#292524' }}>{fmt(tempTotal)} €</span>
+                  <div className="flex items-center justify-between" style={{ padding: '8px 12px', backgroundColor: '#fafaf9' }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase' }}>Total</span>
+                    <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(tempTotal)} €</span>
                   </div>
                 </div>
               </div>
@@ -839,23 +843,23 @@ export default function DecisionDrawer({
 
             {/* Préjudices permanents */}
             {prejudices?.permanents?.length > 0 && (
-              <div className="px-4 py-3 border-b border-[#f0efed]">
-                <SidebarSectionHeader label="Extra-patrimoniaux permanents" />
-                <div className="mt-2 bg-white border border-[#f0efed] rounded-md overflow-hidden">
+              <div className="border-b border-[#e7e5e3]" style={{ padding: '21px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <SidebarSectionHeader label="Extra-patrim. permanents" />
+                <div className="bg-white rounded-md overflow-hidden" style={{ border: '1px solid #e7e5e3', boxShadow: '0 1px 1px rgba(26,26,26,0.05)' }}>
                   {prejudices.permanents.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between px-3 py-2"
-                      style={{ borderBottom: '1px solid #f0efed' }}>
-                      <span title={p.label} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: '#44403c' }}>
+                    <div key={i} className="flex items-center justify-between"
+                      style={{ padding: '8px 12px 9px 12px', borderBottom: '1px solid #e7e5e3' }}>
+                      <span title={p.label} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase' }}>
                         {p.label.split(' — ')[0]}
                       </span>
-                      <span className="flex-shrink-0" style={{ fontSize: 14, fontWeight: 600, color: p.highlighted ? '#b9703f' : '#292524' }}>
+                      <span className="flex-shrink-0" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, fontWeight: 400, color: p.highlighted ? '#b9703f' : '#292524', lineHeight: '20px' }}>
                         {fmt(p.montant)} €
                       </span>
                     </div>
                   ))}
-                  <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#fafaf9' }}>
-                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#78716c', textTransform: 'uppercase' }}>Total</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#292524' }}>{fmt(permTotal)} €</span>
+                  <div className="flex items-center justify-between" style={{ padding: '8px 12px', backgroundColor: '#fafaf9' }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#78716c', textTransform: 'uppercase' }}>Total</span>
+                    <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px' }}>{fmt(permTotal)} €</span>
                   </div>
                 </div>
               </div>

@@ -23,7 +23,8 @@ import EmptyState from '../EmptyState';
 //   - getPosteChips(id)  : (decisionId) => string[]|null — render poste-acronym chips
 //                          on line 2 right (cross-poste view) instead of the quantum
 //   - onOpenDrawer(id, ids[]) : open the drawer with the result set
-//   - onSearchJP()       : invoked from the empty state CTA + header link
+//   - onSearchJP()       : invoked from the header search link
+//   - onEmptySearchJP()  : invoked from the empty state CTA (falls back to onSearchJP)
 //   - sectionTitle       : optional override (default "Jurisprudences retenues")
 //   - emptyMessage       : optional empty-state message override
 //   - showHeader         : when false, drops the section header (parent owns it)
@@ -41,6 +42,7 @@ export default function JPListingPosteDetail({
   onRemove,
   removeTitle,
   onSearchJP,
+  onEmptySearchJP,
   sectionTitle = 'Jurisprudences retenues',
   emptyMessage = 'Aucune jurisprudence retenue',
   showHeader = true,
@@ -49,12 +51,13 @@ export default function JPListingPosteDetail({
   const decisions = decisionsOverride || getDecisionsByIds(decisionIds);
 
   const headerLabel = (
-    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' }}>
+    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
       {sectionTitle}
     </span>
   );
 
   if (decisions.length === 0) {
+    const emptyAction = onEmptySearchJP || onSearchJP;
     return (
       <div>
         {showHeader && <div style={{ marginBottom: 10 }}>{headerLabel}</div>}
@@ -63,7 +66,7 @@ export default function JPListingPosteDetail({
             icon={Landmark}
             title={emptyMessage}
             description="L'agent privilégie vos JP de référence du cabinet, puis cherche dans Plato JP en fonction du contexte du dossier."
-            primaryAction={onSearchJP ? { label: 'Rechercher une JP', icon: Search, onClick: onSearchJP } : undefined}
+            primaryAction={emptyAction ? { label: 'Rechercher une JP', icon: Search, onClick: emptyAction } : undefined}
           />
         </div>
       </div>
@@ -77,14 +80,23 @@ export default function JPListingPosteDetail({
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
             {headerLabel}
-            <span className="text-[12px] text-[#c8c5c0]">{decisions.length}</span>
+            <span className="text-[11px] text-[#c8c5c0]">{decisions.length}</span>
           </div>
           {onSearchJP && (
             <button
               onClick={onSearchJP}
-              className="inline-flex items-center gap-1 text-[12px] font-medium text-[#a8a29e] hover:text-[#78716c] transition-colors"
+              className="inline-flex items-center gap-1.5 transition-colors"
+              style={{
+                height: 24, padding: '0 8px', borderRadius: 6,
+                backgroundColor: 'transparent', color: '#78716c',
+                border: 'none',
+                fontFamily: "'Inter', system-ui, sans-serif",
+                fontSize: 12, fontWeight: 500, lineHeight: '16px',
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#eeece6'; e.currentTarget.style.color = '#292524'; }}
+              onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#78716c'; }}
             >
-              <Search className="w-3 h-3" />
+              <Search className="w-3 h-3" strokeWidth={2} />
               Rechercher
             </button>
           )}
