@@ -4,7 +4,7 @@ import { ChevronRight, ChevronDown, ChevronLeft, Folder, FileText, Calculator, P
 import ReasoningStepper, { ThinkingDots, PlatoDotGrid, CrudPill, DotCounter, STEP_COLORS, STEP_TYPE_CONFIG, BACKEND_TOOL_MAP } from './components/ReasoningStepper';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { JPPill, DecisionDrawer, JPRow, JPListingChat, JPListingPosteDetail, JPAddStepper, SlashCommandPalette, JPSearchView, FicheCabinetModal } from './components/jp';
+import { JPPill, DecisionDrawer, JPRow, JPListingChat, JPListingPosteDetail, JPMemoryRow, JPAddStepper, SlashCommandPalette, JPSearchView, FicheCabinetModal, JPRationaleModal } from './components/jp';
 import useDemoCommands from './hooks/useDemoCommands';
 import mockDecisionsAll, { getDecisionById, formatDateShort } from './data/mockDecisions';
 import { parseJPReferences, customFirmIdFor } from './utils/parseJPReferences';
@@ -1074,6 +1074,8 @@ export default function App() {
   const [preferenceLearnFromChats, setPreferenceLearnFromChats] = useState(false);
   const [ficheCabinetModalRef, setFicheCabinetModalRef] = useState(null); // { ref, customJP } | null
   const [cabinetJPSearch, setCabinetJPSearch] = useState('');
+  // Decision queued for the "ask why" modal when adding to cabinet from search results
+  const [pendingCabinetDecision, setPendingCabinetDecision] = useState(null);
   const preferenceFileInputRef = useRef(null);
 
   // ========== LISTE DES DOSSIERS ==========
@@ -9983,8 +9985,8 @@ export default function App() {
           return atts.find(a => !a.lineItem)?.rationale || atts.find(a => a.rationale)?.rationale || null;
         };
         const launchJPSearch = () => fireCanvasPrompt(
-          "Je veux chercher une jurisprudence pour ce dossier — privilégie mes JP de référence du cabinet si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier.",
-          { scenarioKey: 'canvas-jp-generic' }
+          "Liste-moi les jurisprudences récentes pour ce dossier, je veux comparer les taux.",
+          { scenarioKey: 'jp-cards' }
         );
         // When empty, skip the header entirely — let the EmptyState own the screen.
         if (decisions.length === 0) {
@@ -10032,21 +10034,26 @@ export default function App() {
             </div>
             {/* List body — keeps its readable max width */}
             <div className="px-8 pt-6 pb-8">
-              <div className="max-w-3xl mx-auto space-y-2">
+              <div className="max-w-3xl mx-auto" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {decisions.map((d) => {
                   const chips = posteChipsFor(d.id);
                   return (
-                    <JPRow
+                    <JPMemoryRow
                       key={d.id}
-                      asCard
                       decision={d}
-                      isSelected={d.id === jp.jpState.drawerDecisionId}
-                      favorited={isFavorited(d.id)}
-                      bookmarked={!!chips}
-                      posteChips={chips}
-                      showAmount={false}
+                      bordered
                       rationale={rationaleFor(d.id)}
+                      footerChips={chips || []}
+                      extraBadges={isFavorited(d.id) ? [{ label: 'JP de référence', tone: 'accent' }] : []}
                       onClick={() => jp.openDrawer(d.id, decisionIds, { autoOpenSavePopover: true })}
+                      onRemove={(dec) => {
+                        const atts = jp.getAttachmentsForJP(dec.id)
+                          .filter(a => a.scope === 'matter' && a.scopeTargetId === jp.DEFAULT_MATTER_ID);
+                        atts.forEach(a => jp.removeAttachment(a.id));
+                        setToastMessage('Retirée du dossier.');
+                        setTimeout(() => setToastMessage(null), 2500);
+                      }}
+                      removeTitle="Retirer du dossier"
                     />
                   );
                 })}
@@ -10329,6 +10336,7 @@ export default function App() {
               }}
               removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onEmptySearchJP={() => fireCanvasPrompt('Liste-moi les jurisprudences récentes sur ce poste, je veux comparer les taux.', { scenarioKey: 'jp-cards' })}
             />
           </div>
 
@@ -10640,6 +10648,7 @@ export default function App() {
               }}
               removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onEmptySearchJP={() => fireCanvasPrompt('Liste-moi les jurisprudences récentes sur ce poste, je veux comparer les taux.', { scenarioKey: 'jp-cards' })}
             />
           </div>
 
@@ -10955,6 +10964,7 @@ export default function App() {
               }}
               removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onEmptySearchJP={() => fireCanvasPrompt('Liste-moi les jurisprudences récentes sur ce poste, je veux comparer les taux.', { scenarioKey: 'jp-cards' })}
             />
           </div>
 
@@ -11181,6 +11191,7 @@ export default function App() {
               }}
               removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onEmptySearchJP={() => fireCanvasPrompt('Liste-moi les jurisprudences récentes sur ce poste, je veux comparer les taux.', { scenarioKey: 'jp-cards' })}
             />
           </div>
 
@@ -11322,6 +11333,7 @@ export default function App() {
               }}
               removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onEmptySearchJP={() => fireCanvasPrompt('Liste-moi les jurisprudences récentes sur ce poste, je veux comparer les taux.', { scenarioKey: 'jp-cards' })}
             />
           </div>
 
@@ -11460,6 +11472,7 @@ export default function App() {
               }}
               removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onEmptySearchJP={() => fireCanvasPrompt('Liste-moi les jurisprudences récentes sur ce poste, je veux comparer les taux.', { scenarioKey: 'jp-cards' })}
             />
           </div>
 
@@ -11627,6 +11640,7 @@ export default function App() {
               }}
               removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onEmptySearchJP={() => fireCanvasPrompt('Liste-moi les jurisprudences récentes sur ce poste, je veux comparer les taux.', { scenarioKey: 'jp-cards' })}
             />
           </div>
 
@@ -12830,6 +12844,7 @@ export default function App() {
               }}
               removeTitle="Retirer du poste"
               onSearchJP={() => fireCanvasPrompt('Recherche une jurisprudence pour ce poste — privilégie mes JP de référence si pertinentes, sinon cherche dans Plato JP en fonction du contexte du dossier', { scenarioKey: 'canvas-jp-generic' })}
+              onEmptySearchJP={() => fireCanvasPrompt('Liste-moi les jurisprudences récentes sur ce poste, je veux comparer les taux.', { scenarioKey: 'jp-cards' })}
             />
           </div>
 
@@ -18265,7 +18280,7 @@ export default function App() {
           <div className="max-w-5xl w-full mx-auto">
             {renderSettingsHeader(
               'Mémoire et préférences',
-              "Décrivez votre méthode de travail à Plato. L'agent s'inspire de ce texte à chaque rédaction.",
+              null,
               <button
                 onClick={() => {
                   setToastMessage('Mémoire enregistrée.');
@@ -18279,16 +18294,22 @@ export default function App() {
               </button>
             )}
 
+            {/* ─── Préférences méthode de travail ─── */}
+            <div className="mb-2">
+              <h3 style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px', margin: 0 }}>
+                Préférences méthode de travail
+              </h3>
+              <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, color: '#78716c', lineHeight: '20px', marginTop: 6, marginBottom: 16 }}>
+                Décrivez votre méthode de travail à Plato. Structure d'actes habituelle, préférences de quantum, référentiels favoris, style et ton, consignes. L'agent le garde en mémoire pour chacune de ses actions.
+              </p>
+            </div>
+
             <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
               <textarea
                 value={preferenceMasterPrompt}
                 onChange={(e) => setPreferenceMasterPrompt(e.target.value)}
                 rows={Math.min(12, Math.max(6, (preferenceMasterPrompt || '').split('\n').length + 1))}
                 placeholder={`Ex.
-
-— Jurisprudences de référence
-Cass. 2e civ., 12 mai 2023, n° 22-15.642 — capitalisation viagère
-CA Paris, 4e ch., 22 mars 2024, n° 23/01234 — ATPT victime senior
 
 — Structure de vos actes
 Plan en trois parties : Faits et procédure / Discussion / Dispositif. Numérotation décimale, titres en gras sans soulignement. Citations de jurisprudence en bas de page.
@@ -18309,8 +18330,8 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
               />
             </div>
 
-            {/* ─── Separate JP section ─── */}
-            <div className="mt-8">
+            {/* ─── Jurisprudences de référence ─── */}
+            <div className="mt-10">
               {renderCabinetJPInline()}
             </div>
 
@@ -19045,11 +19066,10 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
     });
     const isAlreadySaved = (id) => seen.has(id);
 
-    const addCanonical = (decisionId) => {
-      jp.addAttachment(decisionId, 'workspace', jp.DEFAULT_WORKSPACE_ID);
-      setCabinetJPSearch('');
-      setToastMessage('JP ajoutée aux références.');
-      setTimeout(() => setToastMessage(null), 2500);
+    // Queue the JP for the "ask why" modal — the actual attachment + rationale
+    // are committed when the user confirms in JPRationaleModal.
+    const queueCanonicalForRationale = (decision) => {
+      setPendingCabinetDecision(decision);
     };
 
     const openManualAdd = () => {
@@ -19062,11 +19082,13 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
 
     return (
       <div>
-        <div className="flex items-baseline gap-3 mb-6">
-          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, fontSize: '11px', color: '#292524', letterSpacing: '0.1em' }}>
-            JP DE RÉFÉRENCE
-          </span>
-          <span className="flex-1 h-px bg-[#292524]/20" />
+        <div className="mb-2">
+          <h3 style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px', margin: 0 }}>
+            Jurisprudences de référence
+          </h3>
+          <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, color: '#78716c', lineHeight: '20px', marginTop: 6, marginBottom: 16 }}>
+            Les décisions que votre cabinet veut systématiquement réutiliser. L'agent les privilégie dans chaque recherche et chaque rédaction.
+          </p>
         </div>
 
         {/* Search */}
@@ -19077,7 +19099,7 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
                   type="text"
                   value={cabinetJPSearch}
                   onChange={(e) => setCabinetJPSearch(e.target.value)}
-                  placeholder="Rechercher par numéro de pourvoi (ex. 22/10011, 22-15.642)…"
+                  placeholder="Rechercher par n° de pourvoi…"
                   className="flex-1 bg-transparent text-[14px] text-[#292524] placeholder-[#a8a29e] focus:outline-none"
                 />
                 {cabinetJPSearch && (
@@ -19087,78 +19109,98 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
                 )}
               </div>
 
-              {q && (
-                <div className="border-t border-[#f0efed] p-3 flex flex-col gap-2">
-                  {matches.length > 0 ? (
-                    matches.map((d) => {
-                      const already = isAlreadySaved(d.id);
-                      return (
-                        <JPRow
-                          key={d.id}
-                          asCard
-                          decision={d}
-                          renderAccessory={() => (
-                            <div className="flex-shrink-0 flex items-center pr-3" style={{ alignSelf: 'center' }}>
-                              {already ? (
-                                <span
-                                  className="inline-flex items-center gap-1"
-                                  style={{
-                                    height: 32, padding: '0 12px', borderRadius: 8,
-                                    border: '1px solid #d6d3d1',
-                                    fontFamily: "'Inter', system-ui, sans-serif",
-                                    fontSize: 13, fontWeight: 500, color: '#78716c',
-                                    backgroundColor: 'transparent',
-                                  }}
-                                >
-                                  <Check className="w-3.5 h-3.5" strokeWidth={2} />
-                                  Déjà en référence
-                                </span>
-                              ) : (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); addCanonical(d.id); }}
-                                  className="inline-flex items-center gap-1.5 transition-all"
-                                  style={{
-                                    height: 32, padding: '0 12px', borderRadius: 8,
-                                    backgroundColor: '#292524', color: 'white',
-                                    border: '1px solid #292524',
-                                    fontFamily: "'Inter', system-ui, sans-serif",
-                                    fontSize: 13, fontWeight: 500,
-                                  }}
-                                  onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1c1917'; e.currentTarget.style.borderColor = '#1c1917'; }}
-                                  onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#292524'; e.currentTarget.style.borderColor = '#292524'; }}
-                                >
-                                  <Plus className="w-4 h-4" strokeWidth={2} /> Ajouter
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        />
-                      );
-                    })
-                  ) : (
-                    <div className="px-3 py-4 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-[13px] text-[#44403c]">Aucune correspondance dans Plato JP</p>
-                        <p className="text-[11px] text-[#a8a29e] mt-0.5">Vous pouvez l'ajouter manuellement avec un PDF + un apport.</p>
-                      </div>
-                      <button
-                        onClick={openManualAdd}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium bg-[#292524] text-white hover:bg-[#44403c] transition-colors flex-shrink-0"
-                      >
-                        Ajouter manuellement
-                      </button>
-                    </div>
-                  )}
+              {q && matches.length === 0 && (
+                <div className="border-t border-[#f0efed] flex items-center justify-between gap-3" style={{ padding: '12px 16px' }}>
+                  <div className="min-w-0">
+                    <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, fontWeight: 500, color: '#292524', lineHeight: '20px', margin: 0 }}>
+                      Aucune correspondance dans la base Plato JP
+                    </p>
+                    <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 13, color: '#78716c', lineHeight: '20px', marginTop: 2 }}>
+                      Ajoutez manuellement votre JP grâce à un lien ou PDF
+                    </p>
+                  </div>
+                  <button
+                    onClick={openManualAdd}
+                    className="inline-flex items-center justify-center gap-1 transition-all flex-shrink-0"
+                    style={{
+                      height: 28, padding: '0 12px', borderRadius: 8,
+                      backgroundColor: '#292524', color: 'white',
+                      border: 'none',
+                      boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)',
+                      fontFamily: "'Inter', system-ui, sans-serif",
+                      fontSize: 14, fontWeight: 500, lineHeight: '20px',
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1c1917'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#292524'; }}
+                  >
+                    <Plus className="w-4 h-4" strokeWidth={2} /> Ajouter
+                  </button>
                 </div>
               )}
-            </div>
 
-            {/* Saved list */}
-            <div className="flex items-center gap-1.5 mb-2">
-              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                JP de référence
-              </span>
-              <span className="text-[11px] text-[#c8c5c0]">{savedCabinet.length}</span>
+              {q && matches.length > 0 && (
+                <div className="border-t border-[#f0efed]">
+                  {matches.map((d) => {
+                    const already = isAlreadySaved(d.id);
+                    const action = already ? (
+                      <span
+                        className="inline-flex items-center gap-1"
+                        style={{
+                          height: 28, padding: '0 12px', borderRadius: 8,
+                          border: '1px solid #d6d3d1',
+                          fontFamily: "'Inter', system-ui, sans-serif",
+                          fontSize: 13, fontWeight: 500, color: '#78716c',
+                          backgroundColor: 'transparent',
+                        }}
+                      >
+                        <Check className="w-3.5 h-3.5" strokeWidth={2} />
+                        Déjà en référence
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => queueCanonicalForRationale(d)}
+                        className="inline-flex items-center justify-center gap-2 transition-all"
+                        style={{
+                          height: 28, padding: '0 12px', borderRadius: 8,
+                          backgroundColor: '#292524', color: 'white',
+                          border: 'none',
+                          boxShadow: '0px 1px 2px 0px rgba(26,26,26,0.05)',
+                          fontFamily: "'Inter', system-ui, sans-serif",
+                          fontSize: 14, fontWeight: 500, lineHeight: '20px',
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1c1917'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#292524'; }}
+                      >
+                        <Plus className="w-4 h-4" strokeWidth={2} /> Ajouter
+                      </button>
+                    );
+                    return (
+                      <JPMemoryRow
+                        key={d.id}
+                        decision={d}
+                        action={action}
+                        onClick={() => jp.openDrawer(d.id, [d.id])}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* JP Introuvable CTA — visible when results exist, to invite manual add */}
+              {q && matches.length > 0 && (
+                <div className="border-t border-[#f0efed]">
+                  <button
+                    onClick={openManualAdd}
+                    className="w-full flex items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-[#fafaf9]"
+                  >
+                    <Plus className="w-4 h-4 flex-shrink-0" strokeWidth={1.75} style={{ color: '#a8a29e' }} />
+                    <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, color: '#44403c', lineHeight: '20px' }}>
+                      JP introuvable&nbsp;?{' '}
+                      <span style={{ color: '#1e3a8a', fontWeight: 500 }}>Ajouter</span>
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {savedCabinet.length === 0 ? (
@@ -19170,11 +19212,10 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
                 </p>
               </div>
             ) : (
-              <JPListingChat showHeader={false}>
+              <div className="bg-white rounded-lg border border-[#e7e5e3]/60 overflow-hidden">
                 {savedCabinet.map((d) => {
                   const isCustom = d._status === 'ficheCabinet';
-                  const handleRemove = (e) => {
-                    e.stopPropagation();
+                  const handleRemove = () => {
                     jp.getAttachmentsForJP(d.id)
                       .filter(a => a.scope === 'workspace' && a.scopeTargetId === jp.DEFAULT_WORKSPACE_ID)
                       .forEach(a => jp.removeAttachment(a.id));
@@ -19182,33 +19223,30 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
                     setToastMessage('JP retirée des références.');
                     setTimeout(() => setToastMessage(null), 2500);
                   };
+                  const removeAction = (
+                    <button
+                      onClick={handleRemove}
+                      title="Retirer des références"
+                      aria-label="Retirer des références"
+                      className="inline-flex items-center justify-center rounded transition-colors"
+                      style={{ width: 28, height: 28, color: '#a8a29e' }}
+                      onMouseOver={(e) => { e.currentTarget.style.color = '#7f1d1d'; e.currentTarget.style.backgroundColor = '#fef2f2'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.color = '#a8a29e'; e.currentTarget.style.backgroundColor = 'transparent'; }}
+                    >
+                      <X className="w-4 h-4" strokeWidth={1.75} />
+                    </button>
+                  );
                   return (
-                    <JPRow
+                    <JPMemoryRow
                       key={d.id}
                       decision={d}
+                      action={removeAction}
+                      extraBadges={isCustom ? [{ label: 'Fiche cabinet', tone: 'accent' }] : []}
                       onClick={() => jp.openDrawer(d.id, [d.id])}
-                      subline={isCustom ? (d.impact || d.reference) : null}
-                      renderAccessory={() => (
-                        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-2.5">
-                          {isCustom && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ backgroundColor: '#fdf3ec', color: '#b9703f' }}>
-                              <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
-                              Fiche cabinet
-                            </span>
-                          )}
-                          <button
-                            onClick={handleRemove}
-                            className="p-1.5 rounded text-[#d6d3d1] hover:text-[#dc2626] hover:bg-[#fef2f2] opacity-0 group-hover:opacity-100 transition-all"
-                            title="Retirer des références"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      )}
                     />
                   );
                 })}
-              </JPListingChat>
+              </div>
             )}
       </div>
     );
@@ -21535,6 +21573,31 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
         />
       )}
 
+      {/* Cabinet rationale modal — "ask why" when adding a Plato JP search result */}
+      {pendingCabinetDecision && (
+        <JPRationaleModal
+          decision={pendingCabinetDecision}
+          onClose={() => setPendingCabinetDecision(null)}
+          onSave={(rationaleText) => {
+            const d = pendingCabinetDecision;
+            jp.addAttachment(d.id, 'workspace', jp.DEFAULT_WORKSPACE_ID);
+            if (rationaleText) {
+              // Stamp the rationale on the workspace attachment we just created.
+              jp.setRationaleMatching(
+                (a) => a.decisionId === d.id
+                  && a.scope === 'workspace'
+                  && a.scopeTargetId === jp.DEFAULT_WORKSPACE_ID,
+                rationaleText
+              );
+            }
+            setPendingCabinetDecision(null);
+            setCabinetJPSearch('');
+            setToastMessage('JP ajoutée aux références.');
+            setTimeout(() => setToastMessage(null), 2500);
+          }}
+        />
+      )}
+
       {/* Toast notification */}
       {toastMessage && (
         <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 text-white text-body rounded-lg shadow-lg flex items-center gap-2 animate-fade-up bg-zinc-800`}>
@@ -21615,12 +21678,13 @@ Calcul détaillé en annexe pour les postes patrimoniaux. Dispositif concis.`}
         <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F8F7F5' }}>
           {jp.jpState.drawerDecisionId ? (
             /* JP detail page — entered "into the canvas" when a JP is clicked.
-               Keep BOTH the dossier top bar AND the tab sub-header visible so
-               the user always knows where they are; clicking a tab will close
-               the drawer (see the tab-click handler in renderTopBar). */
+               Keep the dossier top bar so tab nav still works (clicking a tab
+               closes the drawer — see renderTopBar). Skip the parent sub-header
+               entirely: the drawer carries its own identity (title · date · n°
+               + back/close + prev/next), so the poste/cascade/acte chrome is
+               redundant here and crowds the JP detail. */
             <>
               {renderTopBar()}
-              {renderContentSubHeader()}
               <DecisionDrawer
                 inline
                 decisionId={jp.jpState.drawerDecisionId}

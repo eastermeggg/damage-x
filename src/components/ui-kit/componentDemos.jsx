@@ -237,7 +237,7 @@ export const componentDemos = {
   JPPill: {
     description: 'Inline JP citation. Four variants share the same height + baseline so they flow inside running prose. **`ref`** = `[saved?] n° ↗` (bare reference identifier — pair with textual citation in prose: "Cass. 2e civ., 12 décembre 2019, n° [pill]"). **`xs`** = `[saved?] jurisdiction · n°` (standalone inline citation). **`sm`** = `[saved?] jurisdiction · date · n° · poste · quantum` (dense result lists). **`quantum`** = `[saved?] n° · poste · quantum` (focus on the saved JP value). Chamber is always hidden — it lives on the JPRow card. Bookmark icon (in `#b9703f`) appears when the JP is `saved`. Hover = orange ring (`#b9703f`). Selected = orange tint + ring (drawer-open).',
     controls: {
-      variant:      { type: 'select',  default: 'sm',          options: ['ref', 'xs', 'sm', 'quantum'], description: 'Density / rhetorical role. `ref` for citation suffixes, `xs` for inline prose, `sm` for dense lists, `quantum` for value-first lists.' },
+      variant:      { type: 'select',  default: 'ref',         options: ['ref', 'quantum', 'acte', 'xs', 'sm'], description: 'Context + density. **Chat**: `ref` (n° + icon), `quantum` (n° + poste·value + icon). **Acte**: `acte` (juridiction · date · n°, no icon). Legacy: `xs`, `sm`.' },
       jurisdiction: { type: 'text',    default: 'CA Paris',    description: 'Court / jurisdiction (e.g. "CA Paris", "Cass. 2e civ.", "TJ Versailles"). Hidden in `ref` and `quantum`.' },
       date:         { type: 'text',    default: '2024-09-12',  description: 'ISO date — rendered short (dd/mm/yy) in `sm` only.' },
       numero:       { type: 'text',    default: '22/01234',    description: 'N° pourvoi / RG — the citable identifier (always shown).' },
@@ -261,23 +261,11 @@ export const componentDemos = {
       />
     ),
     presets: [
-      // ── ref — bare reference (paired with textual citation in prose) ─────
-      { label: 'ref — default',              values: { variant: 'ref', jurisdiction: 'Cass. 2e civ.', date: '2019-12-12', numero: '18-22.727', poste: 'PGPF', amount: '12 450 €', saved: false, isSelected: false } },
-      { label: 'ref — saved (bookmark)',     values: { variant: 'ref', jurisdiction: 'Cass. 2e civ.', date: '2019-12-12', numero: '18-22.727', poste: 'PGPF', amount: '12 450 €', saved: true,  isSelected: false } },
-      { label: 'ref — selected',             values: { variant: 'ref', jurisdiction: 'Cass. 2e civ.', date: '2019-12-12', numero: '18-22.727', poste: 'PGPF', amount: '12 450 €', saved: false, isSelected: true } },
-      // ── xs — standalone inline citation (jurisdiction + n°) ──────────────
-      { label: 'xs — default',               values: { variant: 'xs',  jurisdiction: 'CA Paris',      date: '2024-09-12', numero: '22/01234', poste: 'PGPF', amount: '12 450 €', saved: false, isSelected: false } },
-      { label: 'xs — saved (bookmark)',      values: { variant: 'xs',  jurisdiction: 'CA Paris',      date: '2024-09-12', numero: '22/01234', poste: 'PGPF', amount: '12 450 €', saved: true,  isSelected: false } },
-      { label: 'xs — selected',              values: { variant: 'xs',  jurisdiction: 'CA Paris',      date: '2024-09-12', numero: '22/01234', poste: 'PGPF', amount: '12 450 €', saved: false, isSelected: true } },
-      // ── sm — dense list (full metadata) ──────────────────────────────────
-      { label: 'sm — default',               values: { variant: 'sm',  jurisdiction: 'CA Paris',      date: '2024-09-12', numero: '22/01234', poste: 'PGPF', amount: '12 450 €', saved: false, isSelected: false } },
-      { label: 'sm — saved (bookmark)',      values: { variant: 'sm',  jurisdiction: 'CA Paris',      date: '2024-09-12', numero: '22/01234', poste: 'PGPF', amount: '12 450 €', saved: true,  isSelected: false } },
-      { label: 'sm — selected',              values: { variant: 'sm',  jurisdiction: 'CA Paris',      date: '2024-09-12', numero: '22/01234', poste: 'PGPF', amount: '12 450 €', saved: false, isSelected: true } },
-      { label: 'sm — Cass. (€/pt unit)',     values: { variant: 'sm',  jurisdiction: 'Cass. 2e civ.', date: '2023-07-06', numero: '22-15.432', poste: 'DFP',  amount: '2 350 €/pt', saved: true,  isSelected: false } },
-      // ── quantum — value-first (saved JPs by value) ───────────────────────
-      { label: 'quantum — default',          values: { variant: 'quantum', jurisdiction: 'CA Rennes', date: '2024-01-10', numero: '22/12458', poste: 'ATPT', amount: '28 €/h',     saved: false, isSelected: false } },
-      { label: 'quantum — saved',            values: { variant: 'quantum', jurisdiction: 'CA Rennes', date: '2024-01-10', numero: '22/12458', poste: 'ATPT', amount: '28 €/h',     saved: true,  isSelected: false } },
-      { label: 'quantum — selected',         values: { variant: 'quantum', jurisdiction: 'CA Rennes', date: '2024-01-10', numero: '22/12458', poste: 'ATPT', amount: '28 €/h',     saved: false, isSelected: true } },
+      // Two real contexts. Use the variant select to add quantum (`quantum`)
+      // and toggle `saved` / `isSelected` directly. Override values via the
+      // text inputs.
+      { label: 'Chat',  values: { variant: 'ref',  jurisdiction: 'Cass. 2e civ.', date: '2019-12-12', numero: '18-22.727', poste: 'PGPF', amount: '12 450 €', saved: false } },
+      { label: 'Acte',  values: { variant: 'acte', jurisdiction: 'CA Paris',      date: '2024-09-12', numero: '22/01234',  poste: 'PGPF', amount: '12 450 €', saved: false } },
     ],
   },
 

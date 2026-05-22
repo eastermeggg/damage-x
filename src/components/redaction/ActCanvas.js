@@ -1,11 +1,20 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { FileText } from 'lucide-react';
+import JPPill from '../jp/JPPill';
+import { getDecisionById } from '../../data/mockDecisions';
 
-// Simple markdown-aware line renderer (bold, italic, pièce badges)
+// Simple markdown-aware line renderer (bold, italic, pièce + JP citations)
 const renderInlineMarkdown = (text) => {
-  // Split on pièce references: [pièce:N:name:date]
-  const parts = text.split(/(\[pièce:\d+:[^\]]+\])/g);
+  // Split on pièce refs and JP refs: [pièce:N:name:date] or [jp:id]
+  const parts = text.split(/(\[pièce:\d+:[^\]]+\]|\[jp:[a-z0-9-]+\])/g);
   return parts.map((part, i) => {
+    // JP citation — rendered with the canonical JPPill, variant `acte`
+    const jpMatch = part.match(/^\[jp:([a-z0-9-]+)\]$/);
+    if (jpMatch) {
+      const decision = getDecisionById(jpMatch[1]);
+      if (!decision) return null;
+      return <JPPill key={i} decision={decision} variant="acte" />;
+    }
     // Pièce badge
     const pieceMatch = part.match(/^\[pièce:(\d+):([^:]+?)(?::([^\]]+))?\]$/);
     if (pieceMatch) {
