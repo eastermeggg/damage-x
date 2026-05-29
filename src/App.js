@@ -22,6 +22,11 @@ import ComponentsInventorySection from './components/ui-kit/ComponentsInventoryS
 import ComponentDetailPage from './components/ui-kit/ComponentDetailPage';
 import { BASELINE_DSA_LIGNES, BASELINE_DFT_LIGNES, BASELINE_PGPA_DATA, BASELINE_PGPF_DATA, BASELINE_FORM_POSTE_DATA, BASELINE_FDA_LIGNES, BASELINE_DSF_DATA } from './data/baselineData';
 import { NATURE_CREANCE, NATURE_TO_POSTE, NATURE_LABELS } from './data/tpScenarios';
+import PiecesTab from './components/pieces/PiecesTab';
+import BordereauTable from './components/pieces/BordereauTable';
+import FullCanvasDropZone from './components/pieces/FullCanvasDropZone';
+import { BORDEREAU_PIECES, BORDEREAU_CATEGORIES } from './data/piecesSeed';
+import { dropFirstAsBordereauPieces, classifyDropFirstPiece } from './data/piecesModel';
 
 const PREFERENCE_BODY_NO_JP = `— Structure de mes actes
 Plan en trois parties : Faits et procédure / Discussion / Dispositif. Numérotation décimale (I, A, 1°), titres en gras sans soulignement. Citations de jurisprudence en bas de page, jamais dans le corps. Toujours un récapitulatif chiffré en fin de discussion.
@@ -1124,6 +1129,7 @@ export default function App() {
   const [reorderDrag, setReorderDrag] = useState(null); // { pieceId, ghostX, ghostY }
   const [reorderDropIdx, setReorderDropIdx] = useState(null);
   const [manualReorder, setManualReorder] = useState(true);
+  const dropFirstCurrentFolderRef = useRef(null); // BordereauTable surfaces this; used to set categoryIdOverride on dropped pieces
   const [piecesSortMode, setPiecesSortMode] = useState('manuel'); // 'chrono' | 'manuel'
   const [piecesManualOrder, setPiecesManualOrder] = useState(null);
   const [piecesDragState, setPiecesDragState] = useState({ dragging: null, over: null });
@@ -1493,22 +1499,8 @@ export default function App() {
   ]);
 
   // ========== PIECES (niveau dossier) ==========
-  const [pieces, setPieces] = useState([
-    { id: 'p-1', nom: 'Facture CHU Bordeaux.pdf', nomOriginal: 'facture_chu_2023_03.pdf', intitule: 'Facture hospitalisation CHU Bordeaux', date: '15/03/2023', type: 'Facture', used: true },
-    { id: 'p-2', nom: 'Factures kiné (lot).pdf', nomOriginal: 'kine_factures_lot.pdf', intitule: 'Factures kinésithérapie Cabinet Martin', date: '01/04/2023', type: 'Facture', used: true },
-    { id: 'p-3', nom: 'Bulletins salaire 2022.pdf', nomOriginal: 'bulletins_2022.pdf', intitule: 'Bulletins de salaire année 2022', date: '10/01/2023', type: 'Bulletin', used: true },
-    { id: 'p-4', nom: 'Attestation CPAM.pdf', nomOriginal: 'cpam_attestation.pdf', intitule: 'Attestation de versement IJ CPAM', date: '20/05/2023', type: 'Attestation', used: true },
-    { id: 'p-5', nom: 'Rapport Dr. Martin.pdf', nomOriginal: 'rapport_expertise_martin.pdf', intitule: "Rapport d'expertise", date: '12/09/2024', type: 'Rapport', used: true },
-    { id: 'p-6', nom: 'Ordonnance médicaments.pdf', nomOriginal: 'ordonnance_jul2023.pdf', intitule: 'Ordonnance médicaments juillet', date: '18/07/2023', type: 'Ordonnance', used: true },
-    { id: 'p-7', nom: 'Facture pharmacie.pdf', nomOriginal: 'pharmacie_2023.pdf', intitule: 'Facture pharmacie des Lilas', date: '20/07/2023', type: 'Facture', used: true },
-    { id: 'p-8', nom: 'Compte-rendu urgences.pdf', nomOriginal: 'cr_urgences_150323.pdf', intitule: 'Compte-rendu passage urgences', date: '15/03/2023', type: 'Compte-rendu', used: true },
-    { id: 'p-9', nom: 'Bulletins salaire 2021.pdf', nomOriginal: 'bulletins_2021.pdf', intitule: 'Bulletins de salaire année 2021', date: '10/01/2022', type: 'Bulletin', used: true },
-    { id: 'p-10', nom: 'Avis arrêt travail.pdf', nomOriginal: 'arret_travail_mars2023.pdf', intitule: 'Avis d\'arrêt de travail initial', date: '16/03/2023', type: 'Attestation', used: true },
-    { id: 'p-11', nom: 'Attestation employeur.pdf', nomOriginal: 'attestation_employeur.pdf', intitule: 'Attestation de salaire employeur', date: '20/03/2023', type: 'Attestation', used: true },
-    { id: 'p-12', nom: 'Facture IRM.pdf', nomOriginal: 'facture_irm_juin2023.pdf', intitule: 'Facture IRM Centre Imagerie Sud', date: '25/06/2023', type: 'Facture', used: true },
-    { id: 'p-13', nom: 'Décompte AG2R.pdf', nomOriginal: 'decompte_ag2r.pdf', intitule: 'Décompte indemnités prévoyance AG2R', date: '15/08/2023', type: 'Décompte', used: true },
-    { id: 'p-14', nom: 'Facture consultation Dr. Petit.pdf', nomOriginal: 'consult_dr_petit.pdf', intitule: 'Consultation orthopédique Dr. Petit', date: '15/08/2023', type: 'Facture', used: true }
-  ]);
+  const [pieces, setPieces] = useState(BORDEREAU_PIECES);
+  const [bordereauCategories, setBordereauCategories] = useState(BORDEREAU_CATEGORIES);
 
   // ========== DSA ==========
   const [dsaLignes, setDsaLignes] = useState(BASELINE_DSA_LIGNES);
@@ -9936,7 +9928,7 @@ export default function App() {
       }
       if (currentLevel.activeTab === 'pièces') {
         if (dropFirstActive || dropFirstPieces.length > 0) return renderDropFirstPiecesTab();
-        return renderPiecesList(pieces, true);
+        return <PiecesTab pieces={pieces} categories={bordereauCategories} setPieces={setPieces} setCategories={setBordereauCategories} onAddFiles={handleAddMorePieces} onAskChato={askChatoAboutSelection} />;
       }
 
       // Actes tab — drafted legal documents
@@ -13286,6 +13278,29 @@ export default function App() {
       }));
 
       setDropFirstProcessingDone(true);
+
+      // Toast summarising where the just-processed batch landed.
+      const counts = new Map();
+      items.forEach(it => {
+        const cat = it.categoryIdOverride !== undefined
+          ? it.categoryIdOverride
+          : classifyDropFirstPiece(it.poolRef || it, bordereauCategories);
+        counts.set(cat, (counts.get(cat) || 0) + 1);
+      });
+      const labelFor = (catId) => {
+        if (!catId) return 'Sans catégorie';
+        return bordereauCategories.find(c => c.id === catId)?.name || 'Sans catégorie';
+      };
+      const parts = [...counts.entries()].map(([catId, n]) => `${n} dans ${labelFor(catId)}`);
+      const total = items.length;
+      if (total > 0) {
+        const summary = parts.length === 1
+          ? `${total} pièce${total > 1 ? 's' : ''} classée${total > 1 ? 's' : ''} dans ${labelFor([...counts.keys()][0])}`
+          : `${total} pièces classées : ${parts.join(', ')}`;
+        setToastMessage({ text: summary, type: 'ai' });
+        setTimeout(() => setToastMessage(null), 4000);
+      }
+
       // If has rapport, start streaming after a small delay
       if (hasRapport) {
         setTimeout(() => {
@@ -13487,9 +13502,25 @@ export default function App() {
     saveAs(blob, 'bordereau-pieces.zip');
   };
 
+  const askChatoAboutSelection = (items) => {
+    if (!items || items.length === 0) return;
+    setStagedDocs(prev => {
+      const existing = new Set(prev.map(d => `${d.source}:${d.id}`));
+      const additions = items.filter(i => !existing.has(`${i.source}:${i.id}`));
+      return [...prev, ...additions];
+    });
+    setChatSidebarOpen(true);
+    setTimeout(() => chatTextareaRef.current?.focus(), 50);
+  };
+
   const handleAddMorePieces = (fileList) => {
     const accepted = Array.from(fileList).filter(f => /\.(pdf|png|jpe?g|docx?)$/i.test(f.name));
     if (accepted.length === 0) return;
+
+    // When the user is inside a folder, dropped pieces inherit that folder
+    // as their destination (categoryIdOverride wins over auto-classify).
+    // At root, categoryIdOverride stays undefined → classification fires.
+    const dropDest = dropFirstCurrentFolderRef.current || null;
 
     const newItems = accepted.map((f, i) => {
       const poolEntry = DROP_FIRST_DOCUMENT_POOL[(dropFirstPieces.length + i) % DROP_FIRST_DOCUMENT_POOL.length];
@@ -13501,6 +13532,7 @@ export default function App() {
         sourceFile: null, pageRange: null, siblings: null,
         fakeSize: (Math.random() * 4 + 0.2).toFixed(1) + ' Mo',
         isRapport: false,
+        categoryIdOverride: dropDest || undefined,
       };
     });
 
@@ -13517,29 +13549,55 @@ export default function App() {
     const isFiltered = !!(piecesFilter.types?.length > 0 || piecesFilter.search);
     const selectedPiece = pieceOverviewPanel ? dropFirstPieces.find(p => p.id === pieceOverviewPanel) : null;
 
+    // Adapt drop-first piece shape into the bordereau-piece shape that
+    // BordereauTable expects. Auto-classification places each done piece
+    // into its detected folder; in-flight pieces (still processing) get
+    // categoryId=null and surface in Sans-catégorie with a spinner icon.
+    const adaptedPieces = dropFirstAsBordereauPieces(filtered, bordereauCategories);
+
+    // Translate BordereauTable's setPieces updater calls (which operate on
+    // the bordereau-piece shape) back into setDropFirstPieces mutations.
+    // Supports rename, move (via categoryIdOverride), and delete; ignores
+    // anything else.
+    const setDropFirstViaBordereau = (updater) => {
+      setDropFirstPieces(prev => {
+        const adapted = dropFirstAsBordereauPieces(prev, bordereauCategories);
+        const newAdapted = typeof updater === 'function' ? updater(adapted) : updater;
+        const byId = new Map(newAdapted.map(p => [p.id, p]));
+        return prev
+          .filter(p => byId.has(p.id))
+          .map(p => {
+            const u = byId.get(p.id);
+            const changes = {};
+            const originalIntitule = p.cleanName || (p.originalName ? p.originalName.replace(/\.[^/.]+$/, '') : '');
+            if (u.intitule && u.intitule !== originalIntitule) changes.cleanName = u.intitule;
+            if ('categoryId' in u) changes.categoryIdOverride = u.categoryId;
+            return Object.keys(changes).length ? { ...p, ...changes } : p;
+          });
+      });
+    };
+
     let dragLeaveTimer = null;
     const isExternalFileDrag = (e) => !reorderDrag && e.dataTransfer.types.includes('Files');
     return (
       <div
         className="flex h-full relative -mx-4 -mt-4"
+        style={{ minHeight: '100vh' }}
         onDragOver={e => { e.preventDefault(); if (isExternalFileDrag(e)) { clearTimeout(dragLeaveTimer); setPiecesTabDragOver(true); } }}
         onDragLeave={e => { e.preventDefault(); if (isExternalFileDrag(e)) { dragLeaveTimer = setTimeout(() => setPiecesTabDragOver(false), 50); } }}
         onDrop={e => { e.preventDefault(); if (piecesTabDragOver) { setPiecesTabDragOver(false); handleAddMorePieces(e.dataTransfer.files); } }}
       >
-        {/* Full-page drag overlay */}
-        {piecesTabDragOver && (
-          <div className="absolute inset-0 z-40 border border-dashed border-stone-400 rounded-lg flex flex-col items-center justify-center" style={{ pointerEvents: 'none', background: 'linear-gradient(to top, rgba(238,236,230,0) 0%, #eeece6 100%)' }}>
-            <div className="bg-[#eeece6] border border-stone-300 rounded-full p-4 shadow-sm mb-4">
-              <ArrowDown className="w-6 h-6 text-stone-600" />
-            </div>
-            <p className="text-heading-lg-medium text-stone-800">Déposez vos documents ici !</p>
-            <p className="text-body text-stone-500 mt-2">Les documents seront analysés automatiquement</p>
-          </div>
-        )}
         {/* Hidden file input */}
         <input id="add-pieces-input" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" className="hidden" onChange={e => { handleAddMorePieces(e.target.files); e.target.value = ''; }} />
 
+        {piecesTabDragOver && (
+          <div className="flex-1 flex" style={{ minHeight: '100vh' }}>
+            <FullCanvasDropZone />
+          </div>
+        )}
+
         {/* Main content */}
+        {!piecesTabDragOver && (
         <div className="flex-1 flex flex-col min-w-0">
           {/* Sub-header bar — edge-to-edge */}
           <div className="flex items-center gap-2 px-4 py-3.5 border-b border-[#e7e5e3]">
@@ -13563,23 +13621,6 @@ export default function App() {
 
           {/* Content with padding */}
           <div className="p-4 flex-1 overflow-y-auto">
-            {/* Drop zone */}
-            {dossierStatut !== 'fermé' && (
-              <div
-                className="mb-4 flex items-center justify-center gap-4 h-16 border border-dashed border-[#d6d3d1] rounded-lg cursor-pointer transition-colors hover:border-[#a8a29e]"
-                style={{ background: 'linear-gradient(to top, rgba(238,236,230,0) 50%, #f8f7f5 100%)' }}
-                onClick={() => document.getElementById('add-pieces-input')?.click()}
-                onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
-                onDrop={e => { e.preventDefault(); e.stopPropagation(); handleAddMorePieces(e.dataTransfer.files); }}
-              >
-                <Upload className="w-5 h-5 text-[#78716c]" strokeWidth={1.5} />
-                <span className="text-sm">
-                  <span className="text-[#78716c]">Déposez ou </span>
-                  <span className="font-medium text-[#1e3a8a]">cliquez</span>
-                  <span className="text-[#78716c]"> pour ajouter de nouvelles pièces</span>
-                </span>
-              </div>
-            )}
 
             {/* Reorder hint banner */}
             {showReorderHint && !manualReorder && (
@@ -13598,366 +13639,17 @@ export default function App() {
               </div>
             )}
 
-            {/* Bordereau section */}
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-[#292524]">Bordereau</span>
-                <span className="inline-flex items-center justify-center px-2 py-0.5 border border-[#e7e5e3] rounded-[6px] text-[12px] font-medium text-[#292524]">{getFilteredPieces().filter(p => p.status === 'done').length}</span>
-              </div>
-              <div className="flex items-center gap-[9px]">
-                <button
-                  onClick={() => setManualReorder(prev => !prev)}
-                  className={`flex items-center gap-2.5 h-[32px] px-3 text-[11px] font-medium uppercase tracking-wide rounded-[7px] transition-all ${
-                    !manualReorder
-                      ? 'bg-[#dfe8f5] border border-[#aabcd5] text-[#1e3a8a] shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)]'
-                      : 'bg-[#eeece6] text-[#78716c] hover:text-[#44403c] border border-transparent'
-                  }`}
-                  style={{ fontFamily: "'IBM Plex Mono', monospace" }}
-                >
-                  Ordonner par : date
-                  {!manualReorder ? (
-                    <X className="w-4 h-4" strokeWidth={1.5} />
-                  ) : (
-                    <ArrowUp className="w-4 h-4" strokeWidth={1.5} />
-                  )}
-                </button>
-                <div className="w-px h-5 bg-[#d9d9d9]" />
-                <div className="relative" ref={downloadMenuRef}>
-                  <button
-                    onClick={() => setDownloadMenuOpen(o => !o)}
-                    className={`flex items-center gap-2 h-8 px-3 rounded-[6px] transition-colors ${downloadMenuOpen ? 'bg-[#e7e5e3] text-[#44403c]' : 'bg-[#eeece6] text-[#44403c] hover:bg-[#e7e5e3]'}`}
-                  >
-                    <Download className="w-4 h-4" strokeWidth={1.5} />
-                    <span className="text-sm font-medium">Télécharger</span>
-                  </button>
+            <BordereauTable
+              pieces={adaptedPieces}
+              categories={bordereauCategories}
+              setPieces={setDropFirstViaBordereau}
+              setCategories={setBordereauCategories}
+              onOpenPiecePreview={(pid) => setPieceOverviewPanel(pid)}
+              onCurrentFolderChange={(id) => { dropFirstCurrentFolderRef.current = id; }}
+              onAddFiles={handleAddMorePieces}
+              onAskChato={askChatoAboutSelection}
+            />
 
-                  {downloadMenuOpen && (
-                    <div
-                      className="absolute right-0 top-10 z-50 bg-white rounded-[8px] border border-[#e7e5e3] overflow-hidden"
-                      style={{ width: 260, boxShadow: '0px 2px 4px -2px rgba(26,26,26,0.05), 0px 4px 6px -1px rgba(26,26,26,0.05)' }}
-                    >
-                      <div className="px-3 pt-2.5 pb-1.5">
-                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 500, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          Télécharger le bordereau...
-                        </span>
-                      </div>
-                      <div className="p-1">
-                        <button
-                          className="w-full flex items-center justify-between px-2 py-1.5 text-left rounded-[6px] hover:bg-[#fafaf9] transition-colors"
-                          onClick={() => { setDownloadMenuOpen(false); downloadDropFirstAsZip(); }}
-                        >
-                          <span className="text-[14px] text-[#292524]">Avec tamponnage</span>
-                        </button>
-                        <button
-                          className="w-full flex items-center justify-between px-2 py-1.5 text-left rounded-[6px] hover:bg-[#fafaf9] transition-colors"
-                          onClick={() => { setDownloadMenuOpen(false); downloadDropFirstAsZip(); }}
-                        >
-                          <span className="text-[14px] text-[#292524]">Sans tamponnage</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {dossierStatut !== 'fermé' && (
-                  <button
-                    onClick={handleCopyBordereau}
-                    className="flex items-center gap-2 h-8 px-3 text-sm font-medium text-white bg-[#292524] rounded-md hover:bg-[#44403c] shadow-[0px_1px_2px_0px_rgba(26,26,26,0.05)] transition-colors"
-                  >
-                    <Copy className="w-4 h-4" strokeWidth={1.5} />
-                    Copier bordereau
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="border border-[#e7e5e3] rounded-[6px] overflow-visible bg-white">
-              <table className="w-full">
-                <thead>
-                  <tr className="h-10 bg-white border-b border-[#e7e5e3]">
-                    <th className="w-[38px]"></th>
-                    <th className="w-[50px] px-3 text-center" style={colHeaderStyle}>N°</th>
-                    <th className="px-3 text-left" style={colHeaderStyle}>Nom du document</th>
-                    <th className="w-[174px] px-3 text-left" style={colHeaderStyle}>Type</th>
-                    <th className="w-[140px] px-3 text-left" style={colHeaderStyle}>Date d'émission</th>
-                    <th className="w-[44px]"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((piece, idx) => {
-                    const isProcessing = piece.status !== 'done';
-                    const pieceNum = piece.status === 'done' ? getPieceNumber(piece) : null;
-                    const isSelected = pieceOverviewPanel === piece.id;
-                    const isDragItem = reorderDrag?.pieceId === piece.id;
-                    const canDrag = manualReorder && !isProcessing && !isFiltered;
-
-                    return (
-                      <React.Fragment key={piece.id}>
-                        {/* Drop indicator line */}
-                        {reorderDropIdx === idx && reorderDrag?.pieceId !== piece.id && (
-                          <tr><td colSpan={6} className="p-0"><div className="h-0.5 bg-[#f59e0b] rounded-full mx-2" /></td></tr>
-                        )}
-                        <tr
-                          className={`border-b border-[#e7e5e3] transition-all duration-300 group bg-white ${
-                            isDragItem ? 'opacity-20 !bg-[#f4f4f5]' :
-                            isProcessing ? '' : 'hover:bg-[#fafaf9] cursor-pointer'
-                          } ${piece.justCompleted ? '!bg-teal-50' : ''} ${isSelected && !isDragItem ? '!bg-[#f8f7f5]' : ''}`}
-                          onClick={() => !isProcessing && !reorderDrag && setPieceOverviewPanel(piece.id)}
-                          style={{ height: '56px' }}
-                          draggable={canDrag}
-                          onDragStart={e => {
-                            if (!canDrag) { e.preventDefault(); return; }
-                            const img = new window.Image();
-                            img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                            e.dataTransfer.setDragImage(img, 0, 0);
-                            e.dataTransfer.effectAllowed = 'move';
-                            setReorderDrag({ pieceId: piece.id, ghostX: e.clientX, ghostY: e.clientY, name: piece.cleanName, type: piece.type, num: pieceNum });
-                          }}
-                          onDrag={e => {
-                            if (e.clientX === 0 && e.clientY === 0) return;
-                            setReorderDrag(prev => prev ? { ...prev, ghostX: e.clientX, ghostY: e.clientY } : null);
-                          }}
-                          onDragOver={e => {
-                            e.preventDefault();
-                            e.dataTransfer.dropEffect = 'move';
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const midY = rect.top + rect.height / 2;
-                            setReorderDropIdx(e.clientY < midY ? idx : idx + 1);
-                          }}
-                          onDragEnd={() => {
-                            if (reorderDrag && reorderDropIdx !== null) {
-                              const dragId = reorderDrag.pieceId;
-                              const currentFiltered = filtered;
-                              const draggedIdx = currentFiltered.findIndex(p => p.id === dragId);
-                              let targetIdx = reorderDropIdx;
-                              if (targetIdx > draggedIdx) targetIdx -= 1;
-                              if (draggedIdx !== targetIdx && draggedIdx >= 0) {
-                                setDropFirstPieces(prev => {
-                                  const doneIds = currentFiltered.filter(p => p.status === 'done').map(p => p.id);
-                                  const pending = prev.filter(p => p.status !== 'done');
-                                  const doneMap = {};
-                                  prev.forEach(p => { if (p.status === 'done') doneMap[p.id] = p; });
-                                  const ordered = doneIds.map(id => doneMap[id]);
-                                  const fromIdx = ordered.findIndex(p => p.id === dragId);
-                                  if (fromIdx < 0) return prev;
-                                  const [moved] = ordered.splice(fromIdx, 1);
-                                  let toIdx = targetIdx;
-                                  if (toIdx > ordered.length) toIdx = ordered.length;
-                                  ordered.splice(toIdx, 0, moved);
-                                  return [...ordered, ...pending];
-                                });
-                                setManualReorder(true);
-                              }
-                            }
-                            setReorderDrag(null);
-                            setReorderDropIdx(null);
-                          }}
-                        >
-                        {/* Grip handle */}
-                        <td
-                          className={`w-[38px] text-center ${!isProcessing ? (canDrag ? 'cursor-grab' : 'cursor-not-allowed') : ''}`}
-                          onClick={(e) => { if (!isProcessing && !manualReorder) { e.stopPropagation(); setShowReorderHint(true); } }}
-                        >
-                          {!isProcessing ? (
-                            <GripVertical className={`w-3.5 h-3.5 inline-block transition-opacity ${manualReorder ? 'text-[#d6d3d1] opacity-100' : 'text-[#d6d3d1] opacity-0 group-hover:opacity-40'}`} strokeWidth={1.5} />
-                          ) : null}
-                        </td>
-                        {/* N° / loader */}
-                        <td className="w-[50px] px-3 text-center">
-                          {isProcessing ? (
-                            <Loader2 className="w-5 h-5 text-[#78716c] animate-spin mx-auto" strokeWidth={1.5} />
-                          ) : (
-                            <span className="inline-flex items-center justify-center w-[22px] h-[22px] bg-[#eeece6] text-[#78716c] text-xs font-semibold rounded-md">{pieceNum || '—'}</span>
-                          )}
-                        </td>
-                        {/* Document name */}
-                        <td className="px-3">
-                          {isProcessing ? (
-                            <span className="text-sm text-[#292524] italic opacity-40">{piece.originalName}</span>
-                          ) : (
-                            <span className="text-sm font-medium text-black">{piece.cleanName}</span>
-                          )}
-                        </td>
-                        {/* Type */}
-                        <td className="w-[174px] px-3">
-                          {isProcessing ? (
-                            <div className="h-[18px] w-16 bg-[#f4f4f5] rounded" />
-                          ) : (
-                            <div className="relative">
-                              <button
-                                className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md cursor-pointer hover:opacity-80 transition-opacity ${PIECE_TYPE_COLORS[piece.type] || 'bg-[#eeece6] text-[#44403c]'}`}
-                                onClick={e => { e.stopPropagation(); setEditingPieceField(editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'type' ? null : { pieceId: piece.id, field: 'type' }); }}
-                              >
-                                {piece.type}
-                                <ChevronDown className="w-3 h-3" strokeWidth={1.5} />
-                              </button>
-                              {editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'type' && (
-                                <div className="absolute left-0 top-full mt-1 bg-white border border-[#e7e5e3] rounded-lg shadow-lg py-1 z-10 min-w-[160px]">
-                                  {PIECE_TYPE_OPTIONS.map(t => (
-                                    <button
-                                      key={t}
-                                      className={`w-full text-left px-3 py-1.5 text-sm hover:bg-[#fafaf9] transition-colors flex items-center gap-2 ${piece.type === t ? 'font-medium text-[#292524]' : 'text-[#78716c]'}`}
-                                      onClick={e => {
-                                        e.stopPropagation();
-                                        setDropFirstPieces(prev => prev.map(p => p.id === piece.id ? { ...p, type: t } : p));
-                                        setEditingPieceField(null);
-                                      }}
-                                    >
-                                      <span className={`w-2 h-2 rounded-full ${piece.type === t ? 'bg-[#292524]' : ''}`} />
-                                      {t}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                        {/* Date */}
-                        <td className="w-[140px] px-3">
-                          {isProcessing ? (
-                            <div className="h-[18px] w-16 bg-[#f4f4f5] rounded" />
-                          ) : (
-                            <span className="text-sm text-[#292524]">
-                              {piece.date ? new Date(piece.date).toLocaleDateString('fr-FR') : '—'}
-                            </span>
-                          )}
-                        </td>
-                        {/* Options */}
-                        <td className="w-[44px] text-right pr-4">
-                          {!isProcessing && (
-                            <div className="relative inline-block" data-piece-context-menu>
-                              <button
-                                className={`p-1 rounded-md hover:bg-[#eeece6] transition-colors ${pieceContextMenu === piece.id ? 'opacity-100 bg-[#eeece6]' : 'opacity-0 group-hover:opacity-100'}`}
-                                onClick={e => { e.stopPropagation(); setPieceContextMenu(pieceContextMenu === piece.id ? null : piece.id); }}
-                              >
-                                <MoreVertical className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
-                              </button>
-                              {pieceContextMenu === piece.id && (
-                                <div className="absolute right-0 top-full mt-1 bg-white border border-[#e7e5e3] rounded-lg shadow-lg py-1 z-20 min-w-[200px]">
-                                  <button
-                                    className="w-full text-left px-3 py-2 text-sm text-[#44403c] hover:bg-[#fafaf9] transition-colors"
-                                    onClick={e => { e.stopPropagation(); toggleHorsBordereau(piece.id); }}
-                                  >
-                                    {piece.horsBordereau ? 'Inclure au bordereau' : 'Exclure du bordereau'}
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                      </React.Fragment>
-                    );
-                  })}
-                  {/* Drop indicator at the very end */}
-                  {reorderDropIdx === filtered.length && reorderDrag && (
-                    <tr><td colSpan={6} className="p-0"><div className="h-0.5 bg-blue-500 rounded-full mx-2" /></td></tr>
-                  )}
-                </tbody>
-              </table>
-
-            </div>
-
-            {/* Hors bordereau section */}
-            <div className="mt-6">
-              <div className="mb-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-[#292524]">Hors bordereau</span>
-                  <span className="inline-flex items-center justify-center px-2 py-0.5 border border-[#e7e5e3] rounded-[6px] text-[12px] font-medium text-[#292524]">{getFilteredHorsPieces().length}</span>
-                </div>
-                {getFilteredHorsPieces().length > 0 && (
-                  <button
-                    onClick={downloadDropFirstAsZip}
-                    className="flex items-center gap-2 h-8 px-3 text-sm font-medium text-[#44403c] bg-[#eeece6] rounded-[6px] hover:bg-[#e7e5e3] transition-colors"
-                  >
-                    <Download className="w-4 h-4" strokeWidth={1.5} />
-                    Télécharger
-                  </button>
-                )}
-              </div>
-              {getFilteredHorsPieces().length > 0 ? (
-                <div className="border border-[#e7e5e3] rounded-[6px] overflow-visible bg-white">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-[#e7e5e3]" style={{ height: '40px' }}>
-                        <th className="px-3 text-left" style={colHeaderStyle}>Nom du document</th>
-                        <th className="w-[174px] px-3 text-left" style={colHeaderStyle}>Type</th>
-                        <th className="w-[140px] px-3 text-left" style={colHeaderStyle}>Date d'émission</th>
-                        <th className="w-[44px]"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {getFilteredHorsPieces().map(piece => (
-                        <tr
-                          key={piece.id}
-                          className="border-b border-[#e7e5e3] group hover:bg-[#fafaf9] cursor-pointer transition-all last:border-b-0"
-                          onClick={() => setPieceOverviewPanel(piece.id)}
-                          style={{ height: '56px' }}
-                        >
-                          <td className="px-3">
-                            <span className="text-sm font-medium text-black">{piece.cleanName}</span>
-                          </td>
-                          <td className="w-[174px] px-3">
-                            <div className="relative">
-                              <button
-                                className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md cursor-pointer hover:opacity-80 transition-opacity ${PIECE_TYPE_COLORS[piece.type] || 'bg-[#eeece6] text-[#44403c]'}`}
-                                onClick={e => { e.stopPropagation(); setEditingPieceField(editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'type' ? null : { pieceId: piece.id, field: 'type' }); }}
-                              >
-                                {piece.type}
-                                <ChevronDown className="w-3 h-3" strokeWidth={1.5} />
-                              </button>
-                              {editingPieceField?.pieceId === piece.id && editingPieceField?.field === 'type' && (
-                                <div className="absolute left-0 top-full mt-1 bg-white border border-[#e7e5e3] rounded-lg shadow-lg py-1 z-10 min-w-[160px]">
-                                  {PIECE_TYPE_OPTIONS.map(t => (
-                                    <button
-                                      key={t}
-                                      className={`w-full text-left px-3 py-1.5 text-sm hover:bg-[#fafaf9] transition-colors flex items-center gap-2 ${piece.type === t ? 'font-medium text-[#292524]' : 'text-[#78716c]'}`}
-                                      onClick={e => {
-                                        e.stopPropagation();
-                                        setDropFirstPieces(prev => prev.map(p => p.id === piece.id ? { ...p, type: t } : p));
-                                        setEditingPieceField(null);
-                                      }}
-                                    >
-                                      <span className={`w-2 h-2 rounded-full ${piece.type === t ? 'bg-[#292524]' : ''}`} />
-                                      {t}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="w-[140px] px-3">
-                            <span className="text-sm text-[#292524]">
-                              {piece.date ? new Date(piece.date).toLocaleDateString('fr-FR') : '—'}
-                            </span>
-                          </td>
-                          <td className="w-[44px] text-right pr-4">
-                            <div className="relative inline-block" data-piece-context-menu>
-                              <button
-                                className={`p-1 rounded-md hover:bg-[#eeece6] transition-colors ${pieceContextMenu === piece.id ? 'opacity-100 bg-[#eeece6]' : 'opacity-0 group-hover:opacity-100'}`}
-                                onClick={e => { e.stopPropagation(); setPieceContextMenu(pieceContextMenu === piece.id ? null : piece.id); }}
-                              >
-                                <MoreVertical className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
-                              </button>
-                              {pieceContextMenu === piece.id && (
-                                <div className="absolute right-0 top-full mt-1 bg-white border border-[#e7e5e3] rounded-lg shadow-lg py-1 z-20 min-w-[200px]">
-                                  <button
-                                    className="w-full text-left px-3 py-2 text-sm text-[#44403c] hover:bg-[#fafaf9] transition-colors"
-                                    onClick={e => { e.stopPropagation(); toggleHorsBordereau(piece.id); }}
-                                  >
-                                    Inclure au bordereau
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-xs text-[#c4c0b8] italic mt-2">Aucune pièce exclue</p>
-              )}
-            </div>
           </div>
 
           {/* Custom drag ghost card */}
@@ -13983,6 +13675,7 @@ export default function App() {
             </div>
           )}
         </div>
+        )}
 
         {/* Document Overview Panel (Right Drawer) */}
         {selectedPiece && renderPieceOverviewPanel(selectedPiece)}
