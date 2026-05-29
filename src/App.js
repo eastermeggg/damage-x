@@ -1129,7 +1129,6 @@ export default function App() {
   const [reorderDrag, setReorderDrag] = useState(null); // { pieceId, ghostX, ghostY }
   const [reorderDropIdx, setReorderDropIdx] = useState(null);
   const [manualReorder, setManualReorder] = useState(true);
-  const dropFirstCurrentFolderRef = useRef(null); // BordereauTable surfaces this; used to set categoryIdOverride on dropped pieces
   const [piecesSortMode, setPiecesSortMode] = useState('manuel'); // 'chrono' | 'manuel'
   const [piecesManualOrder, setPiecesManualOrder] = useState(null);
   const [piecesDragState, setPiecesDragState] = useState({ dragging: null, over: null });
@@ -13517,11 +13516,9 @@ export default function App() {
     const accepted = Array.from(fileList).filter(f => /\.(pdf|png|jpe?g|docx?)$/i.test(f.name));
     if (accepted.length === 0) return;
 
-    // When the user is inside a folder, dropped pieces inherit that folder
-    // as their destination (categoryIdOverride wins over auto-classify).
-    // At root, categoryIdOverride stays undefined → classification fires.
-    const dropDest = dropFirstCurrentFolderRef.current || null;
-
+    // The tree view has no notion of a "currently open" folder, so dropped
+    // pieces always pass through auto-classification (categoryIdOverride
+    // stays undefined → classifier picks the best folder by type/name).
     const newItems = accepted.map((f, i) => {
       const poolEntry = DROP_FIRST_DOCUMENT_POOL[(dropFirstPieces.length + i) % DROP_FIRST_DOCUMENT_POOL.length];
       return {
@@ -13532,7 +13529,6 @@ export default function App() {
         sourceFile: null, pageRange: null, siblings: null,
         fakeSize: (Math.random() * 4 + 0.2).toFixed(1) + ' Mo',
         isRapport: false,
-        categoryIdOverride: dropDest || undefined,
       };
     });
 
@@ -13645,7 +13641,6 @@ export default function App() {
               setPieces={setDropFirstViaBordereau}
               setCategories={setBordereauCategories}
               onOpenPiecePreview={(pid) => setPieceOverviewPanel(pid)}
-              onCurrentFolderChange={(id) => { dropFirstCurrentFolderRef.current = id; }}
               onAddFiles={handleAddMorePieces}
               onAskChato={askChatoAboutSelection}
             />

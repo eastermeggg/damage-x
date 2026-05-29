@@ -1,21 +1,26 @@
 import React, { useState } from 'react';
-import { Folder, MoreVertical, Check, Download } from 'lucide-react';
+import { Folder, ChevronRight, ChevronDown, MoreVertical, Check, Download } from 'lucide-react';
 import { colors, typography } from '../../design-system/tokens';
 
-// Folder row aligned with Figma "Row Folders" — 52px tall.
-// Resting: folder icon + name + documents count + date + invisible action slots.
-// Hover: Download + kebab icons fade in to the right (slots reserved → no layout shift).
-// Selected: folder icon swaps to a filled stone checkbox; hover icons still appear.
+// Folder row for the tree view.
+// - Chevron (right when collapsed, down when expanded) appears only when the
+//   folder has children. Clicking the chevron — or the row body — toggles
+//   expansion. The folder icon swaps to a stone checkbox on hover/selection.
+// - Indented by `depth * INDENT` so nested folders nest visually.
+// - DOCUMENTS/DATE columns are intentionally empty on folder rows (the tree
+//   view shows that data only on pieces); the slots are kept for alignment.
 
-const ROW_HEIGHT = 52;
+const ROW_HEIGHT = 44;
+const INDENT = 24;
 
 export default function CategoryHeader({
   label,
+  depth = 0,
+  hasChildren = false,
+  expanded = false,
   isEmpty = false,
   selected = false,
-  lastAdded,
-  docCount = 0,
-  onOpen,
+  onToggle,
   onSelectToggle,
   onContextMenu,
   onDownload,
@@ -29,7 +34,7 @@ export default function CategoryHeader({
       onSelectToggle?.();
       return;
     }
-    onOpen?.();
+    if (hasChildren) onToggle?.();
   };
   const handleContextMenu = (e) => { e.preventDefault(); onContextMenu?.({ x: e.clientX, y: e.clientY }); };
   const handleKebab = (e) => {
@@ -41,6 +46,8 @@ export default function CategoryHeader({
   const bg = selected
     ? colors.semantic.backgroundSubtle
     : (hover ? colors.semantic.backgroundHover : colors.semantic.white);
+
+  const Chevron = expanded ? ChevronDown : ChevronRight;
 
   return (
     <div
@@ -54,11 +61,32 @@ export default function CategoryHeader({
         borderBottom: `1px solid ${colors.semantic.border}`,
         display: 'flex',
         alignItems: 'center',
-        cursor: 'pointer',
+        cursor: hasChildren ? 'pointer' : 'default',
         transition: 'background-color 100ms',
       }}
     >
-      {/* Icon slot — folder at rest, checkbox on hover or when selected */}
+      {/* Indent + chevron + folder/checkbox occupy the leading column. */}
+      <span style={{
+        width: 40 + depth * INDENT,
+        flexShrink: 0,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        paddingRight: 4,
+      }}>
+        <span style={{
+          width: 20,
+          height: 20,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: colors.semantic.foregroundSecondary,
+          visibility: hasChildren ? 'visible' : 'hidden',
+        }}>
+          <Chevron style={{ width: 14, height: 14 }} strokeWidth={2} />
+        </span>
+      </span>
+
       <span
         onClick={(e) => {
           if (!(hover || selected)) return;
@@ -66,12 +94,13 @@ export default function CategoryHeader({
           onSelectToggle?.();
         }}
         style={{
-          width: 40,
+          width: 24,
           flexShrink: 0,
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          cursor: (hover || selected) ? 'pointer' : 'default',
+          marginRight: 8,
+          cursor: (hover || selected) ? 'pointer' : 'inherit',
           color: isEmpty ? colors.semantic.foregroundMuted : colors.semantic.foregroundTertiary,
         }}
       >
@@ -102,27 +131,11 @@ export default function CategoryHeader({
         </span>
       </span>
 
-      <span style={{
-        width: 130,
-        flexShrink: 0,
-        paddingRight: 12,
-        fontFamily: typography.fontFamily.sans,
-        fontSize: 14,
-        color: colors.semantic.foreground,
-      }}>
-        {docCount}
-      </span>
+      {/* DOCUMENTS column — empty on folder rows */}
+      <span style={{ width: 130, flexShrink: 0 }} />
 
-      <span style={{
-        width: 130,
-        flexShrink: 0,
-        paddingRight: 12,
-        fontFamily: typography.fontFamily.sans,
-        fontSize: 14,
-        color: colors.semantic.foreground,
-      }}>
-        {lastAdded ? lastAdded.toLocaleDateString('fr-FR') : '—'}
-      </span>
+      {/* DATE column — empty on folder rows */}
+      <span style={{ width: 130, flexShrink: 0 }} />
 
       <span
         onClick={(e) => e.stopPropagation()}

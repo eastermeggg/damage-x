@@ -87,6 +87,7 @@ export default function PiecesTab({ pieces, categories, setPieces, setCategories
               setCategories={setCategories}
               onAddFiles={onAddFiles}
               onAskChato={onAskChato}
+              forceExpandAll={query.trim() !== ''}
             />
           </div>
         </>
