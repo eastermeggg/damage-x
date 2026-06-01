@@ -1,10 +1,9 @@
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import { Pencil, Download, Trash2, Move, FolderPlus, ArrowUp, ArrowDown, X, Sparkles, Plus, ChevronDown, FilePlus2 } from 'lucide-react';
 import { colors, typography } from '../../design-system/tokens';
-import { buildFolderViewRows, folderPath, folderStats, parsePieceDate } from '../../data/piecesModel';
+import { buildTreeViewRows } from '../../data/piecesModel';
 import CategoryHeader from './CategoryHeader';
 import PieceRow from './PieceRow';
-import FolderBreadcrumb from './FolderBreadcrumb';
 import RowContextMenu from './RowContextMenu';
 import MoveToFolderModal from './MoveToFolderModal';
 import RenameFolderModal from './RenameFolderModal';
@@ -23,20 +22,14 @@ export default function BordereauTable({
   setPieces,
   setCategories,
   onOpenPiecePreview,
-  onCurrentFolderChange,
   onAddFiles,
   onAskChato,
+  forceExpandAll = false,
 }) {
   const fileInputRef = useRef(null);
   const addButtonRef = useRef(null);
   const [addMenu, setAddMenu] = useState(null); // { x, y }
-  const [currentFolderId, setCurrentFolderId] = useState(null);
-
-  React.useEffect(() => {
-    onCurrentFolderChange?.(currentFolderId);
-    // We only need to fire when the folder changes — onCurrentFolderChange is a stable ref handler.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentFolderId]);
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [menu, setMenu] = useState(null);
   const [moveModal, setMoveModal] = useState(null);
@@ -44,44 +37,33 @@ export default function BordereauTable({
   const [renamePieceModal, setRenamePieceModal] = useState(null);
   const [deleteModal, setDeleteModal] = useState(null);
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
-  const [sort, setSort] = useState({
-    folders: { col: 'name', dir: 'asc' },
-    pieces:  { col: 'name', dir: 'asc' },
+  const [sort, setSort] = useState({ col: 'name', dir: 'asc' });
+
+  const toggleSort = (col) => setSort(prev => {
+    const nextDir = prev.col === col ? (prev.dir === 'asc' ? 'desc' : 'asc') : 'asc';
+    return { col, dir: nextDir };
   });
 
-  const toggleSort = (section, col) => setSort(prev => {
-    const cur = prev[section];
-    const nextDir = cur.col === col ? (cur.dir === 'asc' ? 'desc' : 'asc') : 'asc';
-    return { ...prev, [section]: { col, dir: nextDir } };
-  });
+  // When a search filter is active upstream, force every folder open so matches
+  // inside collapsed folders are still visible. Falls back to user expansion
+  // state once the search clears.
+  const effectiveExpandedIds = useMemo(() => {
+    if (!forceExpandAll) return expandedIds;
+    return new Set(categories.map(c => c.id));
+  }, [forceExpandAll, expandedIds, categories]);
 
   const rows = useMemo(
-    () => buildFolderViewRows(pieces, categories, currentFolderId),
-    [pieces, categories, currentFolderId]
+    () => buildTreeViewRows(pieces, categories, effectiveExpandedIds, sort),
+    [pieces, categories, effectiveExpandedIds, sort]
   );
 
-  const path = useMemo(
-    () => folderPath(currentFolderId, categories),
-    [currentFolderId, categories]
-  );
+  const totalPieceCount = pieces.length;
 
-  // Count of root folders for the breadcrumb's at-root label.
-  const rootFolderCount = useMemo(
-    () => categories.filter(c => c.parentId === null).length,
-    [categories]
-  );
-
-  // Auto-navigate back to root if the current folder is deleted while we're inside it.
-  React.useEffect(() => {
-    if (currentFolderId && !categories.find(c => c.id === currentFolderId)) {
-      setCurrentFolderId(null);
-    }
-  }, [currentFolderId, categories]);
-
-  const navigateTo = (folderId) => {
-    setCurrentFolderId(folderId);
-    setSelectedIds(new Set());
-  };
+  const toggleExpand = (categoryId) => setExpandedIds(prev => {
+    const next = new Set(prev);
+    if (next.has(categoryId)) next.delete(categoryId); else next.add(categoryId);
+    return next;
+  });
 
   // ── Selection helpers
   const selectionKeyForCategory = (id) => CAT_PREFIX + id;
@@ -123,14 +105,14 @@ export default function BordereauTable({
 
   const createFolder = (name) => {
     setCategories?.(prev => {
-      const siblings = prev.filter(c => (c.parentId ?? null) === (currentFolderId ?? null));
+      const siblings = prev.filter(c => c.parentId === null);
       const nextOrder = siblings.length
         ? Math.max(...siblings.map(c => c.order)) + 1
         : 0;
       const newCat = {
         id: `cat-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         name,
-        parentId: currentFolderId,
+        parentId: null,
         order: nextOrder,
       };
       return [...prev, newCat];
@@ -262,10 +244,6 @@ export default function BordereauTable({
     setMenu({ position, items: buildPieceActions(pieceId) });
   };
 
-  const currentFolderName = currentFolderId
-    ? (categories.find(c => c.id === currentFolderId)?.name || 'Pièces')
-    : 'Pièces';
-
   const hasSelection = selectedIds.size > 0;
   const selectionHasFolder = useMemo(
     () => [...selectedIds].some(k => k.startsWith(CAT_PREFIX)),
@@ -306,8 +284,17 @@ export default function BordereauTable({
           />
         ) : (
           <>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <FolderBreadcrumb path={path} onNavigate={navigateTo} rootCount={rootFolderCount} />
+            <div style={{
+              flex: 1,
+              minWidth: 0,
+              display: 'flex',
+              alignItems: 'center',
+              fontFamily: typography.fontFamily.sans,
+              fontSize: 14,
+              fontWeight: 500,
+              color: colors.semantic.foreground,
+            }}>
+              {totalPieceCount} pièce{totalPieceCount > 1 ? 's' : ''}
             </div>
             <button
               ref={addButtonRef}
@@ -363,82 +350,60 @@ export default function BordereauTable({
         overflow: 'hidden',
         backgroundColor: colors.semantic.white,
       }}>
-        {(() => {
-          const folderRows = rows.filter(r => r.kind === 'category').map(r => {
-            const stats = folderStats(r.category.id, pieces, categories);
-            return { ...r, latestDate: stats.latestDate, deepCount: stats.count };
-          });
-          const sansCatPieceRows = rows.filter(r => r.kind === 'sansCategoriePiece');
-          const directPieceRows = rows.filter(r => r.kind === 'piece');
-          const allPieceRows = [...sansCatPieceRows, ...directPieceRows];
-
-          const sortedFolders = sortFolders(folderRows, sort.folders);
-          const sortedPieces  = sortPieces(allPieceRows, sort.pieces);
-
-          if (rows.length === 0) {
-            return (
-              <div style={{
-                padding: '40px 16px',
-                textAlign: 'center',
-                fontFamily: typography.fontFamily.sans,
-                fontSize: 13,
-                color: colors.semantic.foregroundMuted,
-                fontStyle: 'italic',
-              }}>
-                Ce dossier est vide.
-              </div>
-            );
-          }
-
-          return (
-            <>
-              {sortedFolders.length > 0 && (
-                <>
-                  <FolderColumnHeader sort={sort.folders} onSort={(col) => toggleSort('folders', col)} />
-                  {sortedFolders.map(row => {
-                    const catKey = selectionKeyForCategory(row.category.id);
-                    return (
-                      <CategoryHeader
-                        key={row.category.id}
-                        label={row.category.name}
-                        isEmpty={row.deepCount === 0 && row.subcategoryCount === 0}
-                        selected={selectedIds.has(catKey)}
-                        lastAdded={row.latestDate}
-                        docCount={row.deepCount}
-                        onOpen={() => navigateTo(row.category.id)}
-                        onSelectToggle={() => toggleInSelection(catKey)}
-                        onContextMenu={(pos) => handleCategoryContextOrKebab(row.category.id, pos)}
-                        onOpenMenu={(pos) => handleCategoryContextOrKebab(row.category.id, pos)}
-                      />
-                    );
-                  })}
-                </>
-              )}
-
-              {sortedPieces.length > 0 && (
-                <>
-                  <PieceColumnHeader sort={sort.pieces} onSort={(col) => toggleSort('pieces', col)} />
-                  {sortedPieces.map(row => {
-                    const pieceKey = selectionKeyForPiece(row.piece.id);
-                    const isSansCat = row.kind === 'sansCategoriePiece';
-                    return (
-                      <PieceRow
-                        key={row.piece.id}
-                        piece={row.piece}
-                        italic={isSansCat}
-                        selected={selectedIds.has(pieceKey)}
-                        onClick={() => triggerPieceRename(row.piece.id)}
-                        onSelectToggle={() => toggleInSelection(pieceKey)}
-                        onContextMenu={(pos) => handlePieceContextOrKebab(row.piece.id, pos)}
-                        onOpenMenu={(pos) => handlePieceContextOrKebab(row.piece.id, pos)}
-                      />
-                    );
-                  })}
-                </>
-              )}
-            </>
-          );
-        })()}
+        {rows.length === 0 ? (
+          <div style={{
+            padding: '40px 16px',
+            textAlign: 'center',
+            fontFamily: typography.fontFamily.sans,
+            fontSize: 13,
+            color: colors.semantic.foregroundMuted,
+            fontStyle: 'italic',
+          }}>
+            Aucune pièce.
+          </div>
+        ) : (
+          <>
+            <TreeColumnHeader sort={sort} onSort={toggleSort} />
+            {rows.map((row) => {
+              if (row.kind === 'category') {
+                const catKey = selectionKeyForCategory(row.category.id);
+                return (
+                  <CategoryHeader
+                    key={`cat-${row.category.id}`}
+                    label={row.category.name}
+                    depth={row.depth}
+                    hasChildren={row.hasChildren}
+                    expanded={row.expanded}
+                    isEmpty={!row.hasChildren}
+                    selected={selectedIds.has(catKey)}
+                    onToggle={() => toggleExpand(row.category.id)}
+                    onSelectToggle={() => toggleInSelection(catKey)}
+                    onContextMenu={(pos) => handleCategoryContextOrKebab(row.category.id, pos)}
+                    onOpenMenu={(pos) => handleCategoryContextOrKebab(row.category.id, pos)}
+                  />
+                );
+              }
+              if (row.kind === 'piece' || row.kind === 'sansCategoriePiece') {
+                const pieceKey = selectionKeyForPiece(row.piece.id);
+                const isSansCat = row.kind === 'sansCategoriePiece';
+                return (
+                  <PieceRow
+                    key={`piece-${row.piece.id}`}
+                    piece={row.piece}
+                    depth={row.depth}
+                    italic={isSansCat}
+                    selected={selectedIds.has(pieceKey)}
+                    onClick={() => triggerPieceRename(row.piece.id)}
+                    onSelectToggle={() => toggleInSelection(pieceKey)}
+                    onContextMenu={(pos) => handlePieceContextOrKebab(row.piece.id, pos)}
+                    onOpenMenu={(pos) => handlePieceContextOrKebab(row.piece.id, pos)}
+                  />
+                );
+              }
+              return null;
+            })}
+          </>
+        )}
       </div>
 
       <RowContextMenu
@@ -487,7 +452,7 @@ export default function BordereauTable({
       <CreateFolderModal
         open={createFolderOpen}
         onOpenChange={setCreateFolderOpen}
-        parentLabel={currentFolderName}
+        parentLabel="Pièces"
         onConfirm={createFolder}
       />
 
@@ -504,31 +469,7 @@ export default function BordereauTable({
   );
 }
 
-function FolderColumnHeader({ sort, onSort }) {
-  return (
-    <ColRow>
-      <ColSpacer width={40} />
-      <SortCell label="Dossier"   col="name"      sort={sort} onSort={onSort} flex />
-      <SortCell label="Documents" col="count"     sort={sort} onSort={onSort} width={130} />
-      <SortCell label="Date"      col="lastAdded" sort={sort} onSort={onSort} width={130} />
-      <ColSpacer width={72} />
-    </ColRow>
-  );
-}
-
-function PieceColumnHeader({ sort, onSort }) {
-  return (
-    <ColRow>
-      <ColSpacer width={40} />
-      <SortCell label="Nom du document" col="name" sort={sort} onSort={onSort} flex />
-      <ColSpacer width={130} />
-      <SortCell label="Date" col="date" sort={sort} onSort={onSort} width={130} />
-      <ColSpacer width={72} />
-    </ColRow>
-  );
-}
-
-function ColRow({ children }) {
+function TreeColumnHeader({ sort, onSort }) {
   return (
     <div style={{
       height: COL_HEADER_HEIGHT,
@@ -536,7 +477,15 @@ function ColRow({ children }) {
       alignItems: 'center',
       backgroundColor: colors.semantic.backgroundCanvas,
       borderBottom: `1px solid ${colors.semantic.border}`,
-    }}>{children}</div>
+    }}>
+      {/* Indent column + chevron/folder slot — matches the row layout. */}
+      <span style={{ width: 40, flexShrink: 0 }} />
+      <span style={{ width: 24, flexShrink: 0, marginRight: 8 }} />
+      <SortCell label="Dossier" col="name" sort={sort} onSort={onSort} flex />
+      <ColSpacer width={130} />
+      <SortCell label="Date" col="date" sort={sort} onSort={onSort} width={130} />
+      <ColSpacer width={72} />
+    </div>
   );
 }
 
@@ -706,43 +655,4 @@ function AskChatoLink({ tone, onClick }) {
       <span>Demander à Chato</span>
     </button>
   );
-}
-
-function sortFolders(rows, sort) {
-  const dir = sort.dir === 'desc' ? -1 : 1;
-  const cmp = (a, b) => {
-    if (sort.col === 'name') {
-      return a.category.name.localeCompare(b.category.name, 'fr') * dir;
-    }
-    if (sort.col === 'lastAdded') {
-      const at = a.latestDate ? a.latestDate.getTime() : -Infinity;
-      const bt = b.latestDate ? b.latestDate.getTime() : -Infinity;
-      return (at - bt) * dir;
-    }
-    if (sort.col === 'count') {
-      return (a.deepCount - b.deepCount) * dir;
-    }
-    return 0;
-  };
-  return [...rows].sort(cmp);
-}
-
-function sortPieces(rows, sort) {
-  const dir = sort.dir === 'desc' ? -1 : 1;
-  const cmp = (a, b) => {
-    if (sort.col === 'name') {
-      const an = a.piece.intitule || a.piece.nom || '';
-      const bn = b.piece.intitule || b.piece.nom || '';
-      return an.localeCompare(bn, 'fr') * dir;
-    }
-    if (sort.col === 'date') {
-      const ad = parsePieceDate(a.piece.date);
-      const bd = parsePieceDate(b.piece.date);
-      const at = ad ? ad.getTime() : -Infinity;
-      const bt = bd ? bd.getTime() : -Infinity;
-      return (at - bt) * dir;
-    }
-    return 0;
-  };
-  return [...rows].sort(cmp);
 }

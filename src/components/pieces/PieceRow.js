@@ -8,9 +8,11 @@ import { colors, typography } from '../../design-system/tokens';
 // - Selected: file icon swaps to a filled stone checkbox; hover icons still appear.
 
 const ROW_HEIGHT = 64;
+const INDENT = 24;
 
 export default function PieceRow({
   piece,
+  depth = 0,
   italic = false,
   selected = false,
   onClick,
@@ -56,6 +58,10 @@ export default function PieceRow({
         transition: 'background-color 100ms',
       }}
     >
+      {/* Indent spacer — mirrors the chevron/folder column width on folder rows so
+          the file icon aligns under its parent folder. */}
+      <span style={{ width: 40 + depth * INDENT, flexShrink: 0 }} />
+
       {/* Icon slot — file at rest, checkbox on hover or when selected; spinner during drop-first processing */}
       <div
         onClick={(e) => {
@@ -64,11 +70,12 @@ export default function PieceRow({
           onSelectToggle?.();
         }}
         style={{
-          width: 40,
+          width: 24,
           flexShrink: 0,
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
+          marginRight: 8,
           cursor: (hover || selected) ? 'pointer' : 'default',
           color: colors.semantic.foregroundMuted,
         }}

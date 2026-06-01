@@ -234,66 +234,91 @@ export function buildBordereauRows(pieces, categories) {
 }
 
 /**
- * Build the rows for a single folder view (navigation model — only direct
- * children of `currentFolderId` are shown). At root (`currentFolderId =
- * null`) we surface a Sans-catégorie group at the top for uncategorized
- * pieces, then the root folders themselves. Inside a folder we show the
- * folder's sub-folders followed by its direct pieces.
+ * Build a flat row list for the tree view — the full hierarchy is walked,
+ * but a folder's children are only emitted when its id is in `expandedIds`.
+ * Each row carries `depth` (0 at root) so the renderer can indent.
+ *
+ * Sans-catégorie pieces surface at the top (depth 0).
+ *
+ * Sorting applies at every level: siblings (folders and direct pieces) are
+ * sorted by `sortConfig.col` ('name' | 'date') and `sortConfig.dir`.
  *
  * @param {Piece[]} pieces
  * @param {Category[]} categories
- * @param {string|null} currentFolderId
+ * @param {Set<string>} expandedIds
+ * @param {{ col: 'name'|'date', dir: 'asc'|'desc' }} [sortConfig]
  * @returns {BordereauRow[]}
  */
-export function buildFolderViewRows(pieces, categories, currentFolderId) {
+export function buildTreeViewRows(pieces, categories, expandedIds, sortConfig = { col: 'name', dir: 'asc' }) {
+  const { childrenOf } = buildCategoryIndex(categories);
   const rows = [];
-  const isRoot = currentFolderId == null;
 
-  if (isRoot) {
-    const sansCat = pieces
-      .filter(p => p.categoryId == null)
-      .sort((a, b) => (a.orderInCategory || 0) - (b.orderInCategory || 0));
-    if (sansCat.length > 0) {
-      rows.push({ kind: 'sansCategorieHeader', depth: 0, count: sansCat.length });
-      sansCat.forEach((piece, idx) => {
-        rows.push({ kind: 'sansCategoriePiece', depth: 0, prefix: String(idx + 1), piece });
-      });
-    }
+  const piecesByCategory = new Map();
+  for (const p of pieces) {
+    if (p.categoryId == null) continue;
+    if (!piecesByCategory.has(p.categoryId)) piecesByCategory.set(p.categoryId, []);
+    piecesByCategory.get(p.categoryId).push(p);
   }
 
-  const folders = categories
-    .filter(c => (c.parentId ?? null) === currentFolderId)
-    .sort((a, b) => a.order - b.order);
-  folders.forEach(cat => {
-    const prefix = categoryPrefix(cat, categories);
-    const directPieceCount = pieces.filter(p => p.categoryId === cat.id).length;
-    const subcategoryCount = categories.filter(c => c.parentId === cat.id).length;
-    rows.push({
-      kind: 'category',
-      depth: 0,
-      prefix,
-      category: cat,
-      directPieceCount,
-      subcategoryCount,
+  const sansCat = pieces
+    .filter(p => p.categoryId == null)
+    .sort((a, b) => (a.orderInCategory || 0) - (b.orderInCategory || 0));
+  if (sansCat.length > 0) {
+    rows.push({ kind: 'sansCategorieHeader', depth: 0, count: sansCat.length });
+    sansCat.forEach((piece, idx) => {
+      rows.push({ kind: 'sansCategoriePiece', depth: 0, prefix: String(idx + 1), piece });
     });
+  }
+
+  const dir = sortConfig.dir === 'desc' ? -1 : 1;
+  const sortFolders = (folders) => [...folders].sort((a, b) => {
+    if (sortConfig.col === 'date') {
+      const sa = folderStats(a.id, pieces, categories).latestDate;
+      const sb = folderStats(b.id, pieces, categories).latestDate;
+      return ((sa ? sa.getTime() : -Infinity) - (sb ? sb.getTime() : -Infinity)) * dir;
+    }
+    return a.name.localeCompare(b.name, 'fr') * dir;
+  });
+  const sortPieces = (pcs) => [...pcs].sort((a, b) => {
+    if (sortConfig.col === 'date') {
+      const da = parsePieceDate(a.date);
+      const db = parsePieceDate(b.date);
+      return ((da ? da.getTime() : -Infinity) - (db ? db.getTime() : -Infinity)) * dir;
+    }
+    const an = a.intitule || a.nom || '';
+    const bn = b.intitule || b.nom || '';
+    return an.localeCompare(bn, 'fr') * dir;
   });
 
-  if (!isRoot) {
-    const folderPieces = pieces
-      .filter(p => p.categoryId === currentFolderId)
-      .sort((a, b) => a.orderInCategory - b.orderInCategory);
-    const cat = categories.find(c => c.id === currentFolderId);
-    const prefix = cat ? categoryPrefix(cat, categories) : '';
-    folderPieces.forEach(piece => {
+  const visit = (category, depth) => {
+    const directPieces = piecesByCategory.get(category.id) || [];
+    const kids = childrenOf.get(category.id) || [];
+    const hasChildren = directPieces.length > 0 || kids.length > 0;
+    const expanded = expandedIds.has(category.id);
+    rows.push({
+      kind: 'category',
+      depth,
+      prefix: categoryPrefix(category, categories),
+      category,
+      directPieceCount: directPieces.length,
+      subcategoryCount: kids.length,
+      hasChildren,
+      expanded,
+    });
+    if (!expanded) return;
+    // Pieces first, then sub-folders — matches the bordereau ordering.
+    sortPieces(directPieces).forEach(piece => {
       rows.push({
         kind: 'piece',
-        depth: 0,
-        prefix: `${prefix}-${piece.orderInCategory + 1}`,
+        depth: depth + 1,
+        prefix: `${categoryPrefix(category, categories)}-${piece.orderInCategory + 1}`,
         piece,
       });
     });
-  }
+    sortFolders(kids).forEach(child => visit(child, depth + 1));
+  };
 
+  sortFolders(childrenOf.get(null) || []).forEach(root => visit(root, 0));
   return rows;
 }
 
@@ -340,23 +365,6 @@ export function folderStats(categoryId, pieces, categories) {
     if (d && (!latestDate || d > latestDate)) latestDate = d;
   });
   return { count, latestDate };
-}
-
-/**
- * Path of folders from root down to (and including) the given folder.
- * @param {string|null} categoryId
- * @param {Category[]} categories
- * @returns {Array<{ id: string, name: string }>}
- */
-export function folderPath(categoryId, categories) {
-  const path = [];
-  let cur = categoryId ? categories.find(c => c.id === categoryId) : null;
-  while (cur) {
-    path.unshift({ id: cur.id, name: cur.name });
-    const parentId = cur.parentId;
-    cur = parentId ? categories.find(c => c.id === parentId) : null;
-  }
-  return path;
 }
 
 // ────────────────────────────────────────────────────────────────────────
